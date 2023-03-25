@@ -61,7 +61,7 @@ spec:
     spec:
       containers:
       - name: gramophile
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.1.0 # {"$imagepolicy": "flux-system:rstore"}
+        image: registry.brotherlogic-backend.com/brotherlogic/rstore:0.21.0 # {"$imagepolicy": "flux-system:rstore"}
         ports:
         - containerPort: 8080
       imagePullSecrets:
