@@ -1,0 +1,16 @@
+
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message GetURLRequest {}
+message GetURLResponse {
+    string URL = 1;
+}
+
+// Externally accessible service
+service GramophileEService {
+    rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
+}
