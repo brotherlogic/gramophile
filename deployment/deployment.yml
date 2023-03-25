@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gramophile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gramophile
+  namespace: gramophile
+  labels:
+    app: gramophile
+spec:
+  type: NodePort
+  metadata:
+    labels:
+      app: gramophile
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+    - name: metrics
+      port: 8081
+      targetPort: 8081
+  selector:
+    app: gramophile
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gramophile
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - gramophile
+  selector:
+    matchLabels:
+      app: gramophile
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gramophile
+  namespace: gramophile
+spec:
+  selector:
+    matchLabels:
+      app: gramophile
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: gramophile
+    spec:
+      containers:
+      - name: gramophile
+        image: registry.brotherlogic-backend.com/brotherlogic/rstore:0.21.0 # {"$imagepolicy": "flux-system:rstore"}
+        ports:
+        - containerPort: 8080
+      imagePullSecrets:
+      - name: regcred
