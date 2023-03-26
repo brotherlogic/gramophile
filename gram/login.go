@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 
+	pb "github.com/brotherlogic/gramophile/proto"
+
 	"github.com/dghubble/oauth1"
 	"github.com/pkg/browser"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var authenticateEndpoint = oauth1.Endpoint{
@@ -21,10 +25,25 @@ func GetLogin() *CLIModule {
 	}
 }
 
-func getLoginURL(ctx context.Context) string {
-	return "http://www.google.com"
+func getLoginURL(ctx context.Context) (string, error) {
+	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return "", err
+	}
+
+	client := pb.NewGramophileEServiceClient(conn)
+	resp, err := client.GetURL(ctx, &pb.GetURLRequest{})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.GetURL(), nil
 }
 
 func execute(ctx context.Context, args []string) error {
-	return browser.OpenURL(getLoginURL(ctx))
+	val, err := getLoginURL(ctx)
+	if err != nil {
+		return err
+	}
+	return browser.OpenURL(val)
 }
