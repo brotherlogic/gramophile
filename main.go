@@ -34,8 +34,6 @@ func main() {
 	gs := grpc.NewServer()
 	pb.RegisterGramophileEServiceServer(gs, s)
 
-	log.Printf("gramophile is listening on %v", lis.Addr())
-
 	// Setup prometheus export
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {

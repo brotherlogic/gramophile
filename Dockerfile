@@ -17,7 +17,7 @@ RUN go mod download
 
 COPY *.go ./
 
-RUN CGO_ENABLED=0 go build -o /rstore
+RUN CGO_ENABLED=0 go build -o /gramophile
 
 ##
 ## Deploy
@@ -33,4 +33,4 @@ EXPOSE 8081
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/rstore"]
+ENTRYPOINT ["/gramophile"]
