@@ -3,15 +3,50 @@ syntax = "proto3";
 
 package gramophile;
 
+import "github.com/brotherlogic/discogs/proto/discogs.proto";
+
 option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message StoredUser {
+    GramophileAuth auth = 1;
+    discogs.User user = 2;
+    string user_token = 3;
+    string user_secret = 4;
+}
+
+message GramophileAuth {
+    string token = 1;
+}
+
+message UserLoginAttempts {
+    repeated UserLoginAttempt attempts = 1;
+}
+
+message UserLoginAttempt {
+    string RequestToken = 1;
+    string Secret = 2;
+    int64 DateAdded = 3;
+
+    string user_token = 4;
+    string user_secret = 5;
+}
 
 message GetURLRequest {}
 message GetURLResponse {
     string URL = 1;
-    string Secret = 2;
+    string Token = 2;
+}
+
+message GetLoginRequest {
+    string Token = 1;
+}
+
+message GetLoginResponse {
+    GramophileAuth auth = 1;
 }
 
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
+    rpc GetLogin(GetLoginRequest) returns (GetLoginResponse) {};
 }
