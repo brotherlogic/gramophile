@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GramophileEServiceClient interface {
 	GetURL(ctx context.Context, in *GetURLRequest, opts ...grpc.CallOption) (*GetURLResponse, error)
+	GetLogin(ctx context.Context, in *GetLoginRequest, opts ...grpc.CallOption) (*GetLoginResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -42,11 +43,21 @@ func (c *gramophileEServiceClient) GetURL(ctx context.Context, in *GetURLRequest
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) GetLogin(ctx context.Context, in *GetLoginRequest, opts ...grpc.CallOption) (*GetLoginResponse, error) {
+	out := new(GetLoginResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/GetLogin", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility
 type GramophileEServiceServer interface {
 	GetURL(context.Context, *GetURLRequest) (*GetURLResponse, error)
+	GetLogin(context.Context, *GetLoginRequest) (*GetLoginResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have forward compatible implementations.
@@ -55,6 +66,9 @@ type UnimplementedGramophileEServiceServer struct {
 
 func (UnimplementedGramophileEServiceServer) GetURL(context.Context, *GetURLRequest) (*GetURLResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetURL not implemented")
+}
+func (UnimplementedGramophileEServiceServer) GetLogin(context.Context, *GetLoginRequest) (*GetLoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLogin not implemented")
 }
 
 // UnsafeGramophileEServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -86,6 +100,24 @@ func _GramophileEService_GetURL_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_GetLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).GetLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/GetLogin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).GetLogin(ctx, req.(*GetLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -96,6 +128,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetURL",
 			Handler:    _GramophileEService_GetURL_Handler,
+		},
+		{
+			MethodName: "GetLogin",
+			Handler:    _GramophileEService_GetLogin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
