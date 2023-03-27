@@ -69,12 +69,12 @@ spec:
           valueFrom:
            secretKeyRef:
              name: discogs
-             key: key
+             key: discogs_key
         - name: DISCOGS_SECRET
           valueFrom:
            secretKeyRef:
              name: discogs
-             key: secret
+             key: discogs_secret
         - name: DISCOGS_CALLBACK
           value: "https://gramophile.brotherlogic-backend.com/callback"
       imagePullSecrets:
