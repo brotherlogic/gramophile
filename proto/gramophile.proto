@@ -8,6 +8,7 @@ option go_package = "github.com/brotherlogic/gramophile/proto";
 message GetURLRequest {}
 message GetURLResponse {
     string URL = 1;
+    string Secret = 2;
 }
 
 // Externally accessible service
