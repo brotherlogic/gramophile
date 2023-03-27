@@ -76,6 +76,6 @@ spec:
              name: discogs
              key: secret
         - name: DISCOGS_CALLBACK
-          value: "https://gramophile.brotherlogic-backend.com/discogs_callback"
+          value: "https://gramophile.brotherlogic-backend.com/callback"
       imagePullSecrets:
       - name: regcred
