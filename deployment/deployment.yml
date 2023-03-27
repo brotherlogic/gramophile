@@ -61,20 +61,20 @@ spec:
     spec:
       containers:
       - name: gramophile
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.4.0 # {"$imagepolicy": "flux-system:gramophile"}
+        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.5.0 # {"$imagepolicy": "flux-system:gramophile"}
         ports:
         - containerPort: 8080
         env:
         - name: DISCOGS_KEY
           valueFrom:
-           secretKeyRef:
-             name: discogs
-             key: discogs_key
+            secretKeyRef:
+              name: discogs
+              key: discogs_key
         - name: DISCOGS_SECRET
           valueFrom:
-           secretKeyRef:
-             name: discogs
-             key: discogs_secret
+            secretKeyRef:
+              name: discogs
+              key: discogs_secret
         - name: DISCOGS_CALLBACK
           value: "https://gramophile.brotherlogic-backend.com/callback"
       imagePullSecrets:
