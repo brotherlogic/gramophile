@@ -28,6 +28,7 @@ WORKDIR /
 
 COPY --from=build /gramophile /gramophile
 
+EXPOSE 80
 EXPOSE 8080
 EXPOSE 8081
 
