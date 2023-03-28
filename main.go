@@ -41,7 +41,7 @@ func main() {
 	}()
 
 	mux := http.NewServeMux()
-	mux.Handle("/callback", server.callbackHandler)
+	mux.Handle("/callback", s)
 	http.ListenAndServe(":80", mux)
 
 	if err := gs.Serve(lis); err != nil {
