@@ -40,11 +40,13 @@ func main() {
 		http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
 	}()
 
-	mux := http.NewServeMux()
-	mux.Handle("/callback", s)
-	http.ListenAndServe(":80", mux)
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/callback", s)
+		http.ListenAndServe(":80", mux)
+	}()
 
 	if err := gs.Serve(lis); err != nil {
-		log.Fatalf("gramophile unable to serve: %v", err)
+		log.Fatalf("gramophile is unable to serve: %v", err)
 	}
 }
