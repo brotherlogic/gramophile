@@ -46,7 +46,7 @@ func main() {
 		mux := http.NewServeMux()
 		mux.Handle("/callback", s)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", *httpPort), mux)
-		log.Fatalf("gramophile unable to access http port: %v", err)
+		log.Fatalf("gramophile unable to serve http: %v", err)
 	}()
 
 	if err := gs.Serve(lis); err != nil {
