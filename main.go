@@ -47,6 +47,6 @@ func main() {
 	}()
 
 	if err := gs.Serve(lis); err != nil {
-		log.Fatalf("gramophile is unable to serve: %v", err)
+		log.Fatalf("gramophile is unable to serve grpc: %v", err)
 	}
 }
