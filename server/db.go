@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -38,6 +39,7 @@ func (d *db) loadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	}
 
 	var logins *pb.UserLoginAttempts
+	log.Printf("Unmarshal: %v -> %v", logins, val.GetValue().GetValue())
 	err = proto.Unmarshal(val.GetValue().GetValue(), logins)
 	if err != nil {
 		return nil, err
