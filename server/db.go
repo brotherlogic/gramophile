@@ -38,7 +38,7 @@ func (d *db) loadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 		return nil, err
 	}
 
-	var logins *pb.UserLoginAttempts
+	logins := &pb.UserLoginAttempts{}
 	log.Printf("Unmarshal: %v -> %v", logins, val.GetValue().GetValue())
 	err = proto.Unmarshal(val.GetValue().GetValue(), logins)
 	if err != nil {
