@@ -30,7 +30,7 @@ func (d *db) loadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	})
 	if err != nil {
 		// OutOfRange indicates that the key was not found
-		if status.Code(err) == codes.OutOfRange {
+		if status.Code(err) == codes.NotFound {
 			return &pb.UserLoginAttempts{}, nil
 		}
 		return nil, err
