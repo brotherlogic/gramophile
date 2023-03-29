@@ -1,4 +1,4 @@
-name: Bump version and Push Tag
+name: Bump Version and Push Tag
 on:
   push:
     branches:
