@@ -17,6 +17,7 @@ import (
 var (
 	port        = flag.Int("port", 8080, "The server port.")
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
+	httpPort    = flag.Int("http_port", 8082, "Port to serve regular http traffic")
 )
 
 type Server struct {
@@ -43,7 +44,8 @@ func main() {
 	go func() {
 		mux := http.NewServeMux()
 		mux.Handle("/callback", s)
-		http.ListenAndServe(":80", mux)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", *httpPort), mux)
+		log.Fatalf("gramophile unable to access http port: %v", err)
 	}()
 
 	if err := gs.Serve(lis); err != nil {
