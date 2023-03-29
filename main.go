@@ -38,7 +38,8 @@ func main() {
 	// Setup prometheus export
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
+		err := http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
+		log.Fatalf("gramophile us unable to serve metrics: %v", err)
 	}()
 
 	go func() {
