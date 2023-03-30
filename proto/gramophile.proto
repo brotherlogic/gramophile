@@ -50,3 +50,12 @@ service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
     rpc GetLogin(GetLoginRequest) returns (GetLoginResponse) {};
 }
+
+message GetUserRequest {}
+message GetUserResponse {
+   StoredUser user = 1;
+}
+
+service GramophileService {
+    rpc GetUser(GetUserRequest) returns (GetUserRequest) {};
+}
