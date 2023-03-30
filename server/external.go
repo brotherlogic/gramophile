@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"os"
 	"time"
 
@@ -26,6 +27,8 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 			Secret:       secret,
 			DateAdded:    time.Now().Unix(),
 		})
+
+	log.Printf("Attempting: %v", token)
 
 	return &pb.GetURLResponse{URL: url, Token: token}, s.d.saveLogins(ctx, attempts)
 }
