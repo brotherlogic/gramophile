@@ -13,7 +13,7 @@ type CLIModule struct {
 }
 
 func main() {
-	modules := []*CLIModule{GetLogin()}
+	modules := []*CLIModule{GetLogin(), GetGetUser()}
 
 	for _, module := range modules {
 		if module.Command == os.Args[1] {

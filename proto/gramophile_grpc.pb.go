@@ -137,3 +137,87 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "gramophile.proto",
 }
+
+// GramophileServiceClient is the client API for GramophileService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type GramophileServiceClient interface {
+	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserRequest, error)
+}
+
+type gramophileServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewGramophileServiceClient(cc grpc.ClientConnInterface) GramophileServiceClient {
+	return &gramophileServiceClient{cc}
+}
+
+func (c *gramophileServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserRequest, error) {
+	out := new(GetUserRequest)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileService/GetUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GramophileServiceServer is the server API for GramophileService service.
+// All implementations should embed UnimplementedGramophileServiceServer
+// for forward compatibility
+type GramophileServiceServer interface {
+	GetUser(context.Context, *GetUserRequest) (*GetUserRequest, error)
+}
+
+// UnimplementedGramophileServiceServer should be embedded to have forward compatible implementations.
+type UnimplementedGramophileServiceServer struct {
+}
+
+func (UnimplementedGramophileServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserRequest, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+
+// UnsafeGramophileServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GramophileServiceServer will
+// result in compilation errors.
+type UnsafeGramophileServiceServer interface {
+	mustEmbedUnimplementedGramophileServiceServer()
+}
+
+func RegisterGramophileServiceServer(s grpc.ServiceRegistrar, srv GramophileServiceServer) {
+	s.RegisterService(&GramophileService_ServiceDesc, srv)
+}
+
+func _GramophileService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileServiceServer).GetUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileService/GetUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileServiceServer).GetUser(ctx, req.(*GetUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// GramophileService_ServiceDesc is the grpc.ServiceDesc for GramophileService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var GramophileService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gramophile.GramophileService",
+	HandlerType: (*GramophileServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetUser",
+			Handler:    _GramophileService_GetUser_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "gramophile.proto",
+}

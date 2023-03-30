@@ -94,3 +94,19 @@ func (d *db) generateToken(ctx context.Context, token, secret string) (*pb.Gramo
 
 	return &pb.GramophileAuth{Token: user}, nil
 }
+
+func (d *db) getUser(ctx context.Context, user string) (*pb.StoredUser, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v", user),
+	})
+
+	su := &pb.StoredUser{}
+	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
+	return su, err
+}

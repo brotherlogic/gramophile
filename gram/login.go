@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -78,14 +79,19 @@ func execute(ctx context.Context, args []string) error {
 
 		auth, err := getAuthToken(ctx, token)
 		if err != nil {
-			if status.Code(err) != codes.FailedPrecondition {
+			if status.Code(err) != codes.DataLoss {
 				return err
+			} else {
+				continue
 			}
-		} else {
-			break
 		}
 
-		f, err := os.OpenFile("~/.gramophile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		dirname, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+
+		f, err := os.OpenFile(fmt.Sprintf("%v/.gramophile", dirname), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			return err
 		}
