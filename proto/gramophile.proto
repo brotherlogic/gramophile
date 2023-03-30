@@ -57,5 +57,5 @@ message GetUserResponse {
 }
 
 service GramophileService {
-    rpc GetUser(GetUserRequest) returns (GetUserRequest) {};
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 }

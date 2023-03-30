@@ -142,7 +142,7 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GramophileServiceClient interface {
-	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserRequest, error)
+	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 }
 
 type gramophileServiceClient struct {
@@ -153,8 +153,8 @@ func NewGramophileServiceClient(cc grpc.ClientConnInterface) GramophileServiceCl
 	return &gramophileServiceClient{cc}
 }
 
-func (c *gramophileServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserRequest, error) {
-	out := new(GetUserRequest)
+func (c *gramophileServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
+	out := new(GetUserResponse)
 	err := c.cc.Invoke(ctx, "/gramophile.GramophileService/GetUser", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -166,14 +166,14 @@ func (c *gramophileServiceClient) GetUser(ctx context.Context, in *GetUserReques
 // All implementations should embed UnimplementedGramophileServiceServer
 // for forward compatibility
 type GramophileServiceServer interface {
-	GetUser(context.Context, *GetUserRequest) (*GetUserRequest, error)
+	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 }
 
 // UnimplementedGramophileServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedGramophileServiceServer struct {
 }
 
-func (UnimplementedGramophileServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserRequest, error) {
+func (UnimplementedGramophileServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
 }
 
