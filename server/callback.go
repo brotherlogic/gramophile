@@ -15,7 +15,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	token := r.URL.Query().Get("oauth_token")
-	secret := r.URL.Query().Get("oauth_secret")
+	verifier := r.URL.Query().Get("oauth_verifier")
 
 	logins, err := s.d.loadLogins(ctx)
 	if err != nil {
@@ -24,8 +24,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, login := range logins.GetAttempts() {
 		if login.RequestToken == token {
-			user, err := d.HandleDiscogsResponse(ctx, login.GetSecret(), token, secret)
-			log.Printf("Boing:%v ->  %v and %v from %v", token, user, err, secret)
+			user, err := d.HandleDiscogsResponse(ctx, login.GetSecret(), token, verifier)
+			log.Printf("Boing:%v ->  %v and %v from %v", token, user, err, verifier)
 		}
 	}
 }
