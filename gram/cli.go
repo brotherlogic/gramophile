@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
 
@@ -47,11 +46,14 @@ func main() {
 
 	ctx, cancel, err := buildContext()
 	if err != nil {
-		log.Fatalf("Unable to build context: %v", err)
+		fmt.Printf("Failure to read gramophile settings (they may not exist), falling back to no auth\n")
+		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 	}
 	defer cancel()
 
+	var commands []string
 	for _, module := range modules {
+		commands = append(commands, module.Command)
 		if module.Command == os.Args[1] {
 			if len(os.Args) > 2 && os.Args[2] == "help" {
 				fmt.Printf("%v\n", module.Help)
@@ -62,13 +64,17 @@ func main() {
 				err := module.Execute(ctx, os.Args[2:])
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
+					return
 				}
 			} else {
 				err := module.Execute(ctx, []string{})
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
+					return
 				}
 			}
 		}
 	}
+
+	fmt.Printf("Unable to run command %v from %v\n", os.Args[1], commands)
 }

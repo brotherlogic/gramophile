@@ -92,7 +92,7 @@ func (d *db) generateToken(ctx context.Context, token, secret string) (*pb.Gramo
 		Value: &anypb.Any{Value: data},
 	})
 
-	return &pb.GramophileAuth{Token: user}, nil
+	return &pb.GramophileAuth{Token: user}, err
 }
 
 func (d *db) getUser(ctx context.Context, user string) (*pb.StoredUser, error) {

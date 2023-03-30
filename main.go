@@ -34,6 +34,7 @@ func main() {
 	}
 	gs := grpc.NewServer()
 	pb.RegisterGramophileEServiceServer(gs, s)
+	pb.RegisterGramophileServiceServer(gs, s)
 
 	// Setup prometheus export
 	http.Handle("/metrics", promhttp.Handler())
