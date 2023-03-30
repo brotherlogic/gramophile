@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	pb "github.com/brotherlogic/grampophile/proto"
+	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

@@ -3,7 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
+	"time"
+
+	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/golang/protobuf/proto"
+
+	"google.golang.org/grpc/metadata"
 )
 
 type CLIModule struct {
@@ -12,8 +20,36 @@ type CLIModule struct {
 	Execute func(context.Context, []string) error
 }
 
+func buildContext() (context.Context, context.CancelFunc, error) {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	text, err := ioutil.ReadFile(fmt.Sprintf("%v/.gramophile", dirname))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	user := &pb.StoredUser{}
+	err = proto.UnmarshalText(string(text), user)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", user.GetAuth().GetToken())
+	ctx, cancel := context.WithTimeout(mContext, time.Minute)
+	return ctx, cancel, nil
+}
+
 func main() {
 	modules := []*CLIModule{GetLogin(), GetGetUser()}
+
+	ctx, cancel, err := buildContext()
+	if err != nil {
+		log.Fatalf("Unable to build context: %v", err)
+	}
+	defer cancel()
 
 	for _, module := range modules {
 		if module.Command == os.Args[1] {
@@ -23,12 +59,12 @@ func main() {
 			}
 
 			if len(os.Args) > 2 {
-				err := module.Execute(context.Background(), os.Args[2:])
+				err := module.Execute(ctx, os.Args[2:])
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
 				}
 			} else {
-				err := module.Execute(context.Background(), []string{})
+				err := module.Execute(ctx, []string{})
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
 				}
