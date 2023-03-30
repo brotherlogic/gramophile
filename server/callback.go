@@ -24,7 +24,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, login := range logins.GetAttempts() {
 		if login.RequestToken == token {
-			d.HandleDiscogsResponse(ctx, secret, token, login.GetSecret())
+			user, err := d.HandleDiscogsResponse(ctx, secret, token, login.GetSecret())
+			log.Printf("Boing: %v and %v", user, err)
 		}
 	}
 }
