@@ -69,7 +69,7 @@ func execute(ctx context.Context, args []string) error {
 
 	err = browser.OpenURL(val)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to open URL: %v", err)
 	}
 
 	// Only try to retreive the login details for 5 minutes

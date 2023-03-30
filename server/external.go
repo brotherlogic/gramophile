@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -16,10 +17,13 @@ import (
 func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
 	d := discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK"))
 	url, token, secret, err := d.GetLoginURL()
+	if err != nil {
+		return nil, fmt.Errorf("bad get for login ulr: %v", err)
+	}
 
 	attempts, err := s.d.loadLogins(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bad load of logins: %v", err)
 	}
 	attempts.Attempts = append(attempts.Attempts,
 		&pb.UserLoginAttempt{
