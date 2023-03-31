@@ -30,7 +30,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		log.Fatalf("gramophile is unable to listen on the grpc serving port %v: %v", *port, err)
+		log.Fatalf("gramophile is unable to listen on the grpc port %v: %v", *port, err)
 	}
 	gs := grpc.NewServer()
 	pb.RegisterGramophileEServiceServer(gs, s)
