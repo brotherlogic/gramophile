@@ -7,6 +7,27 @@ import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message Queues {
+    repeated Queue queues = 1;
+}
+
+message Queue {
+    string name = 1;
+    repeated QueueElement elements = 2;
+}
+
+message QueueElement {
+    int64 run_date = 1;
+    oneof entry {
+        RefreshUserEntry refresh_user = 2;
+    }
+}
+
+message RefreshUserEntry {
+    int32 user_id = 1;
+    StoredUser user = 2;
+}
+
 message StoredUser {
     GramophileAuth auth = 1;
     discogs.User user = 2;
