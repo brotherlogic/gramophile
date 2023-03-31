@@ -30,13 +30,13 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 		return nil, nil, err
 	}
 
-	user := &pb.StoredUser{}
+	user := &pb.GramophileAuth{}
 	err = proto.UnmarshalText(string(text), user)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", user.GetAuth().GetToken())
+	mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", user.GetToken())
 	ctx, cancel := context.WithTimeout(mContext, time.Minute)
 	return ctx, cancel, nil
 }
@@ -46,7 +46,7 @@ func main() {
 
 	ctx, cancel, err := buildContext()
 	if err != nil {
-		fmt.Printf("Failure to read gramophile settings (they may not exist), falling back to no auth\n")
+		fmt.Printf("Failure to read gramophile settings (they may not exist), falling back to no auth (%v)\n", err)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 	}
 	defer cancel()

@@ -70,6 +70,7 @@ func (d *db) saveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
 
 func (d *db) generateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
+	log.Printf("GERENATING %v and %v", token, secret)
 	su := &pb.StoredUser{
 		Auth:       &pb.GramophileAuth{Token: user},
 		UserToken:  token,
@@ -105,6 +106,9 @@ func (d *db) getUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	resp, err := client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v", user),
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	su := &pb.StoredUser{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
