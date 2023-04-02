@@ -64,7 +64,7 @@ spec:
     spec:
       containers:
       - name: gramophile
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.29.0 # {"$imagepolicy": "flux-system:gramophile"}
+        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.30.0 # {"$imagepolicy": "flux-system:gramophile"}
         ports:
         - containerPort: 8080
         env:
