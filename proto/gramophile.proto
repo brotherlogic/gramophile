@@ -18,11 +18,24 @@ message Queue {
 
 message QueueElement {
     int64 run_date = 1;
-    string url = 2;
+    int64 distinguisher = 2;
+
     string token = 3;
     string secret = 4;
+   
+    string url = 5;
+    string body = 6;
+    enum http_method {
+        UNKNOWN = 0;
+        GET = 1;
+        POST = 2;
+    }
+    http_method method = 7;
+
+    int32 backoff = 8;
+
     oneof entry {
-        RefreshUserEntry refresh_user = 5;
+        RefreshUserEntry refresh_user = 9;
     }
 }
 
