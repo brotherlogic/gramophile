@@ -17,21 +17,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("oauth_token")
 	verifier := r.URL.Query().Get("oauth_verifier")
 
-	logins, err := s.d.loadLogins(ctx)
+	logins, err := s.d.LoadLogins(ctx)
 	if err != nil {
 		log.Fatalf("Bad: %v", err)
 	}
 
 	for _, login := range logins.GetAttempts() {
 		if login.RequestToken == token {
-			user, err := d.HandleDiscogsResponse(ctx, login.GetSecret(), token, verifier)
+			token, secret, err := d.HandleDiscogsResponse(ctx, login.GetSecret(), token, verifier)
 			if err != nil {
 				panic(err)
 			}
-			login.UserSecret = user.UserSecret
-			login.UserToken = user.UserToken
+			login.UserSecret = secret
+			login.UserToken = token
 
-			s.d.saveLogins(ctx, logins)
+			s.d.SaveLogins(ctx, logins)
 			return
 		}
 	}

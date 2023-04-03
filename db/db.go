@@ -1,4 +1,4 @@
-package server
+package db
 
 import (
 	"context"
@@ -18,9 +18,9 @@ import (
 	rspb "github.com/brotherlogic/rstore/proto"
 )
 
-type db struct{}
+type Database struct{}
 
-func (d *db) loadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
+func (d *Database) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (d *db) loadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	return logins, nil
 }
 
-func (d *db) saveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
+func (d *Database) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (d *db) saveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
 	return err
 }
 
-func (d *db) generateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
+func (d *Database) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
 	log.Printf("GERENATING %v and %v", token, secret)
 	su := &pb.StoredUser{
@@ -96,7 +96,27 @@ func (d *db) generateToken(ctx context.Context, token, secret string) (*pb.Gramo
 	return &pb.GramophileAuth{Token: user}, err
 }
 
-func (d *db) getUser(ctx context.Context, user string) (*pb.StoredUser, error) {
+func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	data, err := proto.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v", user),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
+}
+
+func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return nil, err
