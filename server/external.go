@@ -21,7 +21,7 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 		return nil, fmt.Errorf("bad get for login ulr: %v", err)
 	}
 
-	attempts, err := s.d.loadLogins(ctx)
+	attempts, err := s.d.LoadLogins(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("bad load of logins: %v", err)
 	}
@@ -34,18 +34,18 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 
 	log.Printf("Attempting: %v", token)
 
-	return &pb.GetURLResponse{URL: url, Token: token}, s.d.saveLogins(ctx, attempts)
+	return &pb.GetURLResponse{URL: url, Token: token}, s.d.SaveLogins(ctx, attempts)
 }
 
 func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.GetLoginResponse, error) {
-	attempts, err := s.d.loadLogins(ctx)
+	attempts, err := s.d.LoadLogins(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, attempt := range attempts.GetAttempts() {
 		if attempt.RequestToken == req.GetToken() {
-			token, err := s.d.generateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
+			token, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
 			if err != nil {
 				return nil, err
 			}

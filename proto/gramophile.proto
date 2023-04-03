@@ -18,29 +18,19 @@ message Queue {
 
 message QueueElement {
     int64 run_date = 1;
-    int64 distinguisher = 2;
-
-    string token = 3;
-    string secret = 4;
    
-    string url = 5;
-    string body = 6;
-    enum http_method {
-        UNKNOWN = 0;
-        GET = 1;
-        POST = 2;
-    }
-    http_method method = 7;
-
-    int32 backoff = 8;
+    string token = 2;
+    string secret = 3;
+   
+    int32 backoff_in_seconds = 4;
 
     oneof entry {
-        RefreshUserEntry refresh_user = 9;
+        RefreshUserEntry refresh_user = 5;
     }
 }
 
 message RefreshUserEntry {
-
+    string auth = 1;
 }
 
 message StoredUser {
@@ -48,6 +38,8 @@ message StoredUser {
     discogs.User user = 2;
     string user_token = 3;
     string user_secret = 4;
+
+    int64 last_refresh_time = 5;
 }
 
 message GramophileAuth {

@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 
+	db "github.com/brotherlogic/gramophile/db"
+
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -10,7 +12,7 @@ import (
 )
 
 type Server struct {
-	d *db
+	d *db.Database
 }
 
 func GetContextKey(ctx context.Context) (string, error) {
@@ -45,5 +47,5 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 		return nil, err
 	}
 
-	return s.d.getUser(ctx, key)
+	return s.d.GetUser(ctx, key)
 }
