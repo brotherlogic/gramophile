@@ -18,6 +18,90 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
+// QueueServiceClient is the client API for QueueService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type QueueServiceClient interface {
+	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
+}
+
+type queueServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewQueueServiceClient(cc grpc.ClientConnInterface) QueueServiceClient {
+	return &queueServiceClient{cc}
+}
+
+func (c *queueServiceClient) Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error) {
+	out := new(ExecuteResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.QueueService/Execute", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// QueueServiceServer is the server API for QueueService service.
+// All implementations should embed UnimplementedQueueServiceServer
+// for forward compatibility
+type QueueServiceServer interface {
+	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
+}
+
+// UnimplementedQueueServiceServer should be embedded to have forward compatible implementations.
+type UnimplementedQueueServiceServer struct {
+}
+
+func (UnimplementedQueueServiceServer) Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+
+// UnsafeQueueServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to QueueServiceServer will
+// result in compilation errors.
+type UnsafeQueueServiceServer interface {
+	mustEmbedUnimplementedQueueServiceServer()
+}
+
+func RegisterQueueServiceServer(s grpc.ServiceRegistrar, srv QueueServiceServer) {
+	s.RegisterService(&QueueService_ServiceDesc, srv)
+}
+
+func _QueueService_Execute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueueServiceServer).Execute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.QueueService/Execute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueueServiceServer).Execute(ctx, req.(*ExecuteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// QueueService_ServiceDesc is the grpc.ServiceDesc for QueueService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var QueueService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gramophile.QueueService",
+	HandlerType: (*QueueServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Execute",
+			Handler:    _QueueService_Execute_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "gramophile.proto",
+}
+
 // GramophileEServiceClient is the client API for GramophileEService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	db "github.com/brotherlogic/gramophile/db"
+	"github.com/brotherlogic/gramophile/queue"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -12,7 +13,15 @@ import (
 )
 
 type Server struct {
-	d *db.Database
+	d     *db.Database
+	Queue *queue.Queue
+}
+
+func NewServer() *Server {
+	return &Server{
+		Queue: &queue.Queue{},
+		d:     &db.Database{},
+	}
 }
 
 func GetContextKey(ctx context.Context) (string, error) {

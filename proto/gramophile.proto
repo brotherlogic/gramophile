@@ -29,6 +29,16 @@ message QueueElement {
     }
 }
 
+message ExecuteRequest {
+    QueueElement element = 1;
+}
+
+message ExecuteResponse {}
+
+service QueueService {
+    rpc Execute(ExecuteRequest) returns (ExecuteResponse) {};
+}
+
 message RefreshUserEntry {
     string auth = 1;
 }
