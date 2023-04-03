@@ -30,7 +30,7 @@ func (q *Queue) run() {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
 		if err == nil {
-			err = q.Execute(ctx, entry)
+			_, err = q.Execute(ctx, &pb.ExecuteRequest{Element: entry})
 		}
 
 		// Back off on any type of error
@@ -42,7 +42,11 @@ func (q *Queue) run() {
 	}
 }
 
-func (q *Queue) Execute(ctx context.Context, entry *pb.QueueElement) error {
+func (q *Queue) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
+	return &pb.ExecuteResponse{}, q.ExecuteInternal(ctx, req.GetElement())
+}
+
+func (q *Queue) ExecuteInternal(ctx context.Context, entry *pb.QueueElement) error {
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, entry.GetRefreshUser().String(), entry.GetToken(), entry.GetSecret())
