@@ -31,6 +31,7 @@ COPY --from=build /gramophile /gramophile
 EXPOSE 80
 EXPOSE 8080
 EXPOSE 8081
+EXPOSE 8082
 
 USER nonroot:nonroot
 
