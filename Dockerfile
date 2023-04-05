@@ -13,6 +13,12 @@ COPY proto/*.go ./proto/
 RUN mkdir server
 COPY server/*.go ./server/
 
+RUN mkdir queue
+COPY queue/*.go ./queue/
+
+RUN mkdir db
+COPY db/*.go ./db/
+
 RUN go mod download
 
 COPY *.go ./
