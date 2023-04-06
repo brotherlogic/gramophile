@@ -57,10 +57,8 @@ func main() {
 		log.Fatalf("gramophile is unable to serve metrics: %v", err)
 	}()
 
-	go func() {
-		mux := http.NewServeMux()
-		mux.Handle("/callback", s)
-		err := http.ListenAndServe(fmt.Sprintf(":%d", *httpPort), mux)
-		log.Fatalf("gramophile is unable to serve http: %v", err)
-	}()
+	mux := http.NewServeMux()
+	mux.Handle("/callback", s)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *httpPort), mux)
+	log.Fatalf("gramophile is unable to serve http: %v", err)
 }
