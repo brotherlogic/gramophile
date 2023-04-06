@@ -87,6 +87,7 @@ message GetLoginResponse {
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
     rpc GetLogin(GetLoginRequest) returns (GetLoginResponse) {};
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 }
 
 message GetUserRequest {}
@@ -95,5 +96,5 @@ message GetUserResponse {
 }
 
 service GramophileService {
-    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
+ 
 }
