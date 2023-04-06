@@ -1,3 +1,3 @@
 # gramophile
 
-Wheee
+CLI for managing a record collection.
