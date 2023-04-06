@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/brotherlogic/gramophile/background"
 	db "github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/queue"
 
@@ -18,9 +19,10 @@ type Server struct {
 }
 
 func NewServer() *Server {
+	d := &db.Database{}
 	return &Server{
-		Queue: &queue.Queue{},
-		d:     &db.Database{},
+		Queue: &queue.Queue{Background: &background.BackgroundRunner{Database: d}},
+		d:     d,
 	}
 }
 

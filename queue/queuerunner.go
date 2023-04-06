@@ -21,8 +21,8 @@ var (
 )
 
 type Queue struct {
-	rstore *rstore_client.RStoreClient
-	b      *background.BackgroundRunner
+	rstore     *rstore_client.RStoreClient
+	Background *background.BackgroundRunner
 }
 
 func (q *Queue) run() {
@@ -49,7 +49,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.Execut
 func (q *Queue) ExecuteInternal(ctx context.Context, entry *pb.QueueElement) error {
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshUser:
-		return q.b.RefreshUser(ctx, entry.GetRefreshUser().String(), entry.GetToken(), entry.GetSecret())
+		return q.Background.RefreshUser(ctx, entry.GetRefreshUser().String(), entry.GetToken(), entry.GetSecret())
 	}
 
 	return status.Errorf(codes.NotFound, "Unable to handle %v", entry)

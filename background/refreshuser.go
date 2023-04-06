@@ -13,14 +13,14 @@ import (
 )
 
 type BackgroundRunner struct {
-	db db.Database
+	Database *db.Database
 }
 
 func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secret string) error {
 	d := discogs.DiscogsWithToken(token, secret)
 	user := d.GetDiscogsUser(ctx)
 
-	su, err := b.db.GetUser(ctx, utoken)
+	su, err := b.Database.GetUser(ctx, utoken)
 	if err != nil {
 		return err
 	}
@@ -28,5 +28,5 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 	proto.Merge(su.User, &pb.StoredUser{User: user})
 	su.LastRefreshTime = time.Now().Unix()
 
-	return b.db.SaveUser(ctx, su)
+	return b.Database.SaveUser(ctx, su)
 }
