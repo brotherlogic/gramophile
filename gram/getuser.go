@@ -25,7 +25,7 @@ func executeGetUser(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client := pb.NewGramophileServiceClient(conn)
+	client := pb.NewGramophileEServiceClient(conn)
 	user, err := client.GetUser(ctx, &pb.GetUserRequest{})
 	if err != nil {
 		return err
