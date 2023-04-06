@@ -23,7 +23,7 @@ func main() {
 	switch os.Args[2] {
 	case "refresh":
 		a, b := client.Execute(context.Background(), &pb.ExecuteRequest{
-			Element: &pb.QueueElement{Token: os.Args[3], Secret: os.Args[4], Entry: &pb.QueueElement_RefreshUser{RefreshUser: &pb.RefreshUserEntry{Auth: os.Args[4]}}},
+			Element: &pb.QueueElement{Token: os.Args[4], Secret: os.Args[5], Entry: &pb.QueueElement_RefreshUser{RefreshUser: &pb.RefreshUserEntry{Auth: os.Args[3]}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	}
