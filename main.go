@@ -51,7 +51,6 @@ func main() {
 		}
 	}()
 
-	// Setup prometheus export
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
