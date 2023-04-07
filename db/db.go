@@ -109,7 +109,7 @@ func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	_, err = client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v", user),
+		Key:   fmt.Sprintf("gramophile/user/%v", user.Auth.Token),
 		Value: &anypb.Any{Value: data},
 	})
 
