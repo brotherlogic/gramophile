@@ -33,6 +33,7 @@ func main() {
 	gs := grpc.NewServer()
 	pb.RegisterGramophileEServiceServer(gs, s)
 	go func() {
+		log.Printf("gramophile listening on port %v", *port)
 		if err := gs.Serve(lis); err != nil {
 			log.Fatalf("gramophile is unable to serve grpc: %v", err)
 		}
