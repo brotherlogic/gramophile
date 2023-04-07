@@ -4,6 +4,8 @@ github.com/brotherlogic/discogs v0.0.0-20230403052509-c342e52afff6 h1:KZ0SVa4+LW
 github.com/brotherlogic/discogs v0.0.0-20230403052509-c342e52afff6/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/discogs v0.0.0-20230407044725-cc894d039e43 h1:a6/i4hdUaGWutrl6s8p8XltDaLXM7PImTmnzsTRSh/U=
 github.com/brotherlogic/discogs v0.0.0-20230407044725-cc894d039e43/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230407053819-729e946290c3 h1:Nzmu1EbfjOgsYc21OTLw30UmEBUASwCCHDOqZdv/Fc8=
+github.com/brotherlogic/discogs v0.0.0-20230407053819-729e946290c3/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/rstore v0.23.0 h1:8w2DbpGqlsMIqb0jC5n6cKfo/gLTLbumuaLviTN7TWU=
 github.com/brotherlogic/rstore v0.23.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
