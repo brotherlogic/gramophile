@@ -19,7 +19,10 @@ type BackgroundRunner struct {
 
 func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secret string) error {
 	d := discogs.DiscogsWithToken(token, secret)
-	user := d.GetDiscogsUser(ctx)
+	user, err := d.GetDiscogsUser(ctx)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("GOT USER: %v", user)
 
