@@ -40,15 +40,15 @@ func main() {
 		log.Printf("gramophile has closed the grpc port")
 	}()
 
-	lis, err = net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
-	if err != nil {
+	lis2, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
+	if err2 != nil {
 		log.Fatalf("gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)
 	}
 	gsInternal := grpc.NewServer()
 	pb.RegisterGramophileServiceServer(gsInternal, s)
 	pb.RegisterQueueServiceServer(gsInternal, s.Queue)
 	go func() {
-		if err := gsInternal.Serve(lis); err != nil {
+		if err := gsInternal.Serve(lis2); err != nil {
 			log.Fatalf("gramophile is unable to serve internal grpc: %v", err)
 		}
 	}()
