@@ -35,5 +35,7 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 	proto.Merge(su, &pb.StoredUser{User: user})
 	su.LastRefreshTime = time.Now().Unix()
 
+	log.Printf("MERGED TO %v", su)
+
 	return b.Database.SaveUser(ctx, su)
 }
