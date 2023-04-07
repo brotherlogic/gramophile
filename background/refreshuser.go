@@ -24,7 +24,7 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 		return err
 	}
 
-	log.Printf("GOT USER: %v", user)
+	log.Printf("GOT user: %v", user)
 
 	su, err := b.Database.GetUser(ctx, utoken)
 	if err != nil {
