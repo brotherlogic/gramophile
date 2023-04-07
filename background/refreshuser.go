@@ -14,11 +14,12 @@ import (
 )
 
 type BackgroundRunner struct {
-	Database *db.Database
+	Database              *db.Database
+	Key, Secret, Callback string
 }
 
 func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secret string) error {
-	d := discogs.DiscogsWithToken(token, secret)
+	d := discogs.DiscogsWithToken(token, secret, b.Key, b.Secret, b.Callback)
 	user, err := d.GetDiscogsUser(ctx)
 	if err != nil {
 		return err
