@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -19,6 +20,8 @@ type BackgroundRunner struct {
 func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secret string) error {
 	d := discogs.DiscogsWithToken(token, secret)
 	user := d.GetDiscogsUser(ctx)
+
+	log.Printf("GOT USER: %v", user)
 
 	su, err := b.Database.GetUser(ctx, utoken)
 	if err != nil {
