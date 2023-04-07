@@ -36,6 +36,7 @@ func main() {
 		if err := gs.Serve(lis); err != nil {
 			log.Fatalf("gramophile is unable to serve grpc: %v", err)
 		}
+		log.Printf("gramophile has closed the grpc port")
 	}()
 
 	lis, err = net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
