@@ -18,8 +18,8 @@ type Server struct {
 	Queue *queue.Queue
 }
 
-func NewServer(token, secret, callback string) *Server {
-	d := &db.Database{}
+func NewServer(ctx context.Context, token, secret, callback string) *Server {
+	d := db.NewDatabase(ctx)
 	return &Server{
 		Queue: &queue.Queue{
 			Background: &background.BackgroundRunner{
