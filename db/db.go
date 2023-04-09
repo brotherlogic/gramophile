@@ -31,10 +31,8 @@ type Database struct{}
 
 func NewDatabase(ctx context.Context) *Database {
 	db := &Database{}
-	_, err := db.GetUsers(ctx)
-	if err != nil {
-		log.Printf("AHA: %v", err)
-	}
+	b, err := db.GetUsers(ctx)
+	log.Printf("WHAT %v / %v", b, err)
 	return db
 }
 
