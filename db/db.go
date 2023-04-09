@@ -161,7 +161,7 @@ func (d *Database) GetUsers(ctx context.Context) ([]string, error) {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Suffix: "gramophile/user/",
+		Suffix: "gramophile/user",
 	})
 	if err != nil {
 		return nil, err
