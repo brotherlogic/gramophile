@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: busybox-cron
+spec:
+  schedule: "* */1 * * *"
+  jobTemplate:
+      spec:
+        template:
+         spec:
+           containers:
+             - name: gramophile-validator
+               image: registry.brotherlogic-backend.com/brotherlogic/gramophile-validator:0.1.0 # {"$imagepolicy": "flux-system:gramophile"}
+           restartPolicy: OnFailure
