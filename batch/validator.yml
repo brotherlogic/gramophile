@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: busybox-cron
+  name: gramophile-validator
 spec:
   schedule: "* */1 * * *"
   jobTemplate:
