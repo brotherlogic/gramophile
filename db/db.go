@@ -31,7 +31,10 @@ type Database struct{}
 
 func NewDatabase(ctx context.Context) *Database {
 	db := &Database{}
-	db.GetUsers(ctx)
+	_, err := db.GetUsers(ctx)
+	if err != nil {
+		log.Printf("AHA: %v", err)
+	}
 	return db
 }
 
