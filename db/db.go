@@ -134,3 +134,17 @@ func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, er
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
 	return su, err
 }
+
+func (d *Database) GetUsers(ctx context.Context) ([]string, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Suffix: "gramophile/user",
+	})
+
+	return resp.GetKeys(), err
+}
