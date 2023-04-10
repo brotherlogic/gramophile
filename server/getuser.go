@@ -15,3 +15,12 @@ func (s *Server) GetUser(ctx context.Context, _ *pb.GetUserRequest) (*pb.GetUser
 	}
 	return &pb.GetUserResponse{User: user}, nil
 }
+
+func (s *Server) GetUsers(ctx context.Context, _ *pb.GetUsersRequest) (*pb.GetUsersResponse, error) {
+	keys, err := s.d.GetUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetUsersResponse{UserIds: keys}, nil
+}

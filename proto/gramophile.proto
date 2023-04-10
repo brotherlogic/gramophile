@@ -95,6 +95,13 @@ message GetUserResponse {
    StoredUser user = 1;
 }
 
+message GetUsersRequest {}
+message GetUsersResponse {
+    repeated string user_ids = 1;
+}
+
+// Internally accessible service
 service GramophileService {
- 
+    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 }
