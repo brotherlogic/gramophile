@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gramophile-validator
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: gramophile-validator
+              image: registry.brotherlogic-backend.com/brotherlogic/gramophile-validator:0.60.0 # {"$imagepolicy": "flux-system:gramophile-validator"}
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: regcred

@@ -2,7 +2,6 @@ package background
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -25,8 +24,6 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 		return err
 	}
 
-	log.Printf("GOT user: %v with %v %v %v", user, utoken, token, secret)
-
 	su, err := b.Database.GetUser(ctx, utoken)
 	if err != nil {
 		return err
@@ -34,8 +31,6 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 
 	proto.Merge(su, &pb.StoredUser{User: user})
 	su.LastRefreshTime = time.Now().Unix()
-
-	log.Printf("MERGED TO %v", su)
 
 	return b.Database.SaveUser(ctx, su)
 }

@@ -103,4 +103,5 @@ message GetUsersResponse {
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 }

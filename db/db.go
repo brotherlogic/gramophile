@@ -16,9 +16,25 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/rstore/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	users = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_users",
+		Help: "The size of the user list",
+	})
 )
 
 type Database struct{}
+
+func NewDatabase(ctx context.Context) *Database {
+	db := &Database{}
+	b, err := db.GetUsers(ctx)
+	log.Printf("WHAT %v / %v", b, err)
+	return db
+}
 
 func (d *Database) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -109,7 +125,7 @@ func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	_, err = client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v", user),
+		Key:   fmt.Sprintf("gramophile/user/%v", user.Auth.Token),
 		Value: &anypb.Any{Value: data},
 	})
 
@@ -145,6 +161,11 @@ func (d *Database) GetUsers(ctx context.Context) ([]string, error) {
 	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
 		Suffix: "gramophile/user",
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	users.Set(float64(len(resp.GetKeys())))
 
 	return resp.GetKeys(), err
 }
