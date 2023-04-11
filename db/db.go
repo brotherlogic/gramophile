@@ -132,6 +132,20 @@ func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 	return err
 }
 
+func (d *Database) DeleteUser(ctx context.Context, id string) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("gramophile/user/%v", id),
+	})
+
+	return err
+}
+
 func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {

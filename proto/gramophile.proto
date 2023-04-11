@@ -97,11 +97,16 @@ message GetUserResponse {
 
 message GetUsersRequest {}
 message GetUsersResponse {
-    repeated string user_ids = 1;
+    repeated StoredUser users = 1;
 }
+
+message DeleteUserRequest {
+    string id = 1;
+}
+message DeleteUserResponse {}
 
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
-    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {};
 }
