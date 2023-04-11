@@ -83,11 +83,17 @@ message GetLoginResponse {
     GramophileAuth auth = 1;
 }
 
+message GetStateRequest {}
+message GetStateResponse {
+    int64 last_user_refresh = 1;
+}
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
     rpc GetLogin(GetLoginRequest) returns (GetLoginResponse) {};
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
+    rpc GetState(GetStateRequest) returns (GetStateResponse) {};
 }
 
 message GetUserRequest {}
