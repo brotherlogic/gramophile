@@ -109,6 +109,7 @@ type GramophileEServiceClient interface {
 	GetURL(ctx context.Context, in *GetURLRequest, opts ...grpc.CallOption) (*GetURLResponse, error)
 	GetLogin(ctx context.Context, in *GetLoginRequest, opts ...grpc.CallOption) (*GetLoginResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetState(ctx context.Context, in *GetStateRequest, opts ...grpc.CallOption) (*GetStateResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -146,6 +147,15 @@ func (c *gramophileEServiceClient) GetUser(ctx context.Context, in *GetUserReque
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) GetState(ctx context.Context, in *GetStateRequest, opts ...grpc.CallOption) (*GetStateResponse, error) {
+	out := new(GetStateResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/GetState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility
@@ -153,6 +163,7 @@ type GramophileEServiceServer interface {
 	GetURL(context.Context, *GetURLRequest) (*GetURLResponse, error)
 	GetLogin(context.Context, *GetLoginRequest) (*GetLoginResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetState(context.Context, *GetStateRequest) (*GetStateResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have forward compatible implementations.
@@ -167,6 +178,9 @@ func (UnimplementedGramophileEServiceServer) GetLogin(context.Context, *GetLogin
 }
 func (UnimplementedGramophileEServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedGramophileEServiceServer) GetState(context.Context, *GetStateRequest) (*GetStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetState not implemented")
 }
 
 // UnsafeGramophileEServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -234,6 +248,24 @@ func _GramophileEService_GetUser_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_GetState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).GetState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/GetState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).GetState(ctx, req.(*GetStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +284,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _GramophileEService_GetUser_Handler,
+		},
+		{
+			MethodName: "GetState",
+			Handler:    _GramophileEService_GetState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
