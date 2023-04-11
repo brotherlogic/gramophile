@@ -13,7 +13,7 @@ import (
 func GetGetSate() *CLIModule {
 	return &CLIModule{
 		Command: "state",
-		Help:    "Get the current state",
+		Help:    "Get the current state of the system",
 		Execute: executeGetState,
 	}
 }
