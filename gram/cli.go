@@ -42,7 +42,7 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 }
 
 func main() {
-	modules := []*CLIModule{GetLogin(), GetGetUser()}
+	modules := []*CLIModule{GetLogin(), GetGetUser(), GetGetSate()}
 
 	ctx, cancel, err := buildContext()
 	if err != nil {
