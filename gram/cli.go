@@ -64,14 +64,14 @@ func main() {
 				err := module.Execute(ctx, os.Args[2:])
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
-					return
 				}
+				return
 			} else {
 				err := module.Execute(ctx, []string{})
 				if err != nil {
 					fmt.Printf("Error running %v -> %v", os.Args[1], err)
-					return
 				}
+				return
 			}
 		}
 	}
