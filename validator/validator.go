@@ -23,7 +23,7 @@ func validateUsers(ctx context.Context) error {
 	}
 
 	for _, user := range users.GetUsers() {
-		if time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
+		if user.GetUserToken() == "" && time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
 		} else {
 			_, err := queue.Execute(ctx, &pb.ExecuteRequest{
