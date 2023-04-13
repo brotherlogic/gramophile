@@ -50,6 +50,7 @@ message StoredUser {
     string user_secret = 4;
 
     int64 last_refresh_time = 5;
+    int64 last_collection_refresh = 6;
 }
 
 message GramophileAuth {
