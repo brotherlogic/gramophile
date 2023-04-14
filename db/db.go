@@ -165,6 +165,45 @@ func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, er
 	return su, err
 }
 
+func (d *Database) SaveRecord(ctx context.Context, user *pb.StoredUser, record *pb.Record) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	data, err := proto.Marshal(record)
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", user.GetUser().GetDiscogsUserId(), record.GetRelease().GetInstanceId()),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
+}
+
+func (d *Database) GetRecord(ctx context.Context, user *pb.StoredUser, iid int64) (*pb.Record, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/release/%v", user, iid),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	su := &pb.Record{}
+	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
+	return su, err
+}
+
 func (d *Database) GetUsers(ctx context.Context) ([]string, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
