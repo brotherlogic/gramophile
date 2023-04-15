@@ -27,16 +27,30 @@ var (
 	})
 )
 
-type Database struct{}
+type DB struct{}
 
-func NewDatabase(ctx context.Context) *Database {
-	db := &Database{}
+type Database interface {
+	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
+	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
+
+	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
+	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
+	GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error)
+
+	SaveUser(ctx context.Context, user *pb.StoredUser) error
+	DeleteUser(ctx context.Context, id string) error
+	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
+	GetUsers(ctx context.Context) ([]string, error)
+}
+
+func NewDatabase(ctx context.Context) Database {
+	db := &DB{}
 	b, err := db.GetUsers(ctx)
 	log.Printf("WHAT %v / %v", b, err)
 	return db
 }
 
-func (d *Database) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
+func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -64,7 +78,7 @@ func (d *Database) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error
 	return logins, nil
 }
 
-func (d *Database) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
+func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -84,7 +98,7 @@ func (d *Database) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts)
 	return err
 }
 
-func (d *Database) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
+func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
 	log.Printf("GERENATING %v and %v", token, secret)
 	su := &pb.StoredUser{
@@ -112,7 +126,7 @@ func (d *Database) GenerateToken(ctx context.Context, token, secret string) (*pb
 	return &pb.GramophileAuth{Token: user}, err
 }
 
-func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
+func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -132,7 +146,7 @@ func (d *Database) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 	return err
 }
 
-func (d *Database) DeleteUser(ctx context.Context, id string) error {
+func (d *DB) DeleteUser(ctx context.Context, id string) error {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -146,7 +160,7 @@ func (d *Database) DeleteUser(ctx context.Context, id string) error {
 	return err
 }
 
-func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
+func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -165,7 +179,46 @@ func (d *Database) GetUser(ctx context.Context, user string) (*pb.StoredUser, er
 	return su, err
 }
 
-func (d *Database) GetUsers(ctx context.Context) ([]string, error) {
+func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	data, err := proto.Marshal(record)
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
+}
+
+func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	su := &pb.Record{}
+	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
+	return su, err
+}
+
+func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return nil, err

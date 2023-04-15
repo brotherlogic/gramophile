@@ -7,6 +7,12 @@ import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message Record {
+    discogs.Release release = 1;
+
+   int64 last_update_time = 2;
+}
+
 message Queues {
     repeated Queue queues = 1;
 }
@@ -29,6 +35,10 @@ message QueueElement {
     }
 }
 
+message RefreshUserEntry {
+    string auth = 1;
+}
+
 message ExecuteRequest {
     QueueElement element = 1;
 }
@@ -37,10 +47,6 @@ message ExecuteResponse {}
 
 service QueueService {
     rpc Execute(ExecuteRequest) returns (ExecuteResponse) {};
-}
-
-message RefreshUserEntry {
-    string auth = 1;
 }
 
 message StoredUser {

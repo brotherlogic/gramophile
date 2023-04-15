@@ -13,18 +13,21 @@ import (
 )
 
 type BackgroundRunner struct {
-	Database              *db.Database
-	Key, Secret, Callback string
+	db                    db.Database
+	key, secret, callback string
 }
 
-func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secret string) error {
-	d := discogs.DiscogsWithToken(token, secret, b.Key, b.Secret, b.Callback)
+func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
+	return &BackgroundRunner{db: db, key: key, secret: secret, callback: callback}
+}
+
+func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, utoken string) error {
 	user, err := d.GetDiscogsUser(ctx)
 	if err != nil {
 		return err
 	}
 
-	su, err := b.Database.GetUser(ctx, utoken)
+	su, err := b.db.GetUser(ctx, utoken)
 	if err != nil {
 		return err
 	}
@@ -32,5 +35,5 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken, token, secre
 	proto.Merge(su, &pb.StoredUser{User: user})
 	su.LastRefreshTime = time.Now().Unix()
 
-	return b.Database.SaveUser(ctx, su)
+	return b.db.SaveUser(ctx, su)
 }

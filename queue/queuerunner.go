@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
@@ -21,8 +22,15 @@ var (
 )
 
 type Queue struct {
-	rstore     *rstore_client.RStoreClient
-	Background *background.BackgroundRunner
+	rstore *rstore_client.RStoreClient
+	b      *background.BackgroundRunner
+	d      discogs.Discogs
+}
+
+func GetQueue(b *background.BackgroundRunner, d discogs.Discogs) *Queue {
+	return &Queue{
+		b: b, d: d,
+	}
 }
 
 func (q *Queue) run() {
@@ -43,13 +51,14 @@ func (q *Queue) run() {
 }
 
 func (q *Queue) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
-	return &pb.ExecuteResponse{}, q.ExecuteInternal(ctx, req.GetElement())
+	d := q.d.ForUser(req.GetElement().GetToken(), req.GetElement().GetSecret())
+	return &pb.ExecuteResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
 
-func (q *Queue) ExecuteInternal(ctx context.Context, entry *pb.QueueElement) error {
+func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshUser:
-		return q.Background.RefreshUser(ctx, entry.GetRefreshUser().GetAuth(), entry.GetToken(), entry.GetSecret())
+		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	}
 
 	return status.Errorf(codes.NotFound, "Unable to handle %v", entry)
@@ -61,7 +70,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
-	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Suffix: QUEUE_SUFFIX})
+	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_SUFFIX})
 	if err != nil {
 		return nil, err
 	}
