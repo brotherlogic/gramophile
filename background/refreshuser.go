@@ -13,14 +13,16 @@ import (
 )
 
 type BackgroundRunner struct {
-	db                    *db.Database
-	user                  *pb.StoredUser
-	Key, Secret, Callback string
-	d                     *discogs.Discogs
+	db                    db.Database
+	key, secret, callback string
 }
 
-func (b *BackgroundRunner) RefreshUser(ctx context.Context, utoken string) error {
-	user, err := b.d.GetDiscogsUser(ctx)
+func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
+	return &BackgroundRunner{db: db, key: key, secret: secret, callback: callback}
+}
+
+func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, utoken string) error {
+	user, err := d.GetDiscogsUser(ctx)
 	if err != nil {
 		return err
 	}
