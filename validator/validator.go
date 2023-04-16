@@ -64,7 +64,7 @@ func validateUsers(ctx context.Context) error {
 }
 
 func main() {
-	log.Printf("Starting validator run")
+	log.Printf("Starting validator")
 	ctx := context.Background()
 
 	err := validateUsers(ctx)
