@@ -25,7 +25,7 @@ var (
 
 	queueLen = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
-		Help: "The length of the working queue",
+		Help: "The length of the working queue I think",
 	})
 )
 
