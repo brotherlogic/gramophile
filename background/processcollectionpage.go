@@ -10,10 +10,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32) error {
-	releases, _, err := d.GetCollection(ctx, page)
+func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32) (int32, error) {
+	releases, pag, err := d.GetCollection(ctx, page)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	for _, release := range releases {
@@ -24,19 +24,19 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 				stored.Release = release
 				err = b.db.SaveRecord(ctx, d.GetUserId(), stored)
 				if err != nil {
-					return err
+					return -1, err
 				}
 			}
 		} else if status.Code(err) == codes.DataLoss {
 			record := &pb.Record{Release: release}
 			err = b.db.SaveRecord(ctx, d.GetUserId(), record)
 			if err != nil {
-				return err
+				return -1, err
 			}
 		} else {
-			return err
+			return -1, err
 		}
 	}
 
-	return nil
+	return pag.GetPages(), nil
 }

@@ -26,7 +26,7 @@ func validateUsers(ctx context.Context) error {
 		if user.GetUserToken() == "" && time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
 		} else {
-			_, err := queue.Execute(ctx, &pb.ExecuteRequest{
+			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate:          time.Now().Unix(),
 					Token:            user.GetUserToken(),
@@ -39,6 +39,23 @@ func validateUsers(ctx context.Context) error {
 			})
 			if err != nil {
 				return err
+			}
+
+			if time.Since(time.Unix(user.GetLastCollectionRefresh(), 0)) > time.Hour*24*7 {
+				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:          time.Now().Unix(),
+						Token:            user.GetUserToken(),
+						Secret:           user.GetUserSecret(),
+						BackoffInSeconds: 10,
+						Entry: &pb.QueueElement_RefreshCollection{
+							RefreshCollection: &pb.RefreshCollectionEntry{Page: 1},
+						},
+					},
+				})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
