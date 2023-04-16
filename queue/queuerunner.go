@@ -50,7 +50,7 @@ func (q *Queue) run() {
 			err = q.ExecuteInternal(ctx, d, entry)
 		}
 
-		// Back off on any type of error
+		// Back off on any type of regardless error
 		if err == nil {
 			q.delete(ctx, entry)
 		} else {
