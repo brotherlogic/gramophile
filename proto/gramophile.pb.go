@@ -384,91 +384,6 @@ func (x *RefreshCollectionEntry) GetPage() int32 {
 	return 0
 }
 
-type ExecuteRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Element *QueueElement `protobuf:"bytes,1,opt,name=element,proto3" json:"element,omitempty"`
-}
-
-func (x *ExecuteRequest) Reset() {
-	*x = ExecuteRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ExecuteRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecuteRequest) ProtoMessage() {}
-
-func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
-func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *ExecuteRequest) GetElement() *QueueElement {
-	if x != nil {
-		return x.Element
-	}
-	return nil
-}
-
-type ExecuteResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *ExecuteResponse) Reset() {
-	*x = ExecuteResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ExecuteResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExecuteResponse) ProtoMessage() {}
-
-func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
-func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{7}
-}
-
 type EnqueueRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -480,7 +395,7 @@ type EnqueueRequest struct {
 func (x *EnqueueRequest) Reset() {
 	*x = EnqueueRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[8]
+		mi := &file_gramophile_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -493,7 +408,7 @@ func (x *EnqueueRequest) String() string {
 func (*EnqueueRequest) ProtoMessage() {}
 
 func (x *EnqueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[8]
+	mi := &file_gramophile_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,7 +421,7 @@ func (x *EnqueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueRequest.ProtoReflect.Descriptor instead.
 func (*EnqueueRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{8}
+	return file_gramophile_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EnqueueRequest) GetElement() *QueueElement {
@@ -525,7 +440,7 @@ type EnqueueResponse struct {
 func (x *EnqueueResponse) Reset() {
 	*x = EnqueueResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[9]
+		mi := &file_gramophile_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -538,7 +453,7 @@ func (x *EnqueueResponse) String() string {
 func (*EnqueueResponse) ProtoMessage() {}
 
 func (x *EnqueueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[9]
+	mi := &file_gramophile_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +466,7 @@ func (x *EnqueueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueResponse.ProtoReflect.Descriptor instead.
 func (*EnqueueResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{9}
+	return file_gramophile_proto_rawDescGZIP(), []int{7}
 }
 
 type StoredUser struct {
@@ -570,7 +485,7 @@ type StoredUser struct {
 func (x *StoredUser) Reset() {
 	*x = StoredUser{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[10]
+		mi := &file_gramophile_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -583,7 +498,7 @@ func (x *StoredUser) String() string {
 func (*StoredUser) ProtoMessage() {}
 
 func (x *StoredUser) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[10]
+	mi := &file_gramophile_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +511,7 @@ func (x *StoredUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoredUser.ProtoReflect.Descriptor instead.
 func (*StoredUser) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{10}
+	return file_gramophile_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StoredUser) GetAuth() *GramophileAuth {
@@ -652,7 +567,7 @@ type GramophileAuth struct {
 func (x *GramophileAuth) Reset() {
 	*x = GramophileAuth{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[11]
+		mi := &file_gramophile_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -665,7 +580,7 @@ func (x *GramophileAuth) String() string {
 func (*GramophileAuth) ProtoMessage() {}
 
 func (x *GramophileAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[11]
+	mi := &file_gramophile_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +593,7 @@ func (x *GramophileAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GramophileAuth.ProtoReflect.Descriptor instead.
 func (*GramophileAuth) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{11}
+	return file_gramophile_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GramophileAuth) GetToken() string {
@@ -699,7 +614,7 @@ type UserLoginAttempts struct {
 func (x *UserLoginAttempts) Reset() {
 	*x = UserLoginAttempts{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[12]
+		mi := &file_gramophile_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -712,7 +627,7 @@ func (x *UserLoginAttempts) String() string {
 func (*UserLoginAttempts) ProtoMessage() {}
 
 func (x *UserLoginAttempts) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[12]
+	mi := &file_gramophile_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -725,7 +640,7 @@ func (x *UserLoginAttempts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginAttempts.ProtoReflect.Descriptor instead.
 func (*UserLoginAttempts) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{12}
+	return file_gramophile_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UserLoginAttempts) GetAttempts() []*UserLoginAttempt {
@@ -750,7 +665,7 @@ type UserLoginAttempt struct {
 func (x *UserLoginAttempt) Reset() {
 	*x = UserLoginAttempt{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[13]
+		mi := &file_gramophile_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -763,7 +678,7 @@ func (x *UserLoginAttempt) String() string {
 func (*UserLoginAttempt) ProtoMessage() {}
 
 func (x *UserLoginAttempt) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[13]
+	mi := &file_gramophile_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,7 +691,7 @@ func (x *UserLoginAttempt) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginAttempt.ProtoReflect.Descriptor instead.
 func (*UserLoginAttempt) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{13}
+	return file_gramophile_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UserLoginAttempt) GetRequestToken() string {
@@ -823,7 +738,7 @@ type GetURLRequest struct {
 func (x *GetURLRequest) Reset() {
 	*x = GetURLRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[14]
+		mi := &file_gramophile_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -836,7 +751,7 @@ func (x *GetURLRequest) String() string {
 func (*GetURLRequest) ProtoMessage() {}
 
 func (x *GetURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[14]
+	mi := &file_gramophile_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +764,7 @@ func (x *GetURLRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetURLRequest.ProtoReflect.Descriptor instead.
 func (*GetURLRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{14}
+	return file_gramophile_proto_rawDescGZIP(), []int{12}
 }
 
 type GetURLResponse struct {
@@ -864,7 +779,7 @@ type GetURLResponse struct {
 func (x *GetURLResponse) Reset() {
 	*x = GetURLResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[15]
+		mi := &file_gramophile_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -877,7 +792,7 @@ func (x *GetURLResponse) String() string {
 func (*GetURLResponse) ProtoMessage() {}
 
 func (x *GetURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[15]
+	mi := &file_gramophile_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +805,7 @@ func (x *GetURLResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetURLResponse.ProtoReflect.Descriptor instead.
 func (*GetURLResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{15}
+	return file_gramophile_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetURLResponse) GetURL() string {
@@ -918,7 +833,7 @@ type GetLoginRequest struct {
 func (x *GetLoginRequest) Reset() {
 	*x = GetLoginRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[16]
+		mi := &file_gramophile_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -931,7 +846,7 @@ func (x *GetLoginRequest) String() string {
 func (*GetLoginRequest) ProtoMessage() {}
 
 func (x *GetLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[16]
+	mi := &file_gramophile_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +859,7 @@ func (x *GetLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoginRequest.ProtoReflect.Descriptor instead.
 func (*GetLoginRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{16}
+	return file_gramophile_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetLoginRequest) GetToken() string {
@@ -965,7 +880,7 @@ type GetLoginResponse struct {
 func (x *GetLoginResponse) Reset() {
 	*x = GetLoginResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[17]
+		mi := &file_gramophile_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -978,7 +893,7 @@ func (x *GetLoginResponse) String() string {
 func (*GetLoginResponse) ProtoMessage() {}
 
 func (x *GetLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[17]
+	mi := &file_gramophile_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -991,7 +906,7 @@ func (x *GetLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoginResponse.ProtoReflect.Descriptor instead.
 func (*GetLoginResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{17}
+	return file_gramophile_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetLoginResponse) GetAuth() *GramophileAuth {
@@ -1010,7 +925,7 @@ type GetStateRequest struct {
 func (x *GetStateRequest) Reset() {
 	*x = GetStateRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[18]
+		mi := &file_gramophile_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1023,7 +938,7 @@ func (x *GetStateRequest) String() string {
 func (*GetStateRequest) ProtoMessage() {}
 
 func (x *GetStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[18]
+	mi := &file_gramophile_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +951,7 @@ func (x *GetStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStateRequest.ProtoReflect.Descriptor instead.
 func (*GetStateRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{18}
+	return file_gramophile_proto_rawDescGZIP(), []int{16}
 }
 
 type GetStateResponse struct {
@@ -1050,7 +965,7 @@ type GetStateResponse struct {
 func (x *GetStateResponse) Reset() {
 	*x = GetStateResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[19]
+		mi := &file_gramophile_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1063,7 +978,7 @@ func (x *GetStateResponse) String() string {
 func (*GetStateResponse) ProtoMessage() {}
 
 func (x *GetStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[19]
+	mi := &file_gramophile_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1076,7 +991,7 @@ func (x *GetStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStateResponse.ProtoReflect.Descriptor instead.
 func (*GetStateResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{19}
+	return file_gramophile_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetStateResponse) GetLastUserRefresh() int64 {
@@ -1095,7 +1010,7 @@ type GetUserRequest struct {
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[20]
+		mi := &file_gramophile_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1108,7 +1023,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[20]
+	mi := &file_gramophile_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1121,7 +1036,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{20}
+	return file_gramophile_proto_rawDescGZIP(), []int{18}
 }
 
 type GetUserResponse struct {
@@ -1135,7 +1050,7 @@ type GetUserResponse struct {
 func (x *GetUserResponse) Reset() {
 	*x = GetUserResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[21]
+		mi := &file_gramophile_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1148,7 +1063,7 @@ func (x *GetUserResponse) String() string {
 func (*GetUserResponse) ProtoMessage() {}
 
 func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[21]
+	mi := &file_gramophile_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1161,7 +1076,7 @@ func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserResponse.ProtoReflect.Descriptor instead.
 func (*GetUserResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{21}
+	return file_gramophile_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetUserResponse) GetUser() *StoredUser {
@@ -1180,7 +1095,7 @@ type GetUsersRequest struct {
 func (x *GetUsersRequest) Reset() {
 	*x = GetUsersRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[22]
+		mi := &file_gramophile_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1193,7 +1108,7 @@ func (x *GetUsersRequest) String() string {
 func (*GetUsersRequest) ProtoMessage() {}
 
 func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[22]
+	mi := &file_gramophile_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1206,7 +1121,7 @@ func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersRequest.ProtoReflect.Descriptor instead.
 func (*GetUsersRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{22}
+	return file_gramophile_proto_rawDescGZIP(), []int{20}
 }
 
 type GetUsersResponse struct {
@@ -1220,7 +1135,7 @@ type GetUsersResponse struct {
 func (x *GetUsersResponse) Reset() {
 	*x = GetUsersResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[23]
+		mi := &file_gramophile_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1233,7 +1148,7 @@ func (x *GetUsersResponse) String() string {
 func (*GetUsersResponse) ProtoMessage() {}
 
 func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[23]
+	mi := &file_gramophile_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1246,7 +1161,7 @@ func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersResponse.ProtoReflect.Descriptor instead.
 func (*GetUsersResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{23}
+	return file_gramophile_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetUsersResponse) GetUsers() []*StoredUser {
@@ -1267,7 +1182,7 @@ type DeleteUserRequest struct {
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[24]
+		mi := &file_gramophile_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1280,7 +1195,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[24]
+	mi := &file_gramophile_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1293,7 +1208,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{24}
+	return file_gramophile_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DeleteUserRequest) GetId() string {
@@ -1312,7 +1227,7 @@ type DeleteUserResponse struct {
 func (x *DeleteUserResponse) Reset() {
 	*x = DeleteUserResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_gramophile_proto_msgTypes[25]
+		mi := &file_gramophile_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1325,7 +1240,7 @@ func (x *DeleteUserResponse) String() string {
 func (*DeleteUserResponse) ProtoMessage() {}
 
 func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[25]
+	mi := &file_gramophile_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1338,7 +1253,7 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{25}
+	return file_gramophile_proto_rawDescGZIP(), []int{23}
 }
 
 var File_gramophile_proto protoreflect.FileDescriptor
@@ -1387,89 +1302,79 @@ var file_gramophile_proto_rawDesc = []byte{
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68, 0x22, 0x2c, 0x0a, 0x16,
 	0x52, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x43, 0x6f, 0x6c, 0x6c, 0x65, 0x63, 0x74, 0x69, 0x6f,
 	0x6e, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x67, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x61, 0x67, 0x65, 0x22, 0x44, 0x0a, 0x0e, 0x45, 0x78,
-	0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x32, 0x0a, 0x07,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x61, 0x67, 0x65, 0x22, 0x44, 0x0a, 0x0e, 0x45, 0x6e,
+	0x71, 0x75, 0x65, 0x75, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x32, 0x0a, 0x07,
 	0x65, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e,
 	0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x51, 0x75, 0x65, 0x75, 0x65,
 	0x45, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x07, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74,
-	0x22, 0x11, 0x0a, 0x0f, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x22, 0x44, 0x0a, 0x0e, 0x45, 0x6e, 0x71, 0x75, 0x65, 0x75, 0x65, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x32, 0x0a, 0x07, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68,
-	0x69, 0x6c, 0x65, 0x2e, 0x51, 0x75, 0x65, 0x75, 0x65, 0x45, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74,
-	0x52, 0x07, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x22, 0x11, 0x0a, 0x0f, 0x45, 0x6e, 0x71,
-	0x75, 0x65, 0x75, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x83, 0x02, 0x0a,
-	0x0a, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x55, 0x73, 0x65, 0x72, 0x12, 0x2e, 0x0a, 0x04, 0x61,
-	0x75, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x72, 0x61, 0x6d,
-	0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x47, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c,
-	0x65, 0x41, 0x75, 0x74, 0x68, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68, 0x12, 0x21, 0x0a, 0x04, 0x75,
-	0x73, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x64, 0x69, 0x73, 0x63,
-	0x6f, 0x67, 0x73, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x12, 0x1d,
-	0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x72, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1f, 0x0a,
-	0x0b, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x04, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x12, 0x2a,
-	0x0a, 0x11, 0x6c, 0x61, 0x73, 0x74, 0x5f, 0x72, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x5f, 0x74,
-	0x69, 0x6d, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0f, 0x6c, 0x61, 0x73, 0x74, 0x52,
-	0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x36, 0x0a, 0x17, 0x6c, 0x61,
-	0x73, 0x74, 0x5f, 0x63, 0x6f, 0x6c, 0x6c, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x72, 0x65,
-	0x66, 0x72, 0x65, 0x73, 0x68, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x15, 0x6c, 0x61, 0x73,
-	0x74, 0x43, 0x6f, 0x6c, 0x6c, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x66, 0x72, 0x65,
-	0x73, 0x68, 0x22, 0x26, 0x0a, 0x0e, 0x47, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65,
-	0x41, 0x75, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x4d, 0x0a, 0x11, 0x55, 0x73,
-	0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x73, 0x12,
-	0x38, 0x0a, 0x08, 0x61, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x55,
-	0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x52,
-	0x08, 0x61, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x73, 0x22, 0xac, 0x01, 0x0a, 0x10, 0x55, 0x73,
-	0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x12, 0x22,
-	0x0a, 0x0c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x6f, 0x6b,
-	0x65, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x06, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x12, 0x1c, 0x0a, 0x09, 0x44, 0x61,
-	0x74, 0x65, 0x41, 0x64, 0x64, 0x65, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x44,
-	0x61, 0x74, 0x65, 0x41, 0x64, 0x64, 0x65, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72,
-	0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73,
-	0x65, 0x72, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x75, 0x73, 0x65, 0x72, 0x5f,
-	0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x75, 0x73,
-	0x65, 0x72, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x22, 0x0f, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x55,
-	0x52, 0x4c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x38, 0x0a, 0x0e, 0x47, 0x65, 0x74,
-	0x55, 0x52, 0x4c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x55,
-	0x52, 0x4c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x55, 0x52, 0x4c, 0x12, 0x14, 0x0a,
-	0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x54, 0x6f,
-	0x6b, 0x65, 0x6e, 0x22, 0x27, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x42, 0x0a, 0x10,
-	0x47, 0x65, 0x74, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x2e, 0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a,
-	0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x47, 0x72, 0x61, 0x6d,
-	0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x41, 0x75, 0x74, 0x68, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68,
-	0x22, 0x11, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x22, 0x3e, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2a, 0x0a, 0x11, 0x6c, 0x61, 0x73, 0x74, 0x5f,
-	0x75, 0x73, 0x65, 0x72, 0x5f, 0x72, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x03, 0x52, 0x0f, 0x6c, 0x61, 0x73, 0x74, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x66, 0x72,
-	0x65, 0x73, 0x68, 0x22, 0x10, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x3d, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2a, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68,
-	0x69, 0x6c, 0x65, 0x2e, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04,
-	0x75, 0x73, 0x65, 0x72, 0x22, 0x11, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x40, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x55, 0x73,
-	0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2c, 0x0a, 0x05, 0x75,
-	0x73, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x67, 0x72, 0x61,
-	0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x55, 0x73,
-	0x65, 0x72, 0x52, 0x05, 0x75, 0x73, 0x65, 0x72, 0x73, 0x22, 0x23, 0x0a, 0x11, 0x44, 0x65, 0x6c,
-	0x65, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e,
-	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x14,
-	0x0a, 0x12, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x32, 0x9a, 0x01, 0x0a, 0x0c, 0x51, 0x75, 0x65, 0x75, 0x65, 0x53, 0x65,
-	0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x44, 0x0a, 0x07, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74, 0x65,
-	0x12, 0x1a, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x45, 0x78,
-	0x65, 0x63, 0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x67,
-	0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x45, 0x78, 0x65, 0x63, 0x75, 0x74,
-	0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x44, 0x0a, 0x07, 0x45,
+	0x22, 0x11, 0x0a, 0x0f, 0x45, 0x6e, 0x71, 0x75, 0x65, 0x75, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x83, 0x02, 0x0a, 0x0a, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x55, 0x73,
+	0x65, 0x72, 0x12, 0x2e, 0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x1a, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x47, 0x72,
+	0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x41, 0x75, 0x74, 0x68, 0x52, 0x04, 0x61, 0x75,
+	0x74, 0x68, 0x12, 0x21, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x0d, 0x2e, 0x64, 0x69, 0x73, 0x63, 0x6f, 0x67, 0x73, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x52,
+	0x04, 0x75, 0x73, 0x65, 0x72, 0x12, 0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x74, 0x6f,
+	0x6b, 0x65, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x72, 0x54,
+	0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x73, 0x65, 0x63,
+	0x72, 0x65, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x53,
+	0x65, 0x63, 0x72, 0x65, 0x74, 0x12, 0x2a, 0x0a, 0x11, 0x6c, 0x61, 0x73, 0x74, 0x5f, 0x72, 0x65,
+	0x66, 0x72, 0x65, 0x73, 0x68, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03,
+	0x52, 0x0f, 0x6c, 0x61, 0x73, 0x74, 0x52, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x54, 0x69, 0x6d,
+	0x65, 0x12, 0x36, 0x0a, 0x17, 0x6c, 0x61, 0x73, 0x74, 0x5f, 0x63, 0x6f, 0x6c, 0x6c, 0x65, 0x63,
+	0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x72, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x18, 0x06, 0x20, 0x01,
+	0x28, 0x03, 0x52, 0x15, 0x6c, 0x61, 0x73, 0x74, 0x43, 0x6f, 0x6c, 0x6c, 0x65, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x52, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x22, 0x26, 0x0a, 0x0e, 0x47, 0x72, 0x61,
+	0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x41, 0x75, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x74,
+	0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65,
+	0x6e, 0x22, 0x4d, 0x0a, 0x11, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x74,
+	0x74, 0x65, 0x6d, 0x70, 0x74, 0x73, 0x12, 0x38, 0x0a, 0x08, 0x61, 0x74, 0x74, 0x65, 0x6d, 0x70,
+	0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f,
+	0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41,
+	0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x52, 0x08, 0x61, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x73,
+	0x22, 0xac, 0x01, 0x0a, 0x10, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x41, 0x74,
+	0x74, 0x65, 0x6d, 0x70, 0x74, 0x12, 0x22, 0x0a, 0x0c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x53, 0x65, 0x63,
+	0x72, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x53, 0x65, 0x63, 0x72, 0x65,
+	0x74, 0x12, 0x1c, 0x0a, 0x09, 0x44, 0x61, 0x74, 0x65, 0x41, 0x64, 0x64, 0x65, 0x64, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x44, 0x61, 0x74, 0x65, 0x41, 0x64, 0x64, 0x65, 0x64, 0x12,
+	0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x72, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1f,
+	0x0a, 0x0b, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x18, 0x05, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0a, 0x75, 0x73, 0x65, 0x72, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x22,
+	0x0f, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x55, 0x52, 0x4c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x22, 0x38, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x55, 0x52, 0x4c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x55, 0x52, 0x4c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x03, 0x55, 0x52, 0x4c, 0x12, 0x14, 0x0a, 0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x27, 0x0a, 0x0f, 0x47, 0x65,
+	0x74, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a,
+	0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x54, 0x6f,
+	0x6b, 0x65, 0x6e, 0x22, 0x42, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2e, 0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69,
+	0x6c, 0x65, 0x2e, 0x47, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x41, 0x75, 0x74,
+	0x68, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68, 0x22, 0x11, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x53, 0x74,
+	0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x3e, 0x0a, 0x10, 0x47, 0x65,
+	0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2a,
+	0x0a, 0x11, 0x6c, 0x61, 0x73, 0x74, 0x5f, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x72, 0x65, 0x66, 0x72,
+	0x65, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0f, 0x6c, 0x61, 0x73, 0x74, 0x55,
+	0x73, 0x65, 0x72, 0x52, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x22, 0x10, 0x0a, 0x0e, 0x47, 0x65,
+	0x74, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x3d, 0x0a, 0x0f,
+	0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x2a, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e,
+	0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53, 0x74, 0x6f, 0x72, 0x65,
+	0x64, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x22, 0x11, 0x0a, 0x0f, 0x47,
+	0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x40,
+	0x0a, 0x10, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x2c, 0x0a, 0x05, 0x75, 0x73, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x16, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53,
+	0x74, 0x6f, 0x72, 0x65, 0x64, 0x55, 0x73, 0x65, 0x72, 0x52, 0x05, 0x75, 0x73, 0x65, 0x72, 0x73,
+	0x22, 0x23, 0x0a, 0x11, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x14, 0x0a, 0x12, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x55,
+	0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x54, 0x0a, 0x0c, 0x51,
+	0x75, 0x65, 0x75, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x44, 0x0a, 0x07, 0x45,
 	0x6e, 0x71, 0x75, 0x65, 0x75, 0x65, 0x12, 0x1a, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68,
 	0x69, 0x6c, 0x65, 0x2e, 0x45, 0x6e, 0x71, 0x75, 0x65, 0x75, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
 	0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e,
@@ -1522,7 +1427,7 @@ func file_gramophile_proto_rawDescGZIP() []byte {
 	return file_gramophile_proto_rawDescData
 }
 
-var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_gramophile_proto_goTypes = []interface{}{
 	(*Record)(nil),                 // 0: gramophile.Record
 	(*Queues)(nil),                 // 1: gramophile.Queues
@@ -1530,64 +1435,59 @@ var file_gramophile_proto_goTypes = []interface{}{
 	(*QueueElement)(nil),           // 3: gramophile.QueueElement
 	(*RefreshUserEntry)(nil),       // 4: gramophile.RefreshUserEntry
 	(*RefreshCollectionEntry)(nil), // 5: gramophile.RefreshCollectionEntry
-	(*ExecuteRequest)(nil),         // 6: gramophile.ExecuteRequest
-	(*ExecuteResponse)(nil),        // 7: gramophile.ExecuteResponse
-	(*EnqueueRequest)(nil),         // 8: gramophile.EnqueueRequest
-	(*EnqueueResponse)(nil),        // 9: gramophile.EnqueueResponse
-	(*StoredUser)(nil),             // 10: gramophile.StoredUser
-	(*GramophileAuth)(nil),         // 11: gramophile.GramophileAuth
-	(*UserLoginAttempts)(nil),      // 12: gramophile.UserLoginAttempts
-	(*UserLoginAttempt)(nil),       // 13: gramophile.UserLoginAttempt
-	(*GetURLRequest)(nil),          // 14: gramophile.GetURLRequest
-	(*GetURLResponse)(nil),         // 15: gramophile.GetURLResponse
-	(*GetLoginRequest)(nil),        // 16: gramophile.GetLoginRequest
-	(*GetLoginResponse)(nil),       // 17: gramophile.GetLoginResponse
-	(*GetStateRequest)(nil),        // 18: gramophile.GetStateRequest
-	(*GetStateResponse)(nil),       // 19: gramophile.GetStateResponse
-	(*GetUserRequest)(nil),         // 20: gramophile.GetUserRequest
-	(*GetUserResponse)(nil),        // 21: gramophile.GetUserResponse
-	(*GetUsersRequest)(nil),        // 22: gramophile.GetUsersRequest
-	(*GetUsersResponse)(nil),       // 23: gramophile.GetUsersResponse
-	(*DeleteUserRequest)(nil),      // 24: gramophile.DeleteUserRequest
-	(*DeleteUserResponse)(nil),     // 25: gramophile.DeleteUserResponse
-	(*proto.Release)(nil),          // 26: discogs.Release
-	(*proto.User)(nil),             // 27: discogs.User
+	(*EnqueueRequest)(nil),         // 6: gramophile.EnqueueRequest
+	(*EnqueueResponse)(nil),        // 7: gramophile.EnqueueResponse
+	(*StoredUser)(nil),             // 8: gramophile.StoredUser
+	(*GramophileAuth)(nil),         // 9: gramophile.GramophileAuth
+	(*UserLoginAttempts)(nil),      // 10: gramophile.UserLoginAttempts
+	(*UserLoginAttempt)(nil),       // 11: gramophile.UserLoginAttempt
+	(*GetURLRequest)(nil),          // 12: gramophile.GetURLRequest
+	(*GetURLResponse)(nil),         // 13: gramophile.GetURLResponse
+	(*GetLoginRequest)(nil),        // 14: gramophile.GetLoginRequest
+	(*GetLoginResponse)(nil),       // 15: gramophile.GetLoginResponse
+	(*GetStateRequest)(nil),        // 16: gramophile.GetStateRequest
+	(*GetStateResponse)(nil),       // 17: gramophile.GetStateResponse
+	(*GetUserRequest)(nil),         // 18: gramophile.GetUserRequest
+	(*GetUserResponse)(nil),        // 19: gramophile.GetUserResponse
+	(*GetUsersRequest)(nil),        // 20: gramophile.GetUsersRequest
+	(*GetUsersResponse)(nil),       // 21: gramophile.GetUsersResponse
+	(*DeleteUserRequest)(nil),      // 22: gramophile.DeleteUserRequest
+	(*DeleteUserResponse)(nil),     // 23: gramophile.DeleteUserResponse
+	(*proto.Release)(nil),          // 24: discogs.Release
+	(*proto.User)(nil),             // 25: discogs.User
 }
 var file_gramophile_proto_depIdxs = []int32{
-	26, // 0: gramophile.Record.release:type_name -> discogs.Release
+	24, // 0: gramophile.Record.release:type_name -> discogs.Release
 	2,  // 1: gramophile.Queues.queues:type_name -> gramophile.Queue
 	3,  // 2: gramophile.Queue.elements:type_name -> gramophile.QueueElement
 	4,  // 3: gramophile.QueueElement.refresh_user:type_name -> gramophile.RefreshUserEntry
 	5,  // 4: gramophile.QueueElement.refresh_collection:type_name -> gramophile.RefreshCollectionEntry
-	3,  // 5: gramophile.ExecuteRequest.element:type_name -> gramophile.QueueElement
-	3,  // 6: gramophile.EnqueueRequest.element:type_name -> gramophile.QueueElement
-	11, // 7: gramophile.StoredUser.auth:type_name -> gramophile.GramophileAuth
-	27, // 8: gramophile.StoredUser.user:type_name -> discogs.User
-	13, // 9: gramophile.UserLoginAttempts.attempts:type_name -> gramophile.UserLoginAttempt
-	11, // 10: gramophile.GetLoginResponse.auth:type_name -> gramophile.GramophileAuth
-	10, // 11: gramophile.GetUserResponse.user:type_name -> gramophile.StoredUser
-	10, // 12: gramophile.GetUsersResponse.users:type_name -> gramophile.StoredUser
-	6,  // 13: gramophile.QueueService.Execute:input_type -> gramophile.ExecuteRequest
-	8,  // 14: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
-	14, // 15: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
-	16, // 16: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
-	20, // 17: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
-	18, // 18: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
-	22, // 19: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
-	24, // 20: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
-	7,  // 21: gramophile.QueueService.Execute:output_type -> gramophile.ExecuteResponse
-	9,  // 22: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
-	15, // 23: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
-	17, // 24: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
-	21, // 25: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
-	19, // 26: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
-	23, // 27: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
-	25, // 28: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
-	21, // [21:29] is the sub-list for method output_type
-	13, // [13:21] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	3,  // 5: gramophile.EnqueueRequest.element:type_name -> gramophile.QueueElement
+	9,  // 6: gramophile.StoredUser.auth:type_name -> gramophile.GramophileAuth
+	25, // 7: gramophile.StoredUser.user:type_name -> discogs.User
+	11, // 8: gramophile.UserLoginAttempts.attempts:type_name -> gramophile.UserLoginAttempt
+	9,  // 9: gramophile.GetLoginResponse.auth:type_name -> gramophile.GramophileAuth
+	8,  // 10: gramophile.GetUserResponse.user:type_name -> gramophile.StoredUser
+	8,  // 11: gramophile.GetUsersResponse.users:type_name -> gramophile.StoredUser
+	6,  // 12: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
+	12, // 13: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
+	14, // 14: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
+	18, // 15: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
+	16, // 16: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
+	20, // 17: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
+	22, // 18: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
+	7,  // 19: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
+	13, // 20: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
+	15, // 21: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
+	19, // 22: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
+	17, // 23: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
+	21, // 24: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
+	23, // 25: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_gramophile_proto_init() }
@@ -1669,30 +1569,6 @@ func file_gramophile_proto_init() {
 			}
 		}
 		file_gramophile_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExecuteRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_gramophile_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExecuteResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_gramophile_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*EnqueueRequest); i {
 			case 0:
 				return &v.state
@@ -1704,7 +1580,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*EnqueueResponse); i {
 			case 0:
 				return &v.state
@@ -1716,7 +1592,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StoredUser); i {
 			case 0:
 				return &v.state
@@ -1728,7 +1604,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GramophileAuth); i {
 			case 0:
 				return &v.state
@@ -1740,7 +1616,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UserLoginAttempts); i {
 			case 0:
 				return &v.state
@@ -1752,7 +1628,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UserLoginAttempt); i {
 			case 0:
 				return &v.state
@@ -1764,7 +1640,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetURLRequest); i {
 			case 0:
 				return &v.state
@@ -1776,7 +1652,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetURLResponse); i {
 			case 0:
 				return &v.state
@@ -1788,7 +1664,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetLoginRequest); i {
 			case 0:
 				return &v.state
@@ -1800,7 +1676,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetLoginResponse); i {
 			case 0:
 				return &v.state
@@ -1812,7 +1688,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetStateRequest); i {
 			case 0:
 				return &v.state
@@ -1824,7 +1700,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetStateResponse); i {
 			case 0:
 				return &v.state
@@ -1836,7 +1712,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUserRequest); i {
 			case 0:
 				return &v.state
@@ -1848,7 +1724,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUserResponse); i {
 			case 0:
 				return &v.state
@@ -1860,7 +1736,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUsersRequest); i {
 			case 0:
 				return &v.state
@@ -1872,7 +1748,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUsersResponse); i {
 			case 0:
 				return &v.state
@@ -1884,7 +1760,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteUserRequest); i {
 			case 0:
 				return &v.state
@@ -1896,7 +1772,7 @@ func file_gramophile_proto_init() {
 				return nil
 			}
 		}
-		file_gramophile_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+		file_gramophile_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteUserResponse); i {
 			case 0:
 				return &v.state
@@ -1919,7 +1795,7 @@ func file_gramophile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_gramophile_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
