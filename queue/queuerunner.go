@@ -7,6 +7,8 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc/codes"
@@ -20,6 +22,11 @@ import (
 
 var (
 	QUEUE_SUFFIX = "gramophile/taskqueue/"
+
+	queueLen = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_qlen",
+		Help: "The size of the user list",
+	})
 )
 
 type Queue struct {
@@ -103,6 +110,8 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	queueLen.Set(float64(len(keys.GetKeys())))
 
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: keys.GetKeys()[0]})
 	if err != nil {

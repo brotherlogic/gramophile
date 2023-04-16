@@ -21,7 +21,7 @@ func TestGetCollectionPage_WithNewRecord(t *testing.T) {
 	d := &discogs.TestDiscogsClient{}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
 
-	err := b.ProcessCollectionPage(context.Background(), d, 1)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
