@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type QueueServiceClient interface {
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
+	Enqueue(ctx context.Context, in *EnqueueRequest, opts ...grpc.CallOption) (*EnqueueResponse, error)
 }
 
 type queueServiceClient struct {
@@ -42,11 +43,21 @@ func (c *queueServiceClient) Execute(ctx context.Context, in *ExecuteRequest, op
 	return out, nil
 }
 
+func (c *queueServiceClient) Enqueue(ctx context.Context, in *EnqueueRequest, opts ...grpc.CallOption) (*EnqueueResponse, error) {
+	out := new(EnqueueResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.QueueService/Enqueue", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueueServiceServer is the server API for QueueService service.
 // All implementations should embed UnimplementedQueueServiceServer
 // for forward compatibility
 type QueueServiceServer interface {
 	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
+	Enqueue(context.Context, *EnqueueRequest) (*EnqueueResponse, error)
 }
 
 // UnimplementedQueueServiceServer should be embedded to have forward compatible implementations.
@@ -55,6 +66,9 @@ type UnimplementedQueueServiceServer struct {
 
 func (UnimplementedQueueServiceServer) Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedQueueServiceServer) Enqueue(context.Context, *EnqueueRequest) (*EnqueueResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Enqueue not implemented")
 }
 
 // UnsafeQueueServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -86,6 +100,24 @@ func _QueueService_Execute_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QueueService_Enqueue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnqueueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueueServiceServer).Enqueue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.QueueService/Enqueue",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueueServiceServer).Enqueue(ctx, req.(*EnqueueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // QueueService_ServiceDesc is the grpc.ServiceDesc for QueueService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -96,6 +128,10 @@ var QueueService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Execute",
 			Handler:    _QueueService_Execute_Handler,
+		},
+		{
+			MethodName: "Enqueue",
+			Handler:    _QueueService_Enqueue_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
