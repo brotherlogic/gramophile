@@ -50,7 +50,7 @@ func (q *Queue) run() {
 			err = q.ExecuteInternal(ctx, d, entry)
 		}
 
-		// Back off on any type of regardless error
+		// Back off on any type of error
 		if err == nil {
 			q.delete(ctx, entry)
 		} else {
@@ -68,15 +68,17 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		if err != nil {
 			return err
 		}
-		for i := int32(2); i <= rval; i++ {
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				RunDate: time.Now().Unix() + int64(i),
-				Entry:   &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollectionEntry{Page: i}},
-				Token:   entry.GetToken(),
-				Secret:  entry.GetSecret(),
-			}})
-			if err != nil {
-				return err
+		if entry.GetRefreshCollection().GetPage() == 1 {
+			for i := int32(2); i <= rval; i++ {
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					RunDate: time.Now().Unix() + int64(i),
+					Entry:   &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollectionEntry{Page: i}},
+					Token:   entry.GetToken(),
+					Secret:  entry.GetSecret(),
+				}})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
