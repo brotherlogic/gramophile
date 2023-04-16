@@ -32,6 +32,7 @@ message QueueElement {
 
     oneof entry {
         RefreshUserEntry refresh_user = 5;
+        RefreshCollectionEntry refresh_collection = 6;
     }
 }
 
@@ -39,14 +40,18 @@ message RefreshUserEntry {
     string auth = 1;
 }
 
-message ExecuteRequest {
+message RefreshCollectionEntry {
+    int32 page = 1;
+}
+
+message EnqueueRequest{
     QueueElement element = 1;
 }
 
-message ExecuteResponse {}
+message EnqueueResponse {}
 
 service QueueService {
-    rpc Execute(ExecuteRequest) returns (ExecuteResponse) {};
+    rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {};
 }
 
 message StoredUser {
