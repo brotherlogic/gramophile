@@ -46,7 +46,8 @@ func (q *Queue) run() {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
 		if err == nil {
-			_, err = q.Execute(ctx, &pb.ExecuteRequest{Element: entry})
+			d := q.d.ForUser(entry.GetToken(), entry.GetSecret())
+			err = q.ExecuteInternal(ctx, d, entry)
 		}
 
 		// Back off on any type of error
@@ -56,11 +57,6 @@ func (q *Queue) run() {
 			time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 		}
 	}
-}
-
-func (q *Queue) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
-	d := q.d.ForUser(req.GetElement().GetToken(), req.GetElement().GetSecret())
-	return &pb.ExecuteResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
