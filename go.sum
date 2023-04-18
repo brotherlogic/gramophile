@@ -1,7 +1,7 @@
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/brotherlogic/discogs v0.0.0-20230418034208-f08b44c91bf3 h1:n76PtFkfeOBcTqQX2DGMfnhPiCDvtGx01LdChg8EtQA=
-github.com/brotherlogic/discogs v0.0.0-20230418034208-f08b44c91bf3/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230418035907-75d40928e31d h1:zD/sI5/Gih+eUQ7XAcTES46YSCrYs6LOE9HfpUVoKKw=
+github.com/brotherlogic/discogs v0.0.0-20230418035907-75d40928e31d/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/rstore v0.24.0 h1:6yaC4v1WcEyzQuYzF9jmjOWdPW7RAEh4Pi+zt8ptMPc=
 github.com/brotherlogic/rstore v0.24.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
