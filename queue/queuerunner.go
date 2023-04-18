@@ -7,6 +7,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
+	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
@@ -33,6 +34,7 @@ type Queue struct {
 	rstore *rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
+	db     db.DB
 }
 
 func GetQueue(b *background.BackgroundRunner, d discogs.Discogs) *Queue {
@@ -46,8 +48,12 @@ func (q *Queue) run() {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
 		if err == nil {
-			d := q.d.ForUser(entry.GetToken(), entry.GetSecret())
-			err = q.ExecuteInternal(ctx, d, entry)
+			user, err := q.db.GetUser(ctx, entry.GetAuth())
+			if err == nil {
+				d := q.d.ForUser(user.GetUser())
+				err = q.ExecuteInternal(ctx, d, entry)
+			}
+
 		}
 
 		// Back off on any type of error
@@ -66,7 +72,11 @@ func (q *Queue) run() {
 }
 
 func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-	d := q.d.ForUser(req.GetElement().GetToken(), req.GetElement().GetSecret())
+	user, err := q.db.GetUser(ctx, req.Element.GetAuth())
+	if err != nil {
+		return nil, err
+	}
+	d := q.d.ForUser(user.GetUser())
 	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
 
@@ -84,8 +94,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					RunDate: time.Now().Unix() + int64(i),
 					Entry:   &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollectionEntry{Page: i}},
-					Token:   entry.GetToken(),
-					Secret:  entry.GetSecret(),
+					Auth:    entry.GetAuth(),
 				}})
 				if err != nil {
 					return err
