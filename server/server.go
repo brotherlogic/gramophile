@@ -22,6 +22,7 @@ type Server struct {
 func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	d := db.NewDatabase(ctx)
 	return &Server{
+		d:     d,
 		Queue: queue.GetQueue(background.GetBackgroundRunner(d, token, secret, callback), discogs.DiscogsWithAuth(token, secret, callback)),
 	}
 }
