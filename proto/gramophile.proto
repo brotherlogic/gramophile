@@ -52,6 +52,7 @@ message EnqueueResponse {}
 
 service QueueService {
     rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {};
+    rpc Execute(EnqueueRequest) returns (EnqueueResponse) {};
 }
 
 message StoredUser {

@@ -54,9 +54,20 @@ func (q *Queue) run() {
 		if err == nil {
 			q.delete(ctx, entry)
 		} else {
-			time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
+			if entry != nil {
+				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
+			} else {
+				time.Sleep(time.Second * 10)
+			}
 		}
+
+		time.Sleep(time.Hour)
 	}
+}
+
+func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	d := q.d.ForUser(req.GetElement().GetToken(), req.GetElement().GetSecret())
+	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
