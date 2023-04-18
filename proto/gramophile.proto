@@ -25,14 +25,13 @@ message Queue {
 message QueueElement {
     int64 run_date = 1;
    
-    string token = 2;
-    string secret = 3;
+     string auth = 2;
    
-    int32 backoff_in_seconds = 4;
+    int32 backoff_in_seconds = 3;
 
     oneof entry {
-        RefreshUserEntry refresh_user = 5;
-        RefreshCollectionEntry refresh_collection = 6;
+        RefreshUserEntry refresh_user = 4;
+        RefreshCollectionEntry refresh_collection = 5;
     }
 }
 
