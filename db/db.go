@@ -31,6 +31,7 @@ type DB struct{}
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
+	GetRecords(ctx context.Context, userid int32) ([]string, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
