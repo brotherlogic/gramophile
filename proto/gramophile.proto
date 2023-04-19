@@ -98,6 +98,7 @@ message GetLoginResponse {
 message GetStateRequest {}
 message GetStateResponse {
     int64 last_user_refresh = 1;
+    int32 collection_size = 2;
 }
 
 // Externally accessible service

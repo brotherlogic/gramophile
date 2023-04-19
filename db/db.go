@@ -31,6 +31,7 @@ type DB struct{}
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
+	GetRecords(ctx context.Context, userid int32) ([]string, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
@@ -216,6 +217,20 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 	su := &pb.Record{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
 	return su, err
+}
+
+func (d *DB) GetRecords(ctx context.Context, userid int32) ([]string, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetKeys(), nil
 }
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {

@@ -101,6 +101,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 				}
 			}
 		}
+		return nil
 	}
 
 	return status.Errorf(codes.NotFound, "Unable to handle %v", entry)
