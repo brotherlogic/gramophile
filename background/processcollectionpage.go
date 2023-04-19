@@ -27,7 +27,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 					return -1, err
 				}
 			}
-		} else if status.Code(err) == codes.DataLoss {
+		} else if status.Code(err) == codes.NotFound {
 			record := &pb.Record{Release: release}
 			err = b.db.SaveRecord(ctx, d.GetUserId(), record)
 			if err != nil {
