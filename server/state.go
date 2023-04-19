@@ -12,5 +12,13 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 		return nil, err
 	}
 
-	return &pb.GetStateResponse{LastUserRefresh: key.GetLastRefreshTime()}, nil
+	collection, err := s.GetRecords(ctx, key.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetStateResponse{
+		LastUserRefresh: key.GetLastRefreshTime(),
+		CollectionSize:  len(collection),
+	}, nil
 }

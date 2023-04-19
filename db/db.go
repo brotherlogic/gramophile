@@ -218,6 +218,20 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 	return su, err
 }
 
+func (d *DB) GetRecords(ctx context.Context, userid int32) ([]string, error) {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetKeys(), nil
+}
+
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
