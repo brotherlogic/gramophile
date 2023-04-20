@@ -49,7 +49,7 @@ func main() {
 	}
 	gsInternal := grpc.NewServer()
 	pb.RegisterGramophileServiceServer(gsInternal, s)
-	pb.RegisterQueueServiceServer(gsInternal, s.Queue)
+
 	go func() {
 		if err := gsInternal.Serve(lis2); err != nil {
 			log.Fatalf("gramophile is unable to serve internal grpc: %v", err)

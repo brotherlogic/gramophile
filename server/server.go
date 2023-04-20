@@ -3,10 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/brotherlogic/discogs"
-	"github.com/brotherlogic/gramophile/background"
 	db "github.com/brotherlogic/gramophile/db"
-	"github.com/brotherlogic/gramophile/queue"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -15,15 +12,13 @@ import (
 )
 
 type Server struct {
-	d     db.Database
-	Queue *queue.Queue
+	d db.Database
 }
 
 func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	d := db.NewDatabase(ctx)
 	return &Server{
-		d:     d,
-		Queue: queue.GetQueue(background.GetBackgroundRunner(d, token, secret, callback), discogs.DiscogsWithAuth(token, secret, callback)),
+		d: d,
 	}
 }
 

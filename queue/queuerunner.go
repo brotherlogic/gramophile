@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -11,8 +14,10 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -29,6 +34,9 @@ var (
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
 	})
+
+	internalPort = flag.Int("internal_port", 8080, "Port to serve internal grpc traffic")
+	metricsPort  = flag.Int("metrics_port", 8081, "Metrics port")
 )
 
 type Queue struct {
@@ -151,6 +159,25 @@ func main() {
 	queue := &Queue{
 		rstore: rstorec,
 	}
+
+	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
+	if err2 != nil {
+		log.Fatalf("gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)
+	}
+	gsInternal := grpc.NewServer()
+	go func() {
+		if err := gsInternal.Serve(lis); err != nil {
+			log.Fatalf("queue is unable to serve internal grpc: %v", err)
+		}
+	}()
+
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
+		log.Fatalf("gramophile is unable to serve metrics: %v", err)
+	}()
+
+	pb.RegisterQueueServiceServer(gsInternal, queue)
 
 	queue.run()
 }
