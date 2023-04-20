@@ -5,6 +5,7 @@ FROM golang:1.18 AS build
 WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile-queue
 
 COPY go.mod ./
+COPY go.sum ./
 
 COPY *.go ./
 
