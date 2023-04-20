@@ -25,11 +25,12 @@ func executeGetState(ctx context.Context, args []string) error {
 	}
 
 	client := pb.NewGramophileEServiceClient(conn)
-	user, err := client.GetState(ctx, &pb.GetStateRequest{})
+	state, err := client.GetState(ctx, &pb.GetStateRequest{})
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("User last updated: %v\n", time.Unix(user.GetLastUserRefresh(), 0))
+	fmt.Printf("User last updated: %v\n", time.Unix(state.GetLastUserRefresh(), 0))
+	fmt.Printf("%v records in collection\n", state.GetCollectionSize())
 	return nil
 }
