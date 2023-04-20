@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gramophile
+  namespace: gramophile
+  labels:
+    app: gramophile-queue
+spec:
+  type: NodePort
+  metadata:
+    labels:
+      app: gramophile-queue
+  ports: 
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+    - name: metrics
+      port: 8081
+      targetPort: 8081
+  selector:
+    app: gramophile-queue
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gramophile-queue
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - gramophile
+  selector:
+    matchLabels:
+      app: gramophile-queue
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gramophile-queue
+  namespace: gramophile
+spec:
+  selector:
+    matchLabels:
+      app: gramophile-queue
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gramophile-queue
+    spec:
+      containers:
+      - name: gramophile
+        image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.79.0 # {"$imagepolicy": "flux-system:gramophile"}
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DISCOGS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: discogs
+              key: discogs_key
+        - name: DISCOGS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: discogs
+              key: discogs_secret
+        - name: DISCOGS_CALLBACK
+          value: "https://gramophile.brotherlogic-backend.com/callback"
+      imagePullSecrets:
+      - name: regcred

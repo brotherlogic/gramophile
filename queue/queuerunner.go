@@ -1,8 +1,9 @@
-package queue
+package main
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -140,4 +141,16 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	entry := &pb.QueueElement{}
 	err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 	return entry, err
+}
+
+func main() {
+	rstorec, err := rstore_client.GetClient()
+	if err != nil {
+		log.Fatalf("Unable to connect to rstore: %v", err)
+	}
+	queue := &Queue{
+		rstore: rstorec,
+	}
+
+	queue.run()
 }
