@@ -35,7 +35,7 @@ var (
 		Help: "The length of the working queue I think yes",
 	})
 
-	internalPort = flag.Int("internal_port", 8080, "Port to serve internal grpc traffic")
+	internalPort = flag.Int("internal_port", 8080, "GRPC port")
 	metricsPort  = flag.Int("metrics_port", 8081, "Metrics port")
 )
 
