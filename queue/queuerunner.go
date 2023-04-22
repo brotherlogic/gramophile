@@ -128,7 +128,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		return nil, err
 	}
 	_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v/%v", req.GetElement().GetRunDate()),
+		Key:   fmt.Sprintf("%v/%v", QUEUE_SUFFIX, req.GetElement().GetRunDate()),
 		Value: &anypb.Any{Value: data},
 	})
 	return &pb.EnqueueResponse{}, err
@@ -141,6 +141,10 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	}
 
 	queueLen.Set(float64(len(keys.GetKeys())))
+
+	if len(keys.GetKeys()) == 0 {
+		return nil, status.Errorf(codes.NotFound, "No queue entries")
+	}
 
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: keys.GetKeys()[0]})
 	if err != nil {
