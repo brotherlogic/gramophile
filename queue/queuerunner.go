@@ -131,6 +131,11 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		Key:   fmt.Sprintf("%v/%v", QUEUE_SUFFIX, req.GetElement().GetRunDate()),
 		Value: &anypb.Any{Value: data},
 	})
+
+	if err == nil {
+		queueLen.Inc()
+	}
+
 	return &pb.EnqueueResponse{}, err
 }
 
