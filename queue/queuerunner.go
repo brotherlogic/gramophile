@@ -53,6 +53,7 @@ func GetQueue(b *background.BackgroundRunner, d discogs.Discogs) *Queue {
 }
 
 func (q *Queue) run() {
+	log.Printf("Running queue")
 	for {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
