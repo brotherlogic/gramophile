@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -39,20 +40,20 @@ var (
 	metricsPort  = flag.Int("metrics_port", 8081, "Metrics port")
 )
 
-type Queue struct {
+type queue struct {
 	rstore *rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
 	db     db.DB
 }
 
-func GetQueue(b *background.BackgroundRunner, d discogs.Discogs) *Queue {
-	return &Queue{
-		b: b, d: d,
+func GetQueue(r *rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs) *queue {
+	return &queue{
+		b: b, d: d, rstore: r,
 	}
 }
 
-func (q *Queue) run() {
+func (q *queue) run() {
 	log.Printf("Running queue")
 	for {
 		ctx := context.Background()
@@ -81,7 +82,7 @@ func (q *Queue) run() {
 	}
 }
 
-func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	user, err := q.db.GetUser(ctx, req.Element.GetAuth())
 	if err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
 
-func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
+func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
@@ -117,12 +118,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 	return status.Errorf(codes.NotFound, "Unable to handle %v", entry)
 }
 
-func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
+func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v/%v", QUEUE_SUFFIX, entry.GetRunDate())})
 	return err
 }
 
-func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
@@ -139,7 +140,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, err
 }
 
-func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
+func (q *queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_SUFFIX})
 	if err != nil {
 		return nil, err
@@ -166,9 +167,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to connect to rstore: %v", err)
 	}
-	queue := &Queue{
-		rstore: rstorec,
-	}
+	db := db.NewDatabase(context.Background())
+	queue := GetQueue(
+		rstorec,
+		background.GetBackgroundRunner(db, os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")),
+		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")))
 
 	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
 	if err2 != nil {
