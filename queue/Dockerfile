@@ -22,4 +22,7 @@ COPY --from=build /gramophile-queue /gramophile-queue
 
 USER nonroot:nonroot
 
+EXPOSE 8080
+EXPOSE 8081
+
 ENTRYPOINT ["/gramophile-queue"]
