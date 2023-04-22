@@ -54,7 +54,7 @@ func GetQueue(r *rstore_client.RStoreClient, b *background.BackgroundRunner, d d
 }
 
 func (q *queue) run() {
-	log.Printf("Running queue")
+	log.Printf("Running queue with %+v", q.d)
 	for {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
