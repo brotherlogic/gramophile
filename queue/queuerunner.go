@@ -58,6 +58,7 @@ func (q *queue) run() {
 	for {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
+		log.Printf("Got Entry: %v and %v", entry, err)
 		if err == nil {
 			user, err := q.db.GetUser(ctx, entry.GetAuth())
 			if err == nil {
