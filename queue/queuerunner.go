@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	QUEUE_SUFFIX = "gramophile/taskqueue/"
+	QUEUE_PREFIX = "gramophile/taskqueue/"
 
 	queueLen = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
@@ -119,7 +119,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 }
 
 func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v/%v", QUEUE_SUFFIX, entry.GetRunDate())})
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v/%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
 }
 
@@ -129,7 +129,7 @@ func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		return nil, err
 	}
 	_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v/%v", QUEUE_SUFFIX, req.GetElement().GetRunDate()),
+		Key:   fmt.Sprintf("%v/%v", QUEUE_PREFIX, req.GetElement().GetRunDate()),
 		Value: &anypb.Any{Value: data},
 	})
 
@@ -141,7 +141,7 @@ func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
-	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_SUFFIX})
+	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
 	}
@@ -172,12 +172,12 @@ func main() {
 		rstorec,
 		background.GetBackgroundRunner(db, os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")),
 		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")))
-
 	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
 	if err2 != nil {
 		log.Fatalf("gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)
 	}
 	gsInternal := grpc.NewServer()
+	pb.RegisterQueueServiceServer(gsInternal, queue)
 	go func() {
 		if err := gsInternal.Serve(lis); err != nil {
 			log.Fatalf("queue is unable to serve internal grpc: %v", err)
@@ -189,8 +189,6 @@ func main() {
 		err := http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
 		log.Fatalf("gramophile is unable to serve metrics: %v", err)
 	}()
-
-	pb.RegisterQueueServiceServer(gsInternal, queue)
 
 	queue.run()
 }
