@@ -78,7 +78,7 @@ func (q *queue) run() {
 			}
 		}
 
-		time.Sleep(time.Hour)
+		time.Sleep(time.Minute * 5)
 	}
 }
 
