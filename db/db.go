@@ -249,5 +249,11 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 
 	users.Set(float64(len(resp.GetKeys())))
 
-	return resp.GetKeys(), err
+	// Trim out the prefix from the returned keys
+	var rusers []string
+	for _, key := range resp.GetKeys() {
+		rusers = append(rusers, key[len("gramophile/user/"):])
+	}
+
+	return rusers, err
 }
