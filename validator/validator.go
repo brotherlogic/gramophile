@@ -67,7 +67,8 @@ func validateUsers(ctx context.Context) error {
 
 func main() {
 	log.Printf("Starting validator")
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
 
 	err := validateUsers(ctx)
 	if err != nil {
