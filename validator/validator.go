@@ -15,8 +15,14 @@ func validateUsers(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
+
+	qconn, err := grpc.Dial("gramophile:gramophile-queue:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
 	client := pb.NewGramophileServiceClient(conn)
-	queue := pb.NewQueueServiceClient(conn)
+	queue := pb.NewQueueServiceClient(qconn)
 	users, err := client.GetUsers(ctx, &pb.GetUsersRequest{})
 	if err != nil {
 		return err
