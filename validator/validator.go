@@ -17,7 +17,7 @@ func validateUsers(ctx context.Context) error {
 	}
 	defer conn.Close()
 
-	qconn, err := grpc.Dial("gramophile:gramophile-queue:8080", grpc.WithInsecure())
+	qconn, err := grpc.Dial("gramophile.gramophile-queue:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
