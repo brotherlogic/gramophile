@@ -99,6 +99,7 @@ message GetStateRequest {}
 message GetStateResponse {
     int64 last_user_refresh = 1;
     int32 collection_size = 2;
+    int64 last_collection_sync = 3;
 }
 
 // Externally accessible service

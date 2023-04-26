@@ -18,7 +18,8 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 	}
 
 	return &pb.GetStateResponse{
-		LastUserRefresh: key.GetLastRefreshTime(),
-		CollectionSize:  int32(len(collection)),
+		LastUserRefresh:    key.GetLastRefreshTime(),
+		CollectionSize:     int32(len(collection)),
+		LastCollectionSync: key.GetLastCollectionRefresh(),
 	}, nil
 }

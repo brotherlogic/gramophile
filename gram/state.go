@@ -31,6 +31,7 @@ func executeGetState(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("User last updated: %v\n", time.Unix(state.GetLastUserRefresh(), 0))
+	fmt.Printf("Collection last synced: %v\n", time.Unix(state.GetLastCollectionSync(), 0))
 	fmt.Printf("%v records in collection\n", state.GetCollectionSize())
 	return nil
 }
