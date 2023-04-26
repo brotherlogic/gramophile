@@ -101,6 +101,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		if err != nil {
 			return err
 		}
+		log.Printf("Processed collection page: %v %v", rval, err)
 		if entry.GetRefreshCollection().GetPage() == 1 {
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{

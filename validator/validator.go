@@ -55,7 +55,7 @@ func validateUsers(ctx context.Context) error {
 						RunDate:          time.Now().Unix(),
 						Token:            user.GetUserToken(),
 						Secret:           user.GetUserSecret(),
-						BackoffInSeconds: 10,
+						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
 							RefreshCollection: &pb.RefreshCollectionEntry{Page: 1},
 						},
