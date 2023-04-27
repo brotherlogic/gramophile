@@ -98,10 +98,11 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshCollection:
 		rval, err := q.b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollection().GetPage())
+		log.Printf("Processed collection page: %v %v", rval, err)
+
 		if err != nil {
 			return err
 		}
-		log.Printf("Processed collection page: %v %v", rval, err)
 		if entry.GetRefreshCollection().GetPage() == 1 {
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
