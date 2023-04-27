@@ -132,7 +132,7 @@ func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		return nil, err
 	}
 	_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v/%v", QUEUE_PREFIX, req.GetElement().GetRunDate()),
+		Key:   fmt.Sprintf("%v%v", QUEUE_PREFIX, req.GetElement().GetRunDate()),
 		Value: &anypb.Any{Value: data},
 	})
 
