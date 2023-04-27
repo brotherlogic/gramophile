@@ -122,7 +122,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 }
 
 func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v/%v", QUEUE_PREFIX, entry.GetRunDate())})
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
 }
 
