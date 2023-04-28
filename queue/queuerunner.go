@@ -114,6 +114,14 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 					return err
 				}
 			}
+
+			// If we've got here, update the user
+			user, err := q.db.GetUser(ctx, entry.GetAuth())
+			if err != nil {
+				return err
+			}
+			user.LastCollectionRefresh = time.Now().Unix()
+			return q.db.SaveUser(ctx, user)
 		}
 		return nil
 	}
