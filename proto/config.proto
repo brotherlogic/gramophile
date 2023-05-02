@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+enum Cleaning {
+    CLEANING_UNKNOWN = 0;
+    REQUIRE_CLEANING = 1;
+    RECOMMEND_CLEANING = 2;
+    NO_CLEANING = 3;
+}
+
+message Filter {
+
+}
+
+message CleaningConfig {
+    Cleaning cleaning = 1;
+    Filter applies_to = 2;
+    int64 cleaning_gap_in_seconds = 3;
+    int32 cleaning_gap_in_plays = 4;
+}
+
+message GramophileConfig {
+    CleaningConfig cleaning_config = 1;
+}
