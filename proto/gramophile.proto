@@ -4,6 +4,7 @@ syntax = "proto3";
 package gramophile;
 
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
+import "config.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
@@ -62,6 +63,9 @@ message StoredUser {
 
     int64 last_refresh_time = 5;
     int64 last_collection_refresh = 6;
+    int64 last_config_update = 7;
+
+    GramophileConfig config = 8;
 }
 
 message GramophileAuth {
@@ -100,6 +104,8 @@ message GetStateResponse {
     int64 last_user_refresh = 1;
     int32 collection_size = 2;
     int64 last_collection_sync = 3;
+    int64 last_config_update = 4;
+    string config_hash = 5;
 }
 
 // Externally accessible service
