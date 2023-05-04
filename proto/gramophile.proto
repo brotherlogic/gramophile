@@ -8,11 +8,22 @@ import "config.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum NoncomplianceIssue {
+    NEEDS_CLEAN = 0;
+}
+
 message Record {
     discogs.Release release = 1;
 
    int64 last_update_time = 2;
+
    string last_good_config_hash = 3;
+
+   int64 last_clean_time = 4;
+
+   int32 num_plays = 5;
+
+   repeated NoncomplianceIssue issues = 6;
 }
 
 message Queues {
