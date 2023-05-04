@@ -12,7 +12,7 @@ enum Cleaning {
 }
 
 message Filter {
-
+    repeated string formats = 1;
 }
 
 message CleaningConfig {
