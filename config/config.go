@@ -48,7 +48,7 @@ func filter(filter *pb.Filter, r *pb.Record) bool {
 }
 
 func Apply(c *pb.GramophileConfig, r *pb.Record) error {
-	if c.GetCleaningConfig().GetCleaning() != pb.Cleaning_NO_CLEANING && c.GetCleaningConfig().GetCleaning() != pb.Cleaning_CLEANING_UNKNOWN {
+	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		if filter(c.GetCleaningConfig().GetAppliesTo(), r) {
 			needsClean := false
 			if c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 && time.Since(time.Unix(r.GetLastCleanTime(), 0)) > time.Second*time.Duration(c.CleaningConfig.GetCleaningGapInSeconds()) {
