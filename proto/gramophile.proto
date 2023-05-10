@@ -124,12 +124,19 @@ message GetStateResponse {
     string config_hash = 5;
 }
 
+message SetConfigRequest {
+    GramophileConfig config = 1;
+}
+message SetConfigResponse {}
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
     rpc GetLogin(GetLoginRequest) returns (GetLoginResponse) {};
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
     rpc GetState(GetStateRequest) returns (GetStateResponse) {};
+
+    rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {};
 }
 
 message GetUserRequest {}
