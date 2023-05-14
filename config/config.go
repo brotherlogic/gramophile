@@ -10,6 +10,12 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func ValidateConfig(c *pb.GramophileConfig) error {
+	cl := &cleaning{}
+	err := cl.Validate(c)
+	return err
+}
+
 func Hash(c *pb.GramophileConfig) string {
 	bytes, _ := proto.Marshal(c)
 	hash := md5.Sum(bytes)
