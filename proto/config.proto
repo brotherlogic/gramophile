@@ -4,6 +4,11 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum Basis {
+    DISCOGS = 0;
+    GRAMOPHILE = 1;
+}
+
 enum Mandate {
     NONE = 0;
     RECOMMENDED = 1;
@@ -24,5 +29,6 @@ message CleaningConfig {
 }
 
 message GramophileConfig {
+    Basis basis = 2;
     CleaningConfig cleaning_config = 1;
 }
