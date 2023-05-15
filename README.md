@@ -1,3 +1,7 @@
 # gramophile
 
 Wheeeeeee.
+
+Config.
+
+Updates.
