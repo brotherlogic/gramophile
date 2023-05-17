@@ -49,6 +49,7 @@ message QueueElement {
     oneof entry {
         RefreshUserEntry refresh_user = 4;
         RefreshCollectionEntry refresh_collection = 5;
+        RefreshIntents refresh_intents = 6;
     }
 }
 
@@ -58,6 +59,10 @@ message RefreshUserEntry {
 
 message RefreshCollectionEntry {
     int32 page = 1;
+}
+
+message RefreshIntents {
+    int64 instance_id = 1;
 }
 
 message EnqueueRequest{
@@ -82,6 +87,8 @@ message StoredUser {
     int64 last_config_update = 7;
 
     GramophileConfig config = 8;
+
+    
 }
 
 message GramophileAuth {

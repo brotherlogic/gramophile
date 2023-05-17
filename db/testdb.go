@@ -11,6 +11,7 @@ import (
 
 type TestDatabase struct {
 	rMap map[int64]*pb.Record
+	iMap map[int64]*pb.Intent
 }
 
 func (td *TestDatabase) SaveRecord(ctx context.Context, userid int32, r *pb.Record) error {
@@ -37,6 +38,13 @@ func (td *TestDatabase) GetRecord(ctx context.Context, userid int32, iid int64) 
 		return nil, status.Errorf(codes.NotFound, "Unable to locate %v in %v", iid, td.rMap)
 	}
 	return td.rMap[iid], nil
+}
+
+func (td *TestDatabase) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error) {
+	if td.iMap == nil {
+		return nil, status.Errorf(codes.NotFound, "Unable to locate %v in %v", iid, td.rMap)
+	}
+	return td.iMap[iid], nil
 }
 
 func (td *TestDatabase) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {

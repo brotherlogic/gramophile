@@ -94,6 +94,16 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_RefreshIntents:
+		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
+		if err != nil {
+			return err
+		}
+		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
+		if err != nil {
+			return err
+		}
+		return q.b.ProcessIntents(ctx, d, r, i)
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshCollection:
