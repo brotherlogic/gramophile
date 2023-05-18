@@ -19,6 +19,9 @@ COPY db/*.go ./db/
 RUN mkdir background
 COPY background/*.go ./background/
 
+RUN mkdir config
+COPY config/*.go ./config/
+
 RUN go mod download
 
 COPY *.go ./
