@@ -17,7 +17,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		return nil, err
 	}
 
-	// Merge in the proto
+	// Merge in the proto def
 	proto.Merge(exint, req.GetIntent())
 
 	return &pb.SetIntentResponse{}, s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
