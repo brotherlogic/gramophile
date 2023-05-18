@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -37,7 +36,7 @@ func executeGetConfig(ctx context.Context, args []string) error {
 		}
 
 		if user.GetUser().GetConfig() == nil {
-			fmt.Printf("%v\n", &pb.GramophileConfig{})
+			proto.MarshalText(os.Stdout, &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE})
 		} else {
 			proto.MarshalText(os.Stdout, user.GetUser().GetConfig())
 		}
@@ -47,7 +46,7 @@ func executeGetConfig(ctx context.Context, args []string) error {
 		if err != nil {
 			log.Fatalf("Unable to read file: %v", err)
 		}
-		err = proto.Unmarshal(data, gconfig)
+		err = proto.UnmarshalText(string(data), gconfig)
 		if err != nil {
 			log.Fatalf("Problem parsing config file: %v", err)
 		}
