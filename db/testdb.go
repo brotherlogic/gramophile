@@ -47,6 +47,10 @@ func (td *TestDatabase) GetIntent(ctx context.Context, userid int32, iid int64) 
 	return td.iMap[iid], nil
 }
 
+func (td *TestDatabase) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error {
+	return nil
+}
+
 func (td *TestDatabase) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	return nil, nil
 }

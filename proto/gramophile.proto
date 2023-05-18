@@ -136,6 +136,13 @@ message SetConfigRequest {
 }
 message SetConfigResponse {}
 
+message SetIntentRequest {
+    int64 instance_id = 1;
+    Intent intent = 2;
+}
+
+message SetIntentResponse {}
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
@@ -144,6 +151,8 @@ service GramophileEService {
     rpc GetState(GetStateRequest) returns (GetStateResponse) {};
 
     rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {};
+
+    rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 }
 
 message GetUserRequest {}
