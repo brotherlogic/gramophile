@@ -31,9 +31,11 @@ type DB struct{}
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
-	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
 	GetRecords(ctx context.Context, userid int32) ([]string, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
+
+	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
+	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
 	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
@@ -237,6 +239,26 @@ func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent
 	in := &pb.Intent{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), in)
 	return in, err
+}
+
+func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	data, err := proto.Marshal(i)
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
 }
 
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]string, error) {
