@@ -30,7 +30,7 @@ var (
 )
 
 type DB struct {
-	rcache map[int32]map[int64]*pb.Record
+	//rcache map[int32]map[int64]*pb.Record
 }
 
 type Database interface {
@@ -52,7 +52,7 @@ type Database interface {
 }
 
 func NewDatabase(ctx context.Context) Database {
-	db := &DB{rcache: make(map[int32]map[int64]*pb.Record)}
+	db := &DB{} //rcache: make(map[int32]map[int64]*pb.Record)}
 	return db
 }
 
@@ -202,22 +202,22 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		Value: &anypb.Any{Value: data},
 	})
 
-	if err == nil {
+	/*if err == nil {
 		if _, ok := d.rcache[userid]; !ok {
 			d.rcache[userid] = make(map[int64]*pb.Record)
 		}
 		d.rcache[userid][record.GetRelease().GetInstanceId()] = record
-	}
+	}*/
 
 	return err
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
-	if _, ok := d.rcache[userid]; ok {
+	/*if _, ok := d.rcache[userid]; ok {
 		if val, ok := d.rcache[userid][iid]; ok {
 			return val, nil
 		}
-	}
+	}*/
 
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
@@ -235,12 +235,12 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 	su := &pb.Record{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
 
-	if err == nil {
+	/*if err == nil {
 		if _, ok := d.rcache[userid]; !ok {
 			d.rcache[userid] = make(map[int64]*pb.Record)
 		}
 		d.rcache[userid][su.GetRelease().GetInstanceId()] = su
-	}
+	}*/
 
 	return su, err
 }
