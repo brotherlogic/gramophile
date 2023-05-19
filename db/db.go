@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -31,7 +33,7 @@ type DB struct{}
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
-	GetRecords(ctx context.Context, userid int32) ([]string, error)
+	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 
 	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
@@ -261,7 +263,7 @@ func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Inte
 	return err
 }
 
-func (d *DB) GetRecords(ctx context.Context, userid int32) ([]string, error) {
+func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -272,7 +274,17 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetKeys(), nil
+
+	var ret []int64
+	for _, key := range resp.GetKeys() {
+		if !strings.Contains(key, "intent") {
+			pieces := strings.Split(key, "/")
+			val, _ := strconv.ParseInt(pieces[len(pieces)-1], 10, 64)
+			ret = append(ret, val)
+		}
+	}
+
+	return ret, nil
 }
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
