@@ -42,6 +42,10 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 }
 
 func main() {
+	t := time.Now()
+	defer func() {
+		fmt.Printf("Complete in %v\n", time.Since(t))
+	}()
 	modules := []*CLIModule{GetLogin(), GetGetUser(), GetGetSate(), GetGetConfig(), GetClean()}
 
 	ctx, cancel, err := buildContext()

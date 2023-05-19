@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -22,13 +21,13 @@ func (td *TestDatabase) SaveRecord(ctx context.Context, userid int32, r *pb.Reco
 	return nil
 }
 
-func (td *TestDatabase) GetRecords(ctx context.Context, userid int32) ([]string, error) {
+func (td *TestDatabase) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	if td.rMap == nil {
 		return nil, status.Errorf(codes.NotFound, "Empty td")
 	}
-	var keys []string
+	var keys []int64
 	for key := range td.rMap {
-		keys = append(keys, fmt.Sprintf("%v", key))
+		keys = append(keys, key)
 	}
 	return keys, nil
 }

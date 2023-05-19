@@ -20,5 +20,14 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	u.Config = req.GetConfig()
 
+	// Apply the config
+	keys, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
+	}
+	for _, key := range keys {
+		s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), key)
+	}
+
 	return &pb.SetConfigResponse{}, s.d.SaveUser(ctx, u)
 }
