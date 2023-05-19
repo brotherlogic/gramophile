@@ -31,6 +31,7 @@ var (
 
 type DB struct {
 	//rcache map[int32]map[int64]*pb.Record
+	client rspb.RStoreServiceClient
 }
 
 type Database interface {
@@ -53,6 +54,10 @@ type Database interface {
 
 func NewDatabase(ctx context.Context) Database {
 	db := &DB{} //rcache: make(map[int32]map[int64]*pb.Record)}
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err == nil {
+		db.client = rspb.NewRStoreServiceClient(conn)
+	}
 	return db
 }
 
@@ -213,19 +218,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
-	/*if _, ok := d.rcache[userid]; ok {
-		if val, ok := d.rcache[userid][iid]; ok {
-			return val, nil
-		}
-	}*/
-
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	resp, err := client.Read(ctx, &rspb.ReadRequest{
+	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
 	})
 	if err != nil {
