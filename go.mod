@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20230516042831-709bd21b0865
-	github.com/brotherlogic/rstore v0.27.0
+	github.com/brotherlogic/rstore v0.29.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.5.3

@@ -30,7 +30,6 @@ var (
 )
 
 type DB struct {
-	//rcache map[int32]map[int64]*pb.Record
 	client rspb.RStoreServiceClient
 }
 
@@ -227,13 +226,6 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 
 	su := &pb.Record{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
-
-	/*if err == nil {
-		if _, ok := d.rcache[userid]; !ok {
-			d.rcache[userid] = make(map[int64]*pb.Record)
-		}
-		d.rcache[userid][su.GetRelease().GetInstanceId()] = su
-	}*/
 
 	return su, err
 }
