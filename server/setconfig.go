@@ -26,7 +26,20 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		return nil, err
 	}
 	for _, key := range keys {
-		s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), key)
+		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), key)
+		if err != nil {
+			return nil, err
+		}
+
+		err = config.Apply(u.Config, r)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.d.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &pb.SetConfigResponse{}, s.d.SaveUser(ctx, u)
