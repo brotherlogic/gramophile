@@ -56,6 +56,8 @@ func NewDatabase(ctx context.Context) Database {
 	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err == nil {
 		db.client = rspb.NewRStoreServiceClient(conn)
+	} else {
+		log.Fatalf("Dial error on db -> rstore: %v", err)
 	}
 	return db
 }
