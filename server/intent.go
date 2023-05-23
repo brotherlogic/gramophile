@@ -6,6 +6,8 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -16,7 +18,11 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	}
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
-		return nil, err
+		if status.Code(err) == codes.NotFound {
+			exint = &pb.Intent{}
+		} else {
+			return nil, err
+		}
 	}
 
 	// Merge in the proto def
