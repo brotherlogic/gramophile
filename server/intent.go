@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
@@ -21,7 +22,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	// Merge in the proto def
 	proto.Merge(exint, req.GetIntent())
 
-	err := s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
+	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +34,12 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	client := pb.NewQueueServiceClient(conn)
 	_, err = client.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: time.Now().Unix(),
-			Auth: user.GetAuth(),
+			RunDate:          time.Now().Unix(),
+			Auth:             user.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_RefreshIntents{
 				RefreshIntents: &pb.RefreshIntents{InstanceId: req.GetInstanceId()},
-			}
+			},
 		},
 	})
 
