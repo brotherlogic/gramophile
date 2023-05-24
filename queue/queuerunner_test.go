@@ -4,12 +4,12 @@ import "testing"
 import "context"
 import rstore_client "github.com/brotherlogic/rstore/client"
 
-func GetTestQueue() *Queue {
+func GetTestQueue() *queue {
 	tc, err := rstore_client.GetTestClient()
 	if err != nil {
 		panic(err)
 	}
-	return &Queue{
+	return &queue{
 		rstore: tc,
 	}
 }
