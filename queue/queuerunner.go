@@ -44,12 +44,12 @@ type queue struct {
 	rstore *rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
-	db     db.DB
+	db     db.Database
 }
 
-func GetQueue(r *rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs) *queue {
+func GetQueue(r *rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
 	return &queue{
-		b: b, d: d, rstore: r,
+		b: b, d: d, rstore: r, db: db,
 	}
 }
 
@@ -194,7 +194,7 @@ func main() {
 	queue := GetQueue(
 		rstorec,
 		background.GetBackgroundRunner(db, os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")),
-		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")))
+		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")), db)
 	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
 	if err2 != nil {
 		log.Fatalf("gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)

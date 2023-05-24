@@ -59,6 +59,8 @@ func NewDatabase(ctx context.Context) Database {
 	} else {
 		log.Fatalf("Dial error on db -> rstore: %v", err)
 	}
+
+	log.Printf("Connected to DB")
 	return db
 }
 
