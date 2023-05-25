@@ -63,8 +63,10 @@ func (q *queue) run() {
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			if err == nil {
+				user.User.UserSecret = user.UserSecret
+				user.User.UserToken = user.UserToken
 				d := q.d.ForUser(user.GetUser())
-				log.Printf("GOT USER: %+v", user)
+				log.Printf("GOT USER: %+v and %+v", user, d)
 				err = q.ExecuteInternal(ctx, d, entry)
 			}
 		}
