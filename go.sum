@@ -8,6 +8,8 @@ github.com/brotherlogic/discogs v0.0.0-20230516042831-709bd21b0865 h1:+aXBPdX3Hy
 github.com/brotherlogic/discogs v0.0.0-20230516042831-709bd21b0865/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/discogs v0.0.0-20230525001842-859dd8177d46 h1:hUy99yroP778c2GhUghb1MO2TW19KRJMtWfHfaliYrA=
 github.com/brotherlogic/discogs v0.0.0-20230525001842-859dd8177d46/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230525043203-5684fa3cf3e6 h1:0rcgJsla+1X/KyO7AFHCH0CQrtaXM8xwW4murqijUng=
+github.com/brotherlogic/discogs v0.0.0-20230525043203-5684fa3cf3e6/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/rstore v0.27.0 h1:yxRgZDFjT+Zfzdf1ZY14xLSoF0EPpx8DswzpfcksZGM=
 github.com/brotherlogic/rstore v0.27.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.29.0 h1:T41zTtvpjKoWa2oKVMf1cpn8ykfENcfPJEBxPVIpMg0=
