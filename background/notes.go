@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -20,6 +21,7 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 		return nil
 	}
 
+	log.Printf("Getting fields: %v", d.GetUserId())
 	fields, err := d.GetFields(ctx)
 	if err != nil {
 		return err
