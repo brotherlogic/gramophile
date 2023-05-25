@@ -20,11 +20,6 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 		return nil
 	}
 
-	user, err := d.GetDiscogsUser(ctx)
-	if err != nil {
-		return err
-	}
-
 	fields, err := d.GetFields(ctx)
 	if err != nil {
 		return err
@@ -47,5 +42,5 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 	}
 
 	r.LastCleanTime = i.GetCleanTime()
-	return b.db.SaveRecord(ctx, user.GetDiscogsUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

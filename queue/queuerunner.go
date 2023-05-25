@@ -90,6 +90,7 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("GOT USER: %+v", user)
 	d := q.d.ForUser(user.GetUser())
 	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
 }
