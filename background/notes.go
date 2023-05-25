@@ -37,7 +37,7 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 		}
 	}
 
-	if cfield <= 0 {
+	if cfield < 0 {
 		return status.Errorf(codes.FailedPrecondition, "Unable to locate Cleaned field (from %+v)", fields)
 	}
 
