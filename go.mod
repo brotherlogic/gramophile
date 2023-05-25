@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile
 go 1.18
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20230525001842-859dd8177d46
+	github.com/brotherlogic/discogs v0.0.0-20230525043203-5684fa3cf3e6
 	github.com/brotherlogic/rstore v0.29.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/ghodss/yaml v1.0.0
