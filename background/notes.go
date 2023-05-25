@@ -38,7 +38,7 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 	}
 
 	if cfield <= 0 {
-		return status.Errorf(codes.FailedPrecondition, "Unable to locate Cleaned field")
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Cleaned field (from %+v)", fields)
 	}
 
 	err = d.SetField(ctx, r.GetRelease(), cfield, time.Unix(i.GetCleanTime(), 0).Format("2006-01-02"))
