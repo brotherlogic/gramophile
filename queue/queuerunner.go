@@ -60,13 +60,15 @@ func (q *queue) run() {
 		entry, err := q.getNextEntry(ctx)
 		log.Printf("Got Entry: %v and %v", entry, err)
 		if err == nil {
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
+			user, errv := q.db.GetUser(ctx, entry.GetAuth())
+			err = errv
 			if err == nil {
 				d := q.d.ForUser(user.GetUser())
 				err = q.ExecuteInternal(ctx, d, entry)
 			}
-
 		}
+
+		log.Printf("Ran Entry: %v", err)
 
 		// Back off on any type of error
 		if err == nil {
