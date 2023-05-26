@@ -30,6 +30,7 @@ func validateUsers(ctx context.Context) error {
 
 	for _, user := range users.GetUsers() {
 		log.Printf("%v -> %v", user, time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
+
 		if user.GetUserToken() == "" && time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
 		} else {
