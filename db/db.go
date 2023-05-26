@@ -323,5 +323,7 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 		rusers = append(rusers, key[len(USER_PREFIX):])
 	}
 
+	log.Printf("TO: %v", rusers)
+
 	return rusers, err
 }
