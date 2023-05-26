@@ -27,6 +27,8 @@ var (
 		Name: "gramophile_users",
 		Help: "The size of the user list",
 	})
+
+	USER_PREFIX = "gramophile/user/"
 )
 
 type DB struct {
@@ -133,7 +135,7 @@ func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.Gramo
 
 	client := rspb.NewRStoreServiceClient(conn)
 	_, err = client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v", user),
+		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user),
 		Value: &anypb.Any{Value: data},
 	})
 
@@ -153,7 +155,7 @@ func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	_, err = client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v", user.Auth.Token),
+		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user.Auth.Token),
 		Value: &anypb.Any{Value: data},
 	})
 
@@ -168,7 +170,7 @@ func (d *DB) DeleteUser(ctx context.Context, id string) error {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	_, err = client.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("gramophile/user/%v", id),
+		Key: fmt.Sprintf("%v%v", USER_PREFIX, id),
 	})
 
 	return err
@@ -182,7 +184,7 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	resp, err := client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("gramophile/user/%v", user),
+		Key: fmt.Sprintf("%v%v", USER_PREFIX, user),
 	})
 	if err != nil {
 		return nil, err
@@ -305,7 +307,7 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 
 	client := rspb.NewRStoreServiceClient(conn)
 	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: "gramophile/user",
+		Prefix: USER_PREFIX,
 	})
 	if err != nil {
 		return nil, err
@@ -316,7 +318,7 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	// Trim out the prefix from the returned keys
 	var rusers []string
 	for _, key := range resp.GetKeys() {
-		rusers = append(rusers, key[len("gramophile/user/"):])
+		rusers = append(rusers, key[len(USER_PREFIX)+1:])
 	}
 
 	return rusers, err
