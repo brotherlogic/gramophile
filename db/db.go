@@ -313,6 +313,8 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
+	log.Printf("USER KEYS: %v", resp.GetKeys())
+
 	users.Set(float64(len(resp.GetKeys())))
 
 	// Trim out the prefix from the returned keys
