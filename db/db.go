@@ -320,7 +320,7 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	// Trim out the prefix from the returned keys
 	var rusers []string
 	for _, key := range resp.GetKeys() {
-		rusers = append(rusers, key[len(USER_PREFIX)+1:])
+		rusers = append(rusers, key[len(USER_PREFIX):])
 	}
 
 	return rusers, err
