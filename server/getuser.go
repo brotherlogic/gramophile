@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -28,6 +29,7 @@ func (s *Server) GetUsers(ctx context.Context, _ *pb.GetUsersRequest) (*pb.GetUs
 
 	var users []*pb.StoredUser
 	for _, key := range keys {
+		log.Printf("KEY: %v", key)
 		user, err := s.d.GetUser(ctx, key)
 		if err != nil {
 			return nil, err
