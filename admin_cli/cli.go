@@ -47,5 +47,10 @@ func main() {
 			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollectionEntry{Page: 1}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "clean":
+		_, err := sclient.Clean(ctx, &pb.CleanRequest{})
+		if err != nil {
+			log.Fatalf("Error in clean: %v", err)
+		}
 	}
 }
