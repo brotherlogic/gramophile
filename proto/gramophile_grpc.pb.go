@@ -408,6 +408,7 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 type GramophileServiceClient interface {
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
+	Clean(ctx context.Context, in *CleanRequest, opts ...grpc.CallOption) (*CleanResponse, error)
 }
 
 type gramophileServiceClient struct {
@@ -436,12 +437,22 @@ func (c *gramophileServiceClient) DeleteUser(ctx context.Context, in *DeleteUser
 	return out, nil
 }
 
+func (c *gramophileServiceClient) Clean(ctx context.Context, in *CleanRequest, opts ...grpc.CallOption) (*CleanResponse, error) {
+	out := new(CleanResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileService/Clean", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileServiceServer is the server API for GramophileService service.
 // All implementations should embed UnimplementedGramophileServiceServer
 // for forward compatibility
 type GramophileServiceServer interface {
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
+	Clean(context.Context, *CleanRequest) (*CleanResponse, error)
 }
 
 // UnimplementedGramophileServiceServer should be embedded to have forward compatible implementations.
@@ -453,6 +464,9 @@ func (UnimplementedGramophileServiceServer) GetUsers(context.Context, *GetUsersR
 }
 func (UnimplementedGramophileServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
+}
+func (UnimplementedGramophileServiceServer) Clean(context.Context, *CleanRequest) (*CleanResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Clean not implemented")
 }
 
 // UnsafeGramophileServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -502,6 +516,24 @@ func _GramophileService_DeleteUser_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileService_Clean_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CleanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileServiceServer).Clean(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileService/Clean",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileServiceServer).Clean(ctx, req.(*CleanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileService_ServiceDesc is the grpc.ServiceDesc for GramophileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -516,6 +548,10 @@ var GramophileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUser",
 			Handler:    _GramophileService_DeleteUser_Handler,
+		},
+		{
+			MethodName: "Clean",
+			Handler:    _GramophileService_Clean_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

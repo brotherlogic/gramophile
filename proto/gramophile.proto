@@ -170,8 +170,12 @@ message DeleteUserRequest {
 }
 message DeleteUserResponse {}
 
+message CleanRequest {}
+message CleanResponse {}
+
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {};
+    rpc Clean(CleanRequest) returns (CleanResponse) {};
 }

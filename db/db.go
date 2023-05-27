@@ -51,6 +51,8 @@ type Database interface {
 	DeleteUser(ctx context.Context, id string) error
 	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
 	GetUsers(ctx context.Context) ([]string, error)
+
+	Clean(ctx context.Context) error
 }
 
 func NewDatabase(ctx context.Context) Database {
@@ -326,4 +328,34 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	log.Printf("TO: %v", rusers)
 
 	return rusers, err
+}
+
+func (d *DB) Clean(ctx context.Context) error {
+	//Clean out bad users
+	users, err := d.GetUsers(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, u := range users {
+		user, err := d.GetUser(ctx, u)
+		if err != nil {
+			return err
+		}
+
+		if u != user.GetAuth().GetToken() {
+			conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+			if err != nil {
+				return err
+			}
+
+			client := rspb.NewRStoreServiceClient(conn)
+			_, err = client.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", USER_PREFIX, u)})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -13,6 +13,10 @@ type TestDatabase struct {
 	iMap map[int64]*pb.Intent
 }
 
+func (td *TestDatabase) Clean(ctx context.Context) error {
+	return nil
+}
+
 func (td *TestDatabase) SaveRecord(ctx context.Context, userid int32, r *pb.Record) error {
 	if td.rMap == nil {
 		td.rMap = make(map[int64]*pb.Record)
