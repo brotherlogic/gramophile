@@ -1,8 +1,10 @@
 package config
 
 import (
+	"context"
 	"testing"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -14,7 +16,7 @@ func TestValidation(t *testing.T) {
 		},
 	}
 
-	if err := ValidateConfig(config); err == nil {
+	if err := ValidateConfig(context.Background(), []*pbd.Field{}, config); err == nil {
 		t.Errorf("Config was validated: %v", config)
 	}
 

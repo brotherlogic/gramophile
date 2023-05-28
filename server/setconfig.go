@@ -13,7 +13,12 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		return nil, err
 	}
 
-	verr := config.ValidateConfig(req.GetConfig())
+	fields, err := s.di.ForUser(u.GetUser()).GetFields(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	verr := config.ValidateConfig(ctx, fields, req.GetConfig())
 	if verr != nil {
 		return nil, verr
 	}

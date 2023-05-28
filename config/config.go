@@ -1,18 +1,20 @@
 package config
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"time"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 
 	"google.golang.org/protobuf/proto"
 )
 
-func ValidateConfig(c *pb.GramophileConfig) error {
+func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	cl := &cleaning{}
-	err := cl.Validate(c)
+	err := cl.Validate(ctx, fields, c)
 	return err
 }
 
