@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"os"
 
+	"github.com/brotherlogic/discogs"
 	db "github.com/brotherlogic/gramophile/db"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -12,13 +14,17 @@ import (
 )
 
 type Server struct {
-	d db.Database
+	d  db.Database
+	di discogs.Discogs
 }
 
 func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	d := db.NewDatabase(ctx)
+	di := discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK"))
+
 	return &Server{
-		d: d,
+		d:  d,
+		di: di,
 	}
 }
 

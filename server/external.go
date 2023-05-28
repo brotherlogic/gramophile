@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
-	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -15,8 +13,7 @@ import (
 )
 
 func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
-	d := discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK"))
-	url, token, secret, err := d.GetLoginURL()
+	url, token, secret, err := s.di.GetLoginURL()
 	if err != nil {
 		return nil, fmt.Errorf("bad get for login ulr: %v", err)
 	}
