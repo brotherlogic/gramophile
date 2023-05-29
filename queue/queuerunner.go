@@ -86,7 +86,7 @@ func (q *queue) run() {
 			}
 		}
 
-		time.Sleep(time.Minute * 5)
+		time.Sleep(time.Second * 30)
 	}
 }
 
