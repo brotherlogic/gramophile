@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type QueueServiceClient interface {
 	Enqueue(ctx context.Context, in *EnqueueRequest, opts ...grpc.CallOption) (*EnqueueResponse, error)
 	Execute(ctx context.Context, in *EnqueueRequest, opts ...grpc.CallOption) (*EnqueueResponse, error)
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 }
 
 type queueServiceClient struct {
@@ -52,12 +53,22 @@ func (c *queueServiceClient) Execute(ctx context.Context, in *EnqueueRequest, op
 	return out, nil
 }
 
+func (c *queueServiceClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.QueueService/List", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueueServiceServer is the server API for QueueService service.
 // All implementations should embed UnimplementedQueueServiceServer
 // for forward compatibility
 type QueueServiceServer interface {
 	Enqueue(context.Context, *EnqueueRequest) (*EnqueueResponse, error)
 	Execute(context.Context, *EnqueueRequest) (*EnqueueResponse, error)
+	List(context.Context, *ListRequest) (*ListResponse, error)
 }
 
 // UnimplementedQueueServiceServer should be embedded to have forward compatible implementations.
@@ -69,6 +80,9 @@ func (UnimplementedQueueServiceServer) Enqueue(context.Context, *EnqueueRequest)
 }
 func (UnimplementedQueueServiceServer) Execute(context.Context, *EnqueueRequest) (*EnqueueResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (UnimplementedQueueServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 
 // UnsafeQueueServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -118,6 +132,24 @@ func _QueueService_Execute_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QueueService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueueServiceServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.QueueService/List",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueueServiceServer).List(ctx, req.(*ListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // QueueService_ServiceDesc is the grpc.ServiceDesc for QueueService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -132,6 +164,10 @@ var QueueService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Execute",
 			Handler:    _QueueService_Execute_Handler,
+		},
+		{
+			MethodName: "List",
+			Handler:    _QueueService_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
