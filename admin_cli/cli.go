@@ -52,5 +52,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error in clean: %v", err)
 		}
+	case "list":
+		items, err := client.List(context.Background(), &pb.ListRequest{})
+		if err != nil {
+			log.Fatalf("Bad list: %v", err)
+		}
+		for _, item := range items.GetElements() {
+			fmt.Printf("%v\n", item)
+		}
 	}
 }

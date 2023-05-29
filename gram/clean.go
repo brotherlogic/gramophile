@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -29,11 +30,28 @@ func executeClean(ctx context.Context, args []string) error {
 		return err
 	}
 
+	t := time.Now()
+
+	if len(args) == 2 {
+		if strings.Contains(args[1], "-") {
+			t, err = time.Parse("2006-01-02", args[1])
+			if err != nil {
+				return err
+			}
+		} else {
+			tu, err := strconv.ParseInt(args[1], 10, 64)
+			if err != nil {
+				return err
+			}
+			t = time.Unix(tu, 0)
+		}
+	}
+
 	client := pb.NewGramophileEServiceClient(conn)
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			CleanTime: time.Now().Unix(),
+			CleanTime: t.Unix(),
 		},
 	})
 	return err

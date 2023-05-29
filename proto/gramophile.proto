@@ -71,9 +71,15 @@ message EnqueueRequest{
 
 message EnqueueResponse {}
 
+message ListRequest {}
+message ListResponse {
+    repeated QueueElement elements = 2;
+}
+
 service QueueService {
     rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {};
     rpc Execute(EnqueueRequest) returns (EnqueueResponse) {};
+    rpc List(ListRequest) returns (ListResponse) {};
 }
 
 message StoredUser {

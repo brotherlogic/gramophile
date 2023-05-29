@@ -88,6 +88,30 @@ func (q *queue) run() {
 	}
 }
 
+func (q *queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
+	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	if err != nil {
+		return nil, err
+	}
+
+	var elems []*pb.QueueElement
+	for _, key := range keys.GetKeys() {
+		data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: key})
+		if err != nil {
+			return nil, err
+		}
+
+		entry := &pb.QueueElement{}
+		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+		if err != nil {
+			return nil, err
+		}
+		elems = append(elems, entry)
+	}
+
+	return &pb.ListResponse{Elements: elems}, nil
+}
+
 func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	user, err := q.db.GetUser(ctx, req.Element.GetAuth())
 	if err != nil {
