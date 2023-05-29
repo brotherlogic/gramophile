@@ -61,8 +61,8 @@ func (q *queue) run() {
 		log.Printf("Got Entry: %v and %v", entry, err)
 		var erru error
 		if err == nil {
-			user, errvv := q.db.GetUser(ctx, entry.GetAuth())
-			err = errvv
+			user, errv := q.db.GetUser(ctx, entry.GetAuth())
+			err = errv
 			erru = errv
 			if err == nil {
 				user.User.UserSecret = user.UserSecret
