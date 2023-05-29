@@ -59,9 +59,11 @@ func (q *queue) run() {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
 		log.Printf("Got Entry: %v and %v", entry, err)
+		var erru error
 		if err == nil {
-			user, errv := q.db.GetUser(ctx, entry.GetAuth())
-			err = errv
+			user, errvv := q.db.GetUser(ctx, entry.GetAuth())
+			err = errvv
+			erru = errv
 			if err == nil {
 				user.User.UserSecret = user.UserSecret
 				user.User.UserToken = user.UserToken
@@ -73,8 +75,8 @@ func (q *queue) run() {
 
 		log.Printf("Ran Entry: %v", err)
 
-		// Back off on any type of error
-		if err == nil {
+		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
+		if err == nil || status.Code(erru) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
 			if entry != nil {
