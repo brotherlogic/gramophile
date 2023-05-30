@@ -60,5 +60,10 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 		return nil, err
 	}
 
-	return s.d.GetUser(ctx, key)
+	user, err := s.d.GetUser(ctx, key)
+	if err == nil {
+		user.UserSecret = user.GetUser().GetUserSecret()
+		user.UserToken = user.GetUser().GetUserToken()
+	}
+	return user, err
 }
