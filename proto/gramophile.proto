@@ -92,9 +92,7 @@ message StoredUser {
     int64 last_collection_refresh = 6;
     int64 last_config_update = 7;
 
-    GramophileConfig config = 8;
-
-    
+    GramophileConfig config = 8;    
 }
 
 message GramophileAuth {
@@ -135,6 +133,7 @@ message GetStateResponse {
     int64 last_collection_sync = 3;
     int64 last_config_update = 4;
     string config_hash = 5;
+    int32 collection_misses = 6;
 }
 
 message SetConfigRequest {

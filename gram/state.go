@@ -33,6 +33,6 @@ func executeGetState(ctx context.Context, args []string) error {
 	fmt.Printf("User last updated: %v\n", time.Unix(state.GetLastUserRefresh(), 0))
 	fmt.Printf("Config last udpate: %v [%v]\n", time.Unix(state.GetLastConfigUpdate(), 0), state.ConfigHash)
 	fmt.Printf("Collection last synced: %v\n", time.Unix(state.GetLastCollectionSync(), 0))
-	fmt.Printf("%v records in collection\n", state.GetCollectionSize())
+	fmt.Printf("%v records in collection (%v are marked bad)\n", state.GetCollectionSize(), state.GetCollectionMisses())
 	return nil
 }
