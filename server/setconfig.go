@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -17,6 +18,8 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Got fields: %v", fields)
 
 	verr := config.ValidateConfig(ctx, fields, req.GetConfig())
 	if verr != nil {
