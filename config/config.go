@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"log"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -67,6 +68,7 @@ func Apply(c *pb.GramophileConfig, r *pb.Record) error {
 				needsClean = true
 			}
 
+			log.Printf("Setting for %v -> %v", r.GetRelease().GetInstanceId(), needsClean)
 			setIssue(r, pb.NoncomplianceIssue_NEEDS_CLEAN, needsClean)
 		}
 	}
