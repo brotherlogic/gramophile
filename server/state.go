@@ -19,11 +19,23 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 		return nil, err
 	}
 
+	count := int32(0)
+	for _, r := range collection {
+		rec, err := s.d.GetRecord(ctx, key.GetUser().GetDiscogsUserId(), r)
+		if err != nil {
+			return nil, err
+		}
+		if len(rec.GetIssues()) > 0 {
+			count++
+		}
+	}
+
 	return &pb.GetStateResponse{
 		LastUserRefresh:    key.GetLastRefreshTime(),
 		CollectionSize:     int32(len(collection)),
 		LastCollectionSync: key.GetLastCollectionRefresh(),
 		LastConfigUpdate:   key.GetLastConfigUpdate(),
 		ConfigHash:         config.Hash(key.GetConfig()),
+		CollectionMisses:   count,
 	}, nil
 }
