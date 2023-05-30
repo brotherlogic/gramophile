@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"os"
 
 	"github.com/brotherlogic/discogs"
@@ -62,8 +63,9 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 
 	user, err := s.d.GetUser(ctx, key)
 	if err == nil {
-		user.UserSecret = user.GetUser().GetUserSecret()
-		user.UserToken = user.GetUser().GetUserToken()
+		user.GetUser().UserSecret = user.GetUserSecret()
+		user.GetUser().UserToken = user.GetUserToken()
 	}
+	log.Printf("USER: %v", user)
 	return user, err
 }
