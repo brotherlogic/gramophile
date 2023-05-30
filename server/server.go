@@ -65,4 +65,5 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 		user.UserSecret = user.GetUser().GetUserSecret()
 		user.UserToken = user.GetUser().GetUserToken()
 	}
+	return user, err
 }
