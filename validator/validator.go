@@ -36,7 +36,7 @@ func validateUsers(ctx context.Context) error {
 		} else {
 			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate:          time.Now().Unix(),
+					RunDate:          time.Now().UnixNano(),
 					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 10,
 					Entry: &pb.QueueElement_RefreshUser{
@@ -52,7 +52,7 @@ func validateUsers(ctx context.Context) error {
 			if time.Since(time.Unix(user.GetLastCollectionRefresh(), 0)) > time.Hour*24*7 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate:          time.Now().Unix(),
+						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
