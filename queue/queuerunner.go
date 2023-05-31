@@ -73,7 +73,7 @@ func (q *queue) run() {
 			}
 		}
 
-		log.Printf("Ran Entry: %v", err)
+		log.Printf("Ran Entry: %v - %v", err, erru)
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		if err == nil || status.Code(erru) == codes.NotFound {
