@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20230525174618-68f2c1017805 // indirect
+	github.com/brotherlogic/discogs v0.0.0-20230531050958-860fff2d172b
 	github.com/golang/protobuf v1.5.3 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
