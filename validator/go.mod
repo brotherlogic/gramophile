@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile/validator
 go 1.19
 
 require (
-	github.com/brotherlogic/gramophile v0.169.0
+	github.com/brotherlogic/gramophile v0.173.0
 	google.golang.org/grpc v1.55.0
 )
 
