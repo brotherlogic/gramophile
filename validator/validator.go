@@ -37,8 +37,7 @@ func validateUsers(ctx context.Context) error {
 			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate:          time.Now().Unix(),
-					Token:            user.GetUserToken(),
-					Secret:           user.GetUserSecret(),
+					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 10,
 					Entry: &pb.QueueElement_RefreshUser{
 						RefreshUser: &pb.RefreshUserEntry{Auth: user.GetAuth().GetToken()},
@@ -54,8 +53,7 @@ func validateUsers(ctx context.Context) error {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().Unix(),
-						Token:            user.GetUserToken(),
-						Secret:           user.GetUserSecret(),
+						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
 							RefreshCollection: &pb.RefreshCollectionEntry{Page: 1},

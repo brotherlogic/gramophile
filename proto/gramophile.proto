@@ -42,7 +42,7 @@ message Queue {
 message QueueElement {
     int64 run_date = 1;
    
-     string auth = 2;
+    string auth = 2;
    
     int32 backoff_in_seconds = 3;
 
