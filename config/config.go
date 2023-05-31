@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"log"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -68,6 +69,8 @@ func Apply(c *pb.GramophileConfig, r *pb.Record) error {
 			}
 
 			setIssue(r, pb.NoncomplianceIssue_NEEDS_CLEAN, needsClean)
+		} else {
+			log.Printf("Filter %v skips %v", c.GetCleaningConfig().GetAppliesTo(), r)
 		}
 	}
 
