@@ -178,6 +178,7 @@ func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	log.Printf("Enqueue: %v", req)
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
