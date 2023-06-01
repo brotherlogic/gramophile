@@ -148,6 +148,18 @@ message SetIntentRequest {
 
 message SetIntentResponse {}
 
+message GetRecordRequest {
+    oneof request {
+        GetRecordWithIssue get_record_with_issue = 1;
+    }
+}
+
+message GetRecordWithIssue {}
+
+message GetRecordResponse {
+    Record record = 1;
+}
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
@@ -158,6 +170,8 @@ service GramophileEService {
     rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {};
 
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
+
+    rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
 }
 
 message GetUserRequest {}
