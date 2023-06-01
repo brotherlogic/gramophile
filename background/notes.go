@@ -6,13 +6,25 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent) error {
-	return b.ProcessSetClean(ctx, d, r, i)
+func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string) error {
+	err := b.ProcessSetClean(ctx, d, r, i)
+	if err != nil {
+		return err
+	}
+
+	user, err := b.db.GetUser(ctx, auth)
+	if err != nil {
+		return err
+	}
+
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent) error {
