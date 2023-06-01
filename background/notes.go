@@ -13,21 +13,15 @@ import (
 )
 
 func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string) error {
-	err := b.ProcessSetClean(ctx, d, r, i)
-	if err != nil {
-		return err
-	}
-
 	user, err := b.db.GetUser(ctx, auth)
 	if err != nil {
 		return err
 	}
 
-	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
+	return b.ProcessSetClean(ctx, d, r, i, user)
 }
 
-func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent) error {
+func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
 	// We don't zero out the clean time
 	if i.GetCleanTime() == 0 {
 		return nil
@@ -56,5 +50,6 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 	}
 
 	r.LastCleanTime = i.GetCleanTime()
+	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
