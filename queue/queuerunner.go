@@ -134,7 +134,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		if err != nil {
 			return err
 		}
-		v := q.b.ProcessIntents(ctx, d, r, i)
+		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
 		log.Printf("Processed intent (%v) -> %v", i, v)
 		return v
 	case *pb.QueueElement_RefreshUser:
