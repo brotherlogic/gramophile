@@ -7,7 +7,7 @@ metadata:
   namespace: gramophile-queue
 data:
   gramophile-queue-dash.json: |
-    {   
+    {
     "annotations": {
       "list": [
         {
@@ -27,7 +27,6 @@ data:
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 30,
     "links": [],
     "liveNow": false,
     "panels": [
@@ -114,8 +113,8 @@ data:
               "uid": "prometheus"
             },
             "editorMode": "code",
-            "expr": "gramophile_qlen",
-            "legendFormat": "__auto",
+            "expr": "sum(gramophile_qlen)",
+            "legendFormat": "Length",
             "range": true,
             "refId": "A"
           }
@@ -137,8 +136,8 @@ data:
     },
     "timepicker": {},
     "timezone": "",
-    "title": "Queue Things",
+    "title": "Queue Details",
     "uid": "e0ee35e9-9c3e-40d1-a03d-50ac8f45b085",
-    "version": 1,
+    "version": 4,
     "weekStart": ""
-     }
+    }
