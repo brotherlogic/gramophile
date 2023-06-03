@@ -40,7 +40,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	client := pb.NewQueueServiceClient(conn)
 	_, err = client.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:          time.Now().Unix(),
+			RunDate:          time.Now().UnixNano(),
 			Auth:             user.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_RefreshIntents{
