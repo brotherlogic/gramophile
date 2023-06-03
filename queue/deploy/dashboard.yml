@@ -1,4 +1,3 @@
-# pod-count-dashboard.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,8 +6,8 @@ metadata:
   name: gramophile-queue-dash
   namespace: gramophile-queue
 data:
-  k8s-pod-count.json: |-
-    { 
+  gramophile-queue-dash.json: |-
+    {   
     "annotations": {
       "list": [
         {
