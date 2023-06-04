@@ -81,7 +81,8 @@ func (q *queue) run() {
 		log.Printf("Ran Entry: %v - %v", err, erru)
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
-		if err == nil || status.Code(erru) == codes.NotFound {
+		// Or because we've run an update on something that's not found
+		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
 			if entry != nil {
