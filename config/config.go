@@ -45,6 +45,12 @@ func setIssue(r *pb.Record, issue pb.NoncomplianceIssue, set bool) {
 }
 
 func filter(filter *pb.Filter, r *pb.Record) bool {
+	for _, folderid := range filter.GetExcludeFolder() {
+		if r.GetRelease().GetFolderId() == folderid {
+			return false
+		}
+	}
+
 	for _, format := range r.GetRelease().GetFormats() {
 		for _, matcher := range filter.GetFormats() {
 			if matcher == format.GetName() {
