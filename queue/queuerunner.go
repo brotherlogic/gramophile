@@ -87,12 +87,9 @@ func (q *queue) run() {
 		} else {
 			if entry != nil {
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
-			} else {
-				time.Sleep(time.Second * 10)
 			}
 		}
-
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Second)
 	}
 }
 

@@ -7,7 +7,7 @@ metadata:
   namespace: gramophile-queue
 data:
   gramophile-queue-dash.json: |
-    {
+   {
       "annotations": {
         "list": [
           {
@@ -146,14 +146,14 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
-                "lineInterpolation": "linear",
+                "lineInterpolation": "smooth",
                 "lineWidth": 1,
                 "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
                 },
                 "showPoints": "auto",
-                "spanNulls": false,
+                "spanNulls": true,
                 "stacking": {
                   "group": "A",
                   "mode": "none"
@@ -205,13 +205,13 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "gramophile_queue_last_proc",
+              "expr": "sum by (code) (rate(gramophile_queue_last_proc[5m]))",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Panel Title",
+          "title": "Queue Response",
           "type": "timeseries"
         }
       ],
@@ -223,7 +223,7 @@ data:
         "list": []
       },
       "time": {
-        "from": "now-15m",
+        "from": "now-1h",
         "to": "now"
       },
       "timepicker": {},
