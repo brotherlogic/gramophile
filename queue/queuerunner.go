@@ -35,6 +35,10 @@ var (
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
 	})
+	queueLast = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_last_proc",
+		Help: "The length of the working queue I think yes",
+	}, []string{"code"})
 
 	internalPort = flag.Int("internal_port", 8080, "GRPC port")
 	metricsPort  = flag.Int("metrics_port", 8081, "Metrics port")
@@ -70,6 +74,7 @@ func (q *queue) run() {
 				d := q.d.ForUser(user.GetUser())
 				log.Printf("GOT USER: %+v and %+v", user, d)
 				err = q.ExecuteInternal(ctx, d, entry)
+				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
 
