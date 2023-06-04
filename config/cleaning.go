@@ -16,12 +16,12 @@ func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramop
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
-			if field.GetName() == "Cleaning" {
+			if field.GetName() == "Cleaned" {
 				found = true
 			}
 		}
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, "Add a field called 'Cleaning'")
+			return status.Errorf(codes.FailedPrecondition, "Add a field called 'Cleaned'")
 		}
 	}
 
