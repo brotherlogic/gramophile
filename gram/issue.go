@@ -34,5 +34,6 @@ func executeGetIssue(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("%v has: %v\n", record.GetRecord().GetRelease().GetId(), record.Record.GetIssues())
+	fmt.Printf("%v\n", record.GetRecord())
 	return nil
 }
