@@ -45,7 +45,9 @@ func setIssue(r *pb.Record, issue pb.NoncomplianceIssue, set bool) {
 }
 
 func filter(filter *pb.Filter, r *pb.Record) bool {
+	log.Printf("Folders for exclusion: %v", filter.GetExcludeFolder())
 	for _, folderid := range filter.GetExcludeFolder() {
+		log.Printf("Exclude %v -> %v", r.GetRelease().GetFolderId(), folderid)
 		if r.GetRelease().GetFolderId() == folderid {
 			return false
 		}
