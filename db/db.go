@@ -28,6 +28,11 @@ var (
 		Help: "The size of the user list",
 	})
 
+	recordLoadTime = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "gramophile_record_load",
+		Help: "The time to load a record",
+	})
+
 	USER_PREFIX = "gramophile/user/"
 )
 
@@ -225,6 +230,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
+	t := time.Now()
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
 	})
@@ -234,6 +240,10 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 
 	su := &pb.Record{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
+
+	if err == nil {
+		recordLoadTime.Observe(float64(time.Since(t).Milliseconds()))
+	}
 
 	return su, err
 }
