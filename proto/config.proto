@@ -29,7 +29,12 @@ message CleaningConfig {
     int32 cleaning_gap_in_plays = 4;
 }
 
+message ListenConfig {
+    bool enabled = 1;
+}
+
 message GramophileConfig {
     Basis basis = 2;
     CleaningConfig cleaning_config = 1;
+    ListenConfig listen_config = 3;
 }

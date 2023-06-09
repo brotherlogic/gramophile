@@ -13,10 +13,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type Validator interface {
+	Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error
+}
+
 func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	cl := &cleaning{}
-	err := cl.Validate(ctx, fields, c)
-	return err
+	for _, validator := range []Validator{&cleaning{}, &listen{}} {
+		err := validator.Validate(ctx, fields, c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Hash(c *pb.GramophileConfig) string {
