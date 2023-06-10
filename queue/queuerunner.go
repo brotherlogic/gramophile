@@ -62,7 +62,9 @@ func (q *queue) run() {
 	for {
 		ctx := context.Background()
 		entry, err := q.getNextEntry(ctx)
-		log.Printf("Got Entry: %v and %v", entry, err)
+		if status.Code(err) != codes.NotFound {
+			log.Printf("Got Entry: %v and %v", entry, err)
+		}
 		var erru error
 		if err == nil {
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
@@ -78,7 +80,9 @@ func (q *queue) run() {
 			}
 		}
 
-		log.Printf("Ran Entry: %v - %v", err, erru)
+		if status.Code(erru) != codes.NotFound {
+			log.Printf("Ran Entry: %v - %v", err, erru)
+		}
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
