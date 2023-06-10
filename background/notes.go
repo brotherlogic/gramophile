@@ -18,7 +18,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	return b.ProcessSetClean(ctx, d, r, i, user)
+	err = b.ProcessSetClean(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+	return b.ProcessListenDate(ctx, d, r, i, user)
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
@@ -50,6 +54,39 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 	}
 
 	r.LastCleanTime = i.GetCleanTime()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the listen time
+	if i.GetListenTime() == 0 {
+		return nil
+	}
+
+	log.Printf("Getting fields: %v", d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.LISTEN_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Listen field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, time.Unix(i.GetListenTime(), 0).Format("2006-01-02"))
+	if err != nil {
+		return err
+	}
+
+	r.LastListenTime = i.GetListenTime()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
