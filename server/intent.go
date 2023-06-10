@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -48,6 +49,8 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 			},
 		},
 	})
+
+	log.Printf("Saved Intent")
 
 	return &pb.SetIntentResponse{}, err
 }
