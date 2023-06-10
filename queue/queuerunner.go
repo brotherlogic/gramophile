@@ -80,7 +80,7 @@ func (q *queue) run() {
 			}
 		}
 
-		if status.Code(erru) != codes.NotFound {
+		if status.Code(err) != codes.NotFound {
 			log.Printf("Ran Entry: %v - %v", err, erru)
 		}
 
