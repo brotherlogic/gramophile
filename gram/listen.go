@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +32,17 @@ func executeListen(ctx context.Context, args []string) error {
 	}
 
 	t := time.Now()
+
+	if len(args) == 0 {
+		client := pb.NewGramophileEServiceClient(conn)
+		r, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetRecordToListenTo{},
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%v\n", r.GetRecord().GetRelease().GetInstanceId())
+	}
 
 	if len(args) == 2 {
 		if strings.Contains(args[1], "-") {

@@ -153,10 +153,13 @@ message SetIntentResponse {}
 message GetRecordRequest {
     oneof request {
         GetRecordWithIssue get_record_with_issue = 1;
+        GetRecordToListenTo get_record_to_listen_to = 2;
     }
 }
 
 message GetRecordWithIssue {}
+
+message GetRecordToListenTo {}
 
 message GetRecordResponse {
     Record record = 1;

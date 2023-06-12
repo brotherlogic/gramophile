@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"math/rand"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -19,10 +21,17 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 		return nil, err
 	}
 
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(rids), func(i, j int) { rids[i], rids[j] = rids[j], rids[i] })
+
 	for _, rec := range rids {
 		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), rec)
 		if err != nil {
 			return nil, err
+		}
+
+		if req.GetGetRecordToListenTo() != nil {
+			return &pb.GetRecordResponse{Record: r}, nil
 		}
 
 		if len(r.GetIssues()) > 0 {
