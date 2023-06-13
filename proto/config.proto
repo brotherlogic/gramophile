@@ -19,6 +19,7 @@ enum Mandate {
 message Filter {
     repeated string formats = 1;
     repeated int32 exclude_folder = 2;
+    repeated int32 include_folder = 3;
 }
 
 message CleaningConfig {
