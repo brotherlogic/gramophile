@@ -53,7 +53,7 @@ func setIssue(r *pb.Record, issue pb.NoncomplianceIssue, set bool) {
 	}
 }
 
-func filter(filter *pb.Filter, r *pb.Record) bool {
+func Filter(filter *pb.Filter, r *pb.Record) bool {
 	log.Printf("Folders for exclusion: %v", filter.GetExcludeFolder())
 	for _, folderid := range filter.GetExcludeFolder() {
 		log.Printf("Exclude %v -> %v", r.GetRelease().GetFolderId(), folderid)
@@ -75,7 +75,7 @@ func filter(filter *pb.Filter, r *pb.Record) bool {
 
 func Apply(c *pb.GramophileConfig, r *pb.Record) error {
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
-		if filter(c.GetCleaningConfig().GetAppliesTo(), r) {
+		if Filter(c.GetCleaningConfig().GetAppliesTo(), r) {
 			needsClean := false
 			if c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 && time.Since(time.Unix(r.GetLastCleanTime(), 0)) > time.Second*time.Duration(c.CleaningConfig.GetCleaningGapInSeconds()) {
 				needsClean = true
