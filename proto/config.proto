@@ -31,6 +31,24 @@ message CleaningConfig {
 
 message ListenConfig {
     bool enabled = 1;
+    repeated ListenFilter filters = 2;
+}
+
+message Order {
+    enum Ordering {
+      ORDER_RANDOM = 0;
+      ORDER_ADDED_DATE = 1;
+    }
+
+    Ordering ordering = 1;
+    bool reverse = 2;
+}
+
+message ListenFilter {
+    string name = 1;
+    Filter filter = 2;
+    
+    Order order = 3;
 }
 
 message GramophileConfig {

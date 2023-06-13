@@ -73,7 +73,8 @@ message EnqueueRequest{
 
 message EnqueueResponse {}
 
-message ListRequest {}
+message ListRequest {
+}
 message ListResponse {
     repeated QueueElement elements = 2;
 }
@@ -159,7 +160,9 @@ message GetRecordRequest {
 
 message GetRecordWithIssue {}
 
-message GetRecordToListenTo {}
+message GetRecordToListenTo {
+    string filter = 1;
+}
 
 message GetRecordResponse {
     Record record = 1;
