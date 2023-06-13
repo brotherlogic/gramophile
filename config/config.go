@@ -61,6 +61,11 @@ func Filter(filter *pb.Filter, r *pb.Record) bool {
 			return false
 		}
 	}
+	for _, folderid := range filter.GetIncludeFolder() {
+		if r.GetRelease().GetFolderId() != folderid {
+			return false
+		}
+	}
 
 	for _, format := range r.GetRelease().GetFormats() {
 		for _, matcher := range filter.GetFormats() {
