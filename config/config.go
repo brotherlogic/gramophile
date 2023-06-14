@@ -75,6 +75,8 @@ func Filter(filter *pb.Filter, r *pb.Record) bool {
 			}
 		}
 	}
+
+	log.Printf("HERE: %v -> %v", filter.GetFormats(), len(filter.GetFormats()))
 	return len(filter.GetFormats()) == 0
 }
 
