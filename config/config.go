@@ -75,7 +75,7 @@ func Filter(filter *pb.Filter, r *pb.Record) bool {
 			}
 		}
 	}
-	return len(filter.GetFormats()) > 0
+	return len(filter.GetFormats()) == 0
 }
 
 func Apply(c *pb.GramophileConfig, r *pb.Record) error {
