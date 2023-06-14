@@ -26,11 +26,6 @@ func executeListen(ctx context.Context, args []string) error {
 		return err
 	}
 
-	iid, err := strconv.ParseInt(args[0], 10, 64)
-	if err != nil {
-		return err
-	}
-
 	t := time.Now()
 
 	if len(args) == 0 {
@@ -42,6 +37,28 @@ func executeListen(ctx context.Context, args []string) error {
 			return err
 		}
 		fmt.Printf("%v\n", r.GetRecord().GetRelease().GetInstanceId())
+		return nil
+	}
+
+	if len(args) == 1 {
+		client := pb.NewGramophileEServiceClient(conn)
+		r, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetRecordToListenTo{
+				GetRecordToListenTo: &pb.GetRecordToListenTo{
+					Filter: args[0],
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%v\n", r.GetRecord().GetRelease().GetInstanceId())
+		return nil
+	}
+
+	iid, err := strconv.ParseInt(args[0], 10, 64)
+	if err != nil {
+		return err
 	}
 
 	if len(args) == 2 {

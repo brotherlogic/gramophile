@@ -62,6 +62,7 @@ func Filter(filter *pb.Filter, r *pb.Record) bool {
 		}
 	}
 	for _, folderid := range filter.GetIncludeFolder() {
+		log.Printf("Exclude %v -> %v", r, folderid)
 		if r.GetRelease().GetFolderId() != folderid {
 			return false
 		}
