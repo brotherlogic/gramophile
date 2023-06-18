@@ -20,14 +20,19 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 	}
 
 	count := int32(0)
+
+	maxGoroutines := 10
+	guard := make(chan struct{}, maxGoroutines)
 	for _, r := range collection {
-		rec, err := s.d.GetRecord(ctx, key.GetUser().GetDiscogsUserId(), r)
-		if err != nil {
-			return nil, err
-		}
-		if len(rec.GetIssues()) > 0 {
-			count++
-		}
+		guard <- struct{}{}
+		go func(r int64) {
+			rec, err := s.d.GetRecord(ctx, key.GetUser().GetDiscogsUserId(), r)
+			if err == nil {
+				if len(rec.GetIssues()) > 0 {
+					count++
+				}
+			}
+		}(r)
 	}
 
 	return &pb.GetStateResponse{
