@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"sync"
 
 	"github.com/brotherlogic/gramophile/config"
 
@@ -20,6 +21,7 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 	}
 
 	count := int32(0)
+	cMutex := &sync.Mutex{}
 
 	maxGoroutines := 8000
 	guard := make(chan struct{}, maxGoroutines)
@@ -29,7 +31,9 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 			rec, err := s.d.GetRecord(ctx, key.GetUser().GetDiscogsUserId(), r)
 			if err == nil {
 				if len(rec.GetIssues()) > 0 {
+					cMutex.Lock()
 					count++
+					cMutex.Unlock()
 				}
 			}
 			<-guard
