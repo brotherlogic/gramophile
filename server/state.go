@@ -21,7 +21,7 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 
 	count := int32(0)
 
-	maxGoroutines := 50
+	maxGoroutines := 8000
 	guard := make(chan struct{}, maxGoroutines)
 	for _, r := range collection {
 		guard <- struct{}{}
