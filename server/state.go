@@ -32,6 +32,7 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 					count++
 				}
 			}
+			<-guard
 		}(r)
 	}
 
