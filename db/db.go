@@ -214,19 +214,50 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	}
 
 	client := rspb.NewRStoreServiceClient(conn)
+
+	old, err := client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
+	})
+	if err != nil {
+		return err
+	}
+
+	oldRecord := &pb.Record{}
+	err = proto.Unmarshal(old.GetValue().GetValue(), oldRecord)
+	if err != nil {
+		return err
+	}
+
+	err = d.saveUpdate(ctx, userid, oldRecord, record)
+	if err != nil {
+		return err
+	}
+
 	_, err = client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 		Value: &anypb.Any{Value: data},
 	})
 
-	/*if err == nil {
-		if _, ok := d.rcache[userid]; !ok {
-			d.rcache[userid] = make(map[int64]*pb.Record)
-		}
-		d.rcache[userid][record.GetRelease().GetInstanceId()] = record
-	}*/
-
 	return err
+}
+
+func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
+	update := &pb.RecordUpdate{
+		Date:   time.Now().Unix(),
+		Before: old,
+		After:  new,
+	}
+	data, err := proto.Marshal(new)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v-%v.update", userid, update.GetDate(), new.GetRelease().GetInstanceId()),
+		Value: &anypb.Any{Value: data},
+	})
+	return err
+
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
