@@ -47,6 +47,14 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 		return nil, err
 	}
 
+	if req.GetGetRecordWithId() != nil && req.GetGetRecordWithId().GetInstanceId() > 0 {
+		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), req.GetGetRecordWithId().GetInstanceId())
+		if err != nil {
+			return nil, err
+		}
+		return &pb.GetRecordResponse{Record: r}, nil
+	}
+
 	rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, err
@@ -54,6 +62,21 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(rids), func(i, j int) { rids[i], rids[j] = rids[j], rids[i] })
+
+	if req.GetGetRecordWithId() != nil {
+		var records []*pb.Record
+		for _, r := range rids {
+			r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
+			if err != nil {
+				return nil, err
+			}
+
+			if r.GetRelease().GetId() == req.GetGetRecordWithId().GetReleaseId() {
+				records = append(records, r)
+			}
+		}
+		return &pb.GetRecordResponse{Records: records}, nil
+	}
 
 	if req.GetGetRecordToListenTo() != nil && req.GetGetRecordToListenTo().GetFilter() != "" {
 		var filter *pb.ListenFilter
