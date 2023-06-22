@@ -155,7 +155,13 @@ message GetRecordRequest {
     oneof request {
         GetRecordWithIssue get_record_with_issue = 1;
         GetRecordToListenTo get_record_to_listen_to = 2;
+        GetRecordWithId get_record_with_id = 3;
     }
+}
+
+message GetRecordWithId {
+    int64 instance_id = 1;
+    int64 release_id = 2;
 }
 
 message GetRecordWithIssue {}
@@ -166,6 +172,7 @@ message GetRecordToListenTo {
 
 message GetRecordResponse {
     Record record = 1;
+    repeated Record records = 2;
 }
 
 // Externally accessible service
