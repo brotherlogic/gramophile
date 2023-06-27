@@ -43,7 +43,7 @@ func GetContextKey(ctx context.Context) (string, error) {
 	md, found = metadata.FromOutgoingContext(ctx)
 	if found {
 		if _, ok := md["auth-token"]; ok {
-			idt := md["auth-tokn"][0]
+			idt := md["auth-token"][0]
 
 			if idt != "" {
 				return idt, nil
