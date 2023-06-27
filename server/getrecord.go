@@ -47,6 +47,33 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 		return nil, err
 	}
 
+	resp, err := s.getRecordInternal(ctx, u, req)
+	if err != nil {
+		return resp, err
+	}
+
+	if req.IncludeHistory {
+		if resp.GetRecord() != nil {
+			up, err := s.d.GetUpdates(ctx, u, resp.GetRecord())
+			if err != nil {
+				return nil, err
+			}
+			resp.Record.Updates = up
+		}
+
+		for _, r := range resp.GetRecords() {
+			up, err := s.d.GetUpdates(ctx, u, r)
+			if err != nil {
+				return nil, err
+			}
+			r.Updates = up
+		}
+	}
+
+	return resp, err
+}
+
+func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
 	if req.GetGetRecordWithId() != nil && req.GetGetRecordWithId().GetInstanceId() > 0 {
 		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), req.GetGetRecordWithId().GetInstanceId())
 		if err != nil {

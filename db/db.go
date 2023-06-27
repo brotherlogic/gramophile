@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -37,13 +38,18 @@ var (
 )
 
 type DB struct {
-	client rspb.RStoreServiceClient
+	client rstore_client.RStoreClient
+}
+
+func NewTestDB() Database {
+	return &DB{client: rstore_client.GetTestClient()}
 }
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
+	GetUpdates(ctx context.Context, user *pb.StoredUser, record *pb.Record) ([]*pb.RecordUpdate, error)
 
 	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
 	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error
@@ -62,12 +68,11 @@ type Database interface {
 
 func NewDatabase(ctx context.Context) Database {
 	db := &DB{} //rcache: make(map[int32]map[int64]*pb.Record)}
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err == nil {
-		db.client = rspb.NewRStoreServiceClient(conn)
-	} else {
+	client, err := rstore_client.GetClient()
+	if err != nil {
 		log.Fatalf("Dial error on db -> rstore: %v", err)
 	}
+	db.client = client
 
 	log.Printf("Connected to DB")
 	return db
@@ -150,18 +155,12 @@ func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.Gramo
 }
 
 func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(user)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user.Auth.Token),
 		Value: &anypb.Any{Value: data},
 	})
@@ -184,13 +183,7 @@ func (d *DB) DeleteUser(ctx context.Context, id string) error {
 }
 
 func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	resp, err := client.Read(ctx, &rspb.ReadRequest{
+	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("%v%v", USER_PREFIX, user),
 	})
 	if err != nil {
@@ -203,23 +196,20 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 }
 
 func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(record)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-
-	old, err := client.Read(ctx, &rspb.ReadRequest{
+	old, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 	})
 	if err != nil {
-		return err
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+		old = &rspb.ReadResponse{}
+		old.Value = &anypb.Any{Value: []byte{}}
 	}
 
 	oldRecord := &pb.Record{}
@@ -233,7 +223,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		return err
 	}
 
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 		Value: &anypb.Any{Value: data},
 	})
@@ -253,7 +243,7 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 	}
 
 	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/release/%v-%v.update", userid, update.GetDate(), new.GetRelease().GetInstanceId()),
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v-%v.update", userid, new.GetRelease().GetInstanceId(), update.GetDate()),
 		Value: &anypb.Any{Value: data},
 	})
 	return err
@@ -277,6 +267,34 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 	}
 
 	return su, err
+}
+
+func (d *DB) GetUpdates(ctx context.Context, u *pb.StoredUser, r *pb.Record) ([]*pb.RecordUpdate, error) {
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/%v", u.GetUser().GetDiscogsUserId(), r.GetRelease().GetInstanceId())})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("UPDATES: %v", resp)
+
+	var updates []*pb.RecordUpdate
+	for _, key := range resp.GetKeys() {
+		if strings.HasSuffix(key, ".update") {
+			update := &pb.RecordUpdate{}
+			resp, err := d.client.Read(ctx, &rspb.ReadRequest{
+				Key: key,
+			})
+			if err != nil {
+				return nil, err
+			}
+			err = proto.Unmarshal(resp.GetValue().GetValue(), update)
+			if err != nil {
+				return nil, err
+			}
+			updates = append(updates, update)
+		}
+	}
+	return updates, nil
 }
 
 func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error) {
@@ -319,13 +337,7 @@ func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Inte
 }
 
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
 	if err != nil {
 		return nil, err
 	}
@@ -343,13 +355,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 }
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	resp, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
 		Prefix: USER_PREFIX,
 	})
 	if err != nil {

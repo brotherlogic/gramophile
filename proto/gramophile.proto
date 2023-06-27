@@ -12,6 +12,13 @@ enum NoncomplianceIssue {
     NEEDS_CLEAN = 0;
 }
 
+message RecordUpdate {
+    int64 date = 1;
+
+    Record before = 2;
+    Record after = 3;
+}
+
 message Record {
    discogs.Release release = 1;
 
@@ -25,6 +32,9 @@ message Record {
    int32 num_plays = 5;
 
    repeated NoncomplianceIssue issues = 6;
+
+   // Field is not stored directly
+   repeated RecordUpdate updates = 8;
 }
 
 message Intent {
@@ -157,6 +167,8 @@ message GetRecordRequest {
         GetRecordToListenTo get_record_to_listen_to = 2;
         GetRecordWithId get_record_with_id = 3;
     }
+
+    bool include_history = 4;
 }
 
 message GetRecordWithId {

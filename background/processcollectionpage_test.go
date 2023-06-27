@@ -12,7 +12,7 @@ import (
 
 func GetTestBackgroundRunner() *BackgroundRunner {
 	return &BackgroundRunner{
-		db: &db.TestDatabase{},
+		db: db.NewTestDB(),
 	}
 }
 
