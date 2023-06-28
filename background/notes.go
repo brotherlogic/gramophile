@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -22,6 +23,9 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 	if err != nil {
 		return err
 	}
+
+	err = b.ProcessSetWidth(ctx, d, r, i, user)
+
 	return b.ProcessListenDate(ctx, d, r, i, user)
 }
 
@@ -87,6 +91,39 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 	}
 
 	r.LastListenTime = i.GetListenTime()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessSetWidth(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the clean time
+	if i.GetWidth() == 0 {
+		return nil
+	}
+
+	log.Printf("Getting fields: %v", d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.WIDTH_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Width field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetWidth()))
+	if err != nil {
+		return err
+	}
+
+	r.Width = i.GetWidth()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
