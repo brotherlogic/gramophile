@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/brotherlogic/gramophile/config"
@@ -31,12 +32,12 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	// Apply the config
 	keys, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting records: %w", err)
 	}
 	for _, key := range keys {
 		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), key)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error getting record from key: %v -> %w", key, err)
 		}
 
 		err = config.Apply(u.Config, r)
