@@ -56,4 +56,9 @@ message GramophileConfig {
     Basis basis = 2;
     CleaningConfig cleaning_config = 1;
     ListenConfig listen_config = 3;
+    WidthConfig width_config = 4;
+}
+
+message WidthConfig {
+    Mandate mandate = 1;
 }
