@@ -19,5 +19,4 @@ func TestValidation(t *testing.T) {
 	if err := ValidateConfig(context.Background(), []*pbd.Field{}, config); err == nil {
 		t.Errorf("Config was validated: %v", config)
 	}
-
 }
