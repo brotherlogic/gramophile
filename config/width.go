@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	WIDTH_FIELD = "LastListenDate"
+	WIDTH_FIELD = "Width"
 )
 
 type width struct{}
 
-func (*listen) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetWidthConfig().GetEnabled() {
+func (*width) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
+	if c.GetWidthConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == WIDTH_FIELD {
