@@ -344,7 +344,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 
 	var ret []int64
 	for _, key := range resp.GetKeys() {
-		if !strings.Contains(key, "intent") {
+		if !strings.Contains(key, "intent") && !strings.Contains(key, "update") {
 			pieces := strings.Split(key, "/")
 			val, _ := strconv.ParseInt(pieces[len(pieces)-1], 10, 64)
 			ret = append(ret, val)
