@@ -45,13 +45,13 @@ var (
 )
 
 type queue struct {
-	rstore *rstore_client.RStoreClient
+	rstore rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
 	db     db.Database
 }
 
-func GetQueue(r *rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
+func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
 	return &queue{
 		b: b, d: d, rstore: r, db: db,
 	}
