@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+
+enum Sort {
+    ARTIST_YEAR = 0;
+}
+
+message Organisation {
+    repeated FolderSet foldersets = 1;
+    repeated Space spaces = 2;
+    repeated LabelDecider label_deciders = 3;
+    repeated ArtistTranslation artist_translation = 4;
+
+    bool auto_artist_translate = 5;
+}
+
+message Space {
+    int32 index = 1;
+    int32 units = 2;
+
+    // Effective one_of
+    int32 records_width = 3;
+    int32 disks_width = 4;
+    float width = 5;
+
+    repeated string folder_sets = 6;
+}
+
+message FolderSet {
+    string name = 1;
+    int32 index = 2;
+    int32 folder = 3;
+    Sort sort = 4;
+}
+
+message LabelDecider {
+    int32 index = 1;
+    string label_prefix = 2;
+}
+
+message ArtistTranslation {
+    string artist_prefix = 1;
+    string ordered_artist = 2;
+}
