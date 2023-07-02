@@ -63,22 +63,210 @@ func (Sort) EnumDescriptor() ([]byte, []int) {
 	return file_organisation_proto_rawDescGZIP(), []int{0}
 }
 
+type OrganisationConfig struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	LabelDeciders     []*LabelDecider      `protobuf:"bytes,1,rep,name=label_deciders,json=labelDeciders,proto3" json:"label_deciders,omitempty"`
+	ArtistTranslation []*ArtistTranslation `protobuf:"bytes,2,rep,name=artist_translation,json=artistTranslation,proto3" json:"artist_translation,omitempty"`
+	Organisations     []*Organisation      `protobuf:"bytes,3,rep,name=organisations,proto3" json:"organisations,omitempty"`
+}
+
+func (x *OrganisationConfig) Reset() {
+	*x = OrganisationConfig{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_organisation_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OrganisationConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganisationConfig) ProtoMessage() {}
+
+func (x *OrganisationConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_organisation_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganisationConfig.ProtoReflect.Descriptor instead.
+func (*OrganisationConfig) Descriptor() ([]byte, []int) {
+	return file_organisation_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *OrganisationConfig) GetLabelDeciders() []*LabelDecider {
+	if x != nil {
+		return x.LabelDeciders
+	}
+	return nil
+}
+
+func (x *OrganisationConfig) GetArtistTranslation() []*ArtistTranslation {
+	if x != nil {
+		return x.ArtistTranslation
+	}
+	return nil
+}
+
+func (x *OrganisationConfig) GetOrganisations() []*Organisation {
+	if x != nil {
+		return x.Organisations
+	}
+	return nil
+}
+
+type OrganisationSnapshot struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Date       int64        `protobuf:"varint,1,opt,name=date,proto3" json:"date,omitempty"`
+	Placements []*Placement `protobuf:"bytes,2,rep,name=placements,proto3" json:"placements,omitempty"`
+}
+
+func (x *OrganisationSnapshot) Reset() {
+	*x = OrganisationSnapshot{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_organisation_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OrganisationSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganisationSnapshot) ProtoMessage() {}
+
+func (x *OrganisationSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_organisation_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganisationSnapshot.ProtoReflect.Descriptor instead.
+func (*OrganisationSnapshot) Descriptor() ([]byte, []int) {
+	return file_organisation_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OrganisationSnapshot) GetDate() int64 {
+	if x != nil {
+		return x.Date
+	}
+	return 0
+}
+
+func (x *OrganisationSnapshot) GetPlacements() []*Placement {
+	if x != nil {
+		return x.Placements
+	}
+	return nil
+}
+
+type Placement struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Iid   int64  `protobuf:"varint,1,opt,name=iid,proto3" json:"iid,omitempty"`
+	Unit  int32  `protobuf:"varint,2,opt,name=unit,proto3" json:"unit,omitempty"`
+	Index int32  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	Space string `protobuf:"bytes,4,opt,name=space,proto3" json:"space,omitempty"`
+}
+
+func (x *Placement) Reset() {
+	*x = Placement{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_organisation_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Placement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Placement) ProtoMessage() {}
+
+func (x *Placement) ProtoReflect() protoreflect.Message {
+	mi := &file_organisation_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Placement.ProtoReflect.Descriptor instead.
+func (*Placement) Descriptor() ([]byte, []int) {
+	return file_organisation_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Placement) GetIid() int64 {
+	if x != nil {
+		return x.Iid
+	}
+	return 0
+}
+
+func (x *Placement) GetUnit() int32 {
+	if x != nil {
+		return x.Unit
+	}
+	return 0
+}
+
+func (x *Placement) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *Placement) GetSpace() string {
+	if x != nil {
+		return x.Space
+	}
+	return ""
+}
+
 type Organisation struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Foldersets          []*FolderSet         `protobuf:"bytes,1,rep,name=foldersets,proto3" json:"foldersets,omitempty"`
-	Spaces              []*Space             `protobuf:"bytes,2,rep,name=spaces,proto3" json:"spaces,omitempty"`
-	LabelDeciders       []*LabelDecider      `protobuf:"bytes,3,rep,name=label_deciders,json=labelDeciders,proto3" json:"label_deciders,omitempty"`
-	ArtistTranslation   []*ArtistTranslation `protobuf:"bytes,4,rep,name=artist_translation,json=artistTranslation,proto3" json:"artist_translation,omitempty"`
-	AutoArtistTranslate bool                 `protobuf:"varint,5,opt,name=auto_artist_translate,json=autoArtistTranslate,proto3" json:"auto_artist_translate,omitempty"`
+	Name                string       `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
+	Foldersets          []*FolderSet `protobuf:"bytes,1,rep,name=foldersets,proto3" json:"foldersets,omitempty"`
+	Spaces              []*Space     `protobuf:"bytes,2,rep,name=spaces,proto3" json:"spaces,omitempty"`
+	AutoArtistTranslate bool         `protobuf:"varint,5,opt,name=auto_artist_translate,json=autoArtistTranslate,proto3" json:"auto_artist_translate,omitempty"`
 }
 
 func (x *Organisation) Reset() {
 	*x = Organisation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_organisation_proto_msgTypes[0]
+		mi := &file_organisation_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -91,7 +279,7 @@ func (x *Organisation) String() string {
 func (*Organisation) ProtoMessage() {}
 
 func (x *Organisation) ProtoReflect() protoreflect.Message {
-	mi := &file_organisation_proto_msgTypes[0]
+	mi := &file_organisation_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +292,14 @@ func (x *Organisation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Organisation.ProtoReflect.Descriptor instead.
 func (*Organisation) Descriptor() ([]byte, []int) {
-	return file_organisation_proto_rawDescGZIP(), []int{0}
+	return file_organisation_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Organisation) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 func (x *Organisation) GetFoldersets() []*FolderSet {
@@ -121,20 +316,6 @@ func (x *Organisation) GetSpaces() []*Space {
 	return nil
 }
 
-func (x *Organisation) GetLabelDeciders() []*LabelDecider {
-	if x != nil {
-		return x.LabelDeciders
-	}
-	return nil
-}
-
-func (x *Organisation) GetArtistTranslation() []*ArtistTranslation {
-	if x != nil {
-		return x.ArtistTranslation
-	}
-	return nil
-}
-
 func (x *Organisation) GetAutoArtistTranslate() bool {
 	if x != nil {
 		return x.AutoArtistTranslate
@@ -147,19 +328,19 @@ type Space struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Index int32 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Units int32 `protobuf:"varint,2,opt,name=units,proto3" json:"units,omitempty"`
+	Name  string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
+	Index int32  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Units int32  `protobuf:"varint,2,opt,name=units,proto3" json:"units,omitempty"`
 	// Effective one_of
-	RecordsWidth int32    `protobuf:"varint,3,opt,name=records_width,json=recordsWidth,proto3" json:"records_width,omitempty"`
-	DisksWidth   int32    `protobuf:"varint,4,opt,name=disks_width,json=disksWidth,proto3" json:"disks_width,omitempty"`
-	Width        float32  `protobuf:"fixed32,5,opt,name=width,proto3" json:"width,omitempty"`
-	FolderSets   []string `protobuf:"bytes,6,rep,name=folder_sets,json=folderSets,proto3" json:"folder_sets,omitempty"`
+	RecordsWidth int32   `protobuf:"varint,3,opt,name=records_width,json=recordsWidth,proto3" json:"records_width,omitempty"`
+	DisksWidth   int32   `protobuf:"varint,4,opt,name=disks_width,json=disksWidth,proto3" json:"disks_width,omitempty"`
+	Width        float32 `protobuf:"fixed32,5,opt,name=width,proto3" json:"width,omitempty"`
 }
 
 func (x *Space) Reset() {
 	*x = Space{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_organisation_proto_msgTypes[1]
+		mi := &file_organisation_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -172,7 +353,7 @@ func (x *Space) String() string {
 func (*Space) ProtoMessage() {}
 
 func (x *Space) ProtoReflect() protoreflect.Message {
-	mi := &file_organisation_proto_msgTypes[1]
+	mi := &file_organisation_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +366,14 @@ func (x *Space) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Space.ProtoReflect.Descriptor instead.
 func (*Space) Descriptor() ([]byte, []int) {
-	return file_organisation_proto_rawDescGZIP(), []int{1}
+	return file_organisation_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Space) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 func (x *Space) GetIndex() int32 {
@@ -223,13 +411,6 @@ func (x *Space) GetWidth() float32 {
 	return 0
 }
 
-func (x *Space) GetFolderSets() []string {
-	if x != nil {
-		return x.FolderSets
-	}
-	return nil
-}
-
 type FolderSet struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -244,7 +425,7 @@ type FolderSet struct {
 func (x *FolderSet) Reset() {
 	*x = FolderSet{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_organisation_proto_msgTypes[2]
+		mi := &file_organisation_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -257,7 +438,7 @@ func (x *FolderSet) String() string {
 func (*FolderSet) ProtoMessage() {}
 
 func (x *FolderSet) ProtoReflect() protoreflect.Message {
-	mi := &file_organisation_proto_msgTypes[2]
+	mi := &file_organisation_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +451,7 @@ func (x *FolderSet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FolderSet.ProtoReflect.Descriptor instead.
 func (*FolderSet) Descriptor() ([]byte, []int) {
-	return file_organisation_proto_rawDescGZIP(), []int{2}
+	return file_organisation_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *FolderSet) GetName() string {
@@ -313,7 +494,7 @@ type LabelDecider struct {
 func (x *LabelDecider) Reset() {
 	*x = LabelDecider{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_organisation_proto_msgTypes[3]
+		mi := &file_organisation_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -326,7 +507,7 @@ func (x *LabelDecider) String() string {
 func (*LabelDecider) ProtoMessage() {}
 
 func (x *LabelDecider) ProtoReflect() protoreflect.Message {
-	mi := &file_organisation_proto_msgTypes[3]
+	mi := &file_organisation_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +520,7 @@ func (x *LabelDecider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LabelDecider.ProtoReflect.Descriptor instead.
 func (*LabelDecider) Descriptor() ([]byte, []int) {
-	return file_organisation_proto_rawDescGZIP(), []int{3}
+	return file_organisation_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LabelDecider) GetIndex() int32 {
@@ -368,7 +549,7 @@ type ArtistTranslation struct {
 func (x *ArtistTranslation) Reset() {
 	*x = ArtistTranslation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_organisation_proto_msgTypes[4]
+		mi := &file_organisation_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -381,7 +562,7 @@ func (x *ArtistTranslation) String() string {
 func (*ArtistTranslation) ProtoMessage() {}
 
 func (x *ArtistTranslation) ProtoReflect() protoreflect.Message {
-	mi := &file_organisation_proto_msgTypes[4]
+	mi := &file_organisation_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +575,7 @@ func (x *ArtistTranslation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtistTranslation.ProtoReflect.Descriptor instead.
 func (*ArtistTranslation) Descriptor() ([]byte, []int) {
-	return file_organisation_proto_rawDescGZIP(), []int{4}
+	return file_organisation_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ArtistTranslation) GetArtistPrefix() string {
@@ -416,37 +597,55 @@ var File_organisation_proto protoreflect.FileDescriptor
 var file_organisation_proto_rawDesc = []byte{
 	0x0a, 0x12, 0x6f, 0x72, 0x67, 0x61, 0x6e, 0x69, 0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x0a, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65,
-	0x22, 0xb3, 0x02, 0x0a, 0x0c, 0x4f, 0x72, 0x67, 0x61, 0x6e, 0x69, 0x73, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x12, 0x35, 0x0a, 0x0a, 0x66, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x73, 0x65, 0x74, 0x73, 0x18,
-	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69,
-	0x6c, 0x65, 0x2e, 0x46, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x53, 0x65, 0x74, 0x52, 0x0a, 0x66, 0x6f,
-	0x6c, 0x64, 0x65, 0x72, 0x73, 0x65, 0x74, 0x73, 0x12, 0x29, 0x0a, 0x06, 0x73, 0x70, 0x61, 0x63,
-	0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f,
-	0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53, 0x70, 0x61, 0x63, 0x65, 0x52, 0x06, 0x73, 0x70, 0x61,
-	0x63, 0x65, 0x73, 0x12, 0x3f, 0x0a, 0x0e, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x5f, 0x64, 0x65, 0x63,
-	0x69, 0x64, 0x65, 0x72, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x67, 0x72,
-	0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x44, 0x65,
-	0x63, 0x69, 0x64, 0x65, 0x72, 0x52, 0x0d, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x44, 0x65, 0x63, 0x69,
-	0x64, 0x65, 0x72, 0x73, 0x12, 0x4c, 0x0a, 0x12, 0x61, 0x72, 0x74, 0x69, 0x73, 0x74, 0x5f, 0x74,
-	0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x1d, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x41, 0x72,
-	0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52,
-	0x11, 0x61, 0x72, 0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x12, 0x32, 0x0a, 0x15, 0x61, 0x75, 0x74, 0x6f, 0x5f, 0x61, 0x72, 0x74, 0x69, 0x73,
-	0x74, 0x5f, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28,
-	0x08, 0x52, 0x13, 0x61, 0x75, 0x74, 0x6f, 0x41, 0x72, 0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61,
-	0x6e, 0x73, 0x6c, 0x61, 0x74, 0x65, 0x22, 0xb0, 0x01, 0x0a, 0x05, 0x53, 0x70, 0x61, 0x63, 0x65,
-	0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52,
-	0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x14, 0x0a, 0x05, 0x75, 0x6e, 0x69, 0x74, 0x73, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x75, 0x6e, 0x69, 0x74, 0x73, 0x12, 0x23, 0x0a, 0x0d,
-	0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x5f, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x0c, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x57, 0x69, 0x64, 0x74,
-	0x68, 0x12, 0x1f, 0x0a, 0x0b, 0x64, 0x69, 0x73, 0x6b, 0x73, 0x5f, 0x77, 0x69, 0x64, 0x74, 0x68,
-	0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0a, 0x64, 0x69, 0x73, 0x6b, 0x73, 0x57, 0x69, 0x64,
-	0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x05, 0x20, 0x01, 0x28,
-	0x02, 0x52, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x12, 0x1f, 0x0a, 0x0b, 0x66, 0x6f, 0x6c, 0x64,
-	0x65, 0x72, 0x5f, 0x73, 0x65, 0x74, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0a, 0x66,
-	0x6f, 0x6c, 0x64, 0x65, 0x72, 0x53, 0x65, 0x74, 0x73, 0x22, 0x73, 0x0a, 0x09, 0x46, 0x6f, 0x6c,
+	0x22, 0xe3, 0x01, 0x0a, 0x12, 0x4f, 0x72, 0x67, 0x61, 0x6e, 0x69, 0x73, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x3f, 0x0a, 0x0e, 0x6c, 0x61, 0x62, 0x65, 0x6c,
+	0x5f, 0x64, 0x65, 0x63, 0x69, 0x64, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x18, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x4c, 0x61, 0x62,
+	0x65, 0x6c, 0x44, 0x65, 0x63, 0x69, 0x64, 0x65, 0x72, 0x52, 0x0d, 0x6c, 0x61, 0x62, 0x65, 0x6c,
+	0x44, 0x65, 0x63, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x4c, 0x0a, 0x12, 0x61, 0x72, 0x74, 0x69,
+	0x73, 0x74, 0x5f, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c,
+	0x65, 0x2e, 0x41, 0x72, 0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x52, 0x11, 0x61, 0x72, 0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73,
+	0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x3e, 0x0a, 0x0d, 0x6f, 0x72, 0x67, 0x61, 0x6e, 0x69,
+	0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x18, 0x2e,
+	0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x4f, 0x72, 0x67, 0x61, 0x6e,
+	0x69, 0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0d, 0x6f, 0x72, 0x67, 0x61, 0x6e, 0x69, 0x73,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0x61, 0x0a, 0x14, 0x4f, 0x72, 0x67, 0x61, 0x6e, 0x69,
+	0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x53, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x12, 0x12,
+	0x0a, 0x04, 0x64, 0x61, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x64, 0x61,
+	0x74, 0x65, 0x12, 0x35, 0x0a, 0x0a, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68,
+	0x69, 0x6c, 0x65, 0x2e, 0x50, 0x6c, 0x61, 0x63, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0a, 0x70,
+	0x6c, 0x61, 0x63, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x22, 0x5d, 0x0a, 0x09, 0x50, 0x6c, 0x61,
+	0x63, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x69, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x03, 0x69, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x75, 0x6e, 0x69, 0x74,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x75, 0x6e, 0x69, 0x74, 0x12, 0x14, 0x0a, 0x05,
+	0x69, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x69, 0x6e, 0x64,
+	0x65, 0x78, 0x12, 0x14, 0x0a, 0x05, 0x73, 0x70, 0x61, 0x63, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x73, 0x70, 0x61, 0x63, 0x65, 0x22, 0xb8, 0x01, 0x0a, 0x0c, 0x4f, 0x72, 0x67,
+	0x61, 0x6e, 0x69, 0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x35, 0x0a,
+	0x0a, 0x66, 0x6f, 0x6c, 0x64, 0x65, 0x72, 0x73, 0x65, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x15, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x46,
+	0x6f, 0x6c, 0x64, 0x65, 0x72, 0x53, 0x65, 0x74, 0x52, 0x0a, 0x66, 0x6f, 0x6c, 0x64, 0x65, 0x72,
+	0x73, 0x65, 0x74, 0x73, 0x12, 0x29, 0x0a, 0x06, 0x73, 0x70, 0x61, 0x63, 0x65, 0x73, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c,
+	0x65, 0x2e, 0x53, 0x70, 0x61, 0x63, 0x65, 0x52, 0x06, 0x73, 0x70, 0x61, 0x63, 0x65, 0x73, 0x12,
+	0x32, 0x0a, 0x15, 0x61, 0x75, 0x74, 0x6f, 0x5f, 0x61, 0x72, 0x74, 0x69, 0x73, 0x74, 0x5f, 0x74,
+	0x72, 0x61, 0x6e, 0x73, 0x6c, 0x61, 0x74, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x13,
+	0x61, 0x75, 0x74, 0x6f, 0x41, 0x72, 0x74, 0x69, 0x73, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x6c,
+	0x61, 0x74, 0x65, 0x22, 0xa3, 0x01, 0x0a, 0x05, 0x53, 0x70, 0x61, 0x63, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x14, 0x0a, 0x05, 0x75, 0x6e, 0x69, 0x74, 0x73,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x75, 0x6e, 0x69, 0x74, 0x73, 0x12, 0x23, 0x0a,
+	0x0d, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x5f, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x57, 0x69, 0x64,
+	0x74, 0x68, 0x12, 0x1f, 0x0a, 0x0b, 0x64, 0x69, 0x73, 0x6b, 0x73, 0x5f, 0x77, 0x69, 0x64, 0x74,
+	0x68, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0a, 0x64, 0x69, 0x73, 0x6b, 0x73, 0x57, 0x69,
+	0x64, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x05, 0x20, 0x01,
+	0x28, 0x02, 0x52, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x22, 0x73, 0x0a, 0x09, 0x46, 0x6f, 0x6c,
 	0x64, 0x65, 0x72, 0x53, 0x65, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e,
 	0x64, 0x65, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78,
@@ -485,26 +684,31 @@ func file_organisation_proto_rawDescGZIP() []byte {
 }
 
 var file_organisation_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_organisation_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_organisation_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_organisation_proto_goTypes = []interface{}{
-	(Sort)(0),                 // 0: gramophile.Sort
-	(*Organisation)(nil),      // 1: gramophile.Organisation
-	(*Space)(nil),             // 2: gramophile.Space
-	(*FolderSet)(nil),         // 3: gramophile.FolderSet
-	(*LabelDecider)(nil),      // 4: gramophile.LabelDecider
-	(*ArtistTranslation)(nil), // 5: gramophile.ArtistTranslation
+	(Sort)(0),                    // 0: gramophile.Sort
+	(*OrganisationConfig)(nil),   // 1: gramophile.OrganisationConfig
+	(*OrganisationSnapshot)(nil), // 2: gramophile.OrganisationSnapshot
+	(*Placement)(nil),            // 3: gramophile.Placement
+	(*Organisation)(nil),         // 4: gramophile.Organisation
+	(*Space)(nil),                // 5: gramophile.Space
+	(*FolderSet)(nil),            // 6: gramophile.FolderSet
+	(*LabelDecider)(nil),         // 7: gramophile.LabelDecider
+	(*ArtistTranslation)(nil),    // 8: gramophile.ArtistTranslation
 }
 var file_organisation_proto_depIdxs = []int32{
-	3, // 0: gramophile.Organisation.foldersets:type_name -> gramophile.FolderSet
-	2, // 1: gramophile.Organisation.spaces:type_name -> gramophile.Space
-	4, // 2: gramophile.Organisation.label_deciders:type_name -> gramophile.LabelDecider
-	5, // 3: gramophile.Organisation.artist_translation:type_name -> gramophile.ArtistTranslation
-	0, // 4: gramophile.FolderSet.sort:type_name -> gramophile.Sort
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	7, // 0: gramophile.OrganisationConfig.label_deciders:type_name -> gramophile.LabelDecider
+	8, // 1: gramophile.OrganisationConfig.artist_translation:type_name -> gramophile.ArtistTranslation
+	4, // 2: gramophile.OrganisationConfig.organisations:type_name -> gramophile.Organisation
+	3, // 3: gramophile.OrganisationSnapshot.placements:type_name -> gramophile.Placement
+	6, // 4: gramophile.Organisation.foldersets:type_name -> gramophile.FolderSet
+	5, // 5: gramophile.Organisation.spaces:type_name -> gramophile.Space
+	0, // 6: gramophile.FolderSet.sort:type_name -> gramophile.Sort
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_organisation_proto_init() }
@@ -514,7 +718,7 @@ func file_organisation_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_organisation_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Organisation); i {
+			switch v := v.(*OrganisationConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -526,7 +730,7 @@ func file_organisation_proto_init() {
 			}
 		}
 		file_organisation_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Space); i {
+			switch v := v.(*OrganisationSnapshot); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -538,7 +742,7 @@ func file_organisation_proto_init() {
 			}
 		}
 		file_organisation_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FolderSet); i {
+			switch v := v.(*Placement); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -550,7 +754,7 @@ func file_organisation_proto_init() {
 			}
 		}
 		file_organisation_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LabelDecider); i {
+			switch v := v.(*Organisation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -562,6 +766,42 @@ func file_organisation_proto_init() {
 			}
 		}
 		file_organisation_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Space); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_organisation_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FolderSet); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_organisation_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LabelDecider); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_organisation_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ArtistTranslation); i {
 			case 0:
 				return &v.state
@@ -580,7 +820,7 @@ func file_organisation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_organisation_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

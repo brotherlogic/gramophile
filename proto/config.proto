@@ -4,6 +4,8 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+import "organisation.proto";
+
 enum Basis {
     DISCOGS = 0;
     GRAMOPHILE = 1;
@@ -57,6 +59,7 @@ message GramophileConfig {
     CleaningConfig cleaning_config = 1;
     ListenConfig listen_config = 3;
     WidthConfig width_config = 4;
+    OrganisationConfig organisation_config = 5;
 }
 
 message WidthConfig {

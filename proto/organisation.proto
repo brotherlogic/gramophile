@@ -4,21 +4,39 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message OrganisationConfig {
+    repeated LabelDecider label_deciders = 1;
+    repeated ArtistTranslation artist_translation = 2;
+    repeated Organisation organisations = 3;
+}
+
+message OrganisationSnapshot {
+    int64 date = 1;
+    repeated Placement placements = 2;
+}
+
+message Placement {
+    int64 iid = 1;
+    int32 unit = 2;
+    int32 index = 3;
+    string space = 4;
+}
 
 enum Sort {
     ARTIST_YEAR = 0;
 }
 
 message Organisation {
+    string name = 6;
+
     repeated FolderSet foldersets = 1;
     repeated Space spaces = 2;
-    repeated LabelDecider label_deciders = 3;
-    repeated ArtistTranslation artist_translation = 4;
 
     bool auto_artist_translate = 5;
 }
 
 message Space {
+    string name = 6;
     int32 index = 1;
     int32 units = 2;
 
@@ -26,8 +44,6 @@ message Space {
     int32 records_width = 3;
     int32 disks_width = 4;
     float width = 5;
-
-    repeated string folder_sets = 6;
 }
 
 message FolderSet {
