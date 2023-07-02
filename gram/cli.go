@@ -46,7 +46,10 @@ func main() {
 	defer func() {
 		fmt.Printf("\nComplete in %v\n", time.Since(t))
 	}()
-	modules := []*CLIModule{GetLogin(), GetGetUser(), GetGetSate(), GetGetConfig(), GetClean(), GetGetIssue(), GetListen(), GetWidth()}
+	modules := []*CLIModule{GetLogin(),
+		GetGetUser(), GetGetSate(), GetGetConfig(), GetClean(), GetGetIssue(), GetListen(),
+		GetWidth(),
+		GetOrganisation()}
 
 	ctx, cancel, err := buildContext()
 	if err != nil {
