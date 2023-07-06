@@ -33,6 +33,13 @@ func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return ""
 }
 
+func min(a, b int32) int32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation) (*pb.OrganisationSnapshot, error) {
 	allRecords, err := s.GetRecords(ctx, user)
 	if err != nil {
@@ -65,7 +72,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	for _, slot := range org.GetSpaces() {
 		for i := int32(1); i <= (slot.GetUnits()); i++ {
 			if slot.GetRecordsWidth() > 0 {
-				for _, r := range records[rc : rc+(slot.GetRecordsWidth())] {
+				for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
 					placements = append(placements, &pb.Placement{
 						Iid:   r.GetRelease().GetInstanceId(),
 						Space: slot.GetName(),
