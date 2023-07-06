@@ -30,7 +30,7 @@ func (s *Server) GetRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Rec
 }
 
 func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
-	return ""
+	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
 }
 
 func min(a, b int32) int32 {
