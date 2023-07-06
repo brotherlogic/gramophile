@@ -20,7 +20,7 @@ func GetOrganisation() *CLIModule {
 func executeOrg(ctx context.Context, args []string) error {
 	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to dial gramophile: %w", err)
 	}
 
 	if len(args) == 1 {
@@ -29,7 +29,7 @@ func executeOrg(ctx context.Context, args []string) error {
 			OrgName: args[0],
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to get org: %w", err)
 		}
 		for _, placement := range r.GetSnapshot().GetPlacements() {
 			if placement.GetUnit() == 1 {
