@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -31,6 +32,14 @@ func (s *Server) GetRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Rec
 
 func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
+}
+
+func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record) string {
+	if len(r.GetRelease().GetLabels()) > 0 {
+		return fmt.Sprintf("%v-%v", strings.ToLower(r.GetRelease().GetLabels()[0].GetName()), strings.ToLower(r.GetRelease().GetLabels()[0].GetCatno())))
+	}
+
+	return ""
 }
 
 func min(a, b int32) int32 {
