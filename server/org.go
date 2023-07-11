@@ -36,7 +36,7 @@ func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
 
 func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record) string {
 	if len(r.GetRelease().GetLabels()) > 0 {
-		return fmt.Sprintf("%v-%v", strings.ToLower(r.GetRelease().GetLabels()[0].GetName()), strings.ToLower(r.GetRelease().GetLabels()[0].GetCatno())))
+		return fmt.Sprintf("%v-%v", strings.ToLower(r.GetRelease().GetLabels()[0].GetName()), strings.ToLower(r.GetRelease().GetLabels()[0].GetCatno()))
 	}
 
 	return ""
