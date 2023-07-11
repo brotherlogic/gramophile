@@ -22,10 +22,10 @@ jobs:
         go-version: '1.18.1'
 
     - name: Run build
-      run: go build github.com/${GITHUB_REPOSITORY}
+      run: go build ./...
 
     - name: Run test
-      run: go test github.com/${GITHUB_REPOSITORY} -coverprofile=profile.cov
+      run: go test ./... -coverprofile=profile.cov
     
     - name: Coveralls
       uses: shogo82148/actions-goveralls@v1
