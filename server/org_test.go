@@ -114,13 +114,13 @@ func TestLooseLayoutSupport(t *testing.T) {
 								Folder: 12,
 								Index:  1,
 								Sort:   pb.Sort_LABEL_CATNO,
-								Layout: pb.Layout_LOOSE,
 							}},
 						Spaces: []*pb.Space{
 							{
 								Name:         "Main Shelves",
 								Units:        2,
 								RecordsWidth: 100,
+								Layout:       pb.Layout_LOOSE,
 							}},
 					},
 				},

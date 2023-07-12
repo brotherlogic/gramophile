@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -82,17 +83,35 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	// Now lay out the records in the units
 	var placements []*pb.Placement
 	rc := int32(0)
+
 	for _, slot := range org.GetSpaces() {
-		for i := int32(1); i <= (slot.GetUnits()); i++ {
+		if slot.GetLayout() == pb.Layout_TIGHT {
+			for i := int32(1); i <= (slot.GetUnits()); i++ {
+				if slot.GetRecordsWidth() > 0 {
+					for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
+						placements = append(placements, &pb.Placement{
+							Iid:   r.GetRelease().GetInstanceId(),
+							Space: slot.GetName(),
+							Unit:  i,
+							Index: rc + 1,
+						})
+						rc++
+					}
+				}
+			}
+		} else if slot.GetLayout() == pb.Layout_LOOSE {
 			if slot.GetRecordsWidth() > 0 {
-				for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
-					placements = append(placements, &pb.Placement{
-						Iid:   r.GetRelease().GetInstanceId(),
-						Space: slot.GetName(),
-						Unit:  i,
-						Index: rc + 1,
-					})
-					rc++
+				count := min(int32(math.Ceil(float64(len(records[rc:]))/float64(slot.GetUnits()))), slot.GetRecordsWidth())
+				for i := int32(1); i <= slot.GetUnits(); i++ {
+					for _, r := range records[rc : rc+count] {
+						placements = append(placements, &pb.Placement{
+							Iid:   r.GetRelease().GetInstanceId(),
+							Space: slot.GetName(),
+							Unit:  i,
+							Index: rc + 1,
+						})
+						rc++
+					}
 				}
 			}
 		}
