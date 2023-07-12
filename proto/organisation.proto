@@ -27,6 +27,11 @@ enum Sort {
     LABEL_CATNO = 1;
 }
 
+enum Layout {
+    TIGHT = 0;
+    LOOSE = 1;
+}
+
 message Organisation {
     string name = 6;
 
@@ -52,6 +57,7 @@ message FolderSet {
     int32 index = 2;
     int32 folder = 3;
     Sort sort = 4;
+    Layout layout = 5;
 }
 
 message LabelDecider {
