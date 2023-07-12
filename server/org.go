@@ -70,6 +70,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			sort.SliceStable(recs, func(i, j int) bool {
 				return s.getArtistYear(ctx, recs[i]) < s.getArtistYear(ctx, recs[j])
 			})
+		case pb.Sort_LABEL_CATNO:
+			sort.SliceStable(recs, func(i, j int) bool {
+				return s.getLabelCatno(ctx, recs[i]) < s.getLabelCatno(ctx, recs[j])
+			})
 		}
 
 		records = append(records, recs...)
@@ -86,7 +90,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 						Iid:   r.GetRelease().GetInstanceId(),
 						Space: slot.GetName(),
 						Unit:  i,
-						Index: rc,
+						Index: rc + 1,
 					})
 					rc++
 				}

@@ -66,6 +66,10 @@ func TestLabelOrdering(t *testing.T) {
 		t.Fatalf("Unable to get org: %v", err)
 	}
 
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
 	for _, o := range org.GetSnapshot().GetPlacements() {
 		if o.Index == 1 && o.Iid != 1234 {
 			t.Errorf("Bad placement: %v", org.GetSnapshot().GetPlacements())
