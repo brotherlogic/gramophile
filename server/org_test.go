@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -29,7 +30,7 @@ func TestLabelOrdering(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
-	s := Server{d: d}
+	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
