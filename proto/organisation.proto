@@ -27,6 +27,11 @@ enum Sort {
     LABEL_CATNO = 1;
 }
 
+enum Layout {
+    TIGHT = 0;
+    LOOSE = 1;
+}
+
 message Organisation {
     string name = 6;
 
@@ -45,6 +50,8 @@ message Space {
     int32 records_width = 3;
     int32 disks_width = 4;
     float width = 5;
+
+    Layout layout = 7;
 }
 
 message FolderSet {
