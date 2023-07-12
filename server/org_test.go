@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -29,7 +30,7 @@ func TestLabelOrdering(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
-	s := Server{d: d}
+	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -63,6 +64,10 @@ func TestLabelOrdering(t *testing.T) {
 	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
 	if err != nil {
 		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Missing record in snapshot: %v", org)
 	}
 
 	for _, o := range org.GetSnapshot().GetPlacements() {

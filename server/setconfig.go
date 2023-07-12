@@ -15,6 +15,9 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		return nil, err
 	}
 
+	log.Printf("Got user: %v", u.GetUser())
+	log.Printf("Down to: %v", s.di.ForUser(u.GetUser()))
+
 	fields, err := s.di.ForUser(u.GetUser()).GetFields(ctx)
 	if err != nil {
 		return nil, err
