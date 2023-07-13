@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc"
@@ -62,6 +64,9 @@ type Database interface {
 	DeleteUser(ctx context.Context, id string) error
 	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
 	GetUsers(ctx context.Context) ([]string, error)
+
+	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
+	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
 	Clean(ctx context.Context) error
 }
@@ -124,6 +129,55 @@ func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
 	})
 
 	return err
+}
+
+func cleanOrgString(org string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) {
+			return r
+		}
+		return -1
+	}, strings.ToLower(org))
+}
+
+func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error {
+	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	data, err := proto.Marshal(snapshot)
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewRStoreServiceClient(conn)
+	_, err = client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetDate()),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
+}
+
+func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/org/%v/", user.GetUser().GetDiscogsUserId(), cleanOrgString(org))})
+	if err != nil {
+		return nil, fmt.Errorf("Cannot get keys to find latest snapshot: %w", err)
+	}
+
+	sort.Strings(keys.Keys)
+
+	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: keys.Keys[0],
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	orgSnap := &pb.OrganisationSnapshot{}
+	err = proto.Unmarshal(resp.GetValue().GetValue(), orgSnap)
+	return orgSnap, err
 }
 
 func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
