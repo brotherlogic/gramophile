@@ -2,6 +2,7 @@ package server
 
 import (
 	"testing"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -149,4 +150,94 @@ func TestLooseLayoutSupport(t *testing.T) {
 			t.Errorf("Bad Placment: %v", org.GetSnapshot().GetPlacements())
 		}
 	}
+}
+
+func TestGetSnapshotHash(t *testing.T) {
+	ctx := getTestContext(123)
+
+	d := db.NewTestDB()
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "testing",
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:         "Main Shelves",
+								Units:        1,
+								RecordsWidth: 100,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	time.Sleep(time.Second * 2)
+
+	org2, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get second org version")
+	}
+
+	if org.GetSnapshot().GetDate() == org2.GetSnapshot().GetDate() || org.GetSnapshot().GetHash() != org2.GetSnapshot().GetHash() {
+		t.Errorf("Hash or Date mismatch on second pull: %v vs %v", org.GetSnapshot(), org2.GetSnapshot())
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "DDD"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	time.Sleep(time.Second * 2)
+
+	org3, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get second org version")
+	}
+
+	if org.GetSnapshot().GetDate() == org3.GetSnapshot().GetDate() || org.GetSnapshot().GetHash() == org3.GetSnapshot().GetHash() {
+		t.Errorf("Hash or Date mismatch on third pull: %v vs %v", org.GetSnapshot(), org2.GetSnapshot())
+	}
+
 }
