@@ -168,6 +168,10 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org str
 
 	sort.Strings(keys.Keys)
 
+	if len(keys.Keys) == 0 {
+		return nil, status.Errorf(codes.NotFound, "no orgs for %v found", user.GetUser().GetDiscogsUserId())
+	}
+
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: keys.Keys[0],
 	})
