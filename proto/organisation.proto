@@ -13,6 +13,7 @@ message OrganisationConfig {
 message OrganisationSnapshot {
     int64 date = 1;
     repeated Placement placements = 2;
+    string hash = 3;
 }
 
 message Placement {

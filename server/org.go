@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"math"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func (s *Server) GetRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record, error) {
@@ -120,7 +122,13 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	return &pb.OrganisationSnapshot{
 		Date:       time.Now().Unix(),
 		Placements: placements,
+		Hash:       getHash(placements),
 	}, nil
+}
+
+func getHash(placements []*pb.Placement) string {
+	bytes, _ := proto.Marshal(&pb.OrganisationSnapshot{Placements: placements})
+	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
@@ -142,7 +150,19 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 
 	snapshot, err := s.buildSnapshot(ctx, user, o)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to build snapshot: %w", err)
+		return nil, fmt.Errorf("unable to build snapshot: %w", err)
+	}
+
+	latest, err := s.d.GetLatestSnapshot(ctx, user, req.GetOrgName())
+	if err != nil && status.Code(err) != codes.NotFound {
+		return nil, fmt.Errorf("unable to load previous snapshot: %w", err)
+	}
+
+	if latest == nil || latest.GetHash() != snapshot.GetHash() {
+		err = s.d.SaveSnapshot(ctx, user, req.GetOrgName(), snapshot)
+		if err != nil {
+			return nil, fmt.Errorf("unable to save new snapshot: %w", err)
+		}
 	}
 
 	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
