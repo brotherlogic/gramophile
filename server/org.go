@@ -131,6 +131,10 @@ func getHash(placements []*pb.Placement) string {
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
+func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {

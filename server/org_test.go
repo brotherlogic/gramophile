@@ -239,5 +239,75 @@ func TestGetSnapshotHash(t *testing.T) {
 	if org.GetSnapshot().GetDate() == org3.GetSnapshot().GetDate() || org.GetSnapshot().GetHash() == org3.GetSnapshot().GetHash() {
 		t.Errorf("Hash or Date mismatch on third pull: %v vs %v", org.GetSnapshot(), org2.GetSnapshot())
 	}
+}
 
+func TestSnapshotDiff(t *testing.T) {
+	type test struct {
+		start    *pb.OrganisationSnapshot
+		end      *pb.OrganisationSnapshot
+		expected *pb.SnapshotDiff
+	}
+
+	tests := []test{
+		{
+			start: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+			end: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+			expected: &pb.SnapshotDiff{
+				Moves: []*pb.Move{
+					{
+						Start: &pb.Placement{
+							Iid:   1234,
+							Index: 1,
+							Space: "Shelves",
+							Unit:  1,
+						},
+						End: &pb.Placement{
+							Iid:   1234,
+							Index: 2,
+							Space: "Shelves",
+							Unit:  1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		diff := getSnapshotDiff(test.start, test.end)
+		if len(diff) != len(test.expected.GetMoves()) {
+			t.Errorf("Wrong number of moves: %v expected %v", len(diff), len(test.expected.GetMoves()))
+			continue
+		}
+	}
 }
