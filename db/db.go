@@ -141,18 +141,12 @@ func cleanOrgString(org string) string {
 }
 
 func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(snapshot)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetDate()),
 		Value: &anypb.Any{Value: data},
 	})
