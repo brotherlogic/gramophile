@@ -241,11 +241,43 @@ func TestGetSnapshotHash(t *testing.T) {
 	}
 }
 
+func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.OrganisationSnapshot {
+	// Copy orginal placements and ensure that they're sorted
+	var placements []*pb.Placement
+	copy(placements, snapshot.GetPlacements())
+
+	// Build index array
+	indexToRecord := make(map[int32]*pb.Placement)
+	for _, placement := range placements {
+		indexToRecord[placement.GetIndex()] = placement
+	}
+
+	for _, m := range moves {
+		if m.GetStart().GetIndex() != m.GetEnd().GetIndex() {
+			nIndex := make(map[int32]*pb.Placement)
+			for index, placement := range indexToRecord {
+				if index >= m.GetEnd().GetIndex() {
+					placement.Index++
+					nIndex[index+1] = placement
+				}
+				if placement.GetIid() == m.GetEnd().GetIid() {
+					nIndex[m.GetEnd().GetIndex()] = placement
+				}
+			}
+		}
+	}
+
+	nPlacements := make([]*pb.Placement, len(indexToRecord))
+	for i := int32(1); i < int32(len(indexToRecord)); i++ {
+		nPlacements[i-1] = indexToRecord[i]
+	}
+	return &pb.OrganisationSnapshot{Placements: nPlacements}
+}
+
 func TestSnapshotDiff(t *testing.T) {
 	type test struct {
-		start    *pb.OrganisationSnapshot
-		end      *pb.OrganisationSnapshot
-		expected *pb.SnapshotDiff
+		start *pb.OrganisationSnapshot
+		end   *pb.OrganisationSnapshot
 	}
 
 	tests := []test{
@@ -282,32 +314,15 @@ func TestSnapshotDiff(t *testing.T) {
 					},
 				},
 			},
-			expected: &pb.SnapshotDiff{
-				Moves: []*pb.Move{
-					{
-						Start: &pb.Placement{
-							Iid:   1234,
-							Index: 1,
-							Space: "Shelves",
-							Unit:  1,
-						},
-						End: &pb.Placement{
-							Iid:   1234,
-							Index: 2,
-							Space: "Shelves",
-							Unit:  1,
-						},
-					},
-				},
-			},
 		},
 	}
 
 	for _, test := range tests {
 		diff := getSnapshotDiff(test.start, test.end)
-		if len(diff) != len(test.expected.GetMoves()) {
-			t.Errorf("Wrong number of moves: %v expected %v", len(diff), len(test.expected.GetMoves()))
-			continue
+
+		nsnap := applyMoves(test.start, diff)
+		if getHash(test.end.GetPlacements()) != getHash(nsnap.GetPlacements()) {
+			t.Errorf("Moves failed: %v -> %v", test.end, nsnap)
 		}
 	}
 }

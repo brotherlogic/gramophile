@@ -120,9 +120,9 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	}
 
 	return &pb.OrganisationSnapshot{
-		Date:       time.Now().Unix(),
-		Placements: placements,
 		Hash:       getHash(placements),
+		Placements: placements,
+		Date:       time.Now().Unix(),
 	}, nil
 }
 
@@ -131,14 +131,10 @@ func getHash(placements []*pb.Placement) string {
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
-func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
-	return []*pb.Move{}
-}
-
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load user: %w", err)
+		return nil, err
 	}
 
 	var o *pb.Organisation
@@ -170,4 +166,8 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 	}
 
 	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+}
+
+func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
+	return []*pb.Move{}
 }
