@@ -65,6 +65,7 @@ type Database interface {
 	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
 	GetUsers(ctx context.Context) ([]string, error)
 
+	LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, hash string) (*pb.OrganisationSnapshot, error)
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
@@ -152,6 +153,28 @@ func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, 
 	})
 
 	return err
+}
+
+func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, date string) (*pb.OrganisationSnapshot, error) {
+	val, err := client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), date),
+	})
+	if err != nil {
+		// OutOfRange indicates that the key was not found
+		if status.Code(err) == codes.NotFound {
+			return &pb.UserLoginAttempts{}, nil
+		}
+		return nil, err
+	}
+
+	logins := &pb.UserLoginAttempts{}
+	log.Printf("Unmarshal: %v -> %v", logins, val.GetValue().GetValue())
+	err = proto.Unmarshal(val.GetValue().GetValue(), logins)
+	if err != nil {
+		return nil, err
+	}
+
+	return logins, nil
 }
 
 func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error) {
