@@ -8,6 +8,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestLabelOrdering(t *testing.T) {
@@ -239,5 +240,93 @@ func TestGetSnapshotHash(t *testing.T) {
 	if org.GetSnapshot().GetDate() == org3.GetSnapshot().GetDate() || org.GetSnapshot().GetHash() == org3.GetSnapshot().GetHash() {
 		t.Errorf("Hash or Date mismatch on third pull: %v vs %v", org.GetSnapshot(), org2.GetSnapshot())
 	}
+}
 
+func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.OrganisationSnapshot {
+	// Copy orginal placements and ensure that they're sorted
+	placements := make([]*pb.Placement, len(snapshot.GetPlacements()))
+	for _, p := range snapshot.GetPlacements() {
+		placements = append(placements, proto.Clone(p).(*pb.Placement))
+	}
+	indexToRecord := make(map[int32]*pb.Placement)
+	for _, placement := range placements {
+		indexToRecord[placement.GetIndex()] = placement
+	}
+
+	for _, m := range moves {
+		if m.GetStart().GetIndex() != m.GetEnd().GetIndex() {
+			nIndex := make(map[int32]*pb.Placement)
+			found := indexToRecord[m.GetStart().GetIndex()]
+			if m.GetStart().GetIndex() > m.GetEnd().GetIndex() {
+				for index, placement := range indexToRecord {
+					if index >= m.GetEnd().GetIndex() && index < m.GetStart().GetIndex() {
+						placement.Index++
+						nIndex[index+1] = placement
+					}
+				}
+				nIndex[m.GetEnd().GetIndex()] = found
+				found.Index = m.GetEnd().GetIndex()
+				indexToRecord = nIndex
+			}
+		}
+	}
+
+	nPlacements := make([]*pb.Placement, len(indexToRecord))
+	for i := int32(1); i <= int32(len(indexToRecord)); i++ {
+		nPlacements[i-1] = indexToRecord[i]
+	}
+	return &pb.OrganisationSnapshot{Placements: nPlacements}
+}
+
+func TestSnapshotDiff(t *testing.T) {
+	type test struct {
+		start *pb.OrganisationSnapshot
+		end   *pb.OrganisationSnapshot
+	}
+
+	tests := []test{
+		{
+			start: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+			end: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		diff := getSnapshotDiff(test.start, test.end)
+
+		nsnap := applyMoves(test.start, diff)
+		if getHash(test.end.GetPlacements()) != getHash(nsnap.GetPlacements()) {
+			t.Errorf("Moves failed: \nstart    %v\nexpected %v\ngot      %v\nmoves: %v\n %v vs %v", test.start, test.end, nsnap, diff, getHash(test.end.GetPlacements()), getHash(nsnap.GetPlacements()))
+		}
+	}
 }

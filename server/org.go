@@ -120,13 +120,17 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	}
 
 	return &pb.OrganisationSnapshot{
-		Date:       time.Now().Unix(),
-		Placements: placements,
 		Hash:       getHash(placements),
+		Placements: placements,
+		Date:       time.Now().Unix(),
 	}, nil
 }
 
 func getHash(placements []*pb.Placement) string {
+	sort.SliceStable(placements, func(i, j int) bool {
+		return placements[i].GetIndex() < placements[j].GetIndex()
+	})
+
 	bytes, _ := proto.Marshal(&pb.OrganisationSnapshot{Placements: placements})
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
@@ -134,7 +138,7 @@ func getHash(placements []*pb.Placement) string {
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load user: %w", err)
+		return nil, err
 	}
 
 	var o *pb.Organisation
@@ -166,4 +170,75 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 	}
 
 	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+}
+
+type place struct {
+	iid   int64
+	unit  int32
+	space string
+	next  *place
+}
+
+func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
+	mapper := make(map[int32]*pb.Placement)
+	for _, place := range start.GetPlacements() {
+		mapper[place.GetIndex()] = proto.Clone(place).(*pb.Placement)
+	}
+	var cplace *place
+	for i := int32(len(mapper)); i > 0; i-- {
+		nplace := &place{
+			iid:   mapper[i].GetIid(),
+			unit:  mapper[i].GetUnit(),
+			space: mapper[i].GetSpace(),
+		}
+		if cplace != nil {
+			nplace.next = cplace
+		}
+		cplace = nplace
+	}
+
+	emapper := make(map[int32]*pb.Placement)
+	for _, place := range end.GetPlacements() {
+		emapper[place.GetIndex()] = place
+	}
+
+	var moves []*pb.Move
+	curr := cplace
+	var prev *place
+	for index := 1; index <= len(end.GetPlacements()); index++ {
+		if curr.iid != emapper[int32(index)].GetIid() {
+			// Search forwards and move this record to this slot
+			sstart := curr
+			cIndex := int32(index)
+			for {
+				if sstart.iid == emapper[int32(index)].GetIid() {
+					moves = append(moves, &pb.Move{
+						Start: &pb.Placement{
+							Iid:   sstart.iid,
+							Space: sstart.space,
+							Unit:  sstart.unit,
+							Index: cIndex,
+						},
+						End: &pb.Placement{
+							Iid:   sstart.iid,
+							Space: curr.space,
+							Unit:  curr.unit,
+							Index: int32(index),
+						},
+					})
+					if prev != nil {
+						prev.next = sstart
+						sstart.next = curr
+					}
+					break
+				} else {
+					sstart = sstart.next
+					cIndex++
+				}
+			}
+
+		}
+	}
+
+	return moves
 }

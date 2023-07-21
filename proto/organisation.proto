@@ -16,6 +16,15 @@ message OrganisationSnapshot {
     string hash = 3;
 }
 
+message SnapshotDiff {
+    repeated Move moves = 1;
+}
+
+message Move {
+    Placement start = 1;
+    Placement end = 2;
+}
+
 message Placement {
     int64 iid = 1;
     int32 unit = 2;
