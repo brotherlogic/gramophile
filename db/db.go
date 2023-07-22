@@ -155,26 +155,21 @@ func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, 
 	return err
 }
 
-func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, date string) (*pb.OrganisationSnapshot, error) {
-	val, err := client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), date),
+func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, name string) (*pb.OrganisationSnapshot, error) {
+	val, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), name),
 	})
 	if err != nil {
-		// OutOfRange indicates that the key was not found
-		if status.Code(err) == codes.NotFound {
-			return &pb.UserLoginAttempts{}, nil
-		}
 		return nil, err
 	}
 
-	logins := &pb.UserLoginAttempts{}
-	log.Printf("Unmarshal: %v -> %v", logins, val.GetValue().GetValue())
-	err = proto.Unmarshal(val.GetValue().GetValue(), logins)
+	snapshot := &pb.OrganisationSnapshot{}
+	err = proto.Unmarshal(val.GetValue().GetValue(), snapshot)
 	if err != nil {
 		return nil, err
 	}
 
-	return logins, nil
+	return snapshot, nil
 }
 
 func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error) {
