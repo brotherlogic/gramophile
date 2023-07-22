@@ -388,7 +388,7 @@ func TestSetSnapshotName(t *testing.T) {
 		t.Fatalf("Unable to get org: %v", err)
 	}
 
-	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{Name: "atestname", Date: org.GetSnapshot().GetDate()})
+	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{OrgName: "testing", Name: "atestname", Date: org.GetSnapshot().GetDate()})
 	if err != nil {
 		t.Errorf("Unable to set org snapshot: %v", err)
 	}

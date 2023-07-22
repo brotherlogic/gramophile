@@ -134,7 +134,7 @@ func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
 
 func cleanOrgString(org string) string {
 	return strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
 			return r
 		}
 		return -1
@@ -152,12 +152,19 @@ func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, 
 		Value: &anypb.Any{Value: data},
 	})
 
+	if snapshot.GetName() != "" {
+		_, err = d.client.Write(ctx, &rspb.WriteRequest{
+			Key:   fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), cleanOrgString(snapshot.GetName())),
+			Value: &anypb.Any{Value: data},
+		})
+	}
+
 	return err
 }
 
 func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, name string) (*pb.OrganisationSnapshot, error) {
 	val, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), name),
+		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), cleanOrgString(name)),
 	})
 	if err != nil {
 		return nil, err

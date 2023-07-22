@@ -141,7 +141,7 @@ func (s *Server) SetOrgSnapshot(ctx context.Context, req *pb.SetOrgSnapshotReque
 		return nil, fmt.Errorf("unable to load user: %w", err)
 	}
 
-	org, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), req.GetName())
+	org, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), fmt.Sprintf("%v", req.GetDate()))
 	if err != nil {
 		return nil, fmt.Errorf("unable to load snapshot: %w", err)
 	}
