@@ -186,6 +186,7 @@ type GramophileEServiceClient interface {
 	SetIntent(ctx context.Context, in *SetIntentRequest, opts ...grpc.CallOption) (*SetIntentResponse, error)
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
 	GetOrg(ctx context.Context, in *GetOrgRequest, opts ...grpc.CallOption) (*GetOrgResponse, error)
+	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -268,6 +269,15 @@ func (c *gramophileEServiceClient) GetOrg(ctx context.Context, in *GetOrgRequest
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error) {
+	out := new(SetOrgSnapshotResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/SetOrgSnapshot", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility
@@ -280,6 +290,7 @@ type GramophileEServiceServer interface {
 	SetIntent(context.Context, *SetIntentRequest) (*SetIntentResponse, error)
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
 	GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error)
+	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have forward compatible implementations.
@@ -309,6 +320,9 @@ func (UnimplementedGramophileEServiceServer) GetRecord(context.Context, *GetReco
 }
 func (UnimplementedGramophileEServiceServer) GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrg not implemented")
+}
+func (UnimplementedGramophileEServiceServer) SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetOrgSnapshot not implemented")
 }
 
 // UnsafeGramophileEServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -466,6 +480,24 @@ func _GramophileEService_GetOrg_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_SetOrgSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetOrgSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).SetOrgSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/SetOrgSnapshot",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).SetOrgSnapshot(ctx, req.(*SetOrgSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -504,6 +536,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetOrg",
 			Handler:    _GramophileEService_GetOrg_Handler,
+		},
+		{
+			MethodName: "SetOrgSnapshot",
+			Handler:    _GramophileEService_SetOrgSnapshot_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

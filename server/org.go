@@ -135,10 +135,39 @@ func getHash(placements []*pb.Placement) string {
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
+func (s *Server) SetOrgSnapshot(ctx context.Context, req *pb.SetOrgSnapshotRequest) (*pb.SetOrgSnapshotResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load user: %w", err)
+	}
+
+	org, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), fmt.Sprintf("%v", req.GetDate()))
+	if err != nil {
+		return nil, fmt.Errorf("unable to load snapshot: %w", err)
+	}
+
+	org.Name = req.GetName()
+	err = s.d.SaveSnapshot(ctx, user, req.GetOrgName(), org)
+	if err != nil {
+		return nil, fmt.Errorf("unable to save snapshot: %w", err)
+	}
+
+	return &pb.SetOrgSnapshotResponse{}, nil
+}
+
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if req.GetName() != "" {
+		snapshot, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), req.GetName())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to load snapshot: %w", err)
+		}
+
+		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
 	}
 
 	var o *pb.Organisation

@@ -192,11 +192,20 @@ message GetRecordResponse {
 
 message GetOrgRequest {
     string org_name = 1;
+    string name = 2;
 }
 
 message GetOrgResponse {
     OrganisationSnapshot snapshot = 1;
 }
+
+message SetOrgSnapshotRequest {
+    string org_name = 1;
+    int64 date = 2;
+    string name = 3;
+}
+
+message SetOrgSnapshotResponse {}
 
 // Externally accessible service
 service GramophileEService {
@@ -212,6 +221,7 @@ service GramophileEService {
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
+    rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
 }
 
 message GetUserRequest {}
