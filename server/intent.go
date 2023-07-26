@@ -17,6 +17,13 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	if err != nil {
 		return nil, err
 	}
+
+	// Check that this record at least exists
+	_, err = s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
+	if err != nil {
+		return nil, err
+	}
+
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
