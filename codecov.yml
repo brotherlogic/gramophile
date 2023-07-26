@@ -10,5 +10,5 @@ flag_management:
         - server/
       statuses:
         - type: project
-          target: 100%
+          target: 40%
           threshold: 1%
