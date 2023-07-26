@@ -1,4 +1,4 @@
-name: RunBasic
+name: Code Coverage
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
    
 jobs:
   checks:
-    name: basic_assess
+    name: code_coverage
     runs-on: ubuntu-latest
     steps:
       - name: Upload coverage reports to Codecov
