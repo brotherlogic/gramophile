@@ -7,7 +7,11 @@ import (
 	"github.com/brotherlogic/discogs"
 	db "github.com/brotherlogic/gramophile/db"
 
+	pbgd "github.com/brotherlogic/godiscogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	pbrc "github.com/brotherlogic/recordcollection/proto"
+
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -63,4 +67,20 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 	user, err := s.d.GetUser(ctx, key)
 
 	return user, err
+}
+
+func (s *Server) updateRecord(ctx context.Context, id int32) error {
+	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+	client := pbrc.NewRecordCollectionServiceClient(conn)
+	_, err = client.UpdateRecord(ctx, &pbrc.UpdateRecordRequest{
+		Reason: "ping_from_gramophile",
+		Update: &pbrc.Record{
+			Release:  &pbgd.Release{InstanceId: id},
+			Metadata: &pbrc.ReleaseMetadata{NeedsGramUpdate: true},
+		},
+	})
+	return err
 }

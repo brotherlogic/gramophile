@@ -58,6 +58,14 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	})
 
 	log.Printf("Saved Intent")
+	if user.GetUser().GetDiscogsUserId() == 249504 {
+		nerr := s.updateRecord(ctx, int32(req.GetInstanceId()))
+		if nerr != nil {
+			log.Printf("Error on record update: %v", nerr)
+		}
+	} else {
+		log.Printf("Skipping: %v", user.GetUser().GetDiscogsUserId())
+	}
 
 	return &pb.SetIntentResponse{}, err
 }
