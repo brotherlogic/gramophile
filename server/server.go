@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	db "github.com/brotherlogic/gramophile/db"
@@ -69,13 +72,23 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 	return user, err
 }
 
+func generateContext(ctx context.Context, origin string) context.Context {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	hostname := "kubernetes"
+	tracev := fmt.Sprintf("%v-%v-%v-%v", origin, time.Now().Unix(), r.Int63(), hostname)
+	mContext := metadata.AppendToOutgoingContext(ctx, "trace-id", tracev)
+	return mContext
+}
+
 func (s *Server) updateRecord(ctx context.Context, id int32) error {
 	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 	client := pbrc.NewRecordCollectionServiceClient(conn)
-	_, err = client.UpdateRecord(ctx, &pbrc.UpdateRecordRequest{
+	nctx := generateContext(ctx, "gramophile")
+	_, err = client.UpdateRecord(nctx, &pbrc.UpdateRecordRequest{
 		Reason: "ping_from_gramophile",
 		Update: &pbrc.Record{
 			Release:  &pbgd.Release{InstanceId: id},
