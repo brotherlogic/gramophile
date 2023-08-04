@@ -86,6 +86,8 @@ func (s *Server) updateRecord(ctx context.Context, id int32) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
+
 	client := pbrc.NewRecordCollectionServiceClient(conn)
 	nctx := generateContext(ctx, "gramophile")
 	_, err = client.UpdateRecord(nctx, &pbrc.UpdateRecordRequest{
