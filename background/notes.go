@@ -25,6 +25,14 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 	}
 
 	err = b.ProcessSetWidth(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
+	err = b.ProcessSetWeight(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
 
 	return b.ProcessListenDate(ctx, d, r, i, user)
 }
@@ -124,6 +132,39 @@ func (b *BackgroundRunner) ProcessSetWidth(ctx context.Context, d discogs.Discog
 	}
 
 	r.Width = i.GetWidth()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessSetWeight(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the clean time
+	if i.GetWeight() == 0 {
+		return nil
+	}
+
+	log.Printf("Getting fields: %v", d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.WEIGHT_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate weight field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetWeight()))
+	if err != nil {
+		return err
+	}
+
+	r.Weight = i.GetWeight()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
