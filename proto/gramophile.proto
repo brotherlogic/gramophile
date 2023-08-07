@@ -45,6 +45,7 @@ message Intent {
     int64 clean_time = 1;
     int64 listen_time = 2;
     float width = 3;
+    float weight = 4;
 }
 
 message Queues {
