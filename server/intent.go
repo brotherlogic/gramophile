@@ -35,6 +35,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	// Merge in the proto def
 	proto.Merge(exint, req.GetIntent())
+	log.Printf("Saving intent: %v", exint)
 
 	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
 	if err != nil {
