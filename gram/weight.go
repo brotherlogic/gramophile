@@ -13,7 +13,7 @@ func GetWeight() *CLIModule {
 	return &CLIModule{
 		Command: "weight",
 		Help:    "weight",
-		Execute: executeWidth,
+		Execute: executeWeight,
 	}
 }
 
