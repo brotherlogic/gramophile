@@ -49,7 +49,8 @@ func main() {
 	modules := []*CLIModule{GetLogin(),
 		GetGetUser(), GetGetSate(), GetGetConfig(), GetClean(), GetGetIssue(), GetListen(),
 		GetWidth(),
-		GetOrganisation()}
+		GetOrganisation(),
+		GetWeight()}
 
 	ctx, cancel, err := buildContext()
 	if err != nil {
