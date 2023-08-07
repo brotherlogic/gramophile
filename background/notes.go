@@ -142,7 +142,7 @@ func (b *BackgroundRunner) ProcessSetWeight(ctx context.Context, d discogs.Disco
 		return nil
 	}
 
-	log.Printf("Getting fields: %v", d.GetUserId())
+	log.Printf("Getting fields for %v: %v", config.WEIGHT_FIELD, d.GetUserId())
 	fields, err := d.GetFields(ctx)
 	if err != nil {
 		return err
