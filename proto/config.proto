@@ -60,6 +60,11 @@ message GramophileConfig {
     ListenConfig listen_config = 3;
     WidthConfig width_config = 4;
     OrganisationConfig organisation_config = 5;
+    WeightConfig weight_config = 6;
+}
+
+message WeightConfig {
+    Mandate mandate = 1;
 }
 
 message WidthConfig {

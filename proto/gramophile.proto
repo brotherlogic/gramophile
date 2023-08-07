@@ -29,6 +29,8 @@ message Record {
 
    int64 last_clean_time = 4;
    int64 last_listen_time = 7;
+
+   float weight = 10;
    float width = 9;
 
    int32 num_plays = 5;
