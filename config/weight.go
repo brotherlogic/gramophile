@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	WEIGHT_FIELD = "Width"
+	WEIGHT_FIELD = "Weight"
 )
 
 type weight struct{}
