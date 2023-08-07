@@ -17,7 +17,7 @@ var (
 type weight struct{}
 
 func (*weight) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetWidthConfig().GetMandate() != pb.Mandate_NONE {
+	if c.GetWeightConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == WEIGHT_FIELD {

@@ -13,7 +13,7 @@ func TestWeightFailedNoField(t *testing.T) {
 
 	err := ValidateConfig(context.Background(), []*pbd.Field{}, c)
 	if err == nil {
-		t.Errorf("Should have failed")
+		t.Errorf("Should have failed but did not")
 	}
 }
 
@@ -22,6 +22,6 @@ func TestWeightSuccess(t *testing.T) {
 
 	err := ValidateConfig(context.Background(), []*pbd.Field{&pbd.Field{Name: "Weight", Id: 1}}, c)
 	if err != nil {
-		t.Errorf("Should not have failed: %v", err)
+		t.Errorf("validate weight raised an error: %v", err)
 	}
 }
