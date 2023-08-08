@@ -49,7 +49,7 @@ func validateUsers(ctx context.Context) error {
 			}
 
 			log.Printf("Collection: %v", time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
-			if time.Since(time.Unix(user.GetLastCollectionRefresh(), 0)) > time.Hour*24*7 {
+			if time.Since(time.Unix(user.GetLastCollectionRefresh(), 0)) > time.Hour*24 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().UnixNano(),
