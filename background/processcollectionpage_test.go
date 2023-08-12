@@ -35,3 +35,31 @@ func TestGetCollectionPage_WithNewRecord(t *testing.T) {
 		t.Errorf("Stored record is not quite right: %v", record)
 	}
 }
+
+func TestGetCollectionPage_WithDeletion(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	d := &discogs.TestDiscogsClient{}
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
+
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1)
+	if err != nil {
+		t.Errorf("Bad collection pull: %v", err)
+	}
+
+	_, err = b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err != nil {
+		t.Errorf("Bad get: %v", err)
+	}
+
+	d = &discogs.TestDiscogsClient{}
+	_, err = b.ProcessCollectionPage(context.Background(), d, 1)
+	if err != nil {
+		t.Fatalf("Bad collection pull (2); %v", err)
+	}
+
+	rec, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err == nil && rec.GetRelease().GetRating() == 2 {
+		t.Errorf("Refresh pull did not delete record")
+	}
+
+}
