@@ -49,6 +49,7 @@ func NewTestDB() Database {
 
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
+	DeleteRecord(ctx context.Context, userid int32, iid int64) error
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 	GetUpdates(ctx context.Context, user *pb.StoredUser, record *pb.Record) ([]*pb.RecordUpdate, error)
@@ -325,6 +326,14 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 	})
 	return err
 
+}
+
+func (d *DB) DeleteRecord(ctx context.Context, userid int32, iid int64) error {
+	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
+	})
+
+	return err
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {

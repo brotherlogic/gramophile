@@ -21,7 +21,7 @@ func TestGetCollectionPage_WithNewRecord(t *testing.T) {
 	d := &discogs.TestDiscogsClient{}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 	d := &discogs.TestDiscogsClient{}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -52,9 +52,14 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 	}
 
 	d = &discogs.TestDiscogsClient{}
-	_, err = b.ProcessCollectionPage(context.Background(), d, 1)
+	_, err = b.ProcessCollectionPage(context.Background(), d, 1, 1234)
 	if err != nil {
 		t.Fatalf("Bad collection pull (2); %v", err)
+	}
+
+	err = b.CleanCollection(context.Background(), d, 1234)
+	if err != nil {
+		t.Fatalf("Clean failed: %v", err)
 	}
 
 	rec, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
