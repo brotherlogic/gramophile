@@ -61,6 +61,7 @@ message GramophileConfig {
     WidthConfig width_config = 4;
     OrganisationConfig organisation_config = 5;
     WeightConfig weight_config = 6;
+    GoalFolderConfig goal_folder_config = 7;
 }
 
 message WeightConfig {
@@ -68,5 +69,9 @@ message WeightConfig {
 }
 
 message WidthConfig {
+    Mandate mandate = 1;
+}
+
+message GoalFolderConfig {
     Mandate mandate = 1;
 }

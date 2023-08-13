@@ -39,8 +39,9 @@ message Record {
 
    int64 refresh_id = 11;
 
-   // Field is not stored directly
    repeated RecordUpdate updates = 8;
+
+   string goal_folder = 12;
 }
 
 message Intent {
