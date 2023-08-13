@@ -37,6 +37,8 @@ message Record {
 
    repeated NoncomplianceIssue issues = 6;
 
+   int64 refresh_id = 11;
+
    // Field is not stored directly
    repeated RecordUpdate updates = 8;
 }
@@ -77,6 +79,11 @@ message RefreshUserEntry {
 
 message RefreshCollectionEntry {
     int32 page = 1;
+    int64 refresh_id = 2;
+}
+
+message CleanCollectionEntry {
+    int64 refresh_id = 1;
 }
 
 message RefreshIntents {

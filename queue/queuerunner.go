@@ -148,7 +148,11 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshCollection:
-		rval, err := q.b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollection().GetPage())
+		if entry.GetRefreshCollection().GetPage() == 1 {
+			entry.GetRefreshCollection().RefreshId = time.Now().UnixNano()
+		}
+
+		rval, err := q.b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollection().GetPage(), entry.GetRefreshCollection().GetRefreshId())
 		log.Printf("Processed collection page: %v %v", rval, err)
 
 		if err != nil {
@@ -158,8 +162,10 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					RunDate: time.Now().Unix() + int64(i),
-					Entry:   &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollectionEntry{Page: i}},
-					Auth:    entry.GetAuth(),
+					Entry: &pb.QueueElement_RefreshCollection{
+						RefreshCollection: &pb.RefreshCollectionEntry{
+							Page: i, RefreshId: entry.GetRefreshCollection().GetRefreshId()}},
+					Auth: entry.GetAuth(),
 				}})
 				if err != nil {
 					return err
