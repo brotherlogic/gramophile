@@ -8,7 +8,6 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	"github.com/brotherlogic/gramophile/queue"
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
@@ -35,7 +34,7 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	}
 
 	//Run the intent
-	q := queue.GetTestQueue(rstore)
+	q := queuelogic.GetTestQueue(rstore)
 	q.FlushQueue(ctx)
 
 	rec, err := d.GetRecord(ctx, 123, 1234)
