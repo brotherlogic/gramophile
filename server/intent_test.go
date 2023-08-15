@@ -6,8 +6,11 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
+
 	pb "github.com/brotherlogic/gramophile/proto"
+	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
@@ -24,7 +27,8 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	di := &discogs.TestDiscogsClient{}
+	s := Server{d: d, di: di}
 
 	_, err = s.SetIntent(context.Background(), &pb.SetIntentRequest{
 		Intent: &pb.Intent{GoalFolder: "12 Inches"},
@@ -34,7 +38,7 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	}
 
 	//Run the intent
-	q := queuelogic.GetTestQueue(rstore)
+	q := queuelogic.GetQueue(rstore, &background.BackgroundRunner{}, di, d)
 	q.FlushQueue(ctx)
 
 	rec, err := d.GetRecord(ctx, 123, 1234)

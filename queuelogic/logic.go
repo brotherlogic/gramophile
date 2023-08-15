@@ -48,6 +48,28 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 }
 
+func (q *queue) FlushQueue(ctx context.Context) {
+	elem, err := q.getNextEntry(ctx)
+
+	for err != nil {
+		user, errv := q.db.GetUser(ctx, elem.GetAuth())
+		if errv != nil {
+			log.Fatalf("Bad: %v", errv)
+		}
+		user.User.UserSecret = user.UserSecret
+		user.User.UserToken = user.UserToken
+		d := q.d.ForUser(user.GetUser())
+		errp := q.ExecuteInternal(ctx, d, elem)
+		if errp == nil {
+			q.delete(ctx, elem)
+		} else {
+			log.Fatalf("")
+		}
+
+		elem, err = q.getNextEntry(ctx)
+	}
+}
+
 func (q *queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {

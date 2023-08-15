@@ -7,6 +7,7 @@ import (
 
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc/metadata"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -19,7 +20,7 @@ func getTestContext(userid int) context.Context {
 func TestRetrieveUpdates(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB()
+	d := db.NewTestDB(rstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)

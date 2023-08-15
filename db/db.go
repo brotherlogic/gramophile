@@ -43,8 +43,8 @@ type DB struct {
 	client rstore_client.RStoreClient
 }
 
-func NewTestDB() Database {
-	return &DB{client: rstore_client.GetTestClient()}
+func NewTestDB(cl rstore_client.RStoreClient) Database {
+	return &DB{client: cl}
 }
 
 type Database interface {
