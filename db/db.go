@@ -43,8 +43,8 @@ type DB struct {
 	client rstore_client.RStoreClient
 }
 
-func NewTestDB() Database {
-	return &DB{client: rstore_client.GetTestClient()}
+func NewTestDB(cl rstore_client.RStoreClient) Database {
+	return &DB{client: cl}
 }
 
 type Database interface {
@@ -384,13 +384,7 @@ func (d *DB) GetUpdates(ctx context.Context, u *pb.StoredUser, r *pb.Record) ([]
 }
 
 func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	resp, err := client.Read(ctx, &rspb.ReadRequest{
+	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid),
 	})
 	if err != nil {
@@ -403,18 +397,12 @@ func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent
 }
 
 func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(i)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid),
 		Value: &anypb.Any{Value: data},
 	})

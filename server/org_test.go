@@ -8,13 +8,14 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/protobuf/proto"
 )
 
 func TestLabelOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB()
+	d := db.NewTestDB(rstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -88,7 +89,7 @@ func TestLabelOrdering(t *testing.T) {
 func TestLooseLayoutSupport(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB()
+	d := db.NewTestDB(rstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -156,7 +157,7 @@ func TestLooseLayoutSupport(t *testing.T) {
 func TestGetSnapshotHash(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB()
+	d := db.NewTestDB(rstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -334,7 +335,7 @@ func TestSnapshotDiff(t *testing.T) {
 func TestSetSnapshotName(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB()
+	d := db.NewTestDB(rstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)

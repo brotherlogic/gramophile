@@ -8,11 +8,13 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 
 	dpb "github.com/brotherlogic/discogs/proto"
+
+	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
 func GetTestBackgroundRunner() *BackgroundRunner {
 	return &BackgroundRunner{
-		db: db.NewTestDB(),
+		db: db.NewTestDB(rstore_client.GetTestClient()),
 	}
 }
 

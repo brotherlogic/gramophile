@@ -14,6 +14,7 @@ import (
 )
 
 func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string) error {
+	log.Printf("BOUNCE: %v", b.db)
 	user, err := b.db.GetUser(ctx, auth)
 	if err != nil {
 		return err
@@ -30,6 +31,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 	}
 
 	err = b.ProcessSetWeight(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
+	err = b.ProcessGoalFolder(ctx, d, r, i, user)
 	if err != nil {
 		return err
 	}
@@ -99,6 +105,39 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 	}
 
 	r.LastListenTime = i.GetListenTime()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessGoalFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the listen time
+	if i.GetGoalFolder() == "" {
+		return nil
+	}
+
+	log.Printf("Getting fields: %v", d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.GOAL_FOLDER_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Goal Folder field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, i.GetGoalFolder())
+	if err != nil {
+		return err
+	}
+
+	r.GoalFolder = i.GetGoalFolder()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

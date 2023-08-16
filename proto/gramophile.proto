@@ -49,6 +49,7 @@ message Intent {
     int64 listen_time = 2;
     float width = 3;
     float weight = 4;
+    string goal_folder = 5;
 }
 
 message Queues {
@@ -120,6 +121,8 @@ message StoredUser {
     int64 last_config_update = 7;
 
     GramophileConfig config = 8;    
+
+    repeated discogs.Folder folders = 9;
 }
 
 message GramophileAuth {
