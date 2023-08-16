@@ -50,6 +50,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 
 func (q *queue) FlushQueue(ctx context.Context) {
 	elem, err := q.getNextEntry(ctx)
+	log.Printf("First Entry: %v", elem)
 
 	for err == nil {
 		user, errv := q.db.GetUser(ctx, elem.GetAuth())
@@ -63,7 +64,7 @@ func (q *queue) FlushQueue(ctx context.Context) {
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Fatalf("")
+			log.Fatalf("Failed to execute internal: %v", errp)
 		}
 
 		elem, err = q.getNextEntry(ctx)
@@ -149,7 +150,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 	case *pb.QueueElement_RefreshIntents:
 		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to get record: %w", err)
 		}
 		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
@@ -205,7 +206,6 @@ func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-	log.Printf("Enqueue: %v", req)
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
