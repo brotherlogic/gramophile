@@ -30,8 +30,9 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{}
-	qc := queuelogic.GetQueue(rstore, &background.BackgroundRunner{}, di, d)
+	di := &discogs.TestDiscogsClient{UserId: 123}
+
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -43,8 +44,7 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	}
 
 	//Run the intent
-	q := queuelogic.GetQueue(rstore, &background.BackgroundRunner{}, di, d)
-	q.FlushQueue(ctx)
+	qc.FlushQueue(ctx)
 
 	rec, err := d.GetRecord(ctx, 123, 1234)
 	if err != nil {

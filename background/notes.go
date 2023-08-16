@@ -14,6 +14,7 @@ import (
 )
 
 func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string) error {
+	log.Printf("BOUNCE: %v", b.db)
 	user, err := b.db.GetUser(ctx, auth)
 	if err != nil {
 		return err

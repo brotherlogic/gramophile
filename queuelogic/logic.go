@@ -150,7 +150,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 	case *pb.QueueElement_RefreshIntents:
 		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
-			return fmt.Errorf("unable to get record: %w", err)
+			return fmt.Errorf("unable to get record from %v: %w", d.GetUserId(), err)
 		}
 		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
