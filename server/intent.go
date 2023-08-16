@@ -2,11 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -15,13 +15,13 @@ import (
 func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.SetIntentResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error getting user: %w", err)
 	}
 
 	// Check that this record at least exists
 	_, err = s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting recor: %w", err)
 	}
 
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
@@ -29,7 +29,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		if status.Code(err) == codes.NotFound {
 			exint = &pb.Intent{}
 		} else {
-			return nil, err
+			return nil, fmt.Errorf("error getting intents: %w", err)
 		}
 	}
 
@@ -39,15 +39,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error saving intent: %w", err)
 	}
 
-	conn, err := grpc.Dial("gramophile-queue.gramophile:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	client := pb.NewQueueServiceClient(conn)
-	_, err = client.Enqueue(ctx, &pb.EnqueueRequest{
+	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate:          time.Now().UnixNano(),
 			Auth:             user.GetAuth().GetToken(),

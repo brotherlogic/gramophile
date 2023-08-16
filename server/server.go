@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	queue_client "github.com/brotherlogic/gramophile/queuelogic/queue_client"
+
 	"github.com/brotherlogic/discogs"
 	db "github.com/brotherlogic/gramophile/db"
 
@@ -23,6 +25,7 @@ import (
 type Server struct {
 	d  db.Database
 	di discogs.Discogs
+	qc queue_client.QueueClient
 }
 
 func NewServer(ctx context.Context, token, secret, callback string) *Server {

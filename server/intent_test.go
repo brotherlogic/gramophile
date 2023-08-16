@@ -8,6 +8,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
+	"github.com/brotherlogic/gramophile/queuelogic/queue_client"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
@@ -28,10 +29,12 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{}
-	s := Server{d: d, di: di}
+	qc := queue_client.GetTestClient()
+	s := Server{d: d, di: di, qc: qc}
 
-	_, err = s.SetIntent(context.Background(), &pb.SetIntentRequest{
-		Intent: &pb.Intent{GoalFolder: "12 Inches"},
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
+		InstanceId: 1234,
 	})
 	if err != nil {
 		t.Fatalf("Error setting intent: %v", err)
