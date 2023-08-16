@@ -51,10 +51,10 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 func (q *queue) FlushQueue(ctx context.Context) {
 	elem, err := q.getNextEntry(ctx)
 
-	for err != nil {
+	for err == nil {
 		user, errv := q.db.GetUser(ctx, elem.GetAuth())
 		if errv != nil {
-			log.Fatalf("Bad: %v", errv)
+			log.Fatalf("unable to get user to flush queue: %v -> %v", errv, elem.GetAuth())
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken

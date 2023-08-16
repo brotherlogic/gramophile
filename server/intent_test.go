@@ -24,7 +24,10 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}}, User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}

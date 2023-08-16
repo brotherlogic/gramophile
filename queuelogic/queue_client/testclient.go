@@ -2,6 +2,7 @@ package queue_client
 
 import (
 	"context"
+	"log"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -15,6 +16,7 @@ func GetTestClient() QueueClient {
 }
 
 func (c *TestClient) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	log.Printf("Enqueuing: %v", req)
 	c.list = append(c.list, req.GetElement())
 	return &pb.EnqueueResponse{}, nil
 }
