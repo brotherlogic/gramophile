@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brotherlogic/gramophile/queue v0.0.0-20230813170931-dbc125275c62 // indirect
+	github.com/brotherlogic/gramophile/queue v0.0.0-20230817233205-03ff9a14dbed // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect

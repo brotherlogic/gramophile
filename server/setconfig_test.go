@@ -8,7 +8,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
-	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
+	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 
 	pb "github.com/brotherlogic/gramophile/proto"
