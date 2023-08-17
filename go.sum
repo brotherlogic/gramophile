@@ -12,6 +12,8 @@ github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRx
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/gramophile/queue v0.0.0-20230813170931-dbc125275c62 h1:Y/UpUPE+C12VU0NWw9WH/lhp4PqiUA4+Vim2CT5KtLg=
 github.com/brotherlogic/gramophile/queue v0.0.0-20230813170931-dbc125275c62/go.mod h1:BYzxdnovH3hmpUz4fVwW1FVJWA8FTGNbeqjzC257KRU=
+github.com/brotherlogic/gramophile/queue v0.0.0-20230817233205-03ff9a14dbed h1:AoeYRJM7FTpiWwaPgSAPscqZ7f96DG9XqlyJJ+4JvU0=
+github.com/brotherlogic/gramophile/queue v0.0.0-20230817233205-03ff9a14dbed/go.mod h1:MoiQx8KcbVbS64Q64hg+toU+6vYx9jw9vXELASykrrI=
 github.com/brotherlogic/recordcollection v0.0.0-20230801024951-5b6fd5680382 h1:syiydpgvRFCnlcRnuQNbGHEyZ+vHyD4MFjvNoE2IJIw=
 github.com/brotherlogic/recordcollection v0.0.0-20230801024951-5b6fd5680382/go.mod h1:+AR8SJB664PD/F28ZlmMCga07MtaD4DbvEfOx6W7HM8=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=

@@ -73,6 +73,8 @@ message QueueElement {
         RefreshCollectionEntry refresh_collection = 5;
         RefreshIntents refresh_intents = 6;
     }
+
+    int64 refresh_id = 7;
 }
 
 message RefreshUserEntry {
