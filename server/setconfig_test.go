@@ -47,8 +47,8 @@ func TestConfigUpdate_UpdatesTime(t *testing.T) {
 		t.Fatalf("Unable to get state: %v", err)
 	}
 
-	if c1.GetLastConfigUpdate() == c2.GetLastCollectionSync() {
-		t.Errorf("Collection sync time was not updated: %v (%v)", c1.GetLastCollectionSync(), time.Unix(c1.GetLastCollectionSync(), 0))
+	if c1.GetLastConfigUpdate() == c2.GetLastConfigUpdate() {
+		t.Errorf("Collection sync time was not updated: %v (%v)", c2.GetLastConfigUpdate(), time.Unix(c2.GetLastConfigUpdate(), 0))
 	}
 
 }

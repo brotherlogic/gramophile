@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -31,6 +32,9 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	}
 
 	u.Config = req.GetConfig()
+	u.LastConfigUpdate = time.Now().Unix()
+
+	log.Printf("Updated user: %v", u)
 
 	// Apply the config
 	keys, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())

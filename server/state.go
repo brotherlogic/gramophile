@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	"github.com/brotherlogic/gramophile/config"
@@ -14,6 +15,8 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("State has user: %v", key)
 
 	collection, err := s.d.GetRecords(ctx, key.GetUser().GetDiscogsUserId())
 	if err != nil {
