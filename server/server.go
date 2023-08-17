@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	queue_client "github.com/brotherlogic/gramophile/queuelogic/queue_client"
+	queue_client "github.com/brotherlogic/gramophile/queue/queue_client"
 
 	"github.com/brotherlogic/discogs"
 	db "github.com/brotherlogic/gramophile/db"

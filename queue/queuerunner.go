@@ -9,15 +9,15 @@ import (
 	"net/http"
 	"os"
 
+	"google.golang.org/grpc"
+
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
-	queuelogic "github.com/brotherlogic/gramophile/queueLogic"
+	"github.com/brotherlogic/gramophile/queue/queuelogic"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
-
-	"google.golang.org/grpc"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )

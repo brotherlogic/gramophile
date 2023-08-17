@@ -50,6 +50,7 @@ func main() {
 		GetGetUser(), GetGetSate(), GetGetConfig(), GetClean(), GetGetIssue(), GetListen(),
 		GetWidth(),
 		GetOrganisation(),
+		GetGoalFolder(),
 		GetWeight()}
 
 	ctx, cancel, err := buildContext()
