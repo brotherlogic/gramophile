@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"strconv"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -33,7 +32,7 @@ func executeGoalFolder(ctx context.Context, args []string) error {
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			GoalFolder: os.Args[1],
+			GoalFolder: args[1],
 		},
 	})
 	return err

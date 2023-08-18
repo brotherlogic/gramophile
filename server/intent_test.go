@@ -1,13 +1,14 @@
 package server
 
 import (
-	"context"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
@@ -69,13 +70,15 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
-	_, err = s.SetIntent(context.Background(), &pb.SetIntentRequest{
-		Intent: &pb.Intent{GoalFolder: "12 Inches"},
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
+		InstanceId: 1234,
 	})
-	if err == nil {
-		t.Errorf("Intent did not fail with missing folder")
+	if err == nil || status.Code(err) == codes.NotFound {
+		t.Errorf("Intent did not fail with missing folder: %v", err)
 	}
-
 }
