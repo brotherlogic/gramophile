@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"time"
@@ -31,10 +32,15 @@ type Server struct {
 func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	d := db.NewDatabase(ctx)
 	di := discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK"))
+	qc, err := queue_client.GetClient()
+	if err != nil {
+		log.Fatalf("unable to reach queue: %v", err)
+	}
 
 	return &Server{
 		d:  d,
 		di: di,
+		qc: qc,
 	}
 }
 
