@@ -16,9 +16,8 @@ COPY server/*.go ./server/
 RUN mkdir db
 COPY db/*.go ./db/
 
-RUN mkdir queue
-RUN mkdir queue/queue_client
-COPY queue/queue_client/*.go ./queue/queue_client
+RUN mkdir queue_client
+COPY queue_client/*.go ./queue_client
 
 
 RUN mkdir background
