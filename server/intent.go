@@ -12,6 +12,23 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.Intent) error {
+	if i.GetGoalFolder() != "" {
+		found := false
+		for _, folder := range user.GetFolders() {
+			if folder.GetName() == i.GetGoalFolder() {
+				found = true
+			}
+		}
+
+		if !found {
+			return status.Errorf(codes.FailedPrecondition, "%v is not in the list of user folders", i.GetGoalFolder())
+		}
+	}
+
+	return nil
+}
+
 func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.SetIntentResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
@@ -35,6 +52,13 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	// Merge in the proto def
 	proto.Merge(exint, req.GetIntent())
+
+	// Validate that the intent is legit
+	err = s.validateIntent(ctx, user, exint)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Printf("Saving intent: %v -> %v", exint, user)
 
 	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
@@ -71,9 +70,11 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
-	_, err = s.SetIntent(context.Background(), &pb.SetIntentRequest{
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
 		InstanceId: 1234,
 	})
