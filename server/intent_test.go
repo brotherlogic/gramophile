@@ -8,6 +8,8 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
@@ -72,10 +74,10 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
 
 	_, err = s.SetIntent(context.Background(), &pb.SetIntentRequest{
-		Intent: &pb.Intent{GoalFolder: "12 Inches"},
+		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
+		InstanceId: 1234,
 	})
-	if err == nil {
-		t.Errorf("Intent did not fail with missing folder")
+	if err == nil || status.Code(err) == codes.NotFound {
+		t.Errorf("Intent did not fail with missing folder: %v", err)
 	}
-
 }
