@@ -166,6 +166,7 @@ message GetStateResponse {
     int64 last_config_update = 4;
     string config_hash = 5;
     int32 collection_misses = 6;
+    int32 folder_count = 7;
 }
 
 message SetConfigRequest {

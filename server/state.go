@@ -50,5 +50,6 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 		LastConfigUpdate:   key.GetLastConfigUpdate(),
 		ConfigHash:         config.Hash(key.GetConfig()),
 		CollectionMisses:   count,
+		FolderCount:        int32(len(key.GetFolders())),
 	}, nil
 }
