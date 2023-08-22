@@ -34,12 +34,11 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, u
 
 	proto.Merge(su, &pb.StoredUser{User: user})
 
-	folders, err := d.GetFolders(ctx)
+	folders, err := d.GetUserFolders(ctx)
 	if err != nil {
 		return err
 	}
 	su.Folders = folders
-
 	su.LastRefreshTime = time.Now().Unix()
 
 	return b.db.SaveUser(ctx, su)
