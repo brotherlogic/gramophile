@@ -36,7 +36,7 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, u
 	proto.Merge(su, &pb.StoredUser{User: user})
 
 	folders, err := d.GetUserFolders(ctx)
-	log.Printf("Got user folders %v and %v", folders, err)
+	log.Printf("got user folders %v and %v", folders, err)
 	if err != nil {
 		return err
 	}
