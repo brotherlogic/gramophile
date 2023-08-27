@@ -309,6 +309,10 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	return err
 }
 
+func resolveDiff(update *pb.RecordUpdate) string {
+	return ""
+}
+
 func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
 	update := &pb.RecordUpdate{
 		Date:   time.Now().Unix(),
