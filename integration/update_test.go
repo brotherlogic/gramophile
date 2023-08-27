@@ -56,11 +56,14 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	//Run the intent
 	qc.FlushQueue(ctx)
 
-	rec, err := d.GetRecord(ctx, 123, 1234)
+	resp, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		IncludeHistory: true,
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-
+	rec := resp.GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
@@ -74,6 +77,6 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates())
+		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates()[0].After)
 	}
 }
