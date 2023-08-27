@@ -1,15 +1,15 @@
 package integration
 
 import (
-	"testing"
 	"context"
 	"fmt"
+	"testing"
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
-	"google.golang.org/grpc/metadata"
 	"github.com/brotherlogic/gramophile/server"
+	"google.golang.org/grpc/metadata"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -19,9 +19,9 @@ import (
 )
 
 func getTestContext(userid int) context.Context {
-	return metadata.AppendToOutgoingContext(context.Background(), 
-	"auth-token",
-	fmt.Sprintf("%v", userid))
+	return metadata.AppendToOutgoingContext(context.Background(),
+		"auth-token",
+		fmt.Sprintf("%v", userid))
 }
 
 func TestUpdateSavedOnIntentUpdate(t *testing.T) {
@@ -68,7 +68,7 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	found12InchUpdate := false
 	for _, update := range rec.GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
-		update.GetBefore().GetGoalFolder() != "12 Inches"{
+			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
 		}
 	}
@@ -77,4 +77,3 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates())
 	}
 }
-
