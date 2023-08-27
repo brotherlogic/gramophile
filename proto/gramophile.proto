@@ -18,6 +18,8 @@ message RecordUpdate {
 
     Record before = 2;
     Record after = 3;
+
+    repeated string explanation = 4;
 }
 
 message Record {
