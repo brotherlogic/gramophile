@@ -309,8 +309,14 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	return err
 }
 
-func resolveDiff(update *pb.RecordUpdate) string {
-	return ""
+func resolveDiff(update *pb.RecordUpdate) []string {
+	var diff []string
+	if update.GetBefore().GetGoalFolder() != update.GetAfter().GetGoalFolder() {
+		if update.GetBefore().GetGoalFolder() == "" {
+			diff = append(diff, fmt.Sprintf("Goal Folder was set to %v", update.GetAfter().GetGoalFolder()))
+		}
+	}
+	return diff
 }
 
 func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {

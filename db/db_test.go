@@ -26,8 +26,15 @@ func TestUpdateDiff(t *testing.T) {
 
 	for _, tc := range tests {
 		rd := resolveDiff(tc.update)
-		if rd != tc.diffstr {
+		found := false
+		for _, rdd := range rd {
+			if rdd == tc.diffstr {
+				found = true
+			}
+		}
+		if !found {
 			t.Errorf("bad diff: expected %v, got %v", tc.diffstr, rd)
 		}
+
 	}
 }
