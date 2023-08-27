@@ -29,6 +29,14 @@ type Server struct {
 	qc queue_client.QueueClient
 }
 
+func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server{
+	return &Server{
+		d:  d,
+		di: di,
+		qc: qc,
+	}
+}
+
 func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	d := db.NewDatabase(ctx)
 	di := discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK"))

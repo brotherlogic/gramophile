@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -58,6 +59,7 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 			if err != nil {
 				return nil, err
 			}
+			log.Printf("GOT %v", up[0])
 			resp.Record.Updates = up
 		}
 

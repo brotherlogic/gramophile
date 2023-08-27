@@ -315,7 +315,7 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 		Before: old,
 		After:  new,
 	}
-	data, err := proto.Marshal(new)
+	data, err := proto.Marshal(update)
 	if err != nil {
 		return err
 	}
@@ -337,6 +337,7 @@ func (d *DB) DeleteRecord(ctx context.Context, userid int32, iid int64) error {
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
+	log.Printf("Getting record: %v/%v", userid, iid)
 	t := time.Now()
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
@@ -377,6 +378,7 @@ func (d *DB) GetUpdates(ctx context.Context, u *pb.StoredUser, r *pb.Record) ([]
 			if err != nil {
 				return nil, err
 			}
+			log.Printf("UM to: %v", update)
 			updates = append(updates, update)
 		}
 	}
