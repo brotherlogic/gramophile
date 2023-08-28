@@ -14,7 +14,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 
-	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
+	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
@@ -59,9 +59,11 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	// Run a sync pass
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Auth:  "123",
 			Entry: &pb.QueueElement_RefreshUpdates{},
 		},
 	})
+	qc.FlushQueue(ctx)
 
 	resp, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		IncludeHistory: true,
