@@ -161,6 +161,8 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		return v
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
+	case *pb.QueueElement_RefreshUpdates:
+		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshCollection:
 		if entry.GetRefreshCollection().GetPage() == 1 {
 			entry.GetRefreshCollection().RefreshId = time.Now().UnixNano()

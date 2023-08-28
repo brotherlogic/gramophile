@@ -52,7 +52,7 @@ type Database interface {
 	DeleteRecord(ctx context.Context, userid int32, iid int64) error
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
-	GetUpdates(ctx context.Context, user *pb.StoredUser, record *pb.Record) ([]*pb.RecordUpdate, error)
+	GetUpdates(ctx context.Context, userid int32, record *pb.Record) ([]*pb.RecordUpdate, error)
 	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 
 	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
@@ -369,8 +369,8 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 	return su, err
 }
 
-func (d *DB) GetUpdates(ctx context.Context, u *pb.StoredUser, r *pb.Record) ([]*pb.RecordUpdate, error) {
-	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/%v", u.GetUser().GetDiscogsUserId(), r.GetRelease().GetInstanceId())})
+func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.RecordUpdate, error) {
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/%v", userid, r.GetRelease().GetInstanceId())})
 	if err != nil {
 		return nil, err
 	}
