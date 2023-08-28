@@ -57,6 +57,11 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	qc.FlushQueue(ctx)
 
 	// Run a sync pass
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshUpdates{},
+		},
+	})
 
 	resp, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		IncludeHistory: true,
