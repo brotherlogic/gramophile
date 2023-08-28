@@ -25,7 +25,7 @@ func TestUpdateDiff(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		rd := resolveDiff(tc.update)
+		rd := ResolveDiff(tc.update)
 		found := false
 		for _, rdd := range rd {
 			if rdd == tc.diffstr {

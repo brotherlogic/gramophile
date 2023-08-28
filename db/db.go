@@ -53,6 +53,7 @@ type Database interface {
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 	GetUpdates(ctx context.Context, user *pb.StoredUser, record *pb.Record) ([]*pb.RecordUpdate, error)
+	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 
 	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
 	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error
@@ -309,7 +310,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	return err
 }
 
-func resolveDiff(update *pb.RecordUpdate) []string {
+func ResolveDiff(update *pb.RecordUpdate) []string {
 	var diff []string
 	if update.GetBefore().GetGoalFolder() != update.GetAfter().GetGoalFolder() {
 		if update.GetBefore().GetGoalFolder() == "" {
@@ -325,17 +326,19 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 		Before: old,
 		After:  new,
 	}
+	return d.SaveUpdate(ctx, userid, new, update)
+}
+
+func (d *DB) SaveUpdate(ctx context.Context, userid int32, r *pb.Record, update *pb.RecordUpdate) error {
 	data, err := proto.Marshal(update)
 	if err != nil {
 		return err
 	}
-
 	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/release/%v-%v.update", userid, new.GetRelease().GetInstanceId(), update.GetDate()),
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v-%v.update", userid, r.GetRelease().GetInstanceId(), update.GetDate()),
 		Value: &anypb.Any{Value: data},
 	})
 	return err
-
 }
 
 func (d *DB) DeleteRecord(ctx context.Context, userid int32, iid int64) error {
