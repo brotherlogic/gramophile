@@ -1,8 +1,10 @@
+<!-- Output copied to clipboard! -->
+
 <!-----
 
 Yay, no errors, warnings, or alerts!
 
-Conversion time: 0.641 seconds.
+Conversion time: 0.548 seconds.
 
 
 Using this Markdown file:
@@ -15,13 +17,13 @@ Using this Markdown file:
 Conversion notes:
 
 * Docs to Markdown version 1.0β34
-* Tue Aug 08 2023 17:02:05 GMT-0700 (PDT)
-* Source doc: Gramophile Proposal: Folder Movement
+* Mon Aug 28 2023 16:56:32 GMT-0700 (PDT)
+* Source doc: Gramophile Proposal: Sales Tracking / Adjusting
 ----->
 
 
 
-# Gramophile Proposal: Folder Movement
+# Gramophile Proposal: Sales
 
 <p style="text-align: right">
 Brotherlogic</p>
@@ -32,102 +34,100 @@ Brotherlogic</p>
 
 
 <p style="text-align: right">
-Draft</p>
+Commited</p>
 
 
 
 ### Abstract
 
-Enables gramophile to move records between folders under specified conditions.
+Enables gramophile to handle sales lifecycle
 
 
 ### Process
 
-Config should support conditional rules to move records between folders. Such conditional rules may be related to records being listened to and scored, or being of a certain age, or a certain time since the last listen event.
+
+
+1. Collection refresh also refreshes existing items For Sale
+2. For Sale items are linked to collection entries by release_id
+3. Sales are updated at a fixed frequency (measured in days)
+4. Sales update follow a strategy
+5. Initially one strategy: BOUNDED_LINEAR
+    1. BOUNDED_LINEAR tracks from the sale price linearly down to a defined minimum (e.g. Median Price / Lowest price or a multiplier therein)
+6. Updates are pushed through the queue
+7. Updates are recorded as collection updates
 
 
 ### Field Requirements
 
-We need to add two fields:
-
-
-
-* LastListen - string 
-    * date representation of the last time the record was listened to
-* Goal Folder
-    * string name of the folder that this record should be placed into eventually
-    * Folder set sync will be enqueued on this basis
+N/A
 
 
 ### Execution Location
 
-Rules will be evaluated within the collection sync loop post sync and any post intent run. The rule will evaluate the folder that the record should be placed into (default is no move if no rules apply), a folder move will enqueue an intent to move the record and any extra adjustments (e.g. nulling score, weight, width etc.).
+Sale refresh is handled in the collection sync loop, post sync we do any linking. Linking is random - as in if there are multiple collection entries that link to a sale item, one is chosen at random. Hard refreshing sales (as in removing the sale and re-adding it) may cause it to be linked to another release item in this case. Sale stats are also refreshed each sync looped and connected to the release.
 
-No effort will be made to ensure that users can’t create loops - however a record moving more than 100 times a day will be blocked and an issue raised on gram state
+Sale adjustment refresh happens in the sync loop - we look for sales that are in scope for a refresh and adjust sale price in that case. Sale price updates are linear adjustment (as in $$$ of local currency), down to a minimum value which could be (a) fixed (e.g. $5) or (b) set by the sale stats with a multiplier (e.g. twice the lowest value etc.)
+
+Sale data forms part of instance metadata - hence we save changes to that and add an adjustment explainer that turns a sale price change into “Adjusted sale price” type description. Though we do not store the sale price within the metadata block, since it’s unrelated to the actual instance of the record (and not permanent).
 
 
 ### Config requirements
 
-User:
+SaleConfig
 
-	Add issue proto to capture loop issue
 
-Move:
 
-	Conditional
+* SaleStrategy
+    * BoundedLinear
+        * ReductionFrequency
+        * ReductionAmount
+        * LowerBound
+            * Fixed
+            * Value
+                * GLOBAL_MEDIAN
+                * GLOBAL_MINIMUM
+                * GLOBAL_HIGH
+            * Multipler (defaults to 1)
 
-		Add in field values as necessary
-
-	Destination: String (where GOAL is used to move to the goal folder)
-
-	Adjust:
-
-		Null_score
-
-		Null_cleaned
-
-		Null_wdith
-
-		Null_weight
-
-ApplyMove -> for each rule, apply conditional - > if yes then create intent to change values and change folder
+Sale IDs are attached to release entries through the release ID. Process is to search through collection to find first instance of given ID and attach - attach is permanent until record is sold
 
 Discogs
 
 Needs to support:
 
-	Folder Moves
+	Sale Creation
 
-	Folder Creation
+	Sale Info
 
-	Folder Deletion
+	Order Statuses
 
 Config Validation
 
 
 
-* Creates and updates folders (folders with no records that do not appear in rules will be deleted)
-* Folders that do not appear in rules, but have records will be added as a user issue
+* None needed
 
-Count record moves as part of user config.
+Moves / Folders Added - only activated if folder movement is active
+
+
+
+* “For Sale” Folder
+* “Sold” Folder
+* Records with attached SaleIDs -> For Sale
+* Records with SoldPrice -> Sold
 
 
 ### Milestones:
 
 
 
-* Discogs support folder moves
-* Discogs support folder creation
-* Discogs support folder deletion
-* Gram config supports “listen”, optional score, with field checks
-* Gram config support goal folder, with field checks and recommendations
-    * I.e. goal folder is drop down, this should be synced on gram state
-* Gram config supports folder creation
-* RC sync of last listen time
-* RC sync of goal folders
-* Define move conditional proto (rule should support name and blocked)
-* Add method to apply move on condition
-* Rule runs post sync and post intent change, enqueues as necessary
-* Create change metadata (record record, rule applied, outcome)
-* Move recorded in change metadata
-* Validation step on excessive moves, blocks rule, pending update
+* Discogs supports Sale Creation
+* Discogs supports Sale Info
+* Discogs supports Inventory Listing
+* Discogs supports Order Statuses
+* Config setup and applied
+    * Config application creates moves and folders if necessary
+* Sale linking in sync loop
+    * Confirm sale linkage happens
+* Price adjustment in sync loop
+    * Validate on a given sale item
