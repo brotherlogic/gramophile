@@ -14,7 +14,7 @@ import (
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
-	"github.com/brotherlogic/gramophile/queue/queuelogic"
+	"github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	rstore_client "github.com/brotherlogic/rstore/client"

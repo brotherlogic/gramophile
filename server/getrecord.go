@@ -55,7 +55,7 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 
 	if req.IncludeHistory {
 		if resp.GetRecord() != nil {
-			up, err := s.d.GetUpdates(ctx, u, resp.GetRecord())
+			up, err := s.d.GetUpdates(ctx, u.GetUser().GetDiscogsUserId(), resp.GetRecord())
 			if err != nil {
 				return nil, err
 			}
@@ -64,7 +64,7 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 		}
 
 		for _, r := range resp.GetRecords() {
-			up, err := s.d.GetUpdates(ctx, u, r)
+			up, err := s.d.GetUpdates(ctx, u.GetUser().DiscogsUserId, r)
 			if err != nil {
 				return nil, err
 			}

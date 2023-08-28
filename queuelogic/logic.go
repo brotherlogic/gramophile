@@ -43,6 +43,7 @@ type queue struct {
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
+	log.Printf("GETTING QUEUE")
 	return &queue{
 		b: b, d: d, rstore: r, db: db,
 	}
@@ -161,6 +162,8 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		return v
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
+	case *pb.QueueElement_RefreshUpdates:
+		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshCollection:
 		if entry.GetRefreshCollection().GetPage() == 1 {
 			entry.GetRefreshCollection().RefreshId = time.Now().UnixNano()
@@ -197,7 +200,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		return nil
 	}
 
-	return status.Errorf(codes.NotFound, "Unable to handle %v", entry)
+	return status.Errorf(codes.NotFound, "Unable to this handle %v -> %v", entry, entry.Entry)
 }
 
 func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
