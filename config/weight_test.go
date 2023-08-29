@@ -20,7 +20,7 @@ func TestWeightFailedNoField(t *testing.T) {
 func TestWeightSuccess(t *testing.T) {
 	c := &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	err := ValidateConfig(context.Background(), []*pbd.Field{&pbd.Field{Name: "Weight", Id: 1}}, c)
+	err := ValidateConfig(context.Background(), []*pbd.Field{{Name: "Weight", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate weight raised an error: %v", err)
 	}

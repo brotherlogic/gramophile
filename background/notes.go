@@ -40,6 +40,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessSleeve(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user)
 }
 
@@ -204,6 +209,38 @@ func (b *BackgroundRunner) ProcessSetWeight(ctx context.Context, d discogs.Disco
 	}
 
 	r.Weight = i.GetWeight()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the listen time
+	if i.GetSleeve() == "" {
+		return nil
+	}
+
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.SLEEVE_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Sleeve field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, i.GetSleeve())
+	if err != nil {
+		return err
+	}
+
+	r.Sleeve = i.GetSleeve()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

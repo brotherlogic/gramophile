@@ -26,6 +26,19 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 		}
 	}
 
+	if i.GetSleeve() != "" {
+		found := false
+		for _, sleeve := range user.GetConfig().GetSleeveConfig().GetAllowedSleeves() {
+			if sleeve.GetName() == i.GetSleeve() {
+				found = true
+			}
+		}
+
+		if !found {
+			return status.Errorf(codes.FailedPrecondition, "%v is not in the list of allowed sleeves", i.GetSleeve())
+		}
+	}
+
 	return nil
 }
 

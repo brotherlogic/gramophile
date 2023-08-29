@@ -17,11 +17,20 @@ enum Mandate {
     REQUIRED = 2;
 }
 
-
 message Filter {
     repeated string formats = 1;
     repeated int32 exclude_folder = 2;
     repeated int32 include_folder = 3;
+}
+
+message Sleeve {
+    string name = 1;
+    float width_multiplier = 2;
+}
+
+message SleeveConfig {
+    Mandate mandate = 1;
+    repeated Sleeve allowed_sleeves = 2;
 }
 
 message CleaningConfig {
@@ -62,6 +71,7 @@ message GramophileConfig {
     OrganisationConfig organisation_config = 5;
     WeightConfig weight_config = 6;
     GoalFolderConfig goal_folder_config = 7;
+    SleeveConfig sleeve_config = 8;
 }
 
 message WeightConfig {

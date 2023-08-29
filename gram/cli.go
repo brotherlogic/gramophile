@@ -47,7 +47,10 @@ func main() {
 		fmt.Printf("\nComplete in %v\n", time.Since(t))
 	}()
 	modules := []*CLIModule{GetLogin(),
-		GetGetUser(), GetGetSate(), GetGetConfig(), GetClean(), GetGetIssue(), GetListen(),
+		GetGetUser(), GetGetSate(),
+		GetGetConfig(), GetClean(),
+		GetGetIssue(), GetListen(),
+		GetSleeve(),
 		GetWidth(),
 		GetOrganisation(),
 		GetGoalFolder(),
