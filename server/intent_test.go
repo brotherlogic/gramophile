@@ -32,6 +32,23 @@ func TestAddIntent_FailOnBadUser(t *testing.T) {
 		t.Errorf("should have failed: %v", r)
 	}
 }
+func TestAddIntent_FailOnBadRecord(t *testing.T) {
+	ctx := getTestContext(123)
+
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
+		InstanceId: 1234,
+	})
+	if err == nil {
+		t.Errorf("should have failed: %v", r)
+	}
+}
 
 func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	ctx := getTestContext(123)
