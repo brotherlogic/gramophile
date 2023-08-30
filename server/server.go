@@ -44,6 +44,14 @@ func NewServer(ctx context.Context, token, secret, callback string) *Server {
 	}
 }
 
+func BuildServer(d db.DB, di discogs.Discogs, qc queue_client.QueueClient) *Server {
+	return &Server{
+		d:  &d,
+		di: di,
+		qc: qc,
+	}
+}
+
 func GetContextKey(ctx context.Context) (string, error) {
 	md, found := metadata.FromIncomingContext(ctx)
 	if found {
