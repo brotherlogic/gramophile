@@ -46,6 +46,8 @@ message Record {
    string goal_folder = 12;
 
    string sleeve = 13;
+
+   int64 arrived = 14;
 }
 
 
@@ -57,6 +59,7 @@ message Intent {
     float weight = 4;
     string goal_folder = 5;
     string sleeve = 6;
+    int64 arrived = 7;
 }
 
 message Queues {

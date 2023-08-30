@@ -22,6 +22,7 @@ func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileCo
 		&cleaning{},
 		&listen{},
 		&width{},
+		&arrived{},
 		&weight{},
 		&goalFolder{},
 		&sleeve{}} {
