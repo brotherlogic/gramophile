@@ -16,6 +16,10 @@ var (
 
 type arrived struct{}
 
+func (*arrived) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
