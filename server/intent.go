@@ -26,6 +26,19 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 		}
 	}
 
+	if i.GetSleeve() != "" {
+		found := false
+		for _, sleeve := range user.GetConfig().GetSleeveConfig().GetAllowedSleeves() {
+			if sleeve.GetName() == i.GetSleeve() {
+				found = true
+			}
+		}
+
+		if !found {
+			return status.Errorf(codes.FailedPrecondition, "%v is not in the list of allowed sleeves", i.GetSleeve())
+		}
+	}
+
 	return nil
 }
 
@@ -38,7 +51,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	// Check that this record at least exists
 	_, err = s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
-		return nil, fmt.Errorf("error getting recor: %w", err)
+		return nil, fmt.Errorf("error getting record: %w", err)
 	}
 
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())

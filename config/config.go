@@ -18,7 +18,13 @@ type Validator interface {
 }
 
 func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	for _, validator := range []Validator{&cleaning{}, &listen{}, &width{}, &weight{}, &goalFolder{}} {
+	for _, validator := range []Validator{
+		&cleaning{},
+		&listen{},
+		&width{},
+		&weight{},
+		&goalFolder{},
+		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
 			return err
