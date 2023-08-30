@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
@@ -29,7 +31,7 @@ func TestAddIntent_FailOnBadUser(t *testing.T) {
 		InstanceId: 1234,
 	})
 	if err == nil {
-		t.Errorf("should have failed: %v", r)
+		t.Errorf("should have failed: %v (%v)", r, err)
 	}
 }
 func TestAddIntent_FailOnBadRecord(t *testing.T) {
@@ -38,6 +40,13 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
@@ -45,8 +54,8 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 		Intent:     &pb.Intent{GoalFolder: "12 Inches"},
 		InstanceId: 1234,
 	})
-	if err == nil {
-		t.Errorf("should have failed: %v", r)
+	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "record") {
+		t.Errorf("should have failed with bad record: %v (%v)", r, err)
 	}
 }
 
