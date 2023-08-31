@@ -271,6 +271,13 @@ message SetOrgSnapshotRequest {
 
 message SetOrgSnapshotResponse {}
 
+message AddWantlistRequest {
+    string name = 1;
+    WantlistType type = 2;
+}
+
+message AddWantlistResponse {}
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
@@ -286,6 +293,16 @@ service GramophileEService {
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
+
+    rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
+    rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
+}
+
+message GetWantlistRequest{
+    string name = 1;
+}
+message GetWantlistResponse {
+    Wantlist list = 1;
 }
 
 message GetUserRequest {}

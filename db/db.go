@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -71,6 +72,9 @@ type Database interface {
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
+	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
+	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
+
 	Clean(ctx context.Context) error
 }
 
@@ -84,6 +88,43 @@ func NewDatabase(ctx context.Context) Database {
 
 	log.Printf("Connected to DB")
 	return db
+}
+
+func (d *DB) save(ctx context.Context, key string, message protoreflect.ProtoMessage) error {
+	data, err := proto.Marshal(message)
+	if err != nil {
+		return err
+	}
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   key,
+		Value: &anypb.Any{Value: data},
+	})
+	return err
+}
+
+func (d *DB) load(ctx context.Context, key string) ([]byte, error) {
+	val, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: key,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return val.GetValue().GetValue(), nil
+}
+
+func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error {
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist.GetName()), wantlist)
+}
+
+func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist string) (*pb.Wantlist, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist))
+	if err != nil {
+		return nil, err
+	}
+
+	wl := &pb.Wantlist{}
+	err = proto.Unmarshal(data, wl)
+	return wl, err
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
