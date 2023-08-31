@@ -9,6 +9,26 @@ import "organisation.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum WantlistType {
+    EN_MASSE = 0;
+    ONE_BY_ONE = 1;
+    DATE_BOUNDED = 2;
+}
+
+message Wantlist {
+    string name = 1;
+    int64 start_date = 2;
+    int64 end_date = 3;
+    WantlistType type = 4;
+    repeated WantlistEntry entries = 5;
+}
+
+message WantlistEntry {
+    int64 id = 1;
+    string artist = 2;
+    string title = 3;
+}
+
 enum WantState {
     WANTED = 0;
     RETIRED = 1;
