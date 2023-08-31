@@ -9,6 +9,18 @@ import "organisation.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum WantState {
+    WANTED = 0;
+    RETIRED = 1;
+    PURCHASED = 2;
+}
+
+message Want {
+    int64 id = 1;
+    int64 want_added_date = 2;
+    WantState state = 3;
+}
+
 enum NoncomplianceIssue {
     NEEDS_CLEAN = 0;
 }
