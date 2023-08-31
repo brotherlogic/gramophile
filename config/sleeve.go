@@ -16,6 +16,10 @@ var (
 
 type sleeve struct{}
 
+func (*sleeve) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetSleeveConfig().GetMandate() != pb.Mandate_NONE {
 		found := false

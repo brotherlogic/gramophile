@@ -16,6 +16,10 @@ var (
 
 type listen struct{}
 
+func (*listen) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*listen) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetListenConfig().GetEnabled() {
 		found := false

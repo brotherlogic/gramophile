@@ -45,6 +45,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessArrived(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user)
 }
 
@@ -241,6 +246,39 @@ func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs,
 	}
 
 	r.Sleeve = i.GetSleeve()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the clean time
+	if i.GetArrived() == 0 {
+		return nil
+	}
+
+	log.Printf("Getting fields for %v: %v", config.ARRIVED_FIELD, d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.ARRIVED_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate arrived field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetArrived()))
+	if err != nil {
+		return err
+	}
+
+	r.Arrived = i.GetArrived()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

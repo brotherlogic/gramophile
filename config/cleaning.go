@@ -12,6 +12,10 @@ import (
 
 type cleaning struct{}
 
+func (*cleaning) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		found := false
