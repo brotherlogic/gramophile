@@ -14,7 +14,7 @@ func TestSleeveFailed_NoField(t *testing.T) {
 
 	err := ValidateConfig(context.Background(), []*pbd.Field{}, c)
 	if err == nil {
-		t.Errorf("Should have failed but did not")
+		t.Errorf("This should have failed but did not")
 	}
 }
 
@@ -23,7 +23,7 @@ func TestSleeveFailed_NoSleeves(t *testing.T) {
 
 	err := ValidateConfig(context.Background(), []*pbd.Field{{Name: "Sleeve", Id: 1}}, c)
 	if err == nil {
-		t.Errorf("Should have failed but did not")
+		t.Errorf("This should have failed but did not")
 	}
 }
 
