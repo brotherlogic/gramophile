@@ -16,6 +16,10 @@ var (
 
 type goalFolder struct{}
 
+func (*goalFolder) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetGoalFolderConfig().GetMandate() != pb.Mandate_NONE {
 		found := false

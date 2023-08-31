@@ -16,6 +16,10 @@ var (
 
 type weight struct{}
 
+func (*weight) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*weight) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetWeightConfig().GetMandate() != pb.Mandate_NONE {
 		found := false

@@ -1,4 +1,3 @@
-
 package config
 
 import (
@@ -26,4 +25,3 @@ func TestArrived_Success(t *testing.T) {
 		t.Errorf("validate arrived raised an error: %v", err)
 	}
 }
-

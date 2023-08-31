@@ -16,6 +16,10 @@ var (
 
 type width struct{}
 
+func (*width) GetMoves() []*pb.Move {
+	return []*pb.Move{}
+}
+
 func (*width) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
 	if c.GetWidthConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
