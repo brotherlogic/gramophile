@@ -187,6 +187,8 @@ type GramophileEServiceClient interface {
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
 	GetOrg(ctx context.Context, in *GetOrgRequest, opts ...grpc.CallOption) (*GetOrgResponse, error)
 	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
+	AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error)
+	GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -278,6 +280,24 @@ func (c *gramophileEServiceClient) SetOrgSnapshot(ctx context.Context, in *SetOr
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error) {
+	out := new(AddWantlistResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/AddWantlist", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gramophileEServiceClient) GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error) {
+	out := new(GetWantlistResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/GetWantlist", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility
@@ -291,6 +311,8 @@ type GramophileEServiceServer interface {
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
 	GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error)
 	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
+	AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error)
+	GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have forward compatible implementations.
@@ -323,6 +345,12 @@ func (UnimplementedGramophileEServiceServer) GetOrg(context.Context, *GetOrgRequ
 }
 func (UnimplementedGramophileEServiceServer) SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetOrgSnapshot not implemented")
+}
+func (UnimplementedGramophileEServiceServer) AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddWantlist not implemented")
+}
+func (UnimplementedGramophileEServiceServer) GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWantlist not implemented")
 }
 
 // UnsafeGramophileEServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -498,6 +526,42 @@ func _GramophileEService_SetOrgSnapshot_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_AddWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddWantlistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).AddWantlist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/AddWantlist",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).AddWantlist(ctx, req.(*AddWantlistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GramophileEService_GetWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWantlistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).GetWantlist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/GetWantlist",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).GetWantlist(ctx, req.(*GetWantlistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -540,6 +604,14 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetOrgSnapshot",
 			Handler:    _GramophileEService_SetOrgSnapshot_Handler,
+		},
+		{
+			MethodName: "AddWantlist",
+			Handler:    _GramophileEService_AddWantlist_Handler,
+		},
+		{
+			MethodName: "GetWantlist",
+			Handler:    _GramophileEService_GetWantlist_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
