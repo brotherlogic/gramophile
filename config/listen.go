@@ -21,7 +21,7 @@ func (*listen) GetMoves() []*pb.Move {
 }
 
 func (*listen) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetListenConfig().GetEnabled() {
+	if c.GetListenConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == LISTEN_FIELD {
