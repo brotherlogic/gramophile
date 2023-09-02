@@ -42,7 +42,7 @@ message CleaningConfig {
 }
 
 message ListenConfig {
-    bool enabled = 1;
+    Mandate mandate = 1;
     repeated ListenFilter filters = 2;
 }
 
