@@ -9,9 +9,6 @@ COPY go.sum ./
 
 COPY *.go ./
 
-RUN mkdir queuelogic
-COPY queuelogic/*.go ./queuelogic/
-
 RUN CGO_ENABLED=0 go build -o /gramophile-queue
 
 ##
