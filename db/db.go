@@ -467,14 +467,19 @@ func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Inte
 }
 
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
-	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix:      fmt.Sprintf("gramophile/user/%v/release/", userid),
+		AvoidSuffix: []string{"update"},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error getting keys: %w", err)
 	}
 
+	log.Printf("response: %v", resp)
+
 	var ret []int64
 	for _, key := range resp.GetKeys() {
-		if !strings.Contains(key, "intent") && !strings.Contains(key, "update") {
+		if !strings.Contains(key, "intent") {
 			pieces := strings.Split(key, "/")
 			val, _ := strconv.ParseInt(pieces[len(pieces)-1], 10, 64)
 			ret = append(ret, val)

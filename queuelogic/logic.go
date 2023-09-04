@@ -147,6 +147,7 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
+	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshIntents:
 		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
@@ -155,7 +156,7 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 		}
 		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to get intent: %w", err)
 		}
 		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
 		log.Printf("Processed intent (%v) -> %v", i, v)
@@ -185,17 +186,21 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *p
 					Auth: entry.GetAuth(),
 				}})
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to enqueue: %w", err)
 				}
 			}
 
 			// If we've got here, update the user
 			user, err := q.db.GetUser(ctx, entry.GetAuth())
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to get user: %w", err)
 			}
 			user.LastCollectionRefresh = time.Now().Unix()
-			return q.db.SaveUser(ctx, user)
+			err = q.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to sell user: %w", err)
+			}
+			return err
 		}
 		return nil
 	}
