@@ -469,7 +469,7 @@ func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Inte
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/user/%v/release/", userid)})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting keys: %w", err)
 	}
 
 	var ret []int64
