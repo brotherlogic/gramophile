@@ -30,6 +30,8 @@ github.com/brotherlogic/rstore v0.32.0 h1:MVBfhUlVh4zptaUhQInpadDIXO1WLUTUr7pJNy
 github.com/brotherlogic/rstore v0.32.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.33.0 h1:JLttJLPU+8YRpXn/IGpia1PQUlQaiwhcgNqNmhHCaok=
 github.com/brotherlogic/rstore v0.33.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
+github.com/brotherlogic/rstore v0.34.0 h1:0C7B41u05UYC8q8i8oNxcZTlUf37hKp+ZfN4I30DKx0=
+github.com/brotherlogic/rstore v0.34.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

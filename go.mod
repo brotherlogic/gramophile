@@ -6,7 +6,7 @@ require (
 	github.com/brotherlogic/discogs v0.0.0-20230901234559-64337a1330d8
 	github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6
 	github.com/brotherlogic/recordcollection v0.0.0-20230903213224-c7e606d22898
-	github.com/brotherlogic/rstore v0.33.0
+	github.com/brotherlogic/rstore v0.34.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/golang/protobuf v1.5.3
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
