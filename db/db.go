@@ -475,7 +475,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 		return nil, fmt.Errorf("error getting keys: %w", err)
 	}
 
-	log.Printf("RESPONSE: %v", resp)
+	log.Printf("response: %v", resp)
 
 	var ret []int64
 	for _, key := range resp.GetKeys() {
