@@ -465,7 +465,6 @@ func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.
 			if err != nil {
 				return nil, err
 			}
-			log.Printf("UM to: %v", update)
 			updates = append(updates, update)
 		}
 	}
