@@ -80,6 +80,16 @@ message Record {
    string sleeve = 13;
 
    int64 arrived = 14;
+
+   float mint_sale_suggestion = 15;
+
+   SaleInfo sale_info = 16;
+}
+
+message SaleInfo {
+    int64 sale_Id = 1;
+    int64 last_price_update = 2;
+    discogs.SaleStatus sale_state = 3;
 }
 
 

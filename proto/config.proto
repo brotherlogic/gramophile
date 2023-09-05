@@ -90,3 +90,8 @@ message GoalFolderConfig {
 message ArrivedConfig {
     Mandate mandate = 1;
 }
+
+// Setting this mandate will enable gramophile to support sale tracking / adjustment
+message SaleConfig {
+    Mandate mandate = 1;
+}
