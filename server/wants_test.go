@@ -32,7 +32,7 @@ func getTestServer(t *testing.T) (*Server, context.Context) {
 	return s, ctx
 }
 
-func TestAddWant(t *testing.T) {
+func TestAddWant_Success(t *testing.T) {
 	s, ctx := getTestServer(t)
 
 	_, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
@@ -48,4 +48,15 @@ func TestAddWant(t *testing.T) {
 	if len(val.GetWants()) != 1 || val.GetWants()[0].Id != 45 {
 		t.Errorf("Error in returned wants for set: %v", val)
 	}
+}
+
+func TestAddWant_Failure(t *testing.T) {
+	s, _ := getTestServer(t)
+	ctx := getTestContext(1234)
+
+	val, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
+	if err == nil {
+		t.Fatalf("Should have failed: %v", val)
+	}
+
 }
