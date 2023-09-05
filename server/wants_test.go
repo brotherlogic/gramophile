@@ -14,7 +14,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func getTestServer() (t *testing.T, *Server, context.Context) {
+func getTestServer(t *testing.T) (*Server, context.Context) {
 	ctx := getTestContext(123)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 	rstore := rstore_client.GetTestClient()
@@ -27,20 +27,20 @@ func getTestServer() (t *testing.T, *Server, context.Context) {
 		t.Fatalf("Cannot save user: %v", err)
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	s := Server{d: d, di: di, qc: qc}
+	s := &Server{d: d, di: di, qc: qc}
 
 	return s, ctx
 }
 
-func TestSaveAndLoadWantlist(t *testing.T) {
-	s, ctx := getTestServer()
-A
-	_, err = s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
+func TestAddWant(t *testing.T) {
+	s, ctx := getTestServer(t)
+
+	_, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
 	if err != nil {
 		t.Fatalf("Unable to add wantlist: %v", err)
 	}
 
-	val, err := s.GetWantss(ctx, &pb.GetWantsRequest{})
+	val, err := s.GetWants(ctx, &pb.GetWantsRequest{})
 	if err != nil {
 		t.Fatalf("Unable to get wantlsit: %v", err)
 	}

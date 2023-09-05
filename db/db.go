@@ -72,6 +72,8 @@ type Database interface {
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
+	GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error)
+	SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error
 	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
 
@@ -153,6 +155,37 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	}
 
 	return logins, nil
+}
+
+func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/user/%v/want/", user.GetUser().GetDiscogsUserId()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var wants []*pb.Want
+	for _, key := range keys.GetKeys() {
+		data, err := d.load(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		want := &pb.Want{}
+		err = proto.Unmarshal(data, want)
+		if err != nil {
+			return nil, err
+		}
+
+		wants = append(wants, want)
+	}
+
+	return wants, nil
+}
+
+func (d *DB) SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error {
+	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want.GetId()), want)
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
