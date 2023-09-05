@@ -294,9 +294,22 @@ service GramophileEService {
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
 
+    rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
+    rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
 }
+
+message GetWantsRequest{}
+message GetWantsResponse{
+    repeated Want wants = 1;
+}
+
+message AddWantRequest {
+    int64 want_id = 1;
+}
+
+message AddWantResponse {}
 
 message GetWantlistRequest{
     string name = 1;
