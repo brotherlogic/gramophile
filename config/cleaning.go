@@ -12,8 +12,8 @@ import (
 
 type cleaning struct{}
 
-func (*cleaning) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*cleaning) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

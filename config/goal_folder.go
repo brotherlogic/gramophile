@@ -16,8 +16,8 @@ var (
 
 type goalFolder struct{}
 
-func (*goalFolder) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*goalFolder) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

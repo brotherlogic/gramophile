@@ -16,8 +16,8 @@ var (
 
 type weight struct{}
 
-func (*weight) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*weight) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*weight) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
