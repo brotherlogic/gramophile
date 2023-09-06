@@ -22,3 +22,22 @@ func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*
 	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
 	return &pb.GetWantlistResponse{List: list}, err
 }
+
+func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistRequest) (*pb.UpdateWantlistResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
+	if err != nil {
+		return nil, err
+	}
+
+	list.Entries = append(list.Entries, &pb.WantlistEntry{
+		Id:    req.GetAddId(),
+		Index: int32(len(list.GetEntries())) + 1,
+	})
+
+	return &pb.UpdateWantlistResponse{}, s.d.SaveWantlist(ctx, user, list)
+}

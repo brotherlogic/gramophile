@@ -27,6 +27,7 @@ message WantlistEntry {
     int64 id = 1;
     string artist = 2;
     string title = 3;
+    int32 index = 4;
 }
 
 enum WantState {
@@ -306,9 +307,18 @@ service GramophileEService {
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
+
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
+    rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
 }
+
+message UpdateWantlistRequest {
+    string name = 1;
+    int64 add_id = 2;
+}
+
+message UpdateWantlistResponse {}
 
 message GetWantsRequest{}
 message GetWantsResponse{
