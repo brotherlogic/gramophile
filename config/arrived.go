@@ -16,8 +16,8 @@ var (
 
 type arrived struct{}
 
-func (*arrived) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*arrived) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
