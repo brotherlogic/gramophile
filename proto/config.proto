@@ -95,3 +95,7 @@ message ArrivedConfig {
 message SaleConfig {
     Mandate mandate = 1;
 }
+
+message KeepConfig {
+    Mandate mandate = 1;
+}
