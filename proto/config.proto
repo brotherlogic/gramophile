@@ -23,6 +23,16 @@ message Filter {
     repeated int32 include_folder = 3;
 }
 
+enum MoveSource {
+    USER_PROVIDED = 0;
+    GRAM_PROVIDED = 1;
+}
+
+message FolderMove {
+    string name = 1;
+
+}
+
 message Sleeve {
     string name = 1;
     float width_multiplier = 2;

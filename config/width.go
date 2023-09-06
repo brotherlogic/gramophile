@@ -16,8 +16,8 @@ var (
 
 type width struct{}
 
-func (*width) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*width) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*width) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

@@ -15,10 +15,12 @@ import (
 
 type Validator interface {
 	Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error
-	GetMoves() []*pb.Move
+	GetMoves() []*pb.FolderMove
 }
 
 func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
+	var moves []*pb.FolderMove
+
 	for _, validator := range []Validator{
 		&cleaning{},
 		&listen{},
@@ -30,6 +32,21 @@ func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileCo
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
 			return err
+		}
+
+		moves = append(moves, validator.GetMoves()...)
+	}
+
+	for _, move := range moves {
+		found := false
+		for _, exmove := range c.GetMoveConfig().GetMoves() {
+			if exmove.GetName() == move.GetName() {
+				found = true
+			}
+		}
+
+		if !found {
+			c.GetMoveConfig().Moves = append(c.GetMoveConfig().Moves, move)
 		}
 	}
 
