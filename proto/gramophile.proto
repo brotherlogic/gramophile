@@ -56,10 +56,11 @@ message RecordUpdate {
 }
 
 enum KeepStatus {
-    NO_KEEP = 0;
-    DIGITAL_KEEP = 1;
-    MINT_UP_KEEP = 2;
-    KEEP = 3;
+    KEEP_UNKNOWN = 0;
+    NO_KEEP = 1;
+    DIGITAL_KEEP = 2;
+    MINT_UP_KEEP = 3;
+    KEEP = 4;
 }
 
 message Record {
@@ -112,6 +113,7 @@ message Intent {
     string goal_folder = 5;
     string sleeve = 6;
     int64 arrived = 7;
+    KeepStatus keep = 8;
 }
 
 message Queues {
