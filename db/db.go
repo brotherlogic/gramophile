@@ -74,6 +74,8 @@ type Database interface {
 
 	GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error
+	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
+
 	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
 
@@ -88,7 +90,6 @@ func NewDatabase(ctx context.Context) Database {
 	}
 	db.client = client
 
-	log.Printf("Connected to DB")
 	return db
 }
 
@@ -101,6 +102,14 @@ func (d *DB) save(ctx context.Context, key string, message protoreflect.ProtoMes
 		Key:   key,
 		Value: &anypb.Any{Value: data},
 	})
+	return err
+}
+
+func (d *DB) delete(ctx context.Context, key string) error {
+	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
+		Key: key,
+	})
+
 	return err
 }
 
@@ -148,7 +157,6 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	}
 
 	logins := &pb.UserLoginAttempts{}
-	log.Printf("Unmarshal: %v -> %v", logins, val.GetValue().GetValue())
 	err = proto.Unmarshal(val.GetValue().GetValue(), logins)
 	if err != nil {
 		return nil, err
@@ -186,6 +194,10 @@ func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, err
 
 func (d *DB) SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error {
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want.GetId()), want)
+}
+
+func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
@@ -281,7 +293,6 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org str
 
 func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
-	log.Printf("GERENATING %v and %v", token, secret)
 	su := &pb.StoredUser{
 		Auth:       &pb.GramophileAuth{Token: user},
 		UserToken:  token,
@@ -424,7 +435,6 @@ func (d *DB) DeleteRecord(ctx context.Context, userid int32, iid int64) error {
 }
 
 func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error) {
-	log.Printf("Getting record: %v/%v", userid, iid)
 	t := time.Now()
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
@@ -448,8 +458,6 @@ func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("UPDATES: %v", resp)
 
 	var updates []*pb.RecordUpdate
 	for _, key := range resp.GetKeys() {
@@ -507,8 +515,6 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 		return nil, fmt.Errorf("error getting keys: %w", err)
 	}
 
-	log.Printf("response: %v", resp)
-
 	var ret []int64
 	for _, key := range resp.GetKeys() {
 		if !strings.Contains(key, "intent") {
@@ -529,8 +535,6 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	log.Printf("USER KEYS: %v", resp.GetKeys())
-
 	users.Set(float64(len(resp.GetKeys())))
 
 	// Trim out the prefix from the returned keys
@@ -538,8 +542,6 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	for _, key := range resp.GetKeys() {
 		rusers = append(rusers, key[len(USER_PREFIX):])
 	}
-
-	log.Printf("TO: %v", rusers)
 
 	return rusers, err
 }

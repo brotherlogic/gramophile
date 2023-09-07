@@ -25,3 +25,12 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	}
 	return &pb.AddWantResponse{}, s.d.SaveWant(ctx, user, &pb.Want{Id: req.GetWantId()})
 }
+
+func (s *Server) DeleteWant(ctx context.Context, req *pb.DeleteWantRequest) (*pb.DeleteWantResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.DeleteWantResponse{}, s.d.DeleteWant(ctx, user, req.GetWantId())
+}

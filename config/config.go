@@ -28,6 +28,8 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		&arrived{},
 		&weight{},
 		&goalFolder{},
+		&sales{},
+		&keep{},
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
@@ -42,12 +44,12 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		if !move.GetMoveToGoalFolder() {
 			folderFound := false
 			for _, folder := range user.GetFolders() {
-				if folder.GetName() == move.GetMoveToFolder() {
+				if folder.GetName() == move.GetMoveFolder() {
 					folderFound = true
 				}
 
 				if !folderFound {
-					folders = append(folders, &pbd.Folder{Name: move.GetMoveToFolder()})
+					folders = append(folders, &pbd.Folder{Name: move.GetMoveFolder()})
 				}
 			}
 		}

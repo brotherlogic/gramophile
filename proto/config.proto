@@ -5,6 +5,7 @@ package gramophile;
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 import "organisation.proto";
+import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
 enum Basis {
     DISCOGS = 0;
@@ -17,6 +18,18 @@ enum Mandate {
     REQUIRED = 2;
 }
 
+message MoveCriteria {
+    bool has_sale_id = 1;
+    discogs.SaleStatus sale_status = 2;
+}
+
+message FolderMove {
+    string name = 1;
+    MoveCriteria criteria = 2;
+    string move_folder = 3;
+    bool move_to_goal_folder = 4;
+}
+
 message Filter {
     repeated string formats = 1;
     repeated int32 exclude_folder = 2;
@@ -26,13 +39,6 @@ message Filter {
 enum MoveSource {
     USER_PROVIDED = 0;
     GRAM_PROVIDED = 1;
-}
-
-message FolderMove {
-    string name = 1;
-    
-    bool move_to_goal_folder = 2;
-    string move_to_folder = 3;
 }
 
 message Sleeve {
@@ -87,6 +93,8 @@ message GramophileConfig {
     GoalFolderConfig goal_folder_config = 7;
     SleeveConfig sleeve_config = 8;
     ArrivedConfig arrived_config = 9;
+    SaleConfig sale_config = 10;
+    KeepConfig keep_config = 11;
 }
 
 message WeightConfig {
@@ -113,5 +121,9 @@ message ArrivedConfig {
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
 message SaleConfig {
+    Mandate mandate = 1;
+}
+
+message KeepConfig {
     Mandate mandate = 1;
 }

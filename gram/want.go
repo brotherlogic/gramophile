@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -24,19 +25,37 @@ func executeWant(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	client := pb.NewGramophileEServiceClient(conn)
 
 	wid, err := strconv.ParseInt(args[1], 10, 64)
 	if err != nil {
 		return err
 	}
 
-	if args[0] != "add" {
-		return status.Errorf(codes.InvalidArgument, "You can only add wants currently")
+	// This is just a list
+	if len(args) == 0 {
+		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{})
+		if err != nil {
+			return fmt.Errorf("unable to get wants: %v", err)
+		}
+
+		for i, want := range wants.GetWants() {
+			fmt.Printf("%v. %v\n", i, want.GetId())
+		}
 	}
 
-	client := pb.NewGramophileEServiceClient(conn)
-	_, err = client.AddWant(ctx, &pb.AddWantRequest{
-		WantId: wid,
-	})
-	return err
+	switch args[0] {
+	case "add":
+		_, err = client.AddWant(ctx, &pb.AddWantRequest{
+			WantId: wid,
+		})
+		return err
+	case "delete":
+		_, err = client.DeleteWant(ctx, &pb.DeleteWantRequest{
+			WantId: wid,
+		})
+		return err
+	default:
+		return status.Errorf(codes.InvalidArgument, "%v is not a valid command for handling wants", args[0])
+	}
 }
