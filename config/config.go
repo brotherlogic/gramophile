@@ -27,6 +27,7 @@ func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileCo
 		&weight{},
 		&goalFolder{},
 		&sales{},
+		&keep{},
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {

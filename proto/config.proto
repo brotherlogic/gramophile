@@ -86,6 +86,7 @@ message GramophileConfig {
     SleeveConfig sleeve_config = 8;
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
+    KeepConfig keep_config = 11;
 }
 
 message WeightConfig {

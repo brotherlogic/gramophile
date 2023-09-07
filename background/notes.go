@@ -50,6 +50,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessKeep(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user)
 }
 
@@ -279,6 +284,39 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 	}
 
 	r.Arrived = i.GetArrived()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	// We don't zero out the clean time
+	if i.GetKeep() == pb.KeepStatus_KEEP_UNKNOWN {
+		return nil
+	}
+
+	log.Printf("Getting fields for %v: %v", config.KEEP_FIELD, d.GetUserId())
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.KEEP_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate keep field (from %+v), looking for %v", fields, config.KEEP_FIELD)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetKeep()))
+	if err != nil {
+		return err
+	}
+
+	r.KeepStatus = i.GetKeep()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
