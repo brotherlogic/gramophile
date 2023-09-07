@@ -86,4 +86,18 @@ func TestUpdateWantlist(t *testing.T) {
 		t.Errorf("Bad list returned: %v", val)
 	}
 
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{Name: "testing", DeleteId: 123})
+	if err != nil {
+		t.Fatalf("Error updating wantlist: %v", err)
+	}
+
+	val, err = s.GetWantlist(ctx, &pb.GetWantlistRequest{Name: "testing"})
+	if err != nil {
+		t.Fatalf("Error getting wantlist: %v", err)
+	}
+
+	if val.GetList().GetName() != "testing" || len(val.List.GetEntries()) != 0 {
+		t.Errorf("Bad list returned (expected no entries): %v", val)
+	}
+
 }

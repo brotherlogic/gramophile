@@ -34,10 +34,22 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		return nil, err
 	}
 
-	list.Entries = append(list.Entries, &pb.WantlistEntry{
-		Id:    req.GetAddId(),
-		Index: int32(len(list.GetEntries())) + 1,
-	})
+	if req.GetAddId() != 0 {
+		list.Entries = append(list.Entries, &pb.WantlistEntry{
+			Id:    req.GetAddId(),
+			Index: int32(len(list.GetEntries())) + 1,
+		})
+	}
+
+	if req.GetDeleteId() != 0 {
+		var entries []*pb.WantlistEntry
+		for _, entry := range list.Entries {
+			if entry.GetId() != req.GetDeleteId() {
+				entries = append(entries, entry)
+			}
+		}
+		list.Entries = entries
+	}
 
 	return &pb.UpdateWantlistResponse{}, s.d.SaveWantlist(ctx, user, list)
 }

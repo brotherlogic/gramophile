@@ -329,6 +329,7 @@ service GramophileEService {
 message UpdateWantlistRequest {
     string name = 1;
     int64 add_id = 2;
+    int64 delete_id = 3;
 }
 
 message UpdateWantlistResponse {}
