@@ -41,6 +41,7 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		})
 	}
 
+	// Runs delete
 	if req.GetDeleteId() != 0 {
 		var entries []*pb.WantlistEntry
 		for _, entry := range list.Entries {
