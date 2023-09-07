@@ -31,10 +31,27 @@ func TestSetGoalFolderCreatesFolder(t *testing.T) {
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_REQUIRED},
+			CleaningConfig: &pb.CleaningConfig{Cleaning: pb.Mandate_REQUIRED, Create: pb.CreateFolders_AUTOMATIC},
 		},
 	})
 
-	//Run the intent
+	//Run the queue
 	qc.FlushQueue(ctx)
+
+	// Get all the folders
+	folders, err := di.GetUserFolders(ctx)
+	if err != nil {
+		t.Fatalf("Unable to get user folders: %v", err)
+	}
+
+	found := false
+	for _, folder := range folders {
+		if folder.GetName() == "Cleaning Pile" {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Errorf("Folder was not added: %v", folders)
+	}
 }

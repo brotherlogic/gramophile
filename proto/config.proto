@@ -51,6 +51,8 @@ message CleaningConfig {
 
     int64 cleaning_gap_in_seconds = 3;
     int32 cleaning_gap_in_plays = 4;
+
+    CreateFolders create = 5;
 }
 
 message ListenConfig {
@@ -95,8 +97,14 @@ message WidthConfig {
     Mandate mandate = 1;
 }
 
+enum CreateFolders {
+    MANUAL = 0;
+    AUTOMATIC = 1;
+}
+
 message GoalFolderConfig {
     Mandate mandate = 1;
+    CreateFolders creation = 2;
 }
 
 message ArrivedConfig {

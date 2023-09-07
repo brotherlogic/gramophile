@@ -16,7 +16,7 @@ var (
 
 type goalFolder struct{}
 
-func (*goalFolder) GetMoves() []*pb.FolderMove {
+func (*goalFolder) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

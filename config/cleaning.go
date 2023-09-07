@@ -12,7 +12,15 @@ import (
 
 type cleaning struct{}
 
-func (*cleaning) GetMoves() []*pb.FolderMove {
+func (*cleaning) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
+	if c.GetCleaningConfig().GetCreate() == pb.CreateFolders_AUTOMATIC {
+		return []*pb.FolderMove{
+			{
+				Name:         "move_to_cleaning_pile",
+				MoveToFolder: "Cleaning Pile",
+			},
+		}
+	}
 	return []*pb.FolderMove{}
 }
 

@@ -15,7 +15,7 @@ import (
 
 type Validator interface {
 	Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error
-	GetMoves() []*pb.FolderMove
+	GetMoves(c *pb.GramophileConfig) []*pb.FolderMove
 }
 
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, error) {
@@ -34,7 +34,7 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 			return nil, err
 		}
 
-		moves = append(moves, validator.GetMoves()...)
+		moves = append(moves, validator.GetMoves(c)...)
 	}
 
 	var folders []*pbd.Folder
