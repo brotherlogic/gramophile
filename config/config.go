@@ -15,10 +15,12 @@ import (
 
 type Validator interface {
 	Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error
-	GetMoves() []*pb.FolderMove
+	GetMoves(c *pb.GramophileConfig) []*pb.FolderMove
 }
 
-func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
+func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, error) {
+	var moves []*pb.FolderMove
+
 	for _, validator := range []Validator{
 		&cleaning{},
 		&listen{},
@@ -31,11 +33,33 @@ func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileCo
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		moves = append(moves, validator.GetMoves(c)...)
+	}
+
+	var folders []*pbd.Folder
+	if c.GetCreate() == pb.CreateFolders_AUTOMATIC {
+		for _, move := range moves {
+			if !move.GetMoveToGoalFolder() {
+				folderFound := false
+				for _, folder := range user.GetFolders() {
+					if folder.GetName() == move.GetMoveFolder() {
+						folderFound = true
+					}
+
+					if !folderFound {
+						folders = append(folders, &pbd.Folder{Name: move.GetMoveFolder()})
+					}
+				}
+			}
 		}
 	}
 
-	return nil
+	log.Printf("Returning folders: %v", folders)
+
+	return folders, nil
 }
 
 func Hash(c *pb.GramophileConfig) string {

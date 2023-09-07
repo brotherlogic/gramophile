@@ -16,7 +16,7 @@ var (
 
 type weight struct{}
 
-func (*weight) GetMoves() []*pb.FolderMove {
+func (*weight) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

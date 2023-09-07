@@ -29,7 +29,7 @@ type Server struct {
 	qc queue_client.QueueClient
 }
 
-func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server{
+func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server {
 	return &Server{
 		d:  d,
 		di: di,

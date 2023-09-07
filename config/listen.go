@@ -16,7 +16,7 @@ var (
 
 type listen struct{}
 
-func (*listen) GetMoves() []*pb.FolderMove {
+func (*listen) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

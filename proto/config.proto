@@ -27,12 +27,18 @@ message FolderMove {
     string name = 1;
     MoveCriteria criteria = 2;
     string move_folder = 3;
+    bool move_to_goal_folder = 4;
 }
 
 message Filter {
     repeated string formats = 1;
     repeated int32 exclude_folder = 2;
     repeated int32 include_folder = 3;
+}
+
+enum MoveSource {
+    USER_PROVIDED = 0;
+    GRAM_PROVIDED = 1;
 }
 
 message Sleeve {
@@ -87,6 +93,8 @@ message GramophileConfig {
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
+
+    CreateFolders create = 12;
 }
 
 message WeightConfig {
@@ -97,8 +105,14 @@ message WidthConfig {
     Mandate mandate = 1;
 }
 
+enum CreateFolders {
+    MANUAL = 0;
+    AUTOMATIC = 1;
+}
+
 message GoalFolderConfig {
     Mandate mandate = 1;
+    CreateFolders creation = 2;
 }
 
 message ArrivedConfig {

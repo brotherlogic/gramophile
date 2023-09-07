@@ -16,7 +16,8 @@ func TestValidation(t *testing.T) {
 		},
 	}
 
-	if err := ValidateConfig(context.Background(), []*pbd.Field{}, config); err == nil {
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, config)
+	if err == nil {
 		t.Errorf("Config was validated: %v", config)
 	}
 }

@@ -26,9 +26,25 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	log.Printf("Got fields: %v", fields)
 
-	verr := config.ValidateConfig(ctx, fields, req.GetConfig())
+	folders, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
-		return nil, verr
+		return nil, fmt.Errorf("bad validate: %v", verr)
+	}
+
+	log.Printf("Got folders: %v", folders)
+
+	if len(folders) > 0 {
+		for _, folder := range folders {
+			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate:          time.Now().UnixNano(),
+					Auth:             u.GetAuth().GetToken(),
+					BackoffInSeconds: 60,
+					Entry: &pb.QueueElement_AddFolderUpdate{
+						AddFolderUpdate: &pb.AddFolderUpdate{FolderName: folder.GetName()},
+					},
+				}})
+		}
 	}
 
 	u.Config = req.GetConfig()

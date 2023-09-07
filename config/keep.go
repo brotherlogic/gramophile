@@ -16,7 +16,7 @@ var (
 
 type keep struct{}
 
-func (*keep) GetMoves() []*pb.FolderMove {
+func (*keep) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

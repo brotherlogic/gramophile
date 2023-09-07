@@ -16,7 +16,7 @@ var (
 
 type arrived struct{}
 
-func (*arrived) GetMoves() []*pb.FolderMove {
+func (*arrived) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

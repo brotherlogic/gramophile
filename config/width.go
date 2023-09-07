@@ -16,7 +16,7 @@ var (
 
 type width struct{}
 
-func (*width) GetMoves() []*pb.FolderMove {
+func (*width) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 
