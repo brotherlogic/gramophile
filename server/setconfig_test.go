@@ -50,5 +50,53 @@ func TestConfigUpdate_UpdatesTime(t *testing.T) {
 	if c1.GetLastConfigUpdate() == c2.GetLastConfigUpdate() {
 		t.Errorf("Collection sync time was not updated: %v (%v)", c2.GetLastConfigUpdate(), time.Unix(c2.GetLastConfigUpdate(), 0))
 	}
+}
 
+func TestConfigUpdate_FailsOnMissingField(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: qc}
+
+	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE, GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_REQUIRED}}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err == nil {
+		t.Errorf("Set config should have failed on missing field")
+	}
+}
+
+func TestConfigUpdate_FailsOnBadUser(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Name: "Goal Folder", Id: 12}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("can't init save user: %v", err)
+	}
+	s := Server{d: d, di: di, qc: qc}
+
+	ctx = getTestContext(1234)
+
+	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE, GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_REQUIRED}}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err == nil {
+		t.Errorf("Set config should have failed on missing field")
+	}
 }

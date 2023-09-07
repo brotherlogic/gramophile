@@ -11,7 +11,7 @@ import (
 func TestKeep_Failed(t *testing.T) {
 	c := &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	err := ValidateConfig(context.Background(), []*pbd.Field{}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("Should have failed")
 	}
@@ -20,7 +20,7 @@ func TestKeep_Failed(t *testing.T) {
 func TestKeep_Success(t *testing.T) {
 	c := &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	err := ValidateConfig(context.Background(), []*pbd.Field{&pbd.Field{Name: "Keep", Id: 1}}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{&pbd.Field{Name: "Keep", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("Should not have failed: %v", err)
 	}

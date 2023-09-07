@@ -16,17 +16,20 @@ var (
 
 type sales struct{}
 
-func (*sales) GetMoves() []*pb.FolderMove {
-	return []*pb.FolderMove{
-		{
-			Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_FOR_SALE},
-			MoveFolder: "For Sale",
-		},
-		{
-			Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_SOLD},
-			MoveFolder: "Sold",
-		},
+func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
+	if c.GetSaleConfig().GetMandate() != pb.Mandate_NONE {
+		return []*pb.FolderMove{
+			{
+				Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_FOR_SALE},
+				MoveFolder: "For Sale",
+			},
+			{
+				Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_SOLD},
+				MoveFolder: "Sold",
+			},
+		}
 	}
+	return []*pb.FolderMove{}
 }
 
 func (*sales) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

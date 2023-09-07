@@ -16,7 +16,7 @@ var (
 
 type sleeve struct{}
 
-func (*sleeve) GetMoves() []*pb.FolderMove {
+func (*sleeve) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 

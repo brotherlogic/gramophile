@@ -61,7 +61,7 @@ func (q *queue) FlushQueue(ctx context.Context) {
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
 		d := q.d.ForUser(user.GetUser())
-		errp := q.ExecuteInternal(ctx, d, elem)
+		errp := q.ExecuteInternal(ctx, d, user, elem)
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
@@ -90,7 +90,7 @@ func (q *queue) Run() {
 				user.User.UserToken = user.UserToken
 				d := q.d.ForUser(user.GetUser())
 				log.Printf("GOT USER: %+v and %+v", user, d)
-				err = q.ExecuteInternal(ctx, d, entry)
+				err = q.ExecuteInternal(ctx, d, user, entry)
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
@@ -143,12 +143,18 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		return nil, err
 	}
 	d := q.d.ForUser(user.GetUser())
-	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, req.GetElement())
+	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, user, req.GetElement())
 }
 
-func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement) error {
+func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_AddFolderUpdate:
+		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
+		if err != nil {
+			return fmt.Errorf("unable to create folder: %w", err)
+		}
+		return nil
 	case *pb.QueueElement_RefreshIntents:
 		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 		if err != nil {
