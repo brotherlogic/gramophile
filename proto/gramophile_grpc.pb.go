@@ -189,6 +189,7 @@ type GramophileEServiceClient interface {
 	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
 	AddWant(ctx context.Context, in *AddWantRequest, opts ...grpc.CallOption) (*AddWantResponse, error)
 	GetWants(ctx context.Context, in *GetWantsRequest, opts ...grpc.CallOption) (*GetWantsResponse, error)
+	DeleteWant(ctx context.Context, in *DeleteWantRequest, opts ...grpc.CallOption) (*DeleteWantResponse, error)
 	AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error)
 	GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error)
 	UpdateWantlist(ctx context.Context, in *UpdateWantlistRequest, opts ...grpc.CallOption) (*UpdateWantlistResponse, error)
@@ -301,6 +302,15 @@ func (c *gramophileEServiceClient) GetWants(ctx context.Context, in *GetWantsReq
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) DeleteWant(ctx context.Context, in *DeleteWantRequest, opts ...grpc.CallOption) (*DeleteWantResponse, error) {
+	out := new(DeleteWantResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/DeleteWant", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gramophileEServiceClient) AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error) {
 	out := new(AddWantlistResponse)
 	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/AddWantlist", in, out, opts...)
@@ -343,6 +353,7 @@ type GramophileEServiceServer interface {
 	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
 	AddWant(context.Context, *AddWantRequest) (*AddWantResponse, error)
 	GetWants(context.Context, *GetWantsRequest) (*GetWantsResponse, error)
+	DeleteWant(context.Context, *DeleteWantRequest) (*DeleteWantResponse, error)
 	AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error)
 	GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error)
 	UpdateWantlist(context.Context, *UpdateWantlistRequest) (*UpdateWantlistResponse, error)
@@ -384,6 +395,9 @@ func (UnimplementedGramophileEServiceServer) AddWant(context.Context, *AddWantRe
 }
 func (UnimplementedGramophileEServiceServer) GetWants(context.Context, *GetWantsRequest) (*GetWantsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWants not implemented")
+}
+func (UnimplementedGramophileEServiceServer) DeleteWant(context.Context, *DeleteWantRequest) (*DeleteWantResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteWant not implemented")
 }
 func (UnimplementedGramophileEServiceServer) AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddWantlist not implemented")
@@ -604,6 +618,24 @@ func _GramophileEService_GetWants_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_DeleteWant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteWantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).DeleteWant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/DeleteWant",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).DeleteWant(ctx, req.(*DeleteWantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GramophileEService_AddWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddWantlistRequest)
 	if err := dec(in); err != nil {
@@ -708,6 +740,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWants",
 			Handler:    _GramophileEService_GetWants_Handler,
+		},
+		{
+			MethodName: "DeleteWant",
+			Handler:    _GramophileEService_DeleteWant_Handler,
 		},
 		{
 			MethodName: "AddWantlist",

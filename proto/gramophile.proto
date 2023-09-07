@@ -298,6 +298,7 @@ message AddWantlistRequest {
 
 message AddWantlistResponse {}
 
+
 // Externally accessible service
 service GramophileEService {
     rpc GetURL(GetURLRequest) returns (GetURLResponse) {};
@@ -316,6 +317,7 @@ service GramophileEService {
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
+    rpc DeleteWant(DeleteWantRequest) returns (DeleteWantResponse) {};
 
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
@@ -333,6 +335,12 @@ message GetWantsRequest{}
 message GetWantsResponse{
     repeated Want wants = 1;
 }
+
+message DeleteWantRequest {
+    int64 want_id = 1;
+}
+
+message DeleteWantResponse {}
 
 message AddWantRequest {
     int64 want_id = 1;

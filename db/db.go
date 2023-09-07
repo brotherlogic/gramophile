@@ -74,6 +74,8 @@ type Database interface {
 
 	GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error
+	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
+
 	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
 
@@ -101,6 +103,14 @@ func (d *DB) save(ctx context.Context, key string, message protoreflect.ProtoMes
 		Key:   key,
 		Value: &anypb.Any{Value: data},
 	})
+	return err
+}
+
+func (d *DB) delete(ctx context.Context, key string) error {
+	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
+		Key: key,
+	})
+
 	return err
 }
 
@@ -186,6 +196,10 @@ func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, err
 
 func (d *DB) SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error {
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want.GetId()), want)
+}
+
+func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {

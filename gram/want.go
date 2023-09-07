@@ -30,13 +30,20 @@ func executeWant(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if args[0] != "add" {
-		return status.Errorf(codes.InvalidArgument, "You can only add wants currently")
+	switch args[0] {
+	case "add":
+		client := pb.NewGramophileEServiceClient(conn)
+		_, err = client.AddWant(ctx, &pb.AddWantRequest{
+			WantId: wid,
+		})
+		return err
+	case "delete":
+		client := pb.NewGramophileEServiceClient(conn)
+		_, err = client.DeleteWant(ctx, &pb.DeleteWantRequest{
+			WantId: wid,
+		})
+		return err
+	default:
+		return status.Errorf(codes.InvalidArgument, "%v is not a valid command for handling wants", args[0])
 	}
-
-	client := pb.NewGramophileEServiceClient(conn)
-	_, err = client.AddWant(ctx, &pb.AddWantRequest{
-		WantId: wid,
-	})
-	return err
 }
