@@ -45,9 +45,21 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	err = b.ProcessArrived(ctx, d, r, i, user)
-	if err != nil {
-		return err
+	type setter struct {
+		field  string
+		value  string
+		setter func()
+	}
+	sets := []setter{{
+		field:  config.ARRIVED_FIELD,
+		value:  fmt.Sprintf("%v", i.GetArrived()),
+		setter: func() { r.Arrived = i.GetArrived() },
+	}}
+	for _, set := range sets {
+		err = b.processSimple(ctx, set.field, d, r, user, set.value, set.setter)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = b.ProcessKeep(ctx, d, r, i, user)
@@ -255,7 +267,35 @@ func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs,
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
+func (b *BackgroundRunner) processSimple(ctx context.Context, fieldName string, d discogs.Discogs, r *pb.Record, user *pb.StoredUser, fieldValue string, apply func()) error {
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return err
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == fieldName {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate arrived field (from %+v)", fields)
+	}
+
+	err = d.SetField(ctx, r.GetRelease(), cfield, fieldValue)
+	if err != nil {
+		return err
+	}
+
+	apply()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
 func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+
 	// We don't zero out the clean time
 	if i.GetArrived() == 0 {
 		return nil
