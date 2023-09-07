@@ -40,20 +40,24 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 	}
 
 	var folders []*pbd.Folder
-	for _, move := range moves {
-		if !move.GetMoveToGoalFolder() {
-			folderFound := false
-			for _, folder := range user.GetFolders() {
-				if folder.GetName() == move.GetMoveFolder() {
-					folderFound = true
-				}
+	if c.GetCreate() == pb.CreateFolders_AUTOMATIC {
+		for _, move := range moves {
+			if !move.GetMoveToGoalFolder() {
+				folderFound := false
+				for _, folder := range user.GetFolders() {
+					if folder.GetName() == move.GetMoveFolder() {
+						folderFound = true
+					}
 
-				if !folderFound {
-					folders = append(folders, &pbd.Folder{Name: move.GetMoveFolder()})
+					if !folderFound {
+						folders = append(folders, &pbd.Folder{Name: move.GetMoveFolder()})
+					}
 				}
 			}
 		}
 	}
+
+	log.Printf("Returning folders: %v", folders)
 
 	return folders, nil
 }

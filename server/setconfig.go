@@ -28,8 +28,10 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	folders, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
-		return nil, verr
+		return nil, fmt.Errorf("bad validate: %v", verr)
 	}
+
+	log.Printf("Got folders: %v", folders)
 
 	if len(folders) > 0 {
 		for _, folder := range folders {

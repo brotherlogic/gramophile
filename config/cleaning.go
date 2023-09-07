@@ -13,7 +13,7 @@ import (
 type cleaning struct{}
 
 func (*cleaning) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	if c.GetCleaningConfig().GetCreate() == pb.CreateFolders_AUTOMATIC {
+	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		return []*pb.FolderMove{
 			{
 				Name:       "move_to_cleaning_pile",

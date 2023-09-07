@@ -57,8 +57,6 @@ message CleaningConfig {
 
     int64 cleaning_gap_in_seconds = 3;
     int32 cleaning_gap_in_plays = 4;
-
-    CreateFolders create = 5;
 }
 
 message ListenConfig {
@@ -95,6 +93,8 @@ message GramophileConfig {
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
+
+    CreateFolders create = 12;
 }
 
 message WeightConfig {

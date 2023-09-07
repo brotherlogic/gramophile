@@ -25,20 +25,23 @@ func TestSetGoalFolderCreatesFolder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			CleaningConfig: &pb.CleaningConfig{Cleaning: pb.Mandate_REQUIRED, Create: pb.CreateFolders_AUTOMATIC},
+			CleaningConfig: &pb.CleaningConfig{Cleaning: pb.Mandate_REQUIRED}, Create: pb.CreateFolders_AUTOMATIC,
 		},
 	})
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
 
 	//Run the queue
 	qc.FlushQueue(ctx)
 
-	// Get all the folders
+	// Reload the user
 	folders, err := di.GetUserFolders(ctx)
 	if err != nil {
 		t.Fatalf("Unable to get user folders: %v", err)
