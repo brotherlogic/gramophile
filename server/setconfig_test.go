@@ -64,7 +64,7 @@ func TestConfigUpdate_FailsOnMissingField(t *testing.T) {
 		User:    &pbd.User{DiscogsUserId: 123},
 		Auth:    &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
+		t.Fatalf("can't init save user: %v", err)
 	}
 
 	s := Server{d: d, di: di, qc: qc}
