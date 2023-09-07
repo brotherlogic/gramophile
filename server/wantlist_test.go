@@ -60,7 +60,7 @@ func TestUpdateWantlist(t *testing.T) {
 
 	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing"})
 	if err != nil {
-		t.Fatalf("Unable to add wantlist: %v", err)
+		t.Fatalf("unable to add wantlist: %v", err)
 	}
 
 	val, err := s.GetWantlist(ctx, &pb.GetWantlistRequest{Name: "testing"})
