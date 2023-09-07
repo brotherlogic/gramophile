@@ -16,8 +16,8 @@ var (
 
 type sleeve struct{}
 
-func (*sleeve) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*sleeve) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

@@ -55,6 +55,13 @@ message RecordUpdate {
     repeated string explanation = 4;
 }
 
+enum KeepStatus {
+    NO_KEEP = 0;
+    DIGITAL_KEEP = 1;
+    MINT_UP_KEEP = 2;
+    KEEP = 3;
+}
+
 message Record {
    discogs.Release release = 1;
 
@@ -85,6 +92,8 @@ message Record {
    float mint_sale_suggestion = 15;
 
    SaleInfo sale_info = 16;
+
+   KeepStatus keep_status = 17;
 }
 
 message SaleInfo {

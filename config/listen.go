@@ -16,8 +16,8 @@ var (
 
 type listen struct{}
 
-func (*listen) GetMoves() []*pb.Move {
-	return []*pb.Move{}
+func (*listen) GetMoves() []*pb.FolderMove {
+	return []*pb.FolderMove{}
 }
 
 func (*listen) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
