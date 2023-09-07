@@ -125,9 +125,14 @@ message QueueElement {
         RefreshCollectionEntry refresh_collection = 5;
         RefreshIntents refresh_intents = 6;
         RefreshUpdates refresh_updates = 8;
+        AddFolderUpdate add_folder_update = 9;
     }
 
     int64 refresh_id = 7;
+}
+
+message AddFolderUpdate {
+    string folder_name = 1;
 }
 
 message RefreshUpdates {

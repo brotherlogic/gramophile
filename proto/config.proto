@@ -30,7 +30,9 @@ enum MoveSource {
 
 message FolderMove {
     string name = 1;
-
+    
+    bool move_to_goal_folder = 2;
+    string move_to_folder = 3;
 }
 
 message Sleeve {

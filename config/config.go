@@ -18,7 +18,7 @@ type Validator interface {
 	GetMoves() []*pb.FolderMove
 }
 
-func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
+func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, error) {
 	var moves []*pb.FolderMove
 
 	for _, validator := range []Validator{
@@ -31,26 +31,29 @@ func ValidateConfig(ctx context.Context, fields []*pbd.Field, c *pb.GramophileCo
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		moves = append(moves, validator.GetMoves()...)
 	}
 
+	var folders []*pbd.Folder
 	for _, move := range moves {
-		found := false
-		for _, exmove := range c.GetMoveConfig().GetMoves() {
-			if exmove.GetName() == move.GetName() {
-				found = true
-			}
-		}
+		if !move.GetMoveToGoalFolder() {
+			folderFound := false
+			for _, folder := range user.GetFolders() {
+				if folder.GetName() == move.GetMoveToFolder() {
+					folderFound = true
+				}
 
-		if !found {
-			c.GetMoveConfig().Moves = append(c.GetMoveConfig().Moves, move)
+				if !folderFound {
+					folders = append(folders, &pbd.Folder{Name: move.GetMoveToFolder()})
+				}
+			}
 		}
 	}
 
-	return nil
+	return folders, nil
 }
 
 func Hash(c *pb.GramophileConfig) string {

@@ -26,9 +26,17 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	log.Printf("Got fields: %v", fields)
 
-	verr := config.ValidateConfig(ctx, fields, req.GetConfig())
+	folders, verr := config.ValidateConfig(ctx, fields, req.GetConfig())
 	if verr != nil {
 		return nil, verr
+	}
+
+	if len(folders) > 0 {
+		for _, folder := range folders {
+			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+				
+			})
+		}
 	}
 
 	u.Config = req.GetConfig()
