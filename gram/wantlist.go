@@ -7,9 +7,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 )
 
 func GetWantlist() *CLIModule {
@@ -26,29 +24,45 @@ func executeWantlist(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if args[0] != "add" {
-		return status.Errorf(codes.InvalidArgument, "Currently only support adding wantslist")
-	}
-
 	client := pb.NewGramophileEServiceClient(conn)
-	_, err = client.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: args[1],
-	})
-	if err != nil {
-		return err
-	}
 
-	for _, id := range args[2:] {
-		wid, err := strconv.ParseInt(id, 10, 64)
+	if args[0] == "add" {
+
+		_, err = client.AddWantlist(ctx, &pb.AddWantlistRequest{
+			Name: args[1],
+		})
 		if err != nil {
 			return err
 		}
 
-		_, err = client.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-			AddId: wid,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to update wantlist: %w", err)
+		for _, id := range args[2:] {
+			wid, err := strconv.ParseInt(id, 10, 64)
+			if err != nil {
+				return err
+			}
+
+			_, err = client.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+				Name:  args[1],
+				AddId: wid,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to update wantlist: %w", err)
+			}
+		}
+	} else if args[0] == "delete" {
+		for _, id := range args[2:] {
+			wid, err := strconv.ParseInt(id, 10, 64)
+			if err != nil {
+				return err
+			}
+
+			_, err = client.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+				Name:     args[1],
+				DeleteId: wid,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to delete want: %w", err)
+			}
 		}
 	}
 
