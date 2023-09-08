@@ -40,7 +40,7 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 	}
 
 	var folders []*pbd.Folder
-	if c.GetCreate() == pb.CreateFolders_AUTOMATIC {
+	if c.GetCreateFolders() == pb.Create_AUTOMATIC {
 		for _, move := range moves {
 			if !move.GetMoveToGoalFolder() {
 				folderFound := false

@@ -94,7 +94,8 @@ message GramophileConfig {
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
 
-    CreateFolders create = 12;
+    Create create_folders = 12;
+    Create create_moves = 13;
 }
 
 message WeightConfig {
@@ -105,14 +106,13 @@ message WidthConfig {
     Mandate mandate = 1;
 }
 
-enum CreateFolders {
+enum Create {
     MANUAL = 0;
     AUTOMATIC = 1;
 }
 
 message GoalFolderConfig {
     Mandate mandate = 1;
-    CreateFolders creation = 2;
 }
 
 message ArrivedConfig {
