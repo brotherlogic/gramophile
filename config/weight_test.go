@@ -11,7 +11,7 @@ import (
 func TestWeightFailedNoField(t *testing.T) {
 	c := &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("Should have failed but did not")
 	}
@@ -20,7 +20,7 @@ func TestWeightFailedNoField(t *testing.T) {
 func TestWeightSuccess(t *testing.T) {
 	c := &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Weight", Id: 1}}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Weight", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate weight raised an error: %v", err)
 	}

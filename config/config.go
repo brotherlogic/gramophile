@@ -18,7 +18,7 @@ type Validator interface {
 	GetMoves(c *pb.GramophileConfig) []*pb.FolderMove
 }
 
-func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, error) {
+func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, []*pb.FolderMove, error) {
 	var moves []*pb.FolderMove
 
 	for _, validator := range []Validator{
@@ -33,14 +33,14 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		moves = append(moves, validator.GetMoves(c)...)
 	}
 
 	var folders []*pbd.Folder
-	if c.GetCreate() == pb.CreateFolders_AUTOMATIC {
+	if c.GetCreateFolders() == pb.Create_AUTOMATIC {
 		for _, move := range moves {
 			if !move.GetMoveToGoalFolder() {
 				folderFound := false
@@ -57,9 +57,26 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		}
 	}
 
+	var rmoves []*pb.FolderMove
+	if c.GetCreateMoves() == pb.Create_AUTOMATIC {
+		for _, move := range moves {
+			moveFound := false
+			for _, umove := range user.GetMoves() {
+				if move.GetName() == umove.GetName() {
+					moveFound = true
+				}
+			}
+
+			if !moveFound {
+				move.Origin = pb.Create_AUTOMATIC
+				rmoves = append(moves, move)
+			}
+		}
+	}
+
 	log.Printf("Returning folders: %v", folders)
 
-	return folders, nil
+	return folders, rmoves, nil
 }
 
 func Hash(c *pb.GramophileConfig) string {

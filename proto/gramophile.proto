@@ -199,6 +199,7 @@ message StoredUser {
     GramophileConfig config = 8;    
 
     repeated discogs.Folder folders = 9;
+    repeated FolderMove moves = 10;
 }
 
 message GramophileAuth {
