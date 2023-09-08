@@ -11,7 +11,7 @@ import (
 func TestArrived_FailedNoField(t *testing.T) {
 	c := &pb.GramophileConfig{ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("Should have failed but did not (%v)", c)
 	}
@@ -20,7 +20,7 @@ func TestArrived_FailedNoField(t *testing.T) {
 func TestArrived_Success(t *testing.T) {
 	c := &pb.GramophileConfig{ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate arrived raised an error: %v", err)
 	}

@@ -11,7 +11,7 @@ import (
 func TestSales_FailedNoField(t *testing.T) {
 	c := &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("This should have failed but did not")
 	}
@@ -20,7 +20,7 @@ func TestSales_FailedNoField(t *testing.T) {
 func TestSales_Success(t *testing.T) {
 	c := &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate sale config raised an error: %v", err)
 	}
@@ -29,8 +29,7 @@ func TestSales_Success(t *testing.T) {
 func TestSales_AddsMoves(t *testing.T) {
 	c := &pb.GramophileConfig{
 		SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}
-
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
+	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate sale config raised an error: %v", err)
 	}

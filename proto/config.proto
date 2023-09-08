@@ -28,6 +28,7 @@ message FolderMove {
     MoveCriteria criteria = 2;
     string move_folder = 3;
     bool move_to_goal_folder = 4;
+    Create origin = 5;
 }
 
 message Filter {
