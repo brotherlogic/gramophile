@@ -98,10 +98,11 @@ message Record {
 }
 
 message SaleInfo {
-    int64 sale_Id = 1;
+    int64 sale_id = 1;
     int64 last_price_update = 2;
     discogs.SaleStatus sale_state = 3;
     int64 refresh_id = 4;
+    int64 release_id = 5;
 }
 
 

@@ -153,14 +153,14 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
 		}
-		pages, err := q.b.SyncSales(ctx, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
+		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
 
 		if err != nil {
 			return err
 		}
 
 		if entry.GetRefreshSales().GetPage() == 1 {
-			for i := int32(2); i <= pages; i++ {
+			for i := int32(2); i <= pages.GetPages(); i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					RunDate: time.Now().Unix() + int64(i),
 					Entry: &pb.QueueElement_RefreshSales{
