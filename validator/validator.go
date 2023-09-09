@@ -76,6 +76,23 @@ func validateUsers(ctx context.Context) error {
 					return err
 				}
 			}
+
+			log.Printf("Sales: %v", time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
+			if time.Since(time.Unix(user.GetLastSaleRefresh(), 0)) > time.Hour*8 {
+				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:          time.Now().UnixNano(),
+						Auth:             user.GetAuth().GetToken(),
+						BackoffInSeconds: 15,
+						Entry: &pb.QueueElement_RefreshSales{
+							RefreshSales: &pb.RefreshSales{Page: 1},
+						},
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
