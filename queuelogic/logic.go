@@ -149,6 +149,44 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_RefreshSales:
+		if entry.GetRefreshSales().GetPage() == 1 {
+			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+		}
+		pages, err := q.b.SyncSales(ctx, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
+
+		if err != nil {
+			return err
+		}
+
+		if entry.GetRefreshSales().GetPage() == 1 {
+			for i := int32(2); i <= pages; i++ {
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					RunDate: time.Now().Unix() + int64(i),
+					Entry: &pb.QueueElement_RefreshSales{
+						RefreshSales: &pb.RefreshSales{
+							Page: i, RefreshId: entry.GetRefreshCollection().GetRefreshId()}},
+					Auth: entry.GetAuth(),
+				}})
+				if err != nil {
+					return fmt.Errorf("unable to enqueue: %w", err)
+				}
+			}
+
+			// If we've got here, update the user
+			user, err := q.db.GetUser(ctx, entry.GetAuth())
+			if err != nil {
+				return fmt.Errorf("unable to get user: %w", err)
+			}
+			user.LastSaleRefresh = time.Now().Unix()
+			err = q.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to sell user: %w", err)
+			}
+			return err
+		}
+		return nil
+
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {
