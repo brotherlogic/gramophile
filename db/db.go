@@ -79,6 +79,10 @@ type Database interface {
 	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
 
+	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
+	GetSales(ctx context.Context, userId int32) ([]int64, error)
+	GetSale(ctx context.Context, userId int32, saleId int64) (*pb.SaleInfo, error)
+
 	Clean(ctx context.Context) error
 }
 
@@ -136,6 +140,10 @@ func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist str
 	wl := &pb.Wantlist{}
 	err = proto.Unmarshal(data, wl)
 	return wl, err
+}
+
+func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) error {
+	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, sale.GetSaleId()), sale)
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
@@ -525,6 +533,36 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	}
 
 	return ret, nil
+}
+
+func (d *DB) GetSales(ctx context.Context, userid int32) ([]int64, error) {
+	log.Printf("LOADING %v", fmt.Sprintf("gramophile/user/%v/sale/", userid))
+	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/user/%v/sale/", userid),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting keys: %w", err)
+	}
+
+	var ret []int64
+	for _, key := range resp.GetKeys() {
+		pieces := strings.Split(key, "/")
+		val, _ := strconv.ParseInt(pieces[len(pieces)-1], 10, 64)
+		ret = append(ret, val)
+	}
+
+	return ret, nil
+}
+
+func (d *DB) GetSale(ctx context.Context, userid int32, saleid int64) (*pb.SaleInfo, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, saleid))
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &pb.SaleInfo{}
+	err = proto.Unmarshal(data, ret)
+	return ret, err
 }
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {

@@ -98,9 +98,11 @@ message Record {
 }
 
 message SaleInfo {
-    int64 sale_Id = 1;
+    int64 sale_id = 1;
     int64 last_price_update = 2;
     discogs.SaleStatus sale_state = 3;
+    int64 refresh_id = 4;
+    int64 release_id = 5;
 }
 
 
@@ -138,9 +140,20 @@ message QueueElement {
         RefreshIntents refresh_intents = 6;
         RefreshUpdates refresh_updates = 8;
         AddFolderUpdate add_folder_update = 9;
+        RefreshSales refresh_sales = 10;
+        LinkSales link_sales = 11;
     }
 
     int64 refresh_id = 7;
+}
+
+message LinkSales {
+    int64 refresh_id = 1;
+}
+
+message RefreshSales {
+    int32 page = 1;
+    int64 refresh_id = 2;
 }
 
 message AddFolderUpdate {
@@ -195,6 +208,7 @@ message StoredUser {
     int64 last_refresh_time = 5;
     int64 last_collection_refresh = 6;
     int64 last_config_update = 7;
+    int64 last_sale_refresh = 11;
 
     GramophileConfig config = 8;    
 

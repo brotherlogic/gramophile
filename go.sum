@@ -16,6 +16,10 @@ github.com/brotherlogic/discogs v0.0.0-20230907043447-e029a6b07ab4 h1:caxhJUrQ8I
 github.com/brotherlogic/discogs v0.0.0-20230907043447-e029a6b07ab4/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/discogs v0.0.0-20230907231234-feea97de33e0 h1:J0MXjpy29JRLayHK0hnsf/BDdMshss1fdvS4wfcAOVI=
 github.com/brotherlogic/discogs v0.0.0-20230907231234-feea97de33e0/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230908170305-3d1e56567b1e h1:lZ3vT4xNj2ASOwEi76f0zFOavTNXuB6v3h9at64wBFI=
+github.com/brotherlogic/discogs v0.0.0-20230908170305-3d1e56567b1e/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230909154530-22fefee35a60 h1:j/WDoFFshuhoKaejYKDs9kE4aJ9rKIahWBlLeAb11SU=
+github.com/brotherlogic/discogs v0.0.0-20230909154530-22fefee35a60/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRxtqdAiZglw4tO/6E2ck5O9+sm2iesWgf0XcI=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6 h1:WjYkNhmb4RTQMzaKXufLkBwFbRmkB0DDHF8dP2zdeC8=
@@ -36,6 +40,8 @@ github.com/brotherlogic/recordcollection v0.0.0-20230907032644-857481a60207 h1:K
 github.com/brotherlogic/recordcollection v0.0.0-20230907032644-857481a60207/go.mod h1:50hN+UPHSnvS85mhjZ++098yWTo57X3mLvzE7FXWEZM=
 github.com/brotherlogic/recordcollection v0.0.0-20230908002425-890a0d6687eb h1:iGki3UspQ4g3thJpl8BY2Xs3lOK1YyBfSU02pfzJmxA=
 github.com/brotherlogic/recordcollection v0.0.0-20230908002425-890a0d6687eb/go.mod h1:QIqPttzqVcV+SEgV65eb7o+vajguIz9JMGqrdxBw2f4=
+github.com/brotherlogic/recordcollection v0.0.0-20230908034749-a0d1c455c835 h1:fi3x3PmjZIm4KJuA5uLvfim0zZgvMfcDeEeByCV58nY=
+github.com/brotherlogic/recordcollection v0.0.0-20230908034749-a0d1c455c835/go.mod h1:QIqPttzqVcV+SEgV65eb7o+vajguIz9JMGqrdxBw2f4=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=
 github.com/brotherlogic/rstore v0.31.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.32.0 h1:MVBfhUlVh4zptaUhQInpadDIXO1WLUTUr7pJNywktSY=
