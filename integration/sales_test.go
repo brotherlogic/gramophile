@@ -18,7 +18,7 @@ func TestSyncSales_Success(t *testing.T) {
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestSyncSales_Success(t *testing.T) {
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
-		Sales:  []*pbd.SaleItem{{ReleaseId: 123}}}
+		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 

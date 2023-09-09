@@ -149,6 +149,12 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_LinkSales:
+		err := q.b.LinkSales(ctx, u)
+		if err != nil {
+			return fmt.Errorf("unable to link sales: %w", err)
+		}
+		return nil
 	case *pb.QueueElement_RefreshSales:
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
@@ -171,6 +177,17 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				if err != nil {
 					return fmt.Errorf("unable to enqueue: %w", err)
 				}
+			}
+
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				RunDate: time.Now().Unix() + int64(pages.GetPages()) + 10,
+				Entry: &pb.QueueElement_LinkSales{
+					LinkSales: &pb.LinkSales{
+						RefreshId: entry.GetRefreshCollection().GetRefreshId()}},
+				Auth: entry.GetAuth(),
+			}})
+			if err != nil {
+				return fmt.Errorf("unable to enqueue link job: %v", err)
 			}
 
 			// If we've got here, update the user

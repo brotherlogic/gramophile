@@ -143,7 +143,7 @@ func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist str
 }
 
 func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) error {
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/sale/%v", userid, sale.GetSaleId()), sale)
+	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, sale.GetSaleId()), sale)
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
@@ -536,6 +536,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 }
 
 func (d *DB) GetSales(ctx context.Context, userid int32) ([]int64, error) {
+	log.Printf("LOADING %v", fmt.Sprintf("gramophile/user/%v/sale/", userid))
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
 		Prefix: fmt.Sprintf("gramophile/user/%v/sale/", userid),
 	})

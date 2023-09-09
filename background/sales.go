@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -17,6 +18,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		return nil, fmt.Errorf("unable to list sales: %w", err)
 	}
 
+	log.Printf("found %v sales", len(sales))
 	for _, sale := range sales {
 		b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 			SaleId:          sale.GetSaleId(),
@@ -46,6 +48,9 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 	}
 
 	sids, err := b.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return fmt.Errorf("unable to read sales: %w", err)
+	}
 	var sales []*pb.SaleInfo
 	for _, s := range sids {
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), s)
@@ -60,11 +65,14 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
+	log.Printf("Hard Link with %v records and %v sales", (records), (sales))
+
 	for _, sale := range sales {
 		for _, record := range records {
 			changed := false
 			if record.GetRelease().GetId() == sale.GetReleaseId() {
-				if record.GetSaleInfo() == nil || record.GetSaleInfo().GetSaleId() != sale.GetSaleId() {
+				log.Printf("%v or %v", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId())
+				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
 					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
 						record.GetSaleInfo().SaleState = sale.GetSaleState()
 						changed = true
@@ -76,6 +84,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 			}
 
 			if changed {
+				log.Printf("Saving on change: %v", record)
 				b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
 			}
 		}
