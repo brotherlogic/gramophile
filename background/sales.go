@@ -60,5 +60,26 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
+	for _, sale := range sales {
+		for _, record := range records {
+			changed := false
+			if record.GetRelease().GetId() == sale.GetReleaseId() {
+				if record.GetSaleInfo() == nil || record.GetSaleInfo().GetSaleId() != sale.GetSaleId() {
+					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
+						record.GetSaleInfo().SaleState = sale.GetSaleState()
+						changed = true
+					}
+				} else {
+					record.SaleInfo = sale
+					changed = true
+				}
+			}
+
+			if changed {
+				b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+			}
+		}
+	}
+
 	return nil
 }
