@@ -576,6 +576,13 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	return ret, nil
 }
 
+func (d *DB) LoadAllRecords(ct context.Context, userid int32) ([]*pb.Record, error) {
+	iids, err := d.GetRecords(ctx, userid)
+	if err != nil {
+		fmt.Errorf("unable to get records: %w", err)
+	}
+}
+
 func (d *DB) GetSales(ctx context.Context, userid int32) ([]int64, error) {
 	log.Printf("LOADING %v", fmt.Sprintf("gramophile/user/%v/sale/", userid))
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{

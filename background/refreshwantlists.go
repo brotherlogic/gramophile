@@ -8,7 +8,7 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs) error {
-	lists, err := b.db.GetWantlists(ctx, di.GetDiscogsUser().GetUserId())
+	lists, err := b.db.GetWantlists(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get wantlists: %w", err)
 	}
@@ -22,7 +22,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist) error {
-	records, err := b.db.LoadAllRecords(ctx, di.GetDiscogsUser().GetUserId())
+	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to load all records: %w", err)
 	}
