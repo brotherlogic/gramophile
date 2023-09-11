@@ -92,7 +92,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 
 	wants, err = s.GetWants(ctx, &pb.GetWantsRequest{})
 	if err != nil {
-		t.Fatalf("Unable to get wants: %v", err)
+		t.Fatalf("Unable to get all the wants: %v", err)
 	}
 
 	// We should have wanted the new record
