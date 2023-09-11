@@ -78,6 +78,7 @@ type Database interface {
 
 	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
+	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
 	GetSales(ctx context.Context, userId int32) ([]int64, error)
@@ -125,6 +126,46 @@ func (d *DB) load(ctx context.Context, key string) ([]byte, error) {
 		return nil, err
 	}
 	return val.GetValue().GetValue(), nil
+}
+
+func (d *DB) resolve(ctx context.Context, req *rspb.GetKeysRequest) ([][]byte, error) {
+	keys, err := d.client.GetKeys(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var data [][]byte
+	for _, key := range keys.GetKeys() {
+		val, err := d.client.Read(ctx, &rspb.ReadRequest{
+			Key: key,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to read %v -> %w", key, err)
+		}
+		data = append(data, val.GetValue().GetValue())
+	}
+
+	return data, nil
+}
+
+func (d *DB) GetWantlists(ctx context.Context, userid int32) ([]*pb.Wantlist, error) {
+	datas, err := d.resolve(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/wantlist/", userid)})
+	if err != nil {
+		return nil, err
+	}
+
+	var lists []*pb.Wantlist
+	for _, data := range datas {
+		list := &pb.Wantlist{}
+		err := proto.Unmarshal(data, list)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshal %w", err)
+		}
+
+		lists = append(lists, list)
+	}
+
+	return lists, nil
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error {
