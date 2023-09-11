@@ -6,12 +6,16 @@ github.com/brotherlogic/discogs v0.0.0-20230901234559-64337a1330d8 h1:pii6rmh/e5
 github.com/brotherlogic/discogs v0.0.0-20230901234559-64337a1330d8/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/discogs v0.0.0-20230907231234-feea97de33e0 h1:J0MXjpy29JRLayHK0hnsf/BDdMshss1fdvS4wfcAOVI=
 github.com/brotherlogic/discogs v0.0.0-20230907231234-feea97de33e0/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230911182931-da855fac2cf0 h1:S1HFj3AsxqhhvFqGDlYDnoaGizlkYGLVFsJjZG3c2yc=
+github.com/brotherlogic/discogs v0.0.0-20230911182931-da855fac2cf0/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/gramophile v0.267.0 h1:FAMczQs1LsEBTAWfOIky3fPx+NJReKdkYxMoiERt6kg=
 github.com/brotherlogic/gramophile v0.267.0/go.mod h1:oG7xxtGQxk3Hs/Gb2NV6nvLiTRCwTdV976d5N8c9Hn0=
 github.com/brotherlogic/gramophile v0.285.0 h1:WMUVcmhgOXt9Bojz0lVWH59BmeTkUnCtvU9mH0p1JLs=
 github.com/brotherlogic/gramophile v0.285.0/go.mod h1:xhcEH159fJB0yOl0fq+x6QhrstR+Hpa7veuWTLXb9pE=
 github.com/brotherlogic/gramophile v0.297.0 h1:zOzHWwaFEyLjL9SsOAK0XqRekvlm7nijNQgDBLlKzIk=
 github.com/brotherlogic/gramophile v0.297.0/go.mod h1:jas2j/LWA19weYbToiz9zjofoywvvTRdHJrVq4PpXDU=
+github.com/brotherlogic/gramophile v0.304.0 h1:1FoVv1negQR68HkqQpI/+Uke4DP3h3lmNEptcO0qK7o=
+github.com/brotherlogic/gramophile v0.304.0/go.mod h1:zqfVKRlEjVxHyTob2gn9VP6rqCHJQBuGizTCRwRh5AQ=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=
 github.com/brotherlogic/rstore v0.31.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.34.0 h1:0C7B41u05UYC8q8i8oNxcZTlUf37hKp+ZfN4I30DKx0=
@@ -57,6 +61,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20230814215434-ca7cfce7776a h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230814215434-ca7cfce7776a/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d h1:uvYuEyMHKNt+lT4K3bN6fGswmK8qSvcreM3BwjDh+y4=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20230911183012-2d3300fd4832 h1:o4LtQxebKIJ4vkzyhtD2rfUNZ20Zf0ik5YVP5E7G7VE=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20230911183012-2d3300fd4832/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
 google.golang.org/grpc v1.57.0 h1:kfzNeI/klCGD2YPMUlaGNT3pxvYfga7smW3Vth8Zsiw=
 google.golang.org/grpc v1.57.0/go.mod h1:Sd+9RMTACXwmub0zcNY2c4arhtrbBYD1AUHI/dt16Mo=
 google.golang.org/grpc v1.58.0 h1:32JY8YpPMSR45K+c3o6b8VL73V+rR8k+DeMIr4vRH8o=
