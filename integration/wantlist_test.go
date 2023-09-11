@@ -57,19 +57,28 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Unable to add to wantlist: %v", err)
 	}
 
+	qc.FlushQueue(ctx)
+
 	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
 	if err != nil {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
 	if len(wants.GetWants()) != 1 || wants.GetWants()[0].Id != 123 {
-		t.Fatalf("Bad wantlist returned: %v", wants)
+		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
+
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshWantlists{RefreshWants: &pb.RefreshWants{}},
+		},
+	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -85,7 +94,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 	}
 
 	if len(wants.GetWants()) != 1 || wants.GetWants()[0].Id != 124 {
-		t.Fatalf("Bad wantlist returned: %v", wants)
+		t.Fatalf("Bad wants returned (expected to see new wants): %v", wants)
 	}
 
 }

@@ -32,10 +32,10 @@ message WantlistEntry {
 }
 
 enum WantState {
-    WANTED = 0;
+    PENDING = 0;
     RETIRED = 1;
     PURCHASED = 2;
-    PENDING = 3;
+    WANTED = 3;
 }
 
 message Want {

@@ -170,6 +170,7 @@ func (d *DB) GetWantlists(ctx context.Context, userid int32) ([]*pb.Wantlist, er
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
+	log.Printf("Saving wantlist: %v", wantlist)
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
@@ -243,6 +244,7 @@ func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, err
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
+	log.Printf("SAVING: %v", want)
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
