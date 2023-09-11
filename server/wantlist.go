@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -11,7 +12,7 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	return nil, s.d.SaveWantlist(ctx, user, &pb.Wantlist{Name: req.GetName()})
+	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), &pb.Wantlist{Name: req.GetName(), Type: req.GetType()})
 }
 
 func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*pb.GetWantlistResponse, error) {
@@ -52,5 +53,21 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		list.Entries = entries
 	}
 
-	return &pb.UpdateWantlistResponse{}, s.d.SaveWantlist(ctx, user, list)
+	err = s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:          time.Now().UnixNano(),
+			Auth:             user.GetAuth().GetToken(),
+			BackoffInSeconds: 60,
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			},
+		},
+	})
+
+	return &pb.UpdateWantlistResponse{}, err
 }

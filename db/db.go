@@ -52,6 +52,7 @@ type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
 	DeleteRecord(ctx context.Context, userid int32, iid int64) error
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
+	LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
 	GetUpdates(ctx context.Context, userid int32, record *pb.Record) ([]*pb.RecordUpdate, error)
 	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
@@ -72,12 +73,13 @@ type Database interface {
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
-	GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error)
-	SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error
+	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
+	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
 	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
 
-	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
+	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
+	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
 	GetSales(ctx context.Context, userId int32) ([]int64, error)
@@ -127,8 +129,49 @@ func (d *DB) load(ctx context.Context, key string) ([]byte, error) {
 	return val.GetValue().GetValue(), nil
 }
 
-func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error {
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist.GetName()), wantlist)
+func (d *DB) resolve(ctx context.Context, req *rspb.GetKeysRequest) ([][]byte, error) {
+	keys, err := d.client.GetKeys(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var data [][]byte
+	for _, key := range keys.GetKeys() {
+		val, err := d.client.Read(ctx, &rspb.ReadRequest{
+			Key: key,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to read %v -> %w", key, err)
+		}
+		data = append(data, val.GetValue().GetValue())
+	}
+
+	return data, nil
+}
+
+func (d *DB) GetWantlists(ctx context.Context, userid int32) ([]*pb.Wantlist, error) {
+	datas, err := d.resolve(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/wantlist/", userid)})
+	if err != nil {
+		return nil, err
+	}
+
+	var lists []*pb.Wantlist
+	for _, data := range datas {
+		list := &pb.Wantlist{}
+		err := proto.Unmarshal(data, list)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshal %w", err)
+		}
+
+		lists = append(lists, list)
+	}
+
+	return lists, nil
+}
+
+func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
+	log.Printf("Saving wantlist: %v", wantlist)
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
 func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist string) (*pb.Wantlist, error) {
@@ -173,9 +216,9 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	return logins, nil
 }
 
-func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error) {
+func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/user/%v/want/", user.GetUser().GetDiscogsUserId()),
+		Prefix: fmt.Sprintf("gramophile/user/%v/want/", userid),
 	})
 	if err != nil {
 		return nil, err
@@ -200,8 +243,9 @@ func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, err
 	return wants, nil
 }
 
-func (d *DB) SaveWant(ctx context.Context, user *pb.StoredUser, want *pb.Want) error {
-	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want.GetId()), want)
+func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
+	log.Printf("SAVING: %v", want)
+	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
 func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
@@ -533,6 +577,25 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	}
 
 	return ret, nil
+}
+
+func (d *DB) LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, error) {
+	iids, err := d.GetRecords(ctx, userid)
+	if err != nil {
+		fmt.Errorf("unable to get records: %w", err)
+	}
+
+	var records []*pb.Record
+	for _, iid := range iids {
+		rec, err := d.GetRecord(ctx, userid, iid)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read (%v) -> %w", iid, err)
+		}
+
+		records = append(records, rec)
+	}
+
+	return records, nil
 }
 
 func (d *DB) GetSales(ctx context.Context, userid int32) ([]int64, error) {

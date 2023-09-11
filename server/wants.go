@@ -11,7 +11,7 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 	if err != nil {
 		return nil, err
 	}
-	wants, err := s.d.GetWants(ctx, user)
+	wants, err := s.d.GetWants(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	if err != nil {
 		return nil, err
 	}
-	return &pb.AddWantResponse{}, s.d.SaveWant(ctx, user, &pb.Want{Id: req.GetWantId()})
+	return &pb.AddWantResponse{}, s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), &pb.Want{Id: req.GetWantId()})
 }
 
 func (s *Server) DeleteWant(ctx context.Context, req *pb.DeleteWantRequest) (*pb.DeleteWantResponse, error) {

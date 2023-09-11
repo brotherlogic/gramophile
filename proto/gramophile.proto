@@ -28,12 +28,14 @@ message WantlistEntry {
     string artist = 2;
     string title = 3;
     int32 index = 4;
+    WantState state = 5;
 }
 
 enum WantState {
-    WANTED = 0;
+    PENDING = 0;
     RETIRED = 1;
     PURCHASED = 2;
+    WANTED = 3;
 }
 
 message Want {
@@ -143,9 +145,22 @@ message QueueElement {
         AddFolderUpdate add_folder_update = 9;
         RefreshSales refresh_sales = 10;
         LinkSales link_sales = 11;
+        RefreshWantlists refresh_wantlists = 12;
+        AddWant add_want = 13;
+        RefreshWants refresh_wants = 14;
     }
 
     int64 refresh_id = 7;
+}
+
+message RefreshWants {}
+
+message AddWant {
+    int64 id = 1;
+}
+
+message RefreshWantlists {
+
 }
 
 message LinkSales {
