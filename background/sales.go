@@ -85,7 +85,10 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 
 			if changed {
 				log.Printf("Saving on change: %v", record)
-				b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+				if err != nil {
+					return fmt.Errorf("unable to save record: %w", err)
+				}
 			}
 		}
 	}
