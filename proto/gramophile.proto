@@ -105,6 +105,7 @@ message SaleInfo {
     discogs.SaleStatus sale_state = 3;
     int64 refresh_id = 4;
     int64 release_id = 5;
+    discogs.Price currentPrice = 6;
 }
 
 
