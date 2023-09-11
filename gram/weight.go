@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -20,7 +21,7 @@ func GetWeight() *CLIModule {
 func executeWeight(ctx context.Context, args []string) error {
 	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to dial: %w", err)
 	}
 
 	iid, err := strconv.ParseInt(args[0], 10, 64)
