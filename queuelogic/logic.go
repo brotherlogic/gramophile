@@ -149,6 +149,8 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_RefreshWants:
+		return q.b.RefereshWants(ctx, d)
 	case *pb.QueueElement_RefreshWantlists:
 		return q.b.RefreshWantlists(ctx, d, entry.GetAuth())
 	case *pb.QueueElement_LinkSales:

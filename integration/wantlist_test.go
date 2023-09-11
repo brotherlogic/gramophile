@@ -75,15 +75,17 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshWantlists{RefreshWants: &pb.RefreshWants{}},
+			RunDate: 1,
+			Auth:    "123",
+			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			RunDate: 2,
+			Auth:    "123",
+			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -93,8 +95,16 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
-	if len(wants.GetWants()) != 1 || wants.GetWants()[0].Id != 124 {
-		t.Fatalf("Bad wants returned (expected to see new wants): %v", wants)
+	// We should have wanted the new record
+	found := false
+	for _, r := range wants.GetWants() {
+		if r.GetId() == 124 {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Errorf("New want was not found: %v", err)
 	}
 
 }

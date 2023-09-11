@@ -11,7 +11,7 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 	if err != nil {
 		return nil, err
 	}
-	wants, err := s.d.GetWants(ctx, user)
+	wants, err := s.d.GetWants(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, err
 	}

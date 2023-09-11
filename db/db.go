@@ -73,7 +73,7 @@ type Database interface {
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
-	GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error)
+	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
 	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
 
@@ -216,9 +216,9 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	return logins, nil
 }
 
-func (d *DB) GetWants(ctx context.Context, user *pb.StoredUser) ([]*pb.Want, error) {
+func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/user/%v/want/", user.GetUser().GetDiscogsUserId()),
+		Prefix: fmt.Sprintf("gramophile/user/%v/want/", userid),
 	})
 	if err != nil {
 		return nil, err
