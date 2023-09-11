@@ -48,6 +48,7 @@ func main() {
 	}()
 	modules := []*CLIModule{GetLogin(),
 		GetGetUser(), GetGetSate(),
+		GetGetRecord(),
 		GetGetConfig(),
 		GetWant(),
 		GetClean(),
