@@ -104,6 +104,9 @@ func (q *queue) Run() {
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
+			if status.Code(err) == codes.ResourceExhausted {
+				time.Sleep(time.Minute * 10)
+			}
 			if entry != nil {
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 			}
