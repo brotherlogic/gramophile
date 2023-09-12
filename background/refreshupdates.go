@@ -2,7 +2,7 @@ package background
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
@@ -14,14 +14,15 @@ func (b *BackgroundRunner) RefreshUpdates(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	log.Printf("RECORDS: %v", rs)
-
 	for _, iid := range rs {
 		r, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 		if err != nil {
 			return err
 		}
 		us, err := b.db.GetUpdates(ctx, d.GetUserId(), r)
+		if err != nil {
+			return fmt.Errorf("unable to get updates: %v", err)
+		}
 
 		for _, update := range us {
 			update.Explanation = db.ResolveDiff(update)
