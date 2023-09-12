@@ -106,6 +106,7 @@ message SaleInfo {
     int64 refresh_id = 4;
     int64 release_id = 5;
     discogs.Price currentPrice = 6;
+    int32 new_price = 7;
 }
 
 

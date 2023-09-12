@@ -120,9 +120,18 @@ message ArrivedConfig {
     Mandate mandate = 1;
 }
 
+enum SaleUpdateType {
+    SALE_UPDATE_UNKNOWN = 0;
+    MINIMAL_REDUCE = 1;
+}
+
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
 message SaleConfig {
     Mandate mandate = 1;
+
+    Mandate handle_price_updates = 2;
+    int64 update_frequency_seconds = 3;
+    SaleUpdateType update_type = 4;
 }
 
 message KeepConfig {
