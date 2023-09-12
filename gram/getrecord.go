@@ -41,6 +41,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 		}
 
 		printRecord := func(r *pb.Record) {
+			fmt.Printf("Record: %v\n", r)
 			fmt.Printf("%v\n", resp.GetRecord().GetRelease().GetTitle())
 
 			if resp.GetRecord().GetSaleInfo().GetSaleId() > 0 {
