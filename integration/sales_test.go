@@ -85,6 +85,7 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 
 	si := &pb.SaleInfo{
 		CurrentPrice: &pbd.Price{Value: 1234, Currency: "USD"},
+		SaleId:       123456,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{
@@ -112,4 +113,32 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 			},
 		},
 	})
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("Cannot get sales: %v", err)
+	}
+
+	if len(sales) != 1 {
+		t.Fatalf("Wrong number of sales")
+	}
+
+	found := false
+	for _, sid := range sales {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("Cannot get sale: %v", err)
+		}
+
+		if sale.GetSaleId() == 123456 {
+			found = true
+			if sale.GetCurrentPrice().Value != 1235 {
+				t.Errorf("Price was not updated (should be 1235): %v", sale)
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("Unable to find sale: %v", sales)
+	}
 }
