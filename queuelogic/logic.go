@@ -105,6 +105,7 @@ func (q *queue) Run() {
 			q.delete(ctx, entry)
 		} else {
 			if status.Code(err) == codes.ResourceExhausted {
+				log.Printf("Sleeping for 10 minutes to avoid throttling")
 				time.Sleep(time.Minute * 10)
 			}
 			if entry != nil {
