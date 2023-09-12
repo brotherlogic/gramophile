@@ -149,9 +149,14 @@ message QueueElement {
         RefreshWantlists refresh_wantlists = 12;
         AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
+        UpdateSale update_sale = 15;
     }
 
     int64 refresh_id = 7;
+}
+
+message UpdateSale {
+    int64 sale_id = 1;
 }
 
 message RefreshWants {}

@@ -14,7 +14,7 @@ import (
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
-func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database) {
+func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database, *queuelogic.Queue) {
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()
@@ -29,11 +29,11 @@ func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Databa
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
-		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345}}}
+		Sales:  []*pbd.SaleItem{}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	return ctx, s, d
+	return ctx, s, d, qc
 }
 
 func TestSyncSales_Success(t *testing.T) {
@@ -81,11 +81,13 @@ func TestSyncSales_Success(t *testing.T) {
 }
 
 func TestSalesPriceIsAdjusted(t *testing.T) {
-	ctx, s, d := buildTestScaffold(t)
+	ctx, s, d, q := buildTestScaffold(t)
 
 	si := &pb.SaleInfo{
-		CurrentPrice: &pbd.Price{Value: 1234, Currency: "USD"},
-		SaleId:       123456,
+		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		SaleId:          123456,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{
@@ -114,13 +116,25 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 		},
 	})
 
+	// Run a sale update loop
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to enqueue request: %v", err)
+	}
+	q.FlushQueue(ctx)
+
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
 		t.Fatalf("Cannot get sales: %v", err)
 	}
 
 	if len(sales) != 1 {
-		t.Fatalf("Wrong number of sales")
+		t.Fatalf("Wrong number of sales: %v", sales)
 	}
 
 	found := false
