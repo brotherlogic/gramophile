@@ -61,7 +61,7 @@ func TestMoveApplied(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecord() != nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
+	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
 		t.Errorf("Record was not moved: %v", r.GetRecord())
 	}
 

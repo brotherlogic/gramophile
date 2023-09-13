@@ -155,10 +155,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get record: %w", err)
 		}
 
-		fNum := int32(-1)
+		fNum := int64(-1)
 		for _, folder := range u.GetFolders() {
 			if folder.GetName() == entry.GetMoveRecord().GetMoveFolder() {
-				fNum = folder.GetId()
+				fNum = int64(folder.GetId())
 			}
 		}
 
@@ -166,14 +166,17 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return status.Errorf(codes.NotFound, "Folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}
 
-		err = d.MoveRecord(ctx, rec.GetRelease().GetId(), rec.GetRelease().GetInstanceId(), fNum)
+		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), int64(rec.GetRelease().GetFolderId()), fNum)
 		if err != nil {
 			return fmt.Errorf("unable to move record: %w", err)
 		}
 
+		log.Printf("Setting folder: %v", fNum)
+
 		//Update and save record
-		rec.GetRelease().FolderId = fNum
+		rec.GetRelease().FolderId = int32(fNum)
 		return q.db.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), rec)
+
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_RefreshWants:
