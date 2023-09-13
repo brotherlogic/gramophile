@@ -175,6 +175,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to get user: %w", err)
 		}
+		log.Printf("Got user: %v", user)
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {

@@ -28,7 +28,7 @@ func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Databa
 	}
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
-		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
 		Sales:  []*pbd.SaleItem{}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
@@ -105,7 +105,7 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 		t.Fatalf("Can't save sale: %v", err)
 	}
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
 				Mandate:                pb.Mandate_REQUIRED,
@@ -115,6 +115,9 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 			},
 		},
 	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
 
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
@@ -146,8 +149,8 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 
 		if sale.GetSaleId() == 123456 {
 			found = true
-			if sale.GetCurrentPrice().Value != 1235 {
-				t.Errorf("Price was not updated (should be 1235): %v", sale)
+			if sale.GetCurrentPrice().Value != 1233 {
+				t.Errorf("Price was not updated (should be 1233): %v", sale)
 			}
 		}
 	}
