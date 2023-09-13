@@ -20,11 +20,11 @@ func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	if c.GetSaleConfig().GetMandate() != pb.Mandate_NONE {
 		return []*pb.FolderMove{
 			{
-				Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_FOR_SALE},
+				Criteria:   &pb.MoveCriteria{HasSaleId: pb.Bool_TRUE, SaleStatus: pbd.SaleStatus_FOR_SALE},
 				MoveFolder: "For Sale",
 			},
 			{
-				Criteria:   &pb.MoveCriteria{HasSaleId: true, SaleStatus: pbd.SaleStatus_SOLD},
+				Criteria:   &pb.MoveCriteria{HasSaleId: pb.Bool_TRUE, SaleStatus: pbd.SaleStatus_SOLD},
 				MoveFolder: "Sold",
 			},
 		}

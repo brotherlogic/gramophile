@@ -43,6 +43,8 @@ func TestMoveApplied(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
+			CreateFolders: pb.Create_AUTOMATIC,
+			CreateMoves:   pb.Create_AUTOMATIC,
 			ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_REQUIRED},
 		},
 	})

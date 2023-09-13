@@ -149,9 +149,15 @@ message QueueElement {
         AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
         MoveRecords move_records = 15;
+        MoveRecord move_record = 16;
     }
 
     int64 refresh_id = 7;
+}
+
+message MoveRecord {
+    int64 recordIid = 1;
+    string move_folder = 2;
 }
 
 message MoveRecords {}

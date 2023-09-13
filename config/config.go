@@ -69,12 +69,13 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 
 			if !moveFound {
 				move.Origin = pb.Create_AUTOMATIC
-				rmoves = append(moves, move)
+				rmoves = append(rmoves, move)
 			}
 		}
 	}
 
 	log.Printf("Returning folders: %v", folders)
+	log.Printf("Returning moves: %v from %v", rmoves, len(moves))
 
 	return folders, rmoves, nil
 }
