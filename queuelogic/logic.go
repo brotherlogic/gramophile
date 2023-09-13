@@ -35,21 +35,21 @@ var (
 	}, []string{"code"})
 )
 
-type queue struct {
+type Queue struct {
 	rstore rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
 	db     db.Database
 }
 
-func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
+func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
 	log.Printf("GETTING QUEUE")
-	return &queue{
+	return &Queue{
 		b: b, d: d, rstore: r, db: db,
 	}
 }
 
-func (q *queue) FlushQueue(ctx context.Context) {
+func (q *Queue) FlushQueue(ctx context.Context) {
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
 
@@ -72,7 +72,7 @@ func (q *queue) FlushQueue(ctx context.Context) {
 	}
 }
 
-func (q *queue) Run() {
+func (q *Queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {
 		ctx := context.Background()
@@ -117,7 +117,7 @@ func (q *queue) Run() {
 	}
 }
 
-func (q *queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
+func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func (q *queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse
 	return &pb.ListResponse{Elements: elems}, nil
 }
 
-func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	user, err := q.db.GetUser(ctx, req.Element.GetAuth())
 	if err != nil {
 		return nil, err
@@ -150,9 +150,11 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, user, req.GetElement())
 }
 
-func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
+func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_UpdateSale:
+		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefereshWants(ctx, d)
 	case *pb.QueueElement_RefreshWantlists:
@@ -172,6 +174,12 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
+
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+		log.Printf("Got user: %v", user)
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
@@ -195,14 +203,11 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				Auth: entry.GetAuth(),
 			}})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue link job: %v", err)
+				return fmt.Errorf("dunable to enqueue link job: %v", err)
 			}
 
 			// If we've got here, update the user
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
-			if err != nil {
-				return fmt.Errorf("unable to get user: %w", err)
-			}
+
 			user.LastSaleRefresh = time.Now().Unix()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
@@ -210,6 +215,35 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 			return err
 		}
+
+		// Adjust all sale prices
+		q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), d)
+
+		sales, err := q.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return fmt.Errorf("unable to get sales: %w", err)
+		}
+		log.Printf("Checking %v sales for updates", len(sales))
+		for _, sid := range sales {
+			sale, err := q.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
+			if err != nil {
+				return fmt.Errorf("unable to get sale: %w", err)
+			}
+
+			if sale.GetNewPrice() > 0 {
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					RunDate: time.Now().Unix(),
+					Entry: &pb.QueueElement_UpdateSale{
+						UpdateSale: &pb.UpdateSale{
+							SaleId: sale.GetSaleId()}},
+					Auth: entry.GetAuth(),
+				}})
+				if err != nil {
+					return fmt.Errorf("dunable to enqueue link job: %v", err)
+				}
+			}
+		}
+
 		return nil
 
 	case *pb.QueueElement_AddFolderUpdate:
@@ -277,12 +311,12 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	return status.Errorf(codes.NotFound, "Unable to this handle %v -> %v", entry, entry.Entry)
 }
 
-func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
+func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
 }
 
-func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
@@ -299,7 +333,7 @@ func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, err
 }
 
-func (q *queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
+func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err

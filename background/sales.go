@@ -31,6 +31,75 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 	return pagination, nil
 }
 
+func getUpdateTime(c *pb.SaleConfig) time.Duration {
+	return time.Second * time.Duration(c.GetUpdateFrequencySeconds())
+}
+
+func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
+	log.Printf("Adjusting with config: %v", c)
+	switch c.GetUpdateType() {
+	case pb.SaleUpdateType_MINIMAL_REDUCE:
+		return s.GetCurrentPrice().Value - 1, nil
+	case pb.SaleUpdateType_SALE_UPDATE_UNKNOWN:
+		return s.GetCurrentPrice().GetValue(), nil
+	default:
+		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
+	}
+}
+
+func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, di discogs.Discogs) error {
+	sales, err := b.db.GetSales(ctx, di.GetUserId())
+	if err != nil {
+		return fmt.Errorf("unable to get all sales: %w", err)
+	}
+	log.Printf("Adjusting %v sales", len(sales))
+
+	for _, sid := range sales {
+		sale, err := b.db.GetSale(ctx, di.GetUserId(), sid)
+		if err != nil {
+			return fmt.Errorf("unable to read sale: %w", err)
+		}
+
+		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+			if time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)) > getUpdateTime(c) {
+				nsp, err := adjustPrice(ctx, sale, c)
+				if err != nil {
+					return fmt.Errorf("unable to adjust price: %w", err)
+				}
+
+				log.Printf("ADJUST PRICE %v -> %v", sale.GetCurrentPrice().GetValue(), nsp)
+
+				sale.NewPrice = nsp
+				b.db.SaveSale(ctx, di.GetUserId(), sale)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64) error {
+	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
+	if err != nil {
+		return fmt.Errorf("unable to load sale: %w", err)
+	}
+
+	if sale.GetNewPrice() > 0 {
+		log.Printf("Updating price %v", sale)
+		//err := d.UpdateSale(ctx, d.GetUserId(), sale.GetSaleId(), sale.GetNewPrice(), sale.GetCurrentPrice().GetCurrency())
+		var err error
+		if err != nil {
+			return fmt.Errorf("unable to update sale price: %w", err)
+		}
+
+		sale.GetCurrentPrice().Value = sale.GetNewPrice()
+		sale.NewPrice = 0
+		return b.db.SaveSale(ctx, d.GetUserId(), sale)
+	}
+
+	return nil
+}
+
 func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) error {
 	iids, err := b.db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {

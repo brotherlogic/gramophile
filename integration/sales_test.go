@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
@@ -12,6 +13,28 @@ import (
 	"github.com/brotherlogic/gramophile/server"
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
+
+func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database, *queuelogic.Queue) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales:  []*pbd.SaleItem{}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	return ctx, s, d, qc
+}
 
 func TestSyncSales_Success(t *testing.T) {
 	ctx := getTestContext(123)
@@ -54,5 +77,85 @@ func TestSyncSales_Success(t *testing.T) {
 
 	if sales.GetRecord().GetRelease().GetId() != 123 {
 		t.Fatalf("Bad record returned: %v", sales)
+	}
+}
+
+func TestSalesPriceIsAdjusted(t *testing.T) {
+	ctx, s, d, q := buildTestScaffold(t)
+
+	si := &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		SaleId:          123456,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         123,
+			InstanceId: 1234,
+			FolderId:   12,
+			Labels:     []*pbd.Label{{Name: "AAA"}}},
+		SaleInfo: si,
+	})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveSale(ctx, 123, si)
+	if err != nil {
+		t.Fatalf("Can't save sale: %v", err)
+	}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Mandate:                pb.Mandate_REQUIRED,
+				HandlePriceUpdates:     pb.Mandate_REQUIRED,
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_MINIMAL_REDUCE,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// Run a sale update loop
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to enqueue request: %v", err)
+	}
+	q.FlushQueue(ctx)
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("Cannot get sales: %v", err)
+	}
+
+	if len(sales) != 1 {
+		t.Fatalf("Wrong number of sales: %v", sales)
+	}
+
+	found := false
+	for _, sid := range sales {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("Cannot get sale: %v", err)
+		}
+
+		if sale.GetSaleId() == 123456 {
+			found = true
+			if sale.GetCurrentPrice().Value != 1233 {
+				t.Errorf("Price was not updated (should be 1233): %v", sale)
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("Unable to find sale: %v", sales)
 	}
 }
