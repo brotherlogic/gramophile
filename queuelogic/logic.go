@@ -35,21 +35,21 @@ var (
 	}, []string{"code"})
 )
 
-type queue struct {
+type Queue struct {
 	rstore rstore_client.RStoreClient
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
 	db     db.Database
 }
 
-func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *queue {
+func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
 	log.Printf("GETTING QUEUE")
-	return &queue{
+	return &Queue{
 		b: b, d: d, rstore: r, db: db,
 	}
 }
 
-func (q *queue) FlushQueue(ctx context.Context) {
+func (q *Queue) FlushQueue(ctx context.Context) {
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
 
@@ -72,7 +72,7 @@ func (q *queue) FlushQueue(ctx context.Context) {
 	}
 }
 
-func (q *queue) Run() {
+func (q *Queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {
 		ctx := context.Background()
@@ -113,7 +113,7 @@ func (q *queue) Run() {
 	}
 }
 
-func (q *queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
+func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func (q *queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse
 	return &pb.ListResponse{Elements: elems}, nil
 }
 
-func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	user, err := q.db.GetUser(ctx, req.Element.GetAuth())
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (q *queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, user, req.GetElement())
 }
 
-func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
+func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("EXECUTE: %v", entry)
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshWants:
@@ -273,12 +273,12 @@ func (q *queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	return status.Errorf(codes.NotFound, "Unable to this handle %v -> %v", entry, entry.Entry)
 }
 
-func (q *queue) delete(ctx context.Context, entry *pb.QueueElement) error {
+func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
 }
 
-func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ func (q *queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, err
 }
 
-func (q *queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
+func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
