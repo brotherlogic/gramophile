@@ -148,10 +148,13 @@ message QueueElement {
         RefreshWantlists refresh_wantlists = 12;
         AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
+        MoveRecords move_records = 15;
     }
 
     int64 refresh_id = 7;
 }
+
+message MoveRecords {}
 
 message RefreshWants {}
 

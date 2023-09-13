@@ -8,7 +8,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func (b *BackgroundRunner) runMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	moves := user.GetMoves()
 
 	records, err := b.db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
