@@ -17,7 +17,17 @@ var (
 type arrived struct{}
 
 func (*arrived) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
+	return []*pb.FolderMove{
+		{
+			Name:       "MoveToListeningPileOnceArrived",
+			Origin:     pb.Create_AUTOMATIC,
+			MoveFolder: "Listening Pile",
+			Criteria: &pb.MoveCriteria{
+				Listened: pb.Bool_FALSE,
+				Arrived:  pb.Bool_TRUE,
+			},
+		},
+	}
 }
 
 func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {

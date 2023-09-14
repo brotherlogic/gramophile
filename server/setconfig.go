@@ -73,5 +73,18 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		}
 	}
 
+	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:          time.Now().UnixNano(),
+			Auth:             u.GetAuth().GetToken(),
+			BackoffInSeconds: 60,
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{},
+			},
+		}})
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.SetConfigResponse{}, s.d.SaveUser(ctx, u)
 }

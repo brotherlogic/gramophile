@@ -18,9 +18,17 @@ enum Mandate {
     REQUIRED = 2;
 }
 
+enum Bool {
+    UNKNOWN = 0;
+    TRUE = 1;
+    FALSE = 2;
+}
+
 message MoveCriteria {
-    bool has_sale_id = 1;
+    Bool has_sale_id = 1;
     discogs.SaleStatus sale_status = 2;
+    Bool listened = 3; 
+    Bool arrived = 4;
 }
 
 message FolderMove {
