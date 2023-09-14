@@ -47,15 +47,15 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 	}
 }
 
-func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, di discogs.Discogs) error {
-	sales, err := b.db.GetSales(ctx, di.GetUserId())
+func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	sales, err := b.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get all sales: %w", err)
 	}
 	log.Printf("Adjusting %v sales", len(sales))
 
 	for _, sid := range sales {
-		sale, err := b.db.GetSale(ctx, di.GetUserId(), sid)
+		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
 		if err != nil {
 			return fmt.Errorf("unable to read sale: %w", err)
 		}
@@ -69,8 +69,19 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, di
 
 				log.Printf("ADJUST PRICE %v -> %v", sale.GetCurrentPrice().GetValue(), nsp)
 
-				sale.NewPrice = nsp
-				b.db.SaveSale(ctx, di.GetUserId(), sale)
+				_, err = enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().Unix(),
+						Auth:    user.GetAuth().GetToken(),
+						Entry: &pb.QueueElement_UpdateSale{
+							UpdateSale: &pb.UpdateSale{
+								SaleId:   sid,
+								NewPrice: nsp,
+							}}},
+				})
+				if err != nil {
+					return fmt.Errorf("unable to queue sales: %v", err)
+				}
 			}
 		}
 	}
@@ -78,26 +89,20 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, di
 	return nil
 }
 
-func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64) error {
+func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, newprice int32) error {
 	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
 	if err != nil {
 		return fmt.Errorf("unable to load sale: %w", err)
 	}
 
-	if sale.GetNewPrice() > 0 {
-		log.Printf("Updating price %v", sale)
-		//err := d.UpdateSale(ctx, d.GetUserId(), sale.GetSaleId(), sale.GetNewPrice(), sale.GetCurrentPrice().GetCurrency())
-		var err error
-		if err != nil {
-			return fmt.Errorf("unable to update sale price: %w", err)
-		}
-
-		sale.GetCurrentPrice().Value = sale.GetNewPrice()
-		sale.NewPrice = 0
-		return b.db.SaveSale(ctx, d.GetUserId(), sale)
+	log.Printf("Updating price %v", sale)
+	err = d.UpdateSale(ctx, sid, newprice)
+	if err != nil {
+		return fmt.Errorf("unable to update sale price: %w", err)
 	}
 
-	return nil
+	sale.GetCurrentPrice().Value = newprice
+	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }
 
 func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) error {
