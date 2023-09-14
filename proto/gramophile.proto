@@ -106,6 +106,7 @@ message SaleInfo {
     int64 refresh_id = 4;
     int64 release_id = 5;
     discogs.Price currentPrice = 6;
+    int32 new_price = 7;
 }
 
 
@@ -148,11 +149,16 @@ message QueueElement {
         RefreshWantlists refresh_wantlists = 12;
         AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
-        MoveRecords move_records = 15;
-        MoveRecord move_record = 16;
+        UpdateSale update_sale = 15;
+        MoveRecords move_records = 16;
+        MoveRecord move_record = 17;
     }
 
     int64 refresh_id = 7;
+}
+
+message UpdateSale {
+    int64 sale_id = 1;
 }
 
 message MoveRecord {

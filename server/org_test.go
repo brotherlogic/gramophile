@@ -6,8 +6,10 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/protobuf/proto"
 )
@@ -15,7 +17,9 @@ import (
 func TestLabelOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -32,8 +36,8 @@ func TestLabelOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -89,7 +93,9 @@ func TestLabelOrdering(t *testing.T) {
 func TestLooseLayoutSupport(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -102,8 +108,8 @@ func TestLooseLayoutSupport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -157,7 +163,9 @@ func TestLooseLayoutSupport(t *testing.T) {
 func TestGetSnapshotHash(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -174,8 +182,8 @@ func TestGetSnapshotHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -335,7 +343,9 @@ func TestSnapshotDiff(t *testing.T) {
 func TestSetSnapshotName(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -353,7 +363,8 @@ func TestSetSnapshotName(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
-	s := Server{d: d, di: &discogs.TestDiscogsClient{}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{

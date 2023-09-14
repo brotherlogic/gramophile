@@ -104,10 +104,14 @@ func (q *Queue) Run() {
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
+			if status.Code(err) == codes.ResourceExhausted {
+				log.Printf("Sleeping for 10 minutes to avoid throttling")
+				time.Sleep(time.Minute * 10)
+			}
 			if entry != nil {
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 			}
-			time.Sleep(time.Minute)
+			time.Sleep(time.Minute * 2)
 		}
 		time.Sleep(time.Second * 2)
 	}
@@ -179,6 +183,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
+	case *pb.QueueElement_UpdateSale:
+		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefereshWants(ctx, d)
 	case *pb.QueueElement_RefreshWantlists:
@@ -198,6 +204,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
+
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+		log.Printf("Got user: %v", user)
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
@@ -221,14 +233,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				Auth: entry.GetAuth(),
 			}})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue link job: %v", err)
+				return fmt.Errorf("dunable to enqueue link job: %v", err)
 			}
 
 			// If we've got here, update the user
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
-			if err != nil {
-				return fmt.Errorf("unable to get user: %w", err)
-			}
+
 			user.LastSaleRefresh = time.Now().Unix()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
@@ -236,6 +245,35 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 			return err
 		}
+
+		// Adjust all sale prices
+		q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), d)
+
+		sales, err := q.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return fmt.Errorf("unable to get sales: %w", err)
+		}
+		log.Printf("Checking %v sales for updates", len(sales))
+		for _, sid := range sales {
+			sale, err := q.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
+			if err != nil {
+				return fmt.Errorf("unable to get sale: %w", err)
+			}
+
+			if sale.GetNewPrice() > 0 {
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					RunDate: time.Now().Unix(),
+					Entry: &pb.QueueElement_UpdateSale{
+						UpdateSale: &pb.UpdateSale{
+							SaleId: sale.GetSaleId()}},
+					Auth: entry.GetAuth(),
+				}})
+				if err != nil {
+					return fmt.Errorf("dunable to enqueue link job: %v", err)
+				}
+			}
+		}
+
 		return nil
 
 	case *pb.QueueElement_AddFolderUpdate:

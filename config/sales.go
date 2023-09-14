@@ -45,5 +45,11 @@ func (*sales) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramophil
 		}
 	}
 
+	if c.GetSaleConfig().GetHandlePriceUpdates() != pb.Mandate_NONE {
+		if c.GetSaleConfig().GetUpdateFrequencySeconds() == 0 {
+			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("You must set the update frequency field if gramophile is handling price updates"))
+		}
+	}
+
 	return nil
 }
