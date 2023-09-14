@@ -28,6 +28,8 @@ github.com/brotherlogic/discogs v0.0.0-20230911231906-4e69f4b9738d h1:Xp8Pv/JV/K
 github.com/brotherlogic/discogs v0.0.0-20230911231906-4e69f4b9738d/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
 github.com/brotherlogic/discogs v0.0.0-20230911235838-6283d17d5191 h1:U79Rk/KB95ZOTl4cwc8u6GpiYyhbi0VSugDBkZj7kU0=
 github.com/brotherlogic/discogs v0.0.0-20230911235838-6283d17d5191/go.mod h1:OUJ3vqv+ISm2PghImfazIO5bk7SXbuQfBbM+9Z/Pz+k=
+github.com/brotherlogic/discogs v0.0.0-20230914015409-3b95a572c207 h1:G36bjRrIBHQqp22BBh9ujfBbavfxp7WnpNi6WStSQIA=
+github.com/brotherlogic/discogs v0.0.0-20230914015409-3b95a572c207/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRxtqdAiZglw4tO/6E2ck5O9+sm2iesWgf0XcI=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6 h1:WjYkNhmb4RTQMzaKXufLkBwFbRmkB0DDHF8dP2zdeC8=
@@ -36,6 +38,8 @@ github.com/brotherlogic/godiscogs v0.0.0-20230907002313-9982cca8a4ef h1:BDjwUIFC
 github.com/brotherlogic/godiscogs v0.0.0-20230907002313-9982cca8a4ef/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230908001529-2f03cec642af h1:TsnN+r1Ylh2vdx9uZpMJ7ZC39dzQX1bYYolq7+tiEZE=
 github.com/brotherlogic/godiscogs v0.0.0-20230908001529-2f03cec642af/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
+github.com/brotherlogic/godiscogs v0.0.0-20230912164334-1cd2ee7d5ec0 h1:JBQYugk//JgShH0oAIin/1SqB5ln5r9ZTrfsPG/R2Qc=
+github.com/brotherlogic/godiscogs v0.0.0-20230912164334-1cd2ee7d5ec0/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/gramophile/queue v0.0.0-20230813170931-dbc125275c62 h1:Y/UpUPE+C12VU0NWw9WH/lhp4PqiUA4+Vim2CT5KtLg=
 github.com/brotherlogic/gramophile/queue v0.0.0-20230813170931-dbc125275c62/go.mod h1:BYzxdnovH3hmpUz4fVwW1FVJWA8FTGNbeqjzC257KRU=
 github.com/brotherlogic/gramophile/queue v0.0.0-20230817233205-03ff9a14dbed h1:AoeYRJM7FTpiWwaPgSAPscqZ7f96DG9XqlyJJ+4JvU0=
@@ -52,6 +56,8 @@ github.com/brotherlogic/recordcollection v0.0.0-20230908034749-a0d1c455c835 h1:f
 github.com/brotherlogic/recordcollection v0.0.0-20230908034749-a0d1c455c835/go.mod h1:QIqPttzqVcV+SEgV65eb7o+vajguIz9JMGqrdxBw2f4=
 github.com/brotherlogic/recordcollection v0.0.0-20230910203711-d11318bce42a h1:SHcKNYI5sFVzSY658vQay+iZW9UNajb+gJttzWzkb/A=
 github.com/brotherlogic/recordcollection v0.0.0-20230910203711-d11318bce42a/go.mod h1:QIqPttzqVcV+SEgV65eb7o+vajguIz9JMGqrdxBw2f4=
+github.com/brotherlogic/recordcollection v0.0.0-20230912165337-0464940cb8fe h1:Lv1BKfxUERVEKiHaVOihvhfDw1VL6fv5QQMzW5Odt1k=
+github.com/brotherlogic/recordcollection v0.0.0-20230912165337-0464940cb8fe/go.mod h1:vDP3UTs/N8X+5fZHLgADIOs9glnBTbuRTh16aqJ6Kf8=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=
 github.com/brotherlogic/rstore v0.31.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.32.0 h1:MVBfhUlVh4zptaUhQInpadDIXO1WLUTUr7pJNywktSY=
@@ -123,6 +129,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230911183012-2d3300fd4832 h1:o4LtQxebKIJ4vkzyhtD2rfUNZ20Zf0ik5YVP5E7G7VE=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230911183012-2d3300fd4832/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb h1:Isk1sSH7bovx8Rti2wZK0UZF6oraBDK74uoyLEEVFN0=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
 google.golang.org/grpc v1.56.2 h1:fVRFRnXvU+x6C4IlHZewvJOVHoOv1TUuQyoRsYnB4bI=
 google.golang.org/grpc v1.56.2/go.mod h1:I9bI3vqKfayGqPUAwGdOSu7kt6oIJLixfffKrpXqQ9s=
 google.golang.org/grpc v1.57.0 h1:kfzNeI/klCGD2YPMUlaGNT3pxvYfga7smW3Vth8Zsiw=
