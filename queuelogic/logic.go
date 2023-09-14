@@ -104,14 +104,10 @@ func (q *Queue) Run() {
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
-			if status.Code(err) == codes.ResourceExhausted {
-				log.Printf("Sleeping for 10 minutes to avoid throttling")
-				time.Sleep(time.Minute * 10)
-			}
 			if entry != nil {
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 			}
-			time.Sleep(time.Minute * 2)
+			time.Sleep(time.Minute)
 		}
 		time.Sleep(time.Second * 2)
 	}
@@ -237,7 +233,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 
 			// If we've got here, update the user
-
 			user.LastSaleRefresh = time.Now().Unix()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
