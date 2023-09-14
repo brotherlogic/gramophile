@@ -180,7 +180,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_UpdateSale:
-		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId())
+		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetNewPrice())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefereshWants(ctx, d)
 	case *pb.QueueElement_RefreshWantlists:
@@ -242,35 +242,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		// Adjust all sale prices
-		q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), d)
-
-		sales, err := q.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
-		if err != nil {
-			return fmt.Errorf("unable to get sales: %w", err)
-		}
-		log.Printf("Checking %v sales for updates", len(sales))
-		for _, sid := range sales {
-			sale, err := q.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
-			if err != nil {
-				return fmt.Errorf("unable to get sale: %w", err)
-			}
-
-			if sale.GetNewPrice() > 0 {
-				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					RunDate: time.Now().Unix(),
-					Entry: &pb.QueueElement_UpdateSale{
-						UpdateSale: &pb.UpdateSale{
-							SaleId: sale.GetSaleId()}},
-					Auth: entry.GetAuth(),
-				}})
-				if err != nil {
-					return fmt.Errorf("dunable to enqueue link job: %v", err)
-				}
-			}
-		}
-
-		return nil
-
+		return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {
