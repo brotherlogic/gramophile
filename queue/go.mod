@@ -3,8 +3,8 @@ module github.com/brotherlogic/gramophile/queue
 go 1.19
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20230914015409-3b95a572c207
-	github.com/brotherlogic/gramophile v0.319.0
+	github.com/brotherlogic/discogs v0.0.0-20230914021508-6c03fb688e71
+	github.com/brotherlogic/gramophile v0.320.0
 	github.com/brotherlogic/rstore v0.34.0
 	github.com/prometheus/client_golang v1.16.0
 	google.golang.org/grpc v1.58.0
