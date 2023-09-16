@@ -147,7 +147,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("EXECUTE: %v -> %v", entry, u)
+	log.Printf("Running queue entry: %v -> %v", entry, u)
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
