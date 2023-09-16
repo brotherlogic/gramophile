@@ -95,13 +95,17 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 		return fmt.Errorf("unable to load sale: %w", err)
 	}
 
-	log.Printf("Updating price %v", sale)
+	log.Printf("Updating price %v -> %v", sale, newprice)
 	err = d.UpdateSale(ctx, sid, newprice)
 	if err != nil {
 		return fmt.Errorf("unable to update sale price: %w", err)
 	}
 
-	sale.GetCurrentPrice().Value = newprice
+	if sale.GetCurrentPrice() == nil {
+		sale.CurrentPrice = &pbd.Price{Value: newprice}
+	} else {
+		sale.GetCurrentPrice().Value = newprice
+	}
 	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }
 
