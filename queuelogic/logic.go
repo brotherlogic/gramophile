@@ -33,6 +33,14 @@ var (
 		Name: "gramophile_queue_last_proc",
 		Help: "The length of the working queue I think yes",
 	}, []string{"code"})
+	queueRun = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_proc",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
+	queueSleep = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_queue_proc",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
 )
 
 type Queue struct {
@@ -105,10 +113,13 @@ func (q *Queue) Run() {
 			q.delete(ctx, entry)
 		} else {
 			if entry != nil {
+				queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * time.Duration(entry.GetBackoffInSeconds())).Seconds())
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 			}
+			queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set(time.Minute.Seconds())
 			time.Sleep(time.Minute)
 		}
+		queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * 2).Seconds())
 		time.Sleep(time.Second * 2)
 	}
 }
@@ -148,6 +159,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("Running queue entry: %v -> %v", entry, u)
+	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
