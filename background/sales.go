@@ -25,6 +25,10 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			LastPriceUpdate: time.Now().Unix(),
 			SaleState:       sale.GetStatus(),
 			ReleaseId:       sale.GetReleaseId(),
+			CurrentPrice: &pbd.Price{
+				Value:    sale.GetPrice().GetValue(),
+				Currency: sale.GetPrice().GetCurrency(),
+			},
 		})
 	}
 
@@ -132,10 +136,12 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 	var sales []*pb.SaleInfo
 	for _, s := range sids {
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), s)
+		log.Printf("LOADED: %v", sale)
 		if err != nil {
 			return fmt.Errorf("unable to read sale: %w", err)
 		}
 
+		log.Printf("Got Sale: %v", sale)
 		sales = append(sales, sale)
 	}
 
@@ -153,6 +159,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
 					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
 						record.GetSaleInfo().SaleState = sale.GetSaleState()
+						record.GetSaleInfo().CurrentPrice = sale.GetCurrentPrice()
 						changed = true
 					}
 				} else {
