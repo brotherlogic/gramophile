@@ -38,7 +38,7 @@ var (
 		Help: "The length of the working queue I think yes",
 	}, []string{"type"})
 	queueSleep = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "gramophile_queue_proc",
+		Name: "gramophile_queue_sleep",
 		Help: "The length of the working queue I think yes",
 	}, []string{"type"})
 )
