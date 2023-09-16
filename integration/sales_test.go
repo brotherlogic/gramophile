@@ -55,7 +55,7 @@ func TestSyncSales_Success(t *testing.T) {
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
-		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345}}}
+		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
@@ -77,6 +77,14 @@ func TestSyncSales_Success(t *testing.T) {
 
 	if sales.GetRecord().GetRelease().GetId() != 123 {
 		t.Fatalf("Bad record returned: %v", sales)
+	}
+
+	if sales.GetRecord().GetSaleInfo() == nil {
+		t.Errorf("Sale info not returned: %v", sales.GetRecord())
+	}
+
+	if sales.GetRecord().GetSaleInfo().GetCurrentPrice().GetValue() != 1234 {
+		t.Errorf("Sale info does not include price: %v", sales.GetRecord().GetSaleInfo())
 	}
 }
 

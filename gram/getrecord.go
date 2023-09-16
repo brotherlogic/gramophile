@@ -27,15 +27,18 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	idSet := flag.NewFlagSet("ids", flag.ExitOnError)
 	var id = idSet.Int("id", 0, "Id of record to get")
 	var iid = idSet.Int("iid", 0, "IId of record to get")
+	var history = idSet.Bool("history", false, "Whether to get the history")
 	if err := idSet.Parse(args); err == nil {
 
 		client := pb.NewGramophileEServiceClient(conn)
-		resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{Request: &pb.GetRecordRequest_GetRecordWithId{
-			GetRecordWithId: &pb.GetRecordWithId{
-				InstanceId: int64(*iid),
-				ReleaseId:  int64(*id),
-			},
-		}})
+		resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+			IncludeHistory: *history,
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{
+					InstanceId: int64(*iid),
+					ReleaseId:  int64(*id),
+				},
+			}})
 		if err != nil {
 			return err
 		}
@@ -44,7 +47,11 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("%v\n", r.GetRelease().GetTitle())
 
 			if r.GetSaleInfo().GetSaleId() > 0 {
-				fmt.Printf("For Sale (%v). Current Price: %v\n", r.GetSaleInfo().GetSaleId(), r.GetSaleInfo().GetCurrentPrice())
+				fmt.Printf("For Sale (%v). Current Price: %v\n", r.GetSaleInfo().GetSaleId(), float64(r.GetSaleInfo().GetCurrentPrice().GetValue())/100.0)
+			}
+
+			for _, update := range r.GetUpdates() {
+				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
 			}
 		}
 
