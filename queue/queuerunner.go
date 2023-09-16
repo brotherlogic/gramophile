@@ -30,7 +30,7 @@ var (
 func main() {
 	rstorec, err := rstore_client.GetClient()
 	if err != nil {
-		log.Fatalf("Unable to connect to rstore: %v", err)
+		log.Fatalf("unable to connect to rstore: %v", err)
 	}
 	db := db.NewDatabase(context.Background())
 	queue := queuelogic.GetQueue(
