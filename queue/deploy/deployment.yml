@@ -60,6 +60,8 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        - name: TZ
+          value: America/Los_Angeles
         - name: DISCOGS_KEY
           valueFrom:
             secretKeyRef:
