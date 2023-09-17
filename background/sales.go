@@ -155,7 +155,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		for _, record := range records {
 			changed := false
 			if record.GetRelease().GetId() == sale.GetReleaseId() {
-				log.Printf("%v or %v", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId())
+				log.Printf("%v or %v ($%v)", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId(), sale)
 				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
 					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
 						record.GetSaleInfo().SaleState = sale.GetSaleState()
