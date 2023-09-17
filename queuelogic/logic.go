@@ -41,6 +41,11 @@ var (
 		Name: "gramophile_queue_sleep",
 		Help: "The length of the working queue I think yes",
 	}, []string{"type"})
+	queueRunTime = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "gramophile_queue_time",
+		Help:    "The length of the working queue I think yes",
+		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
+	}, []string{"type"})
 )
 
 type Queue struct {
@@ -101,6 +106,7 @@ func (q *Queue) Run() {
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v", entry, time.Since(st))
+				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
