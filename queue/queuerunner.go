@@ -52,7 +52,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%v", *metricsPort), nil)
-		log.Fatalf("gramophile is unable to serve metrics: %v", err)
+		log.Fatalf("gramophile is unable to serve metrics -> %v", err)
 	}()
 
 	queue.Run()
