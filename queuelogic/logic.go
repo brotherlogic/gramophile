@@ -97,7 +97,7 @@ func (q *Queue) Run() {
 				user.User.UserSecret = user.UserSecret
 				user.User.UserToken = user.UserToken
 				d := q.d.ForUser(user.GetUser())
-				log.Printf("GOT USER: %+v and %+v", user, d)
+				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v", entry, time.Since(st))
