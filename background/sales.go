@@ -159,7 +159,10 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
 					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
 						record.GetSaleInfo().SaleState = sale.GetSaleState()
-						record.GetSaleInfo().CurrentPrice = sale.GetCurrentPrice()
+						changed = true
+					}
+					if record.GetSaleInfo().GetCurrentPrice().GetValue() != sale.GetCurrentPrice().GetValue() {
+						record.GetSaleInfo().GetCurrentPrice().Value = sale.GetCurrentPrice().GetValue()
 						changed = true
 					}
 				} else {
