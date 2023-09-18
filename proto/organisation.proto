@@ -43,6 +43,12 @@ enum Layout {
     LOOSE = 1;
 }
 
+enum Density {
+    COUNT = 0;
+    DISKS = 1;
+    WIDTH = 2;
+}
+
 message Organisation {
     string name = 6;
 
@@ -50,6 +56,7 @@ message Organisation {
     repeated Space spaces = 2;
 
     bool auto_artist_translate = 5;
+    Density density = 3;
 }
 
 message Space {
