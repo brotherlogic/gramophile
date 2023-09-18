@@ -70,10 +70,11 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 
 		for _, move := range moves {
 			nfolder := applyMove(move, record)
+			log.Printf("MOVE: %v", nfolder)
 			if nfolder != "" {
-				enqueue(ctx, &pb.EnqueueRequest{
+				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().Unix(),
+						RunDate: time.Now().UnixNano(),
 						Auth:    user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_MoveRecord{
 							MoveRecord: &pb.MoveRecord{
@@ -81,6 +82,10 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 								MoveFolder: nfolder,
 							}}},
 				})
+				log.Printf("enqueued move: %v", err)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

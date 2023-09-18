@@ -63,6 +63,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) {
+	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
 
@@ -82,6 +83,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		}
 
 		elem, err = q.getNextEntry(ctx)
+		log.Printf("Post flush: %v", err)
 	}
 }
 
@@ -283,6 +285,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
 		log.Printf("Processed intent (%v) -> %v", i, v)
+
+		//Move records
+		q.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate: time.Now().Unix(),
+				Entry: &pb.QueueElement_MoveRecords{
+					MoveRecords: &pb.MoveRecords{}},
+				Auth: entry.GetAuth(),
+			}})
+
 		return v
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
@@ -323,8 +335,21 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
 			}
+			if err != nil {
+				return err
+			}
+
+			//Move records
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate: time.Now().Unix() + int64(rval) + 10,
+					Entry: &pb.QueueElement_MoveRecords{
+						MoveRecords: &pb.MoveRecords{}},
+					Auth: entry.GetAuth(),
+				}})
 			return err
 		}
+
 		return nil
 	}
 
