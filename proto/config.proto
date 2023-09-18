@@ -105,6 +105,8 @@ message GramophileConfig {
 
     Create create_folders = 12;
     Create create_moves = 13;
+
+    repeated FolderMove moves = 14;
 }
 
 message WeightConfig {
