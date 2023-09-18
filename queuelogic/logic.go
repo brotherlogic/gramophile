@@ -63,6 +63,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) {
+	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
 
@@ -82,6 +83,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		}
 
 		elem, err = q.getNextEntry(ctx)
+		log.Printf("Post flush: %v", err)
 	}
 }
 
