@@ -110,6 +110,17 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 	qc.FlushQueue(ctx)
 
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		InstanceId: 1234,
+		Intent: &pb.Intent{
+			Arrived: time.Now().Unix(),
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set intent: %v", err)
+	}
+	qc.FlushQueue(ctx)
+
 	r, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})

@@ -70,6 +70,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 
 		for _, move := range moves {
 			nfolder := applyMove(move, record)
+			log.Printf("MOVE: %v", nfolder)
 			if nfolder != "" {
 				enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
