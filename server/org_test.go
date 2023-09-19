@@ -165,16 +165,24 @@ func TestWidths(t *testing.T) {
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	di := &discogs.TestDiscogsClient{}
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   2.4,
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   2.5,
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -183,6 +191,12 @@ func TestWidths(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
+			SleeveConfig: &pb.SleeveConfig{
+				AllowedSleeves: []*pb.Sleeve{{Name: "TestSleeve", WidthMultiplier: 1.5}},
+				Mandate:        pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{
+				Mandate: pb.Mandate_REQUIRED,
+			},
 			OrganisationConfig: &pb.OrganisationConfig{
 				Organisations: []*pb.Organisation{
 					{
@@ -225,8 +239,8 @@ func TestWidths(t *testing.T) {
 	for _, o := range org.GetSnapshot().GetPlacements() {
 		totalWidth += o.GetWidth()
 	}
-	if totalWidth != 4.5 {
-		t.Errorf("Wrong width returned: %v", totalWidth)
+	if totalWidth != 2.4*1.5+2.5*1.5 {
+		t.Errorf("Wrong width returned: %v (%v)", totalWidth, 2.4*1.5+2.5*1.5)
 	}
 }
 
