@@ -10,6 +10,7 @@ message OrganisationConfig {
     repeated Organisation organisations = 3;
 }
 
+
 message OrganisationSnapshot {
     int64 date = 1;
     repeated Placement placements = 2;
@@ -31,6 +32,7 @@ message Placement {
     int32 unit = 2;
     int32 index = 3;
     string space = 4;
+    float width = 5;
 }
 
 enum Sort {
