@@ -132,4 +132,15 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
 		t.Errorf("Record was not moved: %v", r.GetRecord())
 	}
+
+	found := false
+	for _, move := range r.GetRecord().GetUpdates() {
+		if move.GetExplanation() == "Moved to Listening Pile following rule test-move" {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Errof("Did not find update: %v", r.GetRecord().GetUpdates())
+	}
 }
