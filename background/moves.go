@@ -80,6 +80,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 							MoveRecord: &pb.MoveRecord{
 								RecordIid:  iid,
 								MoveFolder: nfolder,
+								Rule:       move.GetName(),
 							}}},
 				})
 				log.Printf("enqueued move: %v", err)

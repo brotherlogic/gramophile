@@ -54,6 +54,8 @@ message RecordUpdate {
     Record before = 2;
     Record after = 3;
 
+    string metadata = 5;
+
     repeated string explanation = 4;
 }
 
@@ -164,6 +166,7 @@ message UpdateSale {
 message MoveRecord {
     int64 recordIid = 1;
     string move_folder = 2;
+    string rule = 3;
 }
 
 message MoveRecords {}
