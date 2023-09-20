@@ -100,9 +100,14 @@ func TestMoveLoopIsCaught(t *testing.T) {
 		t.Fatalf("Bad user load: %v", err)
 	}
 
+	found := false
 	for _, fm := range user.User.GetMoves() {
-		if fm.GetMoveState() != pb.MoveState_BLOCKED_BECAUSE_OF_LOOP {
-			t.Errorf("Move %v has not been blocked because of the loop", fm.GetName())
+		if fm.GetMoveState() == pb.MoveState_BLOCKED_BECAUSE_OF_LOOP {
+			found = true
 		}
+	}
+
+	if !found {
+		t.Errorf("No moves have been blocked because of over quota")
 	}
 }

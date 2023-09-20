@@ -60,6 +60,10 @@ func filter(c *pb.MoveCriteria, r *pb.Record) bool {
 }
 
 func applyMove(m *pb.FolderMove, r *pb.Record) string {
+	if m.GetMoveState() == pb.MoveState_BLOCKED_BECAUSE_OF_LOOP {
+		return ""
+	}
+
 	if filter(m.GetCriteria(), r) {
 		if m.GetMoveToGoalFolder() {
 			return r.GetGoalFolder()
@@ -74,22 +78,23 @@ const (
 	MaxMoves = 3
 )
 
-func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota, uid int32, iid int64, move string) bool {
+func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota, uid int32, iid int64, fm *pb.FolderMove) bool {
 	count := 0
-	log.Printf("MOVE: %v (%v)", quota, move)
+	log.Printf("MOVE: %v (%v)", quota, fm.GetName())
 	for _, q := range quota.GetPastMoves() {
-		if q.GetIid() == iid && q.GetMove() == move {
+		if q.GetIid() == iid && q.GetMove() == fm.GetName() {
 			count++
 		}
 	}
 
 	if count > MaxMoves {
+		fm.MoveState = pb.MoveState_BLOCKED_BECAUSE_OF_LOOP
 		return false
 	}
 
 	quota.PastMoves = append(quota.PastMoves, &pb.MoveHistory{
 		Iid:  iid,
-		Move: move,
+		Move: fm.GetName(),
 		Time: time.Now().Unix(),
 	})
 	err := b.db.SaveMoveQuota(ctx, uid, quota)
@@ -127,7 +132,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 			nfolder := applyMove(move, record)
 			log.Printf("MOVE: %v", nfolder)
 			if nfolder != "" {
-				if b.updateQuota(ctx, quota, user.GetUser().GetDiscogsUserId(), iid, move.GetName()) {
+				if b.updateQuota(ctx, quota, user.GetUser().GetDiscogsUserId(), iid, move) {
 					_, err = enqueue(ctx, &pb.EnqueueRequest{
 						Element: &pb.QueueElement{
 							RunDate: time.Now().UnixNano(),
@@ -145,6 +150,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 					}
 				} else {
 					log.Printf("OVER QUOTA")
+					return b.db.SaveUser(ctx, user)
 				}
 			}
 		}
