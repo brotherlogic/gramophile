@@ -87,6 +87,8 @@ type Database interface {
 	GetSale(ctx context.Context, userId int32, saleId int64) (*pb.SaleInfo, error)
 
 	Clean(ctx context.Context) error
+	LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, error)
+	SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error
 }
 
 func NewDatabase(ctx context.Context) Database {
@@ -168,6 +170,20 @@ func (d *DB) GetWantlists(ctx context.Context, userid int32) ([]*pb.Wantlist, er
 	}
 
 	return lists, nil
+}
+
+func (d *DB) LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/%v/movehistory", userId))
+	if err != nil {
+		return nil, err
+	}
+
+	mh := &pb.MoveQuota{}
+	err = proto.Unmarshal(data, mh)
+	return mh, err
+}
+func (d *DB) SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error {
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory"), mh)
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {

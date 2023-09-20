@@ -200,10 +200,22 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		//Update and save record
 		rec.GetRelease().FolderId = int32(fNum)
-		return q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
+		err = q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
 			Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
 		})
+		if err != nil {
+			return err
+		}
 
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate: time.Now().Unix(),
+				Entry: &pb.QueueElement_MoveRecords{
+					MoveRecords: &pb.MoveRecords{},
+				},
+				Auth: entry.GetAuth(),
+			}})
+		return err
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_UpdateSale:

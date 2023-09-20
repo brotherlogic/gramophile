@@ -9,6 +9,22 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb.MoveQuota, error) {
+	quota, err := b.db.LoadMoveQuota(ctx, userid)
+	if err != nil {
+		return nil, err
+	}
+
+	var mh []*pb.MoveHistory
+	for _, move := range quota.GetPastMoves() {
+		if time.Since(time.Unix(move.GetTime(), 0)) < time.Hour {
+			mh = append(mh, move)
+		}
+	}
+
+	return &pb.MoveQuota{PastMoves: mh}, nil
+}
+
 func filter(c *pb.MoveCriteria, r *pb.Record) bool {
 	if c.GetHasSaleId() != pb.Bool_UNKNOWN {
 		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleInfo().GetSaleId() == 0 {
@@ -54,6 +70,10 @@ func applyMove(m *pb.FolderMove, r *pb.Record) string {
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	moves := user.GetMoves()
+	quota, err := b.loadMoveQuota(ctx, user.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return err
+	}
 
 	records, err := b.db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
@@ -91,5 +111,5 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 		}
 	}
 
-	return nil
+	return b.db.SaveMoveQuota(ctx, user.GetUser().GetDiscogsUserId(), quota)
 }
