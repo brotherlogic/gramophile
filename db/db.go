@@ -183,7 +183,7 @@ func (d *DB) LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, er
 	return mh, err
 }
 func (d *DB) SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error {
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory"), mh)
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory", userId), mh)
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {

@@ -94,4 +94,15 @@ func TestMoveLoopIsCaught(t *testing.T) {
 	if count < 2 || count > 6 {
 		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecord().GetUpdates())
 	}
+
+	user, err := s.GetUser(ctx, &pb.GetUserRequest{})
+	if err != nil {
+		t.Fatalf("Bad user load: %v", err)
+	}
+
+	for _, fm := range user.User.GetMoves() {
+		if fm.GetMoveState() != pb.MoveState_BLOCKED_BECAUSE_OF_LOOP {
+			t.Errorf("Move %v has not been blocked because of the loop", fm.GetName())
+		}
+	}
 }
