@@ -20,6 +20,7 @@ type Validator interface {
 
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, []*pb.FolderMove, error) {
 	var moves []*pb.FolderMove
+	moves = append(moves, c.GetMoves()...)
 
 	for _, validator := range []Validator{
 		&cleaning{},

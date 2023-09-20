@@ -54,6 +54,7 @@ type Database interface {
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, error)
 	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
+	SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 	GetUpdates(ctx context.Context, userid int32, record *pb.Record) ([]*pb.RecordUpdate, error)
 	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 
@@ -409,6 +410,42 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	su := &pb.StoredUser{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
 	return su, err
+}
+
+func (d *DB) SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error {
+	data, err := proto.Marshal(record)
+	if err != nil {
+		return err
+	}
+
+	old, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
+	})
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+		old = &rspb.ReadResponse{}
+		old.Value = &anypb.Any{Value: []byte{}}
+	}
+
+	oldRecord := &pb.Record{}
+	err = proto.Unmarshal(old.GetValue().GetValue(), oldRecord)
+	if err != nil {
+		return err
+	}
+
+	err = d.SaveUpdate(ctx, userid, record, update)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
+		Value: &anypb.Any{Value: data},
+	})
+
+	return err
 }
 
 func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) error {

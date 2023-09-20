@@ -96,6 +96,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 			CreateMoves:   pb.Create_AUTOMATIC,
 			Moves: []*pb.FolderMove{
 				{
+					Origin:     pb.Create_MANUAL,
 					Name:       "test-move",
 					MoveFolder: "Listening Pile",
 					Criteria: &pb.MoveCriteria{
@@ -122,6 +123,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	qc.FlushQueue(ctx)
 
 	r, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		IncludeHistory: true,
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
 
@@ -131,5 +133,18 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 
 	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
 		t.Errorf("Record was not moved: %v", r.GetRecord())
+	}
+
+	found := false
+	for _, move := range r.GetRecord().GetUpdates() {
+		for _, exp := range move.GetExplanation() {
+			if exp == "Moved to Listening Pile following rule test-move" {
+				found = true
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("Did not find update: %v", r.GetRecord().GetUpdates())
 	}
 }
