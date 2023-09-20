@@ -31,12 +31,28 @@ message MoveCriteria {
     Bool arrived = 4;
 }
 
+enum MoveState {
+    ENABLED = 0;
+    BLOCKED_BECAUSE_OF_LOOP = 1;
+}
+
 message FolderMove {
     string name = 1;
     MoveCriteria criteria = 2;
     string move_folder = 3;
     bool move_to_goal_folder = 4;
     Create origin = 5;
+    MoveState move_state = 6;
+}
+
+message MoveQuota {
+    repeated MoveHistory past_moves = 1;
+}
+
+message MoveHistory {
+    string move = 1;
+    int64 iid = 2;
+    int64 time = 3;
 }
 
 message Filter {

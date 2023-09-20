@@ -175,6 +175,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
+		log.Printf("MMMMOVE: %v", entry.GetMoveRecord())
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
 		if err != nil {
 			return fmt.Errorf("unable to get record: %w", err)
@@ -200,10 +201,23 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		//Update and save record
 		rec.GetRelease().FolderId = int32(fNum)
-		return q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
+		err = q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
+			Date:        time.Now().UnixMilli(),
 			Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
 		})
+		if err != nil {
+			return err
+		}
 
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate: time.Now().Unix(),
+				Entry: &pb.QueueElement_MoveRecords{
+					MoveRecords: &pb.MoveRecords{},
+				},
+				Auth: entry.GetAuth(),
+			}})
+		return err
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_UpdateSale:
