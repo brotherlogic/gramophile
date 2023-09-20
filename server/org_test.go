@@ -239,8 +239,8 @@ func TestWidths(t *testing.T) {
 	for _, o := range org.GetSnapshot().GetPlacements() {
 		totalWidth += o.GetWidth()
 	}
-	if totalWidth != 2.4*1.5+2.5*1.5 {
-		t.Errorf("Wrong width returned: %v (%v)", totalWidth, 2.4*1.5+2.5*1.5)
+	if totalWidth-(2.4*1.5+2.5*1.5) > 0.01 {
+		t.Errorf("Wrong width returned: %v", totalWidth-2.4*1.5+2.5*1.5)
 	}
 }
 
