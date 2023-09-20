@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 	"strings"
@@ -45,6 +46,21 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record) string {
 	return ""
 }
 
+func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+	log.Printf("WIDTH: %v", r)
+	switch d {
+	case pb.Density_COUNT:
+		return 1
+	case pb.Density_DISKS:
+		return 1 //return r.GetDisks()
+	case pb.Density_WIDTH:
+		return r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+	}
+
+	log.Printf("Unknown Width Calculation: %v", d)
+	return -1
+}
+
 func min(a, b int32) int32 {
 	if a < b {
 		return a
@@ -82,22 +98,33 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		records = append(records, recs...)
 	}
 
+	// Build out the width map
+	sleeveMap := make(map[string]*pb.Sleeve)
+	for _, sleeve := range user.GetConfig().GetSleeveConfig().GetAllowedSleeves() {
+		sleeveMap[sleeve.GetName()] = sleeve
+	}
+
 	// Now lay out the records in the units
 	var placements []*pb.Placement
 	rc := int32(0)
+	totalWidth := float32(0)
 
 	for _, slot := range org.GetSpaces() {
 		if slot.GetLayout() == pb.Layout_TIGHT {
 			for i := int32(1); i <= (slot.GetUnits()); i++ {
 				if slot.GetRecordsWidth() > 0 {
 					for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
+						width := getWidth(r, org.GetDensity(), sleeveMap)
+
 						placements = append(placements, &pb.Placement{
 							Iid:   r.GetRelease().GetInstanceId(),
 							Space: slot.GetName(),
 							Unit:  i,
 							Index: rc + 1,
+							Width: width,
 						})
 						rc++
+						totalWidth += width
 					}
 				}
 			}
@@ -106,13 +133,17 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				count := min(int32(math.Ceil(float64(len(records[rc:]))/float64(slot.GetUnits()))), slot.GetRecordsWidth())
 				for i := int32(1); i <= slot.GetUnits(); i++ {
 					for _, r := range records[rc : rc+count] {
+						width := getWidth(r, org.GetDensity(), sleeveMap)
+						log.Printf("Got width: %v", width)
 						placements = append(placements, &pb.Placement{
 							Iid:   r.GetRelease().GetInstanceId(),
 							Space: slot.GetName(),
 							Unit:  i,
 							Index: rc + 1,
+							Width: width,
 						})
 						rc++
+						totalWidth += width
 					}
 				}
 			}

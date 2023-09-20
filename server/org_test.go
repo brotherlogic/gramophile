@@ -160,6 +160,90 @@ func TestLooseLayoutSupport(t *testing.T) {
 	}
 }
 
+func TestWidths(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   2.4,
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   2.5,
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SleeveConfig: &pb.SleeveConfig{
+				AllowedSleeves: []*pb.Sleeve{{Name: "TestSleeve", WidthMultiplier: 1.5}},
+				Mandate:        pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{
+				Mandate: pb.Mandate_REQUIRED,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "testing",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:         "Main Shelves",
+								Units:        2,
+								RecordsWidth: 100,
+								Layout:       pb.Layout_LOOSE,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 2 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	totalWidth := float32(0)
+	for _, o := range org.GetSnapshot().GetPlacements() {
+		totalWidth += o.GetWidth()
+	}
+	if totalWidth-(2.4*1.5+2.5*1.5) > 0.01 {
+		t.Errorf("Wrong width returned: %v", totalWidth-2.4*1.5+2.5*1.5)
+	}
+}
+
 func TestGetSnapshotHash(t *testing.T) {
 	ctx := getTestContext(123)
 
