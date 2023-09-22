@@ -24,7 +24,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		return nil, err
 	}
 
-	log.Printf("got fields: %v", fields)
+	log.Printf("got these fields: %v", fields)
 
 	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
