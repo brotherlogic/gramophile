@@ -189,7 +189,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if fNum < 0 {
-			return status.Errorf(codes.NotFound, "Folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
+			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}
 
 		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), int64(rec.GetRelease().GetFolderId()), fNum)
