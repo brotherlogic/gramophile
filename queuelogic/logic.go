@@ -102,7 +102,7 @@ func (q *Queue) Run() {
 			err = errv
 			erru = errv
 			if err == nil {
-				log.Printf("Processing user: %v", user)
+				log.Printf("Processing user: %v -> %v", user, user.GetUser())
 				if user.GetUser() == nil {
 					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
 				} else {
