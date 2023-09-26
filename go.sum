@@ -42,6 +42,8 @@ github.com/brotherlogic/discogs v0.0.0-20230922144411-f22d86dd7c75 h1:Cji5rW2rKh
 github.com/brotherlogic/discogs v0.0.0-20230922144411-f22d86dd7c75/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20230922152159-a19a81ba3f83 h1:OL6rhsWteUNbgiVZzm3dEiQBtLBoc0dSMw4yrUqwhXU=
 github.com/brotherlogic/discogs v0.0.0-20230922152159-a19a81ba3f83/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb h1:R1280Ek80EL3Lni609Yo4a0VwLGZX1jmsMiapbv7lZs=
+github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRxtqdAiZglw4tO/6E2ck5O9+sm2iesWgf0XcI=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6 h1:WjYkNhmb4RTQMzaKXufLkBwFbRmkB0DDHF8dP2zdeC8=
@@ -108,6 +110,8 @@ github.com/prometheus/procfs v0.11.0 h1:5EAgkfkMl659uZPbe9AS2N68a7Cc1TJbPEuGzFuR
 github.com/prometheus/procfs v0.11.0/go.mod h1:nwNm2aOCAYw8uTR/9bWRREkZFxAUcWzPHWJq+XBB/FM=
 github.com/prometheus/procfs v0.11.1 h1:xRC8Iq1yyca5ypa9n1EZnWZkt7dwcoRPQwX/5gwaUuI=
 github.com/prometheus/procfs v0.11.1/go.mod h1:eesXgaPo1q7lBpVMoMy0ZOFTth9hBn4W/y0/p/ScXhY=
+github.com/prometheus/procfs v0.12.0 h1:jluTpSng7V9hY0O2R9DzzJHYb2xULk9VTR1V1R/k6Bo=
+github.com/prometheus/procfs v0.12.0/go.mod h1:pcuDEFsWDnvcgNzo4EEweacyhjeA9Zk3cnaOZAZEfOo=
 github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
 github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 golang.org/x/net v0.12.0 h1:cfawfvKITfUsFCeJIHJrbSxpeu/E81khclypR0GVT50=
