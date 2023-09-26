@@ -18,6 +18,7 @@ import (
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/rstore/proto"
 )
@@ -102,8 +103,12 @@ func (q *Queue) Run() {
 			erru = errv
 			if err == nil {
 				log.Printf("Processing user: %v", user)
-				user.GetUser().UserSecret = user.GetUserSecret()
-				user.GetUser().UserToken = user.GetUserToken()
+				if user.GetUser() == nil {
+					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
+				} else {
+					user.GetUser().UserSecret = user.GetUserSecret()
+					user.GetUser().UserToken = user.GetUserToken()
+				}
 				d := q.d.ForUser(user.GetUser())
 				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
