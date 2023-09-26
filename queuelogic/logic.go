@@ -101,8 +101,9 @@ func (q *Queue) Run() {
 			err = errv
 			erru = errv
 			if err == nil {
-				user.User.UserSecret = user.UserSecret
-				user.User.UserToken = user.UserToken
+				log.Printf("Processing user: %v", user)
+				user.GetUser().UserSecret = user.GetUserSecret()
+				user.GetUser().UserToken = user.GetUserToken()
 				d := q.d.ForUser(user.GetUser())
 				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
