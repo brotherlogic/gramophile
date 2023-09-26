@@ -140,7 +140,7 @@ message GramophileConfig {
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
-    repeated ValidationRule validation = 15;
+    repeated ValidationRule validations = 15;
 }
 
 message WeightConfig {
