@@ -14,7 +14,6 @@ import (
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -207,13 +206,7 @@ func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) erro
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	val, err := client.Read(ctx, &rspb.ReadRequest{
+	val, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: "gramophile/logins",
 	})
 	if err != nil {
@@ -270,18 +263,12 @@ func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) er
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(logins)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   "gramophile/logins",
 		Value: &anypb.Any{Value: data},
 	})
