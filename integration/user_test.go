@@ -28,7 +28,8 @@ func TestUserBuiltPostLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to get URL: %v", err)
 	}
-	login, err := s.GetLogin(ctx, &pb.GetLoginRequest{Token: "abc"})
+
+	login, err := s.GetLogin(ctx, &pb.GetLoginRequest{Token: "madeuptoken"})
 	if err != nil {
 		t.Fatalf("Unable to get login: %v", err)
 	}
@@ -40,7 +41,7 @@ func TestUserBuiltPostLogin(t *testing.T) {
 		t.Fatalf("Unable to get user: %v", err)
 	}
 
-	if user.GetUser().GetUser().GetUsername() != "brotherlogic" {
+	if user.GetUser().GetUser().GetUsername() != "madeupuser" {
 		t.Errorf("Bad user return: %v", user)
 	}
 

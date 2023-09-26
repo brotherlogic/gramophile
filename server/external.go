@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -42,11 +43,20 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 
 	for _, attempt := range attempts.GetAttempts() {
 		if attempt.RequestToken == req.GetToken() {
-			token, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
+			user, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
 			if err != nil {
 				return nil, err
 			}
-			return &pb.GetLoginResponse{Auth: token}, nil
+
+			// Enrich and store the user
+			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
+			duser, err := sd.GetDiscogsUser(ctx)
+			if err != nil {
+				return nil, err
+			}
+			user.User = duser
+
+			return &pb.GetLoginResponse{Auth: user.GetAuth()}, s.d.SaveUser(ctx, user)
 		}
 	}
 

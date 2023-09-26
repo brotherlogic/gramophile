@@ -62,7 +62,7 @@ type Database interface {
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
 	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
-	GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error)
+	GenerateToken(ctx context.Context, token, secret string) (*pb.StoredUser, error)
 
 	SaveUser(ctx context.Context, user *pb.StoredUser) error
 	DeleteUser(ctx context.Context, id string) error
@@ -347,7 +347,7 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org str
 	return orgSnap, err
 }
 
-func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
+func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.StoredUser, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
 	su := &pb.StoredUser{
 		Auth:       &pb.GramophileAuth{Token: user},
@@ -355,23 +355,17 @@ func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.Gramo
 		UserSecret: secret,
 	}
 
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
 	data, err := proto.Marshal(su)
 	if err != nil {
 		return nil, err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user),
 		Value: &anypb.Any{Value: data},
 	})
 
-	return &pb.GramophileAuth{Token: user}, err
+	return su, err
 }
 
 func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
