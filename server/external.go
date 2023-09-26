@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -46,7 +47,15 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 			if err != nil {
 				return nil, err
 			}
-			return &pb.GetLoginResponse{Auth: token}, nil
+
+			// Enrich and store the user
+			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
+			user, err := sd.GetDiscogsUser(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			return &pb.GetLoginResponse{Auth: token}, s.d.SaveUser(ctx, &pb.StoredUser{User: user})
 		}
 	}
 
