@@ -44,6 +44,10 @@ github.com/brotherlogic/discogs v0.0.0-20230922152159-a19a81ba3f83 h1:OL6rhsWteU
 github.com/brotherlogic/discogs v0.0.0-20230922152159-a19a81ba3f83/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb h1:R1280Ek80EL3Lni609Yo4a0VwLGZX1jmsMiapbv7lZs=
 github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20230926234344-881509b90fa6 h1:09le5IoddGu9CPuxNQ3ys3Q7qs1/Joms/wc5407BVsE=
+github.com/brotherlogic/discogs v0.0.0-20230926234344-881509b90fa6/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20230926235645-81d0d165e115 h1:ae9KSgcYcUJscWJaT6jdHe3yYHVCFzDT98Twb3K6TDI=
+github.com/brotherlogic/discogs v0.0.0-20230926235645-81d0d165e115/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRxtqdAiZglw4tO/6E2ck5O9+sm2iesWgf0XcI=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6 h1:WjYkNhmb4RTQMzaKXufLkBwFbRmkB0DDHF8dP2zdeC8=
