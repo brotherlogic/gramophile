@@ -17,6 +17,23 @@ func getTestContext(userid int) context.Context {
 	return metadata.AppendToOutgoingContext(context.Background(), "auth-token", fmt.Sprintf("%v", userid))
 }
 
+func TestReverse(t *testing.T) {
+	recs := []*pb.Record{
+		{
+			Release: &pbd.Release{InstanceId: 1},
+		},
+		{
+			Release: &pbd.Release{InstanceId: 2},
+		},
+	}
+
+	nrecs := reverse(recs)
+
+	if nrecs[0].GetRelease().GetInstanceId() != 2 {
+		t.Errorf("Bad reverse")
+	}
+}
+
 func TestRetrieveUpdates(t *testing.T) {
 	ctx := getTestContext(123)
 

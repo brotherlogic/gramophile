@@ -24,14 +24,14 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		return nil, err
 	}
 
-	log.Printf("Got fields: %v", fields)
+	log.Printf("got these fields: %v", fields)
 
 	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
 		return nil, fmt.Errorf("bad validate: %v", verr)
 	}
 
-	log.Printf("Got folders: %v", folders)
+	log.Printf("got folders: %v", folders)
 
 	for _, folder := range folders {
 		s.qc.Enqueue(ctx, &pb.EnqueueRequest{

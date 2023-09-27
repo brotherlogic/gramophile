@@ -43,19 +43,20 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 
 	for _, attempt := range attempts.GetAttempts() {
 		if attempt.RequestToken == req.GetToken() {
-			token, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
+			user, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
 			if err != nil {
 				return nil, err
 			}
 
 			// Enrich and store the user
 			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
-			user, err := sd.GetDiscogsUser(ctx)
+			duser, err := sd.GetDiscogsUser(ctx)
 			if err != nil {
 				return nil, err
 			}
+			user.User = duser
 
-			return &pb.GetLoginResponse{Auth: token}, s.d.SaveUser(ctx, &pb.StoredUser{User: user})
+			return &pb.GetLoginResponse{Auth: user.GetAuth()}, s.d.SaveUser(ctx, user)
 		}
 	}
 

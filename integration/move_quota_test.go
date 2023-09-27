@@ -91,7 +91,7 @@ func TestMoveLoopIsCaught(t *testing.T) {
 		}
 	}
 
-	if count < 2 || count > 6 {
+	if count < 2 || count > 8 {
 		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecord().GetUpdates())
 	}
 

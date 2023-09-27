@@ -18,6 +18,7 @@ import (
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/rstore/proto"
 )
@@ -101,8 +102,13 @@ func (q *Queue) Run() {
 			err = errv
 			erru = errv
 			if err == nil {
-				user.User.UserSecret = user.UserSecret
-				user.User.UserToken = user.UserToken
+				log.Printf("Processing user: %v -> %v", user, user.GetUser())
+				if user.GetUser() == nil {
+					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
+				} else {
+					user.GetUser().UserSecret = user.GetUserSecret()
+					user.GetUser().UserToken = user.GetUserToken()
+				}
 				d := q.d.ForUser(user.GetUser())
 				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
@@ -189,7 +195,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if fNum < 0 {
-			return status.Errorf(codes.NotFound, "Folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
+			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}
 
 		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), int64(rec.GetRelease().GetFolderId()), fNum)
@@ -202,7 +208,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		//Update and save record
 		rec.GetRelease().FolderId = int32(fNum)
 		err = q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
-			Date:        time.Now().UnixMilli(),
+			Date:        time.Now().UnixNano(),
 			Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
 		})
 		if err != nil {
