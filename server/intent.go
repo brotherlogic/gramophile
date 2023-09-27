@@ -22,7 +22,7 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 		}
 
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, "%v is not in the list of user folders", i.GetGoalFolder())
+			return status.Errorf(codes.FailedPrecondition, "%v is not in the list of current user folders", i.GetGoalFolder())
 		}
 	}
 
