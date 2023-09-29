@@ -21,7 +21,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	fields, err := s.di.ForUser(u.GetUser()).GetFields(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to promote di to user: %w", err)
+		return nil, fmt.Errorf("unable to promote di to user (or get fields): %w", err)
 	}
 
 	log.Printf("got these fields: %v", fields)
