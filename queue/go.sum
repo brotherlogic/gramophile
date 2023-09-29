@@ -24,6 +24,8 @@ github.com/brotherlogic/discogs v0.0.0-20230926022300-1f6c127f48dd h1:Ib9J+b+A1z
 github.com/brotherlogic/discogs v0.0.0-20230926022300-1f6c127f48dd/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb h1:R1280Ek80EL3Lni609Yo4a0VwLGZX1jmsMiapbv7lZs=
 github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f h1:iG2lxIXCcUARB5ZYCmX27g1tD/WbAIOukhOkkhvAvw4=
+github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/gramophile v0.267.0 h1:FAMczQs1LsEBTAWfOIky3fPx+NJReKdkYxMoiERt6kg=
 github.com/brotherlogic/gramophile v0.267.0/go.mod h1:oG7xxtGQxk3Hs/Gb2NV6nvLiTRCwTdV976d5N8c9Hn0=
 github.com/brotherlogic/gramophile v0.285.0 h1:WMUVcmhgOXt9Bojz0lVWH59BmeTkUnCtvU9mH0p1JLs=
@@ -82,6 +84,8 @@ github.com/brotherlogic/gramophile v0.363.0 h1:mLabHDAelONistbWCz4v0qZrWelMQW36w
 github.com/brotherlogic/gramophile v0.363.0/go.mod h1:nRzuMUgDblZTAy9U2tyndowEeCcbOPooBktsglZqWYQ=
 github.com/brotherlogic/gramophile v0.364.0 h1:rqkI6F3Wekq2tn+R/FACqO4RbqSLOFBdwcjd1w63W2Q=
 github.com/brotherlogic/gramophile v0.364.0/go.mod h1:nRzuMUgDblZTAy9U2tyndowEeCcbOPooBktsglZqWYQ=
+github.com/brotherlogic/gramophile v0.376.0 h1:KiXKLM6wnPcQpcHIoL7wV8pd5CaIaGYcmvihon6+e+A=
+github.com/brotherlogic/gramophile v0.376.0/go.mod h1:dzMtFiDnucgWrBL8VpwCv0lAe2qh02NYt5ReJJElln0=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=
 github.com/brotherlogic/rstore v0.31.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.34.0 h1:0C7B41u05UYC8q8i8oNxcZTlUf37hKp+ZfN4I30DKx0=
@@ -102,8 +106,12 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfr
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/prometheus/client_golang v1.16.0 h1:yk/hx9hDbrGHovbci4BY+pRMfSuuat626eFsHb7tmT8=
 github.com/prometheus/client_golang v1.16.0/go.mod h1:Zsulrv/L9oM40tJ7T815tM89lFEugiJ9HzIqaAx4LKc=
+github.com/prometheus/client_golang v1.17.0 h1:rl2sfwZMtSthVU752MqfjQozy7blglC+1SOtjMAMh+Q=
+github.com/prometheus/client_golang v1.17.0/go.mod h1:VeL+gMmOAxkS2IqfCq0ZmHSL+LjWfWDUmp1mBz9JgUY=
 github.com/prometheus/client_model v0.4.0 h1:5lQXD3cAg1OXBf4Wq03gTrXHeaV0TQvGfUooCfx1yqY=
 github.com/prometheus/client_model v0.4.0/go.mod h1:oMQmHW1/JoDwqLtg57MGgP/Fb1CJEYF2imWWhWtMkYU=
+github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 h1:v7DLqVdK4VrYkVD5diGdl4sxJurKJEMnODWRJlxV9oM=
+github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16/go.mod h1:oMQmHW1/JoDwqLtg57MGgP/Fb1CJEYF2imWWhWtMkYU=
 github.com/prometheus/common v0.44.0 h1:+5BrQJwiBB9xsMygAB3TNvpQKOwlkc25LbISbrdOOfY=
 github.com/prometheus/common v0.44.0/go.mod h1:ofAIvZbQ1e/nugmZGz4/qCb9Ap1VoSTIO7x0VV9VvuY=
 github.com/prometheus/procfs v0.11.1 h1:xRC8Iq1yyca5ypa9n1EZnWZkt7dwcoRPQwX/5gwaUuI=
