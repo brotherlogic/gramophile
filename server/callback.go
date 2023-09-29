@@ -31,8 +31,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			login.UserSecret = secret
 			login.UserToken = token
 
+			log.Printf("Saving login: %v", login)
+
 			s.d.SaveLogins(ctx, logins)
 			return
 		}
 	}
+
+	log.Printf("Unable to locate user in login attempts")
 }
