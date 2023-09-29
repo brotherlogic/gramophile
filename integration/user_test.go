@@ -29,6 +29,17 @@ func TestUserBuiltPostLogin(t *testing.T) {
 		t.Fatalf("Unable to get URL: %v", err)
 	}
 
+	// We need to pretend that discogs has responded here
+	ats, err := d.LoadLogins(ctx)
+	if err != nil {
+		t.Fatalf("Unable to load logins")
+	}
+	for _, attempt := range ats.GetAttempts() {
+		attempt.UserSecret = "madeupsecret"
+		attempt.UserToken = "madeuptoken"
+	}
+	d.SaveLogins(ctx, ats)
+
 	login, err := s.GetLogin(ctx, &pb.GetLoginRequest{Token: "madeuptoken"})
 	if err != nil {
 		t.Fatalf("Unable to get login: %v", err)
