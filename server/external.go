@@ -61,5 +61,6 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 		}
 	}
 
+	log.Printf("Tokens: %v", attempts)
 	return nil, status.Errorf(codes.DataLoss, "unable to locate token in db")
 }

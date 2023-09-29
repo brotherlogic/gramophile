@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	queue_client "github.com/brotherlogic/gramophile/queue_client"
 
 	"github.com/brotherlogic/discogs"
@@ -86,7 +87,10 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 
 	user, err := s.d.GetUser(ctx, key)
 
-	if user.GetUser().GetUserSecret() == "" {
+	if err == nil && user.GetUser().GetUserSecret() == "" {
+		if user.GetUser() == nil {
+			user.User = &pbd.User{}
+		}
 		user.GetUser().UserSecret = user.GetUserSecret()
 		user.GetUser().UserToken = user.GetUserToken()
 	}
