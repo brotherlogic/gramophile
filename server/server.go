@@ -86,6 +86,11 @@ func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 
 	user, err := s.d.GetUser(ctx, key)
 
+	if user.GetUser().GetUserSecret() == "" {
+		user.GetUser().UserSecret = user.GetUserSecret()
+		user.GetUser().UserToken = user.GetUserToken()
+	}
+
 	return user, err
 }
 
