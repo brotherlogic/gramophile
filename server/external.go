@@ -42,7 +42,7 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 	}
 
 	for _, attempt := range attempts.GetAttempts() {
-		if attempt.RequestToken == req.GetToken() {
+		if attempt.RequestToken == req.GetToken() && attempt.GetUserSecret() != "" {
 			user, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
 			if err != nil {
 				return nil, err
