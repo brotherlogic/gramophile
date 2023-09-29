@@ -49,7 +49,7 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 			}
 
 			// Enrich and store the user
-			log.Printf("From %v got %v and %v", attempt, user, err)
+			log.Printf("From attempt %v got %v and %v", attempt, user, err)
 			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
 			duser, err := sd.GetDiscogsUser(ctx)
 			if err != nil {
