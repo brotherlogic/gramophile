@@ -25,6 +25,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			LastPriceUpdate: time.Now().Unix(),
 			SaleState:       sale.GetStatus(),
 			ReleaseId:       sale.GetReleaseId(),
+			Condition:       sale.GetCondition(),
 			CurrentPrice: &pbd.Price{
 				Value:    sale.GetPrice().GetValue(),
 				Currency: sale.GetPrice().GetCurrency(),
@@ -79,8 +80,10 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 						Auth:    user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_UpdateSale{
 							UpdateSale: &pb.UpdateSale{
-								SaleId:   sid,
-								NewPrice: nsp,
+								SaleId:    sid,
+								NewPrice:  nsp,
+								ReleaseId: sale.GetReleaseId(),
+								Condition: sale.GetCondition(),
 							}}},
 				})
 				if err != nil {
@@ -93,14 +96,14 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 	return nil
 }
 
-func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, newprice int32) error {
+func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, releaseid int64, condition string, newprice int32) error {
 	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
 	if err != nil {
 		return fmt.Errorf("unable to load sale: %w", err)
 	}
 
 	log.Printf("Updating price %v -> %v", sale, newprice)
-	err = d.UpdateSale(ctx, sid, newprice)
+	err = d.UpdateSale(ctx, sid, releaseid, condition, newprice)
 	if err != nil {
 		return fmt.Errorf("unable to update sale price: %w", err)
 	}
