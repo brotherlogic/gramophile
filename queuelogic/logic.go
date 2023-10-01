@@ -227,7 +227,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_UpdateSale:
-		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetNewPrice())
+		//Short cut if sale data is not complete
+		if entry.GetUpdateSale().GetCondition() == "" {
+			return nil
+		}
+		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefereshWants(ctx, d)
 	case *pb.QueueElement_RefreshWantlists:
