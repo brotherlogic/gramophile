@@ -96,12 +96,15 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 		SaleId:          123456,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		ReleaseId:       12,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{
 			Id:         123,
 			InstanceId: 1234,
 			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
 		SaleInfo: si,
 	})
