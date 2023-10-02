@@ -26,6 +26,8 @@ github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb h1:R1280Ek80E
 github.com/brotherlogic/discogs v0.0.0-20230926034701-349b483a1ebb/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f h1:iG2lxIXCcUARB5ZYCmX27g1tD/WbAIOukhOkkhvAvw4=
 github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac h1:nswEKjWboWvVo9KaTMN/d85cKm/emKRa/6UsKJ4HEEw=
+github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/gramophile v0.267.0 h1:FAMczQs1LsEBTAWfOIky3fPx+NJReKdkYxMoiERt6kg=
 github.com/brotherlogic/gramophile v0.267.0/go.mod h1:oG7xxtGQxk3Hs/Gb2NV6nvLiTRCwTdV976d5N8c9Hn0=
 github.com/brotherlogic/gramophile v0.285.0 h1:WMUVcmhgOXt9Bojz0lVWH59BmeTkUnCtvU9mH0p1JLs=
@@ -86,10 +88,14 @@ github.com/brotherlogic/gramophile v0.364.0 h1:rqkI6F3Wekq2tn+R/FACqO4RbqSLOFBdw
 github.com/brotherlogic/gramophile v0.364.0/go.mod h1:nRzuMUgDblZTAy9U2tyndowEeCcbOPooBktsglZqWYQ=
 github.com/brotherlogic/gramophile v0.376.0 h1:KiXKLM6wnPcQpcHIoL7wV8pd5CaIaGYcmvihon6+e+A=
 github.com/brotherlogic/gramophile v0.376.0/go.mod h1:dzMtFiDnucgWrBL8VpwCv0lAe2qh02NYt5ReJJElln0=
+github.com/brotherlogic/gramophile v0.378.0 h1:JiG3bo1Sk2VMeK/hjfXE7Ta2dVTYlIixs56TmxA4cLY=
+github.com/brotherlogic/gramophile v0.378.0/go.mod h1:zqQ3cLTf5vdOMxt1o40On38ZRJC6WWSxN2ubCM9alW8=
 github.com/brotherlogic/rstore v0.31.0 h1:ZsgNW9Q8AuxcWtxbJEmxOX47shnm1MNtATJ+kgOtSjA=
 github.com/brotherlogic/rstore v0.31.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.34.0 h1:0C7B41u05UYC8q8i8oNxcZTlUf37hKp+ZfN4I30DKx0=
 github.com/brotherlogic/rstore v0.34.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
+github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
+github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
