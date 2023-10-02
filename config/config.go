@@ -57,6 +57,7 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 				}
 			}
 		}
+
 	}
 
 	var rmoves []*pb.FolderMove

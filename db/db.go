@@ -14,7 +14,6 @@ import (
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -63,7 +62,7 @@ type Database interface {
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
 	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
-	GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error)
+	GenerateToken(ctx context.Context, token, secret string) (*pb.StoredUser, error)
 
 	SaveUser(ctx context.Context, user *pb.StoredUser) error
 	DeleteUser(ctx context.Context, id string) error
@@ -207,13 +206,7 @@ func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) erro
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := rspb.NewRStoreServiceClient(conn)
-	val, err := client.Read(ctx, &rspb.ReadRequest{
+	val, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: "gramophile/logins",
 	})
 	if err != nil {
@@ -270,18 +263,12 @@ func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) er
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-
 	data, err := proto.Marshal(logins)
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   "gramophile/logins",
 		Value: &anypb.Any{Value: data},
 	})
@@ -360,7 +347,7 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org str
 	return orgSnap, err
 }
 
-func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.GramophileAuth, error) {
+func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.StoredUser, error) {
 	user := fmt.Sprintf("%v-%v", time.Now().UnixNano(), rand.Int63())
 	su := &pb.StoredUser{
 		Auth:       &pb.GramophileAuth{Token: user},
@@ -368,23 +355,17 @@ func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.Gramo
 		UserSecret: secret,
 	}
 
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-
 	data, err := proto.Marshal(su)
 	if err != nil {
 		return nil, err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
-	_, err = client.Write(ctx, &rspb.WriteRequest{
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user),
 		Value: &anypb.Any{Value: data},
 	})
 
-	return &pb.GramophileAuth{Token: user}, err
+	return su, err
 }
 
 func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
@@ -512,7 +493,7 @@ func ResolveDiff(update *pb.RecordUpdate) []string {
 
 func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
 	update := &pb.RecordUpdate{
-		Date:   time.Now().Unix(),
+		Date:   time.Now().UnixMilli(),
 		Before: old,
 		After:  new,
 	}

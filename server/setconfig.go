@@ -13,7 +13,7 @@ import (
 func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
 	u, err := s.getUser(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get user: %w", err)
 	}
 
 	log.Printf("Got user: %v", u.GetUser())
@@ -21,17 +21,17 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	fields, err := s.di.ForUser(u.GetUser()).GetFields(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to promote di to user (or get fields): %w", err)
 	}
 
-	log.Printf("Got fields: %v", fields)
+	log.Printf("got these fields: %v", fields)
 
 	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
 		return nil, fmt.Errorf("bad validate: %v", verr)
 	}
 
-	log.Printf("Got folders: %v", folders)
+	log.Printf("got folders: %v", folders)
 
 	for _, folder := range folders {
 		s.qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -64,12 +64,12 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 		err = config.Apply(u.Config, r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to apply config: %w", err)
 		}
 
 		err = s.d.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to save record: %w", err)
 		}
 	}
 
@@ -83,7 +83,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 			},
 		}})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to enqueue: %w", err)
 	}
 
 	return &pb.SetConfigResponse{}, s.d.SaveUser(ctx, u)
