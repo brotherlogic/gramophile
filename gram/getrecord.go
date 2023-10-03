@@ -47,7 +47,9 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("%v\n", r.GetRelease().GetTitle())
 
 			if r.GetSaleInfo().GetSaleId() > 0 {
-				fmt.Printf("For Sale (%v). Current Price: %v\n", r.GetSaleInfo().GetSaleId(), float64(r.GetSaleInfo().GetCurrentPrice().GetValue())/100.0)
+				fmt.Printf("For Sale (%v). Current Price: %v [%v]\n", r.GetSaleInfo().GetSaleId(),
+					float64(r.GetSaleInfo().GetCurrentPrice().GetValue())/100.0,
+					r.GetSaleInfo().GetCondition())
 			}
 
 			for _, update := range r.GetUpdates() {
