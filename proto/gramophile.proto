@@ -122,6 +122,7 @@ message Intent {
     string sleeve = 6;
     int64 arrived = 7;
     KeepStatus keep = 8;
+    int32 new_rating = 9;
 }
 
 message Queues {

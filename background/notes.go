@@ -61,7 +61,22 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessRating(ctx, d, r, i, user)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
+}
+
+func (b *BackgroundRunner) ProcessRating(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
+	_, err := d.SetRating(ctx, user.GetUser().GetDiscogsUserId(), r.GetRelease().GetId(), i.GetNewRating())
+	if err != nil {
+		return fmt.Errorf("unable to set rating: %v", err)
+	}
+
+	r.GetRelease().Rating = i.GetNewRating()
+	return b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
