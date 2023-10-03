@@ -18,7 +18,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		return nil, fmt.Errorf("unable to list sales: %w", err)
 	}
 
-	log.Printf("found %v sales", len(sales))
+	log.Printf("found %v sales -> %v", len(sales), sales[0])
 	for _, sale := range sales {
 		b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 			SaleId:          sale.GetSaleId(),
