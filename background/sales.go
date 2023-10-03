@@ -24,6 +24,9 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		log.Printf("found no sales :-(")
 	}
 	for _, sale := range sales {
+		if sale.GetStatus() == pbd.SaleStatus_FOR_SALE {
+			log.Printf("SALEITEM: %v", sale)
+		}
 		b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 			SaleId:          sale.GetSaleId(),
 			LastPriceUpdate: time.Now().Unix(),
