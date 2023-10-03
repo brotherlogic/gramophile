@@ -30,6 +30,8 @@ github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac h1:nswEKjWboW
 github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef h1:RwJx8BLSgWx15s/KzMqHKZItpkH7kRoGRK/syvHzmyo=
 github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef h1:RwJx8BLSgWx15s/KzMqHKZItpkH7kRoGRK/syvHzmyo=
+github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/gramophile v0.267.0 h1:FAMczQs1LsEBTAWfOIky3fPx+NJReKdkYxMoiERt6kg=
 github.com/brotherlogic/gramophile v0.267.0/go.mod h1:oG7xxtGQxk3Hs/Gb2NV6nvLiTRCwTdV976d5N8c9Hn0=
 github.com/brotherlogic/gramophile v0.285.0 h1:WMUVcmhgOXt9Bojz0lVWH59BmeTkUnCtvU9mH0p1JLs=
