@@ -3,12 +3,12 @@ module github.com/brotherlogic/gramophile/validator
 go 1.19
 
 require (
-	github.com/brotherlogic/gramophile v0.383.0
+	github.com/brotherlogic/gramophile v0.389.0
 	google.golang.org/grpc v1.58.2
 )
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef
+	github.com/brotherlogic/discogs v0.0.0-20231004035738-fae0cea
 	github.com/golang/protobuf v1.5.3 // indirect
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
