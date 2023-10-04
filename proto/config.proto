@@ -147,8 +147,11 @@ message ArrivedConfig {
 }
 
 enum SaleUpdateType {
-    SALE_UPDATE_UNKNOWN = 0;
+    NO_SALE_UPDATE = 0;
     MINIMAL_REDUCE = 1;
+
+    // Reduce to the Median over the course of 1 month, then hold at median price
+    REDUCE_TO_MEDIAN = 2;
 }
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
