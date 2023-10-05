@@ -49,13 +49,22 @@ func getUpdateTime(c *pb.SaleConfig) time.Duration {
 	return time.Second * time.Duration(c.GetUpdateFrequencySeconds())
 }
 
+func max(a, b int32) int32 {
+	if a < b {
+		return b
+	}
+	return a
+}
+
 func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
 	log.Printf("Adjusting with config: %v", c)
 	switch c.GetUpdateType() {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, nil
-	case pb.SaleUpdateType_SALE_UPDATE_UNKNOWN:
+	case pb.SaleUpdateType_NO_SALE_UPDATE:
 		return s.GetCurrentPrice().GetValue(), nil
+	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
+		return max(s.GetCurrentPrice().GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
 	}

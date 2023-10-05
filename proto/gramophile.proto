@@ -112,6 +112,8 @@ message SaleInfo {
 
     int64 listed_date = 8;
     discogs.Price initialPrice = 9;
+
+    discogs.Price medianPrice = 10;
 }
 
 
