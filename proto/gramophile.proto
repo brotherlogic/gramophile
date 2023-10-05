@@ -109,6 +109,9 @@ message SaleInfo {
     int64 release_id = 5;
     discogs.Price currentPrice = 6;
     string condition = 7;
+
+    int64 listed_date = 8;
+    discogs.Price initialPrice = 9;
 }
 
 
