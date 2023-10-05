@@ -229,6 +229,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_UpdateSale:
 		//Short cut if sale data is not complete
 		if entry.GetUpdateSale().GetCondition() == "" {
+			log.Printf("Skipping %v", entry)
 			return nil
 		}
 		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())

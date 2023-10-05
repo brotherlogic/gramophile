@@ -61,6 +61,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessScore(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
@@ -114,6 +119,28 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 	}
 
 	r.LastListenTime = i.GetListenTime()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	// We don't zero out the listen time
+	if i.GetNewScore() == 0 {
+		return nil
+	}
+
+	// We use negative set scores to reset the score remotely
+	if i.GetNewScore() < 0 {
+		i.NewScore = 0
+	}
+
+	// err := d.SetRating(ctx, r.GetRelease(), i.GetNewScore())
+	var err error
+	if err != nil {
+		return err
+	}
+
+	r.GetRelease().Rating = i.GetNewScore()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

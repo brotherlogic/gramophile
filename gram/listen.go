@@ -61,6 +61,7 @@ func executeListen(ctx context.Context, args []string) error {
 		return err
 	}
 
+	newScore := int32(0)
 	if len(args) == 2 {
 		if strings.Contains(args[1], "-") {
 			t, err = time.Parse("2006-01-02", args[1])
@@ -72,7 +73,11 @@ func executeListen(ctx context.Context, args []string) error {
 			if err != nil {
 				return err
 			}
-			t = time.Unix(tu, 0)
+			if tu > 5 {
+				t = time.Unix(tu, 0)
+			} else {
+				newScore = int32(tu)
+			}
 		}
 	}
 
@@ -81,6 +86,7 @@ func executeListen(ctx context.Context, args []string) error {
 		InstanceId: iid,
 		Intent: &pb.Intent{
 			ListenTime: t.Unix(),
+			NewScore:   newScore,
 		},
 	})
 	return err
