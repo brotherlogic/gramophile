@@ -60,6 +60,8 @@ github.com/brotherlogic/discogs v0.0.0-20231001232040-411eaeb3ce19 h1:WcGnz0O9QR
 github.com/brotherlogic/discogs v0.0.0-20231001232040-411eaeb3ce19/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac h1:nswEKjWboWvVo9KaTMN/d85cKm/emKRa/6UsKJ4HEEw=
 github.com/brotherlogic/discogs v0.0.0-20231002043354-dff9f69cb7ac/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20231004041357-fae0ceaac73a h1:b+p+CuC3UG2PZYoDu8t/ETctdjwA4LLljhzDzYYTVGw=
+github.com/brotherlogic/discogs v0.0.0-20231004041357-fae0ceaac73a/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073 h1:r4Qs+QRxtqdAiZglw4tO/6E2ck5O9+sm2iesWgf0XcI=
 github.com/brotherlogic/godiscogs v0.0.0-20230729000658-0af30cfce073/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/godiscogs v0.0.0-20230811151532-c0cd0f5b80c6 h1:WjYkNhmb4RTQMzaKXufLkBwFbRmkB0DDHF8dP2zdeC8=
@@ -128,6 +130,8 @@ github.com/prometheus/client_model v0.4.0 h1:5lQXD3cAg1OXBf4Wq03gTrXHeaV0TQvGfUo
 github.com/prometheus/client_model v0.4.0/go.mod h1:oMQmHW1/JoDwqLtg57MGgP/Fb1CJEYF2imWWhWtMkYU=
 github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 h1:v7DLqVdK4VrYkVD5diGdl4sxJurKJEMnODWRJlxV9oM=
 github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16/go.mod h1:oMQmHW1/JoDwqLtg57MGgP/Fb1CJEYF2imWWhWtMkYU=
+github.com/prometheus/client_model v0.5.0 h1:VQw1hfvPvk3Uv6Qf29VrPF32JB6rtbgI6cYPYQjL0Qw=
+github.com/prometheus/client_model v0.5.0/go.mod h1:dTiFglRmd66nLR9Pv9f0mZi7B7fk5Pm3gvsjB5tr+kI=
 github.com/prometheus/common v0.44.0 h1:+5BrQJwiBB9xsMygAB3TNvpQKOwlkc25LbISbrdOOfY=
 github.com/prometheus/common v0.44.0/go.mod h1:ofAIvZbQ1e/nugmZGz4/qCb9Ap1VoSTIO7x0VV9VvuY=
 github.com/prometheus/procfs v0.11.0 h1:5EAgkfkMl659uZPbe9AS2N68a7Cc1TJbPEuGzFuRbyk=
