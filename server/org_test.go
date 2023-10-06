@@ -9,7 +9,7 @@ import (
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
+	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 	"google.golang.org/protobuf/proto"
 )

@@ -99,6 +99,8 @@ message Record {
    SaleInfo sale_info = 16;
 
    KeepStatus keep_status = 17;
+
+   discogs.Price median_price = 18;
 }
 
 message SaleInfo {
