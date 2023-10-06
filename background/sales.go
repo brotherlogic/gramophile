@@ -64,6 +64,10 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 	case pb.SaleUpdateType_NO_SALE_UPDATE:
 		return s.GetCurrentPrice().GetValue(), nil
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
+		// Bail if there is not current median price
+		if s.GetMedianPrice().GetValue() == 0 {
+			return s.GetCurrentPrice().GetValue(), nil
+		}
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
