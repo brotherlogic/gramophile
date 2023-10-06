@@ -180,7 +180,7 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
-		ReleaseId:       12,
+		ReleaseId:       123,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{
@@ -189,7 +189,8 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 			FolderId:   12,
 			Condition:  "Very Good Plus (VG+)",
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
-		SaleInfo: si,
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 1225},
+		SaleInfo:    si,
 	})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -206,6 +207,7 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 				HandlePriceUpdates:     pb.Mandate_REQUIRED,
 				UpdateFrequencySeconds: 10,
 				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
 			},
 		},
 	})
@@ -214,6 +216,16 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	}
 
 	// Run a sale update loop
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_LinkSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Bad enqueue: %v", err)
+	}
+	q.FlushQueue(ctx)
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -243,8 +255,8 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 
 		if sale.GetSaleId() == 123456 {
 			found = true
-			if sale.GetCurrentPrice().Value != 1233 {
-				t.Errorf("Price was not updated (should be 1233): %v", sale)
+			if sale.GetCurrentPrice().Value != 1225 {
+				t.Errorf("Price was not updated (should be 1225): %v", sale)
 			}
 		}
 	}
