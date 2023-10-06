@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pb "github.com/brotherlogic/gramophile/proto"
-	queuelogic "github.com/brotherlogic/gramophile/queue/queuelogic"
+	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
