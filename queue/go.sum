@@ -108,6 +108,10 @@ github.com/brotherlogic/gramophile v0.396.0 h1:a/x2BJrMNCWGAcHjsgKn6Dnjgo0maEbIa
 github.com/brotherlogic/gramophile v0.396.0/go.mod h1:S8LPYRt6YZNiO9GFDtLyFC0JD3+IkHo67an2wyOxJbU=
 github.com/brotherlogic/gramophile v0.397.0 h1:WnsRs97/C9VxSq7xmOdiAWkszKrcnF69bWHlWEzuGlM=
 github.com/brotherlogic/gramophile v0.397.0/go.mod h1:S8LPYRt6YZNiO9GFDtLyFC0JD3+IkHo67an2wyOxJbU=
+github.com/brotherlogic/gramophile v0.398.0 h1:5Qh7xjQ/22HqRH5yMPbtOPjrJFj4dnEYDkOKmtJ44E4=
+github.com/brotherlogic/gramophile v0.398.0/go.mod h1:S8LPYRt6YZNiO9GFDtLyFC0JD3+IkHo67an2wyOxJbU=
+github.com/brotherlogic/gramophile v0.399.0 h1:5Q3RzrV8RD7hjX3toxu0PprH+QFn9Ags9PUsDPIlwd8=
+github.com/brotherlogic/gramophile v0.399.0/go.mod h1:ktbn3EYg2SCs+FyO9eeByC27RI/XZaHxnC9kpvBCwOs=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
