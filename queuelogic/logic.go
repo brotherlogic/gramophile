@@ -114,7 +114,7 @@ func (q *Queue) Run() {
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v", entry, time.Since(st))
-				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Observe(float64(time.Since(st).Milliseconds()))
+				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
