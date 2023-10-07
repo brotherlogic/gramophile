@@ -116,6 +116,8 @@ github.com/brotherlogic/gramophile v0.401.0 h1:7FRMFc6SvLNV7k45rwHEnZgjV4NAlW2P0
 github.com/brotherlogic/gramophile v0.401.0/go.mod h1:ktbn3EYg2SCs+FyO9eeByC27RI/XZaHxnC9kpvBCwOs=
 github.com/brotherlogic/gramophile v0.402.0 h1:CFJHXjMtPDPhcmCegaTxE/EM+7+xvgi/SxS7SYdNMmY=
 github.com/brotherlogic/gramophile v0.402.0/go.mod h1:ktbn3EYg2SCs+FyO9eeByC27RI/XZaHxnC9kpvBCwOs=
+github.com/brotherlogic/gramophile v0.404.0 h1:gcQgz/W3mGDkSor35cCxVVtR+aCfudDsnUYP5j84ECk=
+github.com/brotherlogic/gramophile v0.404.0/go.mod h1:ktbn3EYg2SCs+FyO9eeByC27RI/XZaHxnC9kpvBCwOs=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
