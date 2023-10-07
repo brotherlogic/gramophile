@@ -58,6 +58,14 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 			}
 		}
 
+		for _, validation := range c.GetValidations() {
+			switch validation.GetValidationStrategy() {
+			case pb.ValidationStrategy_LISTEN_TO_VALIDATE:
+				folders = append(folders, &pbd.Folder{Name: "Listening Pile"})
+			case pb.ValidationStrategy_MOVE_TO_VALIDATE:
+				folders = append(folders, &pbd.Folder{Name: "Validation Pile"})
+			}
+		}
 	}
 
 	var rmoves []*pb.FolderMove

@@ -227,7 +227,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_UpdateSale:
-		//Short cut if sale data is not complete
 		if entry.GetUpdateSale().GetCondition() == "" {
 			return nil
 		}

@@ -16,6 +16,10 @@ github.com/brotherlogic/discogs v0.0.0-20230926022300-1f6c127f48dd h1:Ib9J+b+A1z
 github.com/brotherlogic/discogs v0.0.0-20230926022300-1f6c127f48dd/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f h1:iG2lxIXCcUARB5ZYCmX27g1tD/WbAIOukhOkkhvAvw4=
 github.com/brotherlogic/discogs v0.0.0-20230929233032-4cbdbfc2680f/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef h1:RwJx8BLSgWx15s/KzMqHKZItpkH7kRoGRK/syvHzmyo=
+github.com/brotherlogic/discogs v0.0.0-20231003001033-890a181f42ef/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
+github.com/brotherlogic/discogs v0.0.0-20231004035738-feb00d63eaaf h1:3dv1X3CtWLPK2ZjoKtLRv5GmFoI/i4Z5s7Q3AWlsLBo=
+github.com/brotherlogic/discogs v0.0.0-20231004035738-feb00d63eaaf/go.mod h1:3xgdt6EWVktIbsF+QVkj8L/9Qs4e2ATLmGjgSNu1BDA=
 github.com/brotherlogic/gramophile v0.71.0 h1:h12u7HTzD4I1c4gcbRT5etvIq7M/nvVTEg6moiYpBww=
 github.com/brotherlogic/gramophile v0.71.0/go.mod h1:+1T1+WaHd2hibmKj4HNwTr7Cu7hntlWxVRZiLJS39x0=
 github.com/brotherlogic/gramophile v0.169.0 h1:TBEfLsida2/msbzhYUaQR4BzX25utMJNkOP/xwfYqDY=
@@ -36,6 +40,10 @@ github.com/brotherlogic/gramophile v0.376.0 h1:KiXKLM6wnPcQpcHIoL7wV8pd5CaIaGYcm
 github.com/brotherlogic/gramophile v0.376.0/go.mod h1:dzMtFiDnucgWrBL8VpwCv0lAe2qh02NYt5ReJJElln0=
 github.com/brotherlogic/gramophile v0.377.0 h1:wrOfO7BrNylzMWg1vgELQ3s2NI8jjSRsBW51+JI1Pto=
 github.com/brotherlogic/gramophile v0.377.0/go.mod h1:dzMtFiDnucgWrBL8VpwCv0lAe2qh02NYt5ReJJElln0=
+github.com/brotherlogic/gramophile v0.383.0 h1:SbZtOcgBC6QB4atlV0Qkd217M1Sm0Jh0r3kpSOWt60E=
+github.com/brotherlogic/gramophile v0.383.0/go.mod h1:CZD+3htua/yA49B3FSPrEasFOGwcvNZ5FqdCv6caN00=
+github.com/brotherlogic/gramophile v0.389.0 h1:Pingh8rRYT2eRAk51juJgTRZEo04Y0FZ/QV5gWmwF4A=
+github.com/brotherlogic/gramophile v0.389.0/go.mod h1:tytoKnvDTxatIjYK5dhjmIR7ocOMLfbAXId2xGwxTUY=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
@@ -72,6 +80,8 @@ google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5 h1:L6iMMGrtzgHsWof
 google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5/go.mod h1:oH/ZOT02u4kWEp7oYBGYFFkCdKS/uYR9Z7+0/xuuFp8=
 google.golang.org/genproto v0.0.0-20230913181813-007df8e322eb h1:XFBgcDwm7irdHTbz4Zk2h7Mh+eis4nfJEFQFYzJzuIA=
 google.golang.org/genproto v0.0.0-20230913181813-007df8e322eb/go.mod h1:yZTlhN0tQnXo3h00fuXNCxJdLdIdnVFVBaRJ5LWBbw4=
+google.golang.org/genproto v0.0.0-20230920204549-e6e6cdab5c13 h1:vlzZttNJGVqTsRFU9AmdnrcO1Znh8Ew9kCD//yjigk0=
+google.golang.org/genproto v0.0.0-20230920204549-e6e6cdab5c13/go.mod h1:CCviP9RmpZ1mxVr8MUjCnSiY09IbAXZxhLE6EhHIdPU=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc h1:XSJ8Vk1SWuNr8S18z1NZSziL0CPIXLCCMDOEFtHBOFc=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc/go.mod h1:66JfowdXAEgad5O9NnYcsNPLCPZJD++2L9X0PCMODrA=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 h1:wukfNtZmZUurLN/atp2hiIeTKn7QJWIQdHzqmsOnAOk=
@@ -82,6 +92,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb/go.mod h1:+Bk1OCOj40wS2hwAMA+aCW9ypzm63QTBBHp6lQ3p+9M=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 h1:N3bU/SQDCDyD6R528GJ/PwW9KjYcJA3dgyH+MovAkIM=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13/go.mod h1:KSqppvjFjtoCI+KGd4PELB0qLNxdJHRGqRI09mB6pQA=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 h1:6GQBEOdGkX6MMTLT9V+TjtIRZCw9VPD5Z+yHY9wMgS0=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97/go.mod h1:v7nGkzlmW8P3n/bKmWBn2WpBjpOEx8Q6gMueudAmKfY=
 google.golang.org/grpc v1.54.0 h1:EhTqbhiYeixwWQtAEZAxmV9MGqcjEU2mFx52xCzNyag=
 google.golang.org/grpc v1.54.0/go.mod h1:PUSEXI6iWghWaB6lXM4knEgpJNu2qUcKfDtNci3EC2g=
 google.golang.org/grpc v1.55.0 h1:3Oj82/tFSCeUrRTg/5E/7d/W5A1tj6Ky1ABAuZuv5ag=

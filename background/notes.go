@@ -70,7 +70,7 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 }
 
 func (b *BackgroundRunner) ProcessRating(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser) error {
-	_, err := d.SetRating(ctx, user.GetUser().GetDiscogsUserId(), r.GetRelease().GetId(), i.GetNewRating())
+	err := d.SetRating(ctx, r.GetRelease().GetId(), i.GetNewRating())
 	if err != nil {
 		return fmt.Errorf("unable to set rating: %v", err)
 	}

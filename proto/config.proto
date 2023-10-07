@@ -36,6 +36,23 @@ enum MoveState {
     BLOCKED_BECAUSE_OF_LOOP = 1;
 }
 
+message ValidationCriteria {
+    Bool is_cleaned = 1;
+}
+
+enum ValidationStrategy {
+    VALIDATE_IN_PLACE = 0;
+    LISTEN_TO_VALIDATE = 1;
+    MOVE_TO_VALIDATE = 2;
+}
+
+message ValidationRule {
+    // These are the records that will be validated
+    Filter validation_filter = 1;
+    ValidationCriteria validation_criteria = 2;
+    ValidationStrategy validation_strategy = 3;
+}
+
 message FolderMove {
     string name = 1;
     MoveCriteria criteria = 2;
@@ -123,6 +140,7 @@ message GramophileConfig {
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
+    repeated ValidationRule validations = 15;
 }
 
 message WeightConfig {
@@ -147,8 +165,11 @@ message ArrivedConfig {
 }
 
 enum SaleUpdateType {
-    SALE_UPDATE_UNKNOWN = 0;
+    NO_SALE_UPDATE = 0;
     MINIMAL_REDUCE = 1;
+
+    // Reduce to the Median over the course of 1 month, then hold at median price
+    REDUCE_TO_MEDIAN = 2;
 }
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment

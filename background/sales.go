@@ -18,8 +18,17 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		return nil, fmt.Errorf("unable to list sales: %w", err)
 	}
 
-	log.Printf("found %v sales", len(sales))
+	if len(sales) > 0 {
+		log.Printf("found %v sales -> %v", len(sales), sales[0])
+	} else {
+		log.Printf("found no sales :-(")
+	}
 	for _, sale := range sales {
+		if sale.GetStatus() == pbd.SaleStatus_FOR_SALE {
+			log.Printf("SALEITEM: %v", sale)
+		} else {
+			log.Printf("WHATSALEITEM: %v", sale)
+		}
 		b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 			SaleId:          sale.GetSaleId(),
 			LastPriceUpdate: time.Now().Unix(),
@@ -45,7 +54,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 	switch c.GetUpdateType() {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, nil
-	case pb.SaleUpdateType_SALE_UPDATE_UNKNOWN:
+	case pb.SaleUpdateType_NO_SALE_UPDATE:
 		return s.GetCurrentPrice().GetValue(), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
