@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
@@ -52,7 +53,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 					r.GetSaleInfo().GetCondition())
 			}
 
-			fmt.Printf("Median Price: $%v", r.GetMedianPrice().GetValue()/100)
+			fmt.Printf("Median Price: $%v\n", r.GetMedianPrice().GetValue()/100)
+			fmt.Printf("Last Updated %v\n", time.Unix(r.GetLastUpdateTime(), 0))
 
 			for _, update := range r.GetUpdates() {
 				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
