@@ -21,7 +21,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 	}
 
 	for _, release := range releases {
-		stats, err := d.GetReleaseStats(ctx, int32(release.GetId()))
+		stats, err := d.GetReleaseStats(ctx, release.GetId())
 		if err != nil {
 			return -1, fmt.Errorf("unable to get release stats: %w", err)
 		}
