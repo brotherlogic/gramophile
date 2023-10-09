@@ -61,7 +61,6 @@ message Organisation {
     Density density = 3;
 
     Grouping grouping = 4;
-
 }
 
 message LabelRanking {
@@ -74,7 +73,23 @@ message ArtistMapping {
     repeated string following_artist = 2;
 }
 
-enum Grouping {
+message Grouping {
+    GroupingType type = 1;
+    repeated ArtistWeight artist_weights = 2;
+    repeated LabelWeight label_weights = 3;
+}
+
+message LabelWeight {
+    int32 label_id = 1;
+    float weight = 2; // Default weight is 0.5
+}
+
+message ArtistWeight {
+    int32 artist_id = 1;
+    float weight = 2;
+}
+
+enum GroupingType {
     GROUPING_NO_GROUPING = 0;
     GROUPING_GROUP_BY_LABEL = 1;
     GROUPING_GROUP_BY_ARTIST = 2;
