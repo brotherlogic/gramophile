@@ -33,6 +33,9 @@ message Placement {
     int32 index = 3;
     string space = 4;
     float width = 5;
+
+    //Optional
+    string sort_key = 6;
 }
 
 enum Sort {
@@ -115,10 +118,6 @@ message FolderSet {
     Sort sort = 4;
 }
 
-message LabelDecider {
-    int32 index = 1;
-    string label_prefix = 2;
-}
 
 message ArtistTranslation {
     string artist_prefix = 1;

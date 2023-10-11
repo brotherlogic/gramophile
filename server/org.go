@@ -7,7 +7,6 @@ import (
 	"log"
 	"math"
 	"sort"
-	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -38,12 +37,25 @@ func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
 }
 
-func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record) string {
-	if len(r.GetRelease().GetLabels()) > 0 {
-		return fmt.Sprintf("%v-%v", strings.ToLower(r.GetRelease().GetLabels()[0].GetName()), strings.ToLower(r.GetRelease().GetLabels()[0].GetCatno()))
+func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+	// Release has no labels
+	if len(r.GetRelease().GetLabels()) == 0 {
+		return ""
 	}
 
-	return ""
+	bestWeight := float32(0.5)
+	bestLabel := r.GetRelease().GetLabels()[0]
+
+	for _, label := range r.GetRelease().GetLabels()[1:] {
+		for _, weight := range c.GetGrouping().GetLabelWeights() {
+			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
+				bestLabel = label
+				bestWeight = weight.GetWeight()
+			}
+		}
+	}
+
+	return bestLabel.GetName() + "-" + bestLabel.GetCatno()
 }
 
 func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
@@ -91,7 +103,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return s.getLabelCatno(ctx, recs[i]) < s.getLabelCatno(ctx, recs[j])
+				return s.getLabelCatno(ctx, recs[i], org) < s.getLabelCatno(ctx, recs[j], org)
 			})
 		}
 
@@ -117,11 +129,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 						width := getWidth(r, org.GetDensity(), sleeveMap)
 
 						placements = append(placements, &pb.Placement{
-							Iid:   r.GetRelease().GetInstanceId(),
-							Space: slot.GetName(),
-							Unit:  i,
-							Index: rc + 1,
-							Width: width,
+							Iid:     r.GetRelease().GetInstanceId(),
+							Space:   slot.GetName(),
+							Unit:    i,
+							Index:   rc + 1,
+							Width:   width,
+							SortKey: s.getLabelCatno(ctx, r, org),
 						})
 						rc++
 						totalWidth += width
@@ -136,11 +149,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 						width := getWidth(r, org.GetDensity(), sleeveMap)
 						log.Printf("Got width: %v", width)
 						placements = append(placements, &pb.Placement{
-							Iid:   r.GetRelease().GetInstanceId(),
-							Space: slot.GetName(),
-							Unit:  i,
-							Index: rc + 1,
-							Width: width,
+							Iid:     r.GetRelease().GetInstanceId(),
+							Space:   slot.GetName(),
+							Unit:    i,
+							Index:   rc + 1,
+							Width:   width,
+							SortKey: s.getLabelCatno(ctx, r, org),
 						})
 						rc++
 						totalWidth += width
