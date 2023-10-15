@@ -30,7 +30,7 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 			DateAdded:    time.Now().Unix(),
 		})
 
-	log.Printf("Attempting: %v", token)
+	log.Printf("Attempting this: %v", token)
 
 	return &pb.GetURLResponse{URL: url, Token: token}, s.d.SaveLogins(ctx, attempts)
 }
