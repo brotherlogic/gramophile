@@ -14,6 +14,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func abs(a float32) float32 {
+	if a < 0 {
+		return 0 - a
+	}
+	return a
+}
+
 func TestLabelOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -98,30 +105,41 @@ func TestLabelOrdering(t *testing.T) {
 	}
 }
 
-func TestLabelOrdering_WithGroupingJump(t *testing.T) {
+func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Sleeve"}}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
+		{Id: 5, Name: "Width"},
+		{Id: 10, Name: "Sleeve"},
+	}}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
-		Width:   100,
+		Width:   10,
 		Sleeve:  "Madeup",
-		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 	err = d.SaveRecord(ctx, 123, &pb.Record{
-		Width:   10,
-		Sleeve:  "Madeup",
-		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{
-		Width:   10,
+		Width:   50,
 		Sleeve:  "Madeup",
 		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   50,
+		Sleeve:  "Madeup",
+		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   10,
+		Sleeve:  "Madeup",
+		Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "CC"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -134,6 +152,7 @@ func TestLabelOrdering_WithGroupingJump(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
 			SleeveConfig: &pb.SleeveConfig{
 				Mandate:        pb.Mandate_REQUIRED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
@@ -141,7 +160,10 @@ func TestLabelOrdering_WithGroupingJump(t *testing.T) {
 			OrganisationConfig: &pb.OrganisationConfig{
 				Organisations: []*pb.Organisation{
 					{
-						Name: "testing",
+						Name:     "testing",
+						Density:  pb.Density_WIDTH,
+						Grouping: &pb.Grouping{Type: pb.GroupingType_GROUPING_NO_GROUPING},
+						Spill:    &pb.Spill{Type: pb.GroupSpill_SPILL_NO_SPILL},
 						Foldersets: []*pb.FolderSet{
 							{
 								Name:   "testing",
@@ -153,12 +175,12 @@ func TestLabelOrdering_WithGroupingJump(t *testing.T) {
 							{
 								Name:         "Main Shelves",
 								Units:        1,
-								RecordsWidth: 20,
+								RecordsWidth: 100,
 							},
 							{
 								Name:         "Second Main Shelves",
 								Units:        1,
-								RecordsWidth: 200,
+								RecordsWidth: 100,
 							}},
 					},
 				},
@@ -175,27 +197,38 @@ func TestLabelOrdering_WithGroupingJump(t *testing.T) {
 		t.Fatalf("Unable to get org: %v", err)
 	}
 
-	if len(org.GetSnapshot().GetPlacements()) != 3 {
+	if len(org.GetSnapshot().GetPlacements()) != 4 {
 		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	totalWidth := float32(0)
+	for _, o := range org.GetSnapshot().GetPlacements() {
+		totalWidth += o.GetWidth()
+	}
+	if abs(totalWidth-(100+10+10)) > 0.01 {
+		t.Errorf("Wrong width returned: %v", totalWidth)
 	}
 
 	bp := false
 	for _, o := range org.GetSnapshot().GetPlacements() {
-		if o.Index == 1 && o.Iid != 1234 {
+		if o.Index == 1 && (o.Iid != 1234 || o.Space != "Main Shelves") {
 			bp = true
 		}
-		if o.Index == 2 && o.Iid != 1235 {
+		if o.Index == 2 && (o.Iid != 1235 || o.Space != "Main Shelves") {
 			bp = true
 		}
-		if o.Index == 3 && o.Iid != 1236 {
+		if o.Index == 3 && (o.Iid != 1236 || o.Space != "Second Main Shelves") {
+			bp = true
+		}
+		if o.Index == 4 && (o.Iid != 1237 || o.Space != "Second Main Shelves") {
 			bp = true
 		}
 	}
 
 	if bp {
-		t.Errorf("Bad placement")
+		t.Errorf("Bad placement (%v)", totalWidth)
 		for _, o := range org.Snapshot.GetPlacements() {
-			t.Errorf("%v. %v", o.Index, o.Iid)
+			t.Errorf("%v. %v -> %v", o.Index, o.Iid, o)
 		}
 	}
 }
@@ -535,7 +568,7 @@ func TestWidths(t *testing.T) {
 	for _, o := range org.GetSnapshot().GetPlacements() {
 		totalWidth += o.GetWidth()
 	}
-	if totalWidth-(2.4*1.5+2.5*1.5) > 0.01 {
+	if abs(totalWidth-(2.4*1.5+2.5*1.5)) > 0.01 {
 		t.Errorf("Wrong width returned: %v", totalWidth-2.4*1.5+2.5*1.5)
 	}
 }

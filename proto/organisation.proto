@@ -5,9 +5,8 @@ package gramophile;
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 message OrganisationConfig {
-    repeated LabelDecider label_deciders = 1;
-    repeated ArtistTranslation artist_translation = 2;
-    repeated Organisation organisations = 3;
+    repeated ArtistTranslation artist_translation = 1;
+    repeated Organisation organisations = 2;
 }
 
 
@@ -64,6 +63,19 @@ message Organisation {
     Density density = 3;
 
     Grouping grouping = 4;
+    Spill spill = 7;
+}
+
+message Spill {
+    GroupSpill type = 1;
+
+    // -1 means an infinite look ahead
+    int32 look_ahead = 2;
+}
+
+enum GroupSpill {
+    SPILL_NO_SPILL = 0;
+    SPILL_KEEP_GROUPS = 1;
 }
 
 message LabelRanking {
