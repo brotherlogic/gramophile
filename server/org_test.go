@@ -176,11 +176,13 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 								Name:         "Main Shelves",
 								Units:        1,
 								RecordsWidth: 100,
+								Layout:       pb.Layout_TIGHT,
 							},
 							{
 								Name:         "Second Main Shelves",
 								Units:        1,
 								RecordsWidth: 100,
+								Layout:       pb.Layout_TIGHT,
 							}},
 					},
 				},

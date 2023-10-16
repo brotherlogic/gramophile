@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"log"
-	"math"
 	"sort"
 	"time"
 
@@ -121,47 +120,21 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	rc := int32(0)
 	totalWidth := float32(0)
 
-	for _, slot := range org.GetSpaces() {
-		if slot.GetLayout() == pb.Layout_TIGHT {
-			for i := int32(1); i <= (slot.GetUnits()); i++ {
-				if slot.GetRecordsWidth() > 0 {
-					for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
-						width := getWidth(r, org.GetDensity(), sleeveMap)
+	currSlot := 0
+	slotWidth := 0
+	index := int32(0)
+	currUnit := int32(0)
 
-						placements = append(placements, &pb.Placement{
-							Iid:     r.GetRelease().GetInstanceId(),
-							Space:   slot.GetName(),
-							Unit:    i,
-							Index:   rc + 1,
-							Width:   width,
-							SortKey: s.getLabelCatno(ctx, r, org),
-						})
-						rc++
-						totalWidth += width
-					}
-				}
-			}
-		} else if slot.GetLayout() == pb.Layout_LOOSE {
-			if slot.GetRecordsWidth() > 0 {
-				count := min(int32(math.Ceil(float64(len(records[rc:]))/float64(slot.GetUnits()))), slot.GetRecordsWidth())
-				for i := int32(1); i <= slot.GetUnits(); i++ {
-					for _, r := range records[rc : rc+count] {
-						width := getWidth(r, org.GetDensity(), sleeveMap)
-						log.Printf("Got width: %v", width)
-						placements = append(placements, &pb.Placement{
-							Iid:     r.GetRelease().GetInstanceId(),
-							Space:   slot.GetName(),
-							Unit:    i,
-							Index:   rc + 1,
-							Width:   width,
-							SortKey: s.getLabelCatno(ctx, r, org),
-						})
-						rc++
-						totalWidth += width
-					}
-				}
-			}
-		}
+	for _, r := range records {
+		width := 
+		placements = append(placements, &pb.Placement{
+			Iid:     r.GetRelease().GetInstanceId(),
+			Space:   slots[currSlot].GetName(),
+			Unit:    currUnit,
+			Index:   index,
+			Width:   width,
+		})
+		index++
 	}
 
 	return &pb.OrganisationSnapshot{
