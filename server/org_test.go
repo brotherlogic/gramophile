@@ -98,6 +98,108 @@ func TestLabelOrdering(t *testing.T) {
 	}
 }
 
+func TestLabelOrdering_WithGroupingJump(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Sleeve"}}}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   100,
+		Sleeve:  "Madeup",
+		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   10,
+		Sleeve:  "Madeup",
+		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   10,
+		Sleeve:  "Madeup",
+		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SleeveConfig: &pb.SleeveConfig{
+				Mandate:        pb.Mandate_REQUIRED,
+				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "testing",
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:         "Main Shelves",
+								Units:        1,
+								RecordsWidth: 20,
+							},
+							{
+								Name:         "Second Main Shelves",
+								Units:        1,
+								RecordsWidth: 200,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	bp := false
+	for _, o := range org.GetSnapshot().GetPlacements() {
+		if o.Index == 1 && o.Iid != 1234 {
+			bp = true
+		}
+		if o.Index == 2 && o.Iid != 1235 {
+			bp = true
+		}
+		if o.Index == 3 && o.Iid != 1236 {
+			bp = true
+		}
+	}
+
+	if bp {
+		t.Errorf("Bad placement")
+		for _, o := range org.Snapshot.GetPlacements() {
+			t.Errorf("%v. %v", o.Index, o.Iid)
+		}
+	}
+}
+
 func TestLabelOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -197,7 +299,7 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Ar: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
