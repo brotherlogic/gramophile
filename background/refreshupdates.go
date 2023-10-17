@@ -24,7 +24,7 @@ func (b *BackgroundRunner) RefreshUpdates(ctx context.Context, d discogs.Discogs
 		}
 		us, err := b.db.GetUpdates(ctx, d.GetUserId(), r)
 		if err != nil {
-			return fmt.Errorf("unable to get updates: %v", err)
+			return fmt.Errorf("i am unable to get updates: %v", err)
 		}
 
 		for _, update := range us {
