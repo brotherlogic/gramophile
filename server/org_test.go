@@ -61,9 +61,9 @@ func TestLabelOrdering(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        1,
-								RecordsWidth: 100,
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
 							}},
 					},
 				},
@@ -284,9 +284,9 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        1,
-								RecordsWidth: 100,
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
 							}},
 					},
 				},
@@ -377,9 +377,9 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        1,
-								RecordsWidth: 100,
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
 							}},
 					},
 				},
@@ -472,10 +472,10 @@ func TestWidths(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        2,
-								RecordsWidth: 100,
-								Layout:       pb.Layout_LOOSE,
+								Name:   "Main Shelves",
+								Units:  2,
+								Width:  100,
+								Layout: pb.Layout_LOOSE,
 							}},
 					},
 				},
@@ -545,9 +545,9 @@ func TestGetSnapshotHash(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        1,
-								RecordsWidth: 100,
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
 							}},
 					},
 				},
@@ -726,9 +726,9 @@ func TestSetSnapshotName(t *testing.T) {
 							}},
 						Spaces: []*pb.Space{
 							{
-								Name:         "Main Shelves",
-								Units:        1,
-								RecordsWidth: 100,
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
 							}},
 					},
 				},
