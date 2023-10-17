@@ -39,7 +39,7 @@ func main() {
 		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")), db)
 	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))
 	if err2 != nil {
-		log.Fatalf("Gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)
+		log.Fatalf("gramophile is unable to listen on the internal grpc port %v: %v", *internalPort, err)
 	}
 	gsInternal := grpc.NewServer()
 	pb.RegisterQueueServiceServer(gsInternal, queue)
