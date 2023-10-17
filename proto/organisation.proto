@@ -106,8 +106,7 @@ message ArtistWeight {
 
 enum GroupingType {
     GROUPING_NO_GROUPING = 0;
-    GROUPING_GROUP_BY_LABEL = 1;
-    GROUPING_GROUP_BY_ARTIST = 2;
+    GROUPING_GROUP = 1; 
 }
 
 message Space {

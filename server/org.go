@@ -58,14 +58,39 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 	return bestLabel.GetName() + "-" + bestLabel.GetCatno()
 }
 
-func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+	// Release has no labels
+	if len(r.GetRelease().GetLabels()) == 0 {
+		return ""
+	}
+
+	bestWeight := float32(0.5)
+	bestLabel := r.GetRelease().GetLabels()[0]
+
+	for _, label := range r.GetRelease().GetLabels()[1:] {
+		for _, weight := range c.GetGrouping().GetLabelWeights() {
+			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
+				bestLabel = label
+				bestWeight = weight.GetWeight()
+			}
+		}
+	}
+
+	return bestLabel.GetName()
+}
+
+func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
 	switch d {
 	case pb.Density_COUNT:
-		return 1
+		return float32(len(r.records))
 	case pb.Density_DISKS:
-		return 1 //return r.GetDisks()
+		return float32(len(r.records))
 	case pb.Density_WIDTH:
-		return r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+		twidth := float32(0)
+		for _, r := range r.records {
+			twidth += r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+		}
+		return twidth
 	}
 
 	log.Printf("Unknown Width Calculation: %v", d)
@@ -77,6 +102,11 @@ func min(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+type groupingElement struct {
+	records []*pb.Record
+	id      int64
 }
 
 func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation) (*pb.OrganisationSnapshot, error) {
@@ -130,11 +160,44 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		Units: 1,
 	})
 
+	var ordList []*groupingElement
+	if org.GetGrouping().GetType() == pb.GroupingType_GROUPING_GROUP {
+		currLabel := ""
+		currElement := &groupingElement{records: make([]*pb.Record, 0)}
+		for _, r := range records {
+			if s.getLabel(ctx, r, org) == currLabel {
+				currElement.records = append(currElement.records, r)
+			} else {
+				ordList = append(ordList, currElement)
+				currLabel = s.getLabel(ctx, r, org)
+				currElement = &groupingElement{records: make([]*pb.Record, 0), id: time.Now().UnixNano()}
+			}
+		}
+
+		if len(currElement.records) > 0 {
+			ordList = append(ordList, currElement)
+		}
+	} else {
+		for _, r := range records {
+			ordList = append(ordList, &groupingElement{
+				records: []*pb.Record{r},
+				id:      time.Now().UnixNano(),
+			})
+		}
+	}
+
+	log.Printf("ORGLIST: %v", len(ordList))
+
+	ordMap := make(map[int64]*groupingElement)
+	for _, entry := range ordList {
+		ordMap[entry.id] = entry
+	}
+
 	placed := make(map[int64]bool)
-	for i, r := range records {
+	for i, r := range ordList {
 
 		// Skip records we've already placed
-		if _, ok := placed[r.GetRelease().GetInstanceId()]; ok {
+		if _, ok := placed[r.id]; ok {
 			continue
 		}
 
@@ -150,19 +213,18 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				edge = len(records)
 			}
 			log.Printf("Looking ahead to %v", edge)
-			for _, tr := range records[i+1 : edge] {
+			for _, tr := range ordList[i+1 : edge] {
 				width := getWidth(tr, org.GetDensity(), sleeveMap)
-				log.Printf("Bounce: %v", tr.GetRelease().GetInstanceId())
 				if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
-					placed[tr.GetRelease().GetInstanceId()] = true
+					placed[tr.id] = true
 					placements = append(placements, &pb.Placement{
-						Iid:   tr.GetRelease().GetInstanceId(),
+						Iid:   tr.id,
 						Space: org.GetSpaces()[currSlot].GetName(),
 						Unit:  currUnit,
 						Index: index + 1,
 						Width: width,
 					})
-					index++
+					index += int32(len(tr.records))
 					currSlotWidth += width
 				}
 			}
@@ -177,21 +239,35 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			currSlotWidth = 0
 		}
 
-		placed[r.GetRelease().GetInstanceId()] = true
+		placed[r.id] = true
 		placements = append(placements, &pb.Placement{
-			Iid:   r.GetRelease().GetInstanceId(),
+			Iid:   r.id,
 			Space: org.GetSpaces()[currSlot].GetName(),
 			Unit:  currUnit,
 			Index: index + 1,
 			Width: width,
 		})
-		index++
+		index += int32(len(r.records))
 		currSlotWidth += width
+	}
+
+	// Expand the placements
+	var nplacements []*pb.Placement
+	for _, entry := range placements {
+		for ri, r := range ordMap[entry.GetIid()].records {
+			nplacements = append(nplacements, &pb.Placement{
+				Iid:   r.GetRelease().GetInstanceId(),
+				Space: entry.GetSpace(),
+				Unit:  entry.GetUnit(),
+				Index: entry.GetIndex() + int32(ri),
+				Width: getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap),
+			})
+		}
 	}
 
 	return &pb.OrganisationSnapshot{
 		Hash:       getHash(placements),
-		Placements: placements,
+		Placements: nplacements,
 		Date:       time.Now().Unix(),
 	}, nil
 }
