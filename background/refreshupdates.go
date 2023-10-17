@@ -9,6 +9,9 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshUpdates(ctx context.Context, d discogs.Discogs) error {
+	if true {
+		return nil
+	}
 	rs, err := b.db.GetRecords(ctx, d.GetUserId())
 	if err != nil {
 		return err
