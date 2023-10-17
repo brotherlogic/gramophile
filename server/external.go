@@ -30,7 +30,7 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 			DateAdded:    time.Now().Unix(),
 		})
 
-	log.Printf("Attempting: %v", token)
+	log.Printf("Attempting this: %v", token)
 
 	return &pb.GetURLResponse{URL: url, Token: token}, s.d.SaveLogins(ctx, attempts)
 }
@@ -49,7 +49,7 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 			}
 
 			// Enrich and store the user
-			log.Printf("From %v got %v and %v", attempt, user, err)
+			log.Printf("from %v got %v and %v", attempt, user, err)
 			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
 			duser, err := sd.GetDiscogsUser(ctx)
 			if err != nil {

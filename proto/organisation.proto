@@ -44,7 +44,7 @@ enum Sort {
 
 enum Layout {
     TIGHT = 0;
-    LOOSE = 1;
+    LOOSE = 1; // Currently unsupported
 }
 
 enum Density {
@@ -114,12 +114,7 @@ message Space {
     string name = 6;
     int32 index = 1;
     int32 units = 2;
-
-    // Effective one_of
-    int32 records_width = 3;
-    int32 disks_width = 4;
     float width = 5;
-
     Layout layout = 7;
 }
 

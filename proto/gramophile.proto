@@ -99,6 +99,8 @@ message Record {
    SaleInfo sale_info = 16;
 
    KeepStatus keep_status = 17;
+
+   discogs.Price median_price = 18;
 }
 
 message SaleInfo {
@@ -112,6 +114,7 @@ message SaleInfo {
 
     int64 listed_date = 8;
     discogs.Price initialPrice = 9;
+    discogs.Price medianPrice = 10;
 }
 
 

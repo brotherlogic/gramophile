@@ -179,6 +179,8 @@ message SaleConfig {
     Mandate handle_price_updates = 2;
     int64 update_frequency_seconds = 3;
     SaleUpdateType update_type = 4;
+
+    int32 reduction = 5;
 }
 
 message KeepConfig {

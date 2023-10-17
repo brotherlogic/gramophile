@@ -49,6 +49,13 @@ func getUpdateTime(c *pb.SaleConfig) time.Duration {
 	return time.Second * time.Duration(c.GetUpdateFrequencySeconds())
 }
 
+func max(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
 	log.Printf("Adjusting with config: %v", c)
 	switch c.GetUpdateType() {
@@ -57,7 +64,11 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 	case pb.SaleUpdateType_NO_SALE_UPDATE:
 		return s.GetCurrentPrice().GetValue(), nil
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
-		return s.GetCurrentPrice().GetValue(), nil
+		// Bail if there is not current median price
+		if s.GetMedianPrice().GetValue() == 0 {
+			return s.GetCurrentPrice().GetValue(), nil
+		}
+		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
 	}
@@ -168,8 +179,16 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 	for _, sale := range sales {
 		for _, record := range records {
 			changed := false
+			sale_changed := false
 			if record.GetRelease().GetId() == sale.GetReleaseId() {
-				log.Printf("%v or %v ($%v)", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId(), sale)
+				log.Printf("LINK %v or %v ($%v)", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId(), sale)
+
+				// Ensure we copy over any changes to the median price
+				if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
+					sale.MedianPrice = record.GetMedianPrice()
+					sale_changed = true
+				}
+
 				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetCurrentPrice() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
 					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
 						record.GetSaleInfo().SaleState = sale.GetSaleState()
@@ -190,6 +209,13 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
 				if err != nil {
 					return fmt.Errorf("unable to save record: %w", err)
+				}
+			}
+			if sale_changed {
+				log.Printf("Saving sale on change: %v", record)
+				err := b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
+				if err != nil {
+					return fmt.Errorf("unable to save sale info: %w", err)
 				}
 			}
 		}

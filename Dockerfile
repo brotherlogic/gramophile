@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.18 AS build
+FROM golang:1.19 AS build
 
 WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile
 

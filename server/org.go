@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"time"
 
@@ -58,7 +59,6 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 }
 
 func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
-	log.Printf("WIDTH: %v", r)
 	switch d {
 	case pb.Density_COUNT:
 		return 1
@@ -117,24 +117,45 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 
 	// Now lay out the records in the units
 	var placements []*pb.Placement
-	rc := int32(0)
-	totalWidth := float32(0)
 
 	currSlot := 0
-	slotWidth := 0
+	currSlotWidth := float32(0)
 	index := int32(0)
-	currUnit := int32(0)
+	currUnit := int32(1)
+
+	// Add an infinite spill slot to the end of the slots
+	org.Spaces = append(org.Spaces, &pb.Space{
+		Name:  "Spill",
+		Width: math.MaxFloat32,
+		Units: 1,
+	})
 
 	for _, r := range records {
-		width := 
+		width := getWidth(r, org.GetDensity(), sleeveMap)
+
+		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
+
+		// Current slot is full - move on to the next unit
+		if currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+			currUnit++
+			currSlotWidth = 0
+		}
+
+		if currUnit > org.GetSpaces()[currSlot].GetUnits() {
+			currUnit = 1
+			currSlot++
+			currSlotWidth = 0
+		}
+
 		placements = append(placements, &pb.Placement{
-			Iid:     r.GetRelease().GetInstanceId(),
-			Space:   slots[currSlot].GetName(),
-			Unit:    currUnit,
-			Index:   index,
-			Width:   width,
+			Iid:   r.GetRelease().GetInstanceId(),
+			Space: org.GetSpaces()[currSlot].GetName(),
+			Unit:  currUnit,
+			Index: index + 1,
+			Width: width,
 		})
 		index++
+		currSlotWidth += width
 	}
 
 	return &pb.OrganisationSnapshot{
