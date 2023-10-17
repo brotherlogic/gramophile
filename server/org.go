@@ -130,13 +130,43 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		Units: 1,
 	})
 
-	for _, r := range records {
+	placed := make(map[int64]bool)
+	for i, r := range records {
+
+		// Skip records we've already placed
+		if _, ok := placed[r.GetRelease().GetInstanceId()]; ok {
+			continue
+		}
+
 		width := getWidth(r, org.GetDensity(), sleeveMap)
 
 		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
 
 		// Current slot is full - move on to the next unit
-		if currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+		if org.GetSpill().GetType() == pb.GroupSpill_SPILL_BREAK_ORDERING && currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+			// Fill out the slot
+			edge := i + 1 + int(org.GetSpill().GetLookAhead())
+			if org.GetSpill().GetLookAhead() < 0 {
+				edge = len(records)
+			}
+			log.Printf("Looking ahead to %v", edge)
+			for _, tr := range records[i+1 : edge] {
+				width := getWidth(tr, org.GetDensity(), sleeveMap)
+				log.Printf("Bounce: %v", tr.GetRelease().GetInstanceId())
+				if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
+					placed[tr.GetRelease().GetInstanceId()] = true
+					placements = append(placements, &pb.Placement{
+						Iid:   tr.GetRelease().GetInstanceId(),
+						Space: org.GetSpaces()[currSlot].GetName(),
+						Unit:  currUnit,
+						Index: index + 1,
+						Width: width,
+					})
+					index++
+					currSlotWidth += width
+				}
+			}
+
 			currUnit++
 			currSlotWidth = 0
 		}
@@ -147,6 +177,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			currSlotWidth = 0
 		}
 
+		placed[r.GetRelease().GetInstanceId()] = true
 		placements = append(placements, &pb.Placement{
 			Iid:   r.GetRelease().GetInstanceId(),
 			Space: org.GetSpaces()[currSlot].GetName(),
