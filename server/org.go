@@ -7,7 +7,6 @@ import (
 	"log"
 	"math"
 	"sort"
-	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -38,16 +37,28 @@ func (s *Server) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
 }
 
-func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record) string {
-	if len(r.GetRelease().GetLabels()) > 0 {
-		return fmt.Sprintf("%v-%v", strings.ToLower(r.GetRelease().GetLabels()[0].GetName()), strings.ToLower(r.GetRelease().GetLabels()[0].GetCatno()))
+func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+	// Release has no labels
+	if len(r.GetRelease().GetLabels()) == 0 {
+		return ""
 	}
 
-	return ""
+	bestWeight := float32(0.5)
+	bestLabel := r.GetRelease().GetLabels()[0]
+
+	for _, label := range r.GetRelease().GetLabels()[1:] {
+		for _, weight := range c.GetGrouping().GetLabelWeights() {
+			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
+				bestLabel = label
+				bestWeight = weight.GetWeight()
+			}
+		}
+	}
+
+	return bestLabel.GetName() + "-" + bestLabel.GetCatno()
 }
 
 func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
-	log.Printf("WIDTH: %v", r)
 	switch d {
 	case pb.Density_COUNT:
 		return 1
@@ -91,7 +102,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return s.getLabelCatno(ctx, recs[i]) < s.getLabelCatno(ctx, recs[j])
+				return s.getLabelCatno(ctx, recs[i], org) < s.getLabelCatno(ctx, recs[j], org)
 			})
 		}
 
@@ -106,48 +117,45 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 
 	// Now lay out the records in the units
 	var placements []*pb.Placement
-	rc := int32(0)
-	totalWidth := float32(0)
 
-	for _, slot := range org.GetSpaces() {
-		if slot.GetLayout() == pb.Layout_TIGHT {
-			for i := int32(1); i <= (slot.GetUnits()); i++ {
-				if slot.GetRecordsWidth() > 0 {
-					for _, r := range records[rc:min(rc+(slot.GetRecordsWidth()), int32(len(records)))] {
-						width := getWidth(r, org.GetDensity(), sleeveMap)
+	currSlot := 0
+	currSlotWidth := float32(0)
+	index := int32(0)
+	currUnit := int32(1)
 
-						placements = append(placements, &pb.Placement{
-							Iid:   r.GetRelease().GetInstanceId(),
-							Space: slot.GetName(),
-							Unit:  i,
-							Index: rc + 1,
-							Width: width,
-						})
-						rc++
-						totalWidth += width
-					}
-				}
-			}
-		} else if slot.GetLayout() == pb.Layout_LOOSE {
-			if slot.GetRecordsWidth() > 0 {
-				count := min(int32(math.Ceil(float64(len(records[rc:]))/float64(slot.GetUnits()))), slot.GetRecordsWidth())
-				for i := int32(1); i <= slot.GetUnits(); i++ {
-					for _, r := range records[rc : rc+count] {
-						width := getWidth(r, org.GetDensity(), sleeveMap)
-						log.Printf("Got width: %v", width)
-						placements = append(placements, &pb.Placement{
-							Iid:   r.GetRelease().GetInstanceId(),
-							Space: slot.GetName(),
-							Unit:  i,
-							Index: rc + 1,
-							Width: width,
-						})
-						rc++
-						totalWidth += width
-					}
-				}
-			}
+	// Add an infinite spill slot to the end of the slots
+	org.Spaces = append(org.Spaces, &pb.Space{
+		Name:  "Spill",
+		Width: math.MaxFloat32,
+		Units: 1,
+	})
+
+	for _, r := range records {
+		width := getWidth(r, org.GetDensity(), sleeveMap)
+
+		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
+
+		// Current slot is full - move on to the next unit
+		if currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+			currUnit++
+			currSlotWidth = 0
 		}
+
+		if currUnit > org.GetSpaces()[currSlot].GetUnits() {
+			currUnit = 1
+			currSlot++
+			currSlotWidth = 0
+		}
+
+		placements = append(placements, &pb.Placement{
+			Iid:   r.GetRelease().GetInstanceId(),
+			Space: org.GetSpaces()[currSlot].GetName(),
+			Unit:  currUnit,
+			Index: index + 1,
+			Width: width,
+		})
+		index++
+		currSlotWidth += width
 	}
 
 	return &pb.OrganisationSnapshot{

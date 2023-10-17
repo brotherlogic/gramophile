@@ -5,9 +5,8 @@ package gramophile;
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 message OrganisationConfig {
-    repeated LabelDecider label_deciders = 1;
-    repeated ArtistTranslation artist_translation = 2;
-    repeated Organisation organisations = 3;
+    repeated ArtistTranslation artist_translation = 1;
+    repeated Organisation organisations = 2;
 }
 
 
@@ -33,6 +32,9 @@ message Placement {
     int32 index = 3;
     string space = 4;
     float width = 5;
+
+    //Optional
+    string sort_key = 6;
 }
 
 enum Sort {
@@ -42,7 +44,7 @@ enum Sort {
 
 enum Layout {
     TIGHT = 0;
-    LOOSE = 1;
+    LOOSE = 1; // Currently unsupported
 }
 
 enum Density {
@@ -59,18 +61,60 @@ message Organisation {
 
     bool auto_artist_translate = 5;
     Density density = 3;
+
+    Grouping grouping = 4;
+    Spill spill = 7;
+}
+
+message Spill {
+    GroupSpill type = 1;
+
+    // -1 means an infinite look ahead
+    int32 look_ahead = 2;
+}
+
+enum GroupSpill {
+    SPILL_NO_SPILL = 0;
+    SPILL_KEEP_GROUPS = 1;
+}
+
+message LabelRanking {
+    string label_name = 1;
+    float weighting = 2;
+}
+
+message ArtistMapping {
+    string leader_artist = 1;
+    repeated string following_artist = 2;
+}
+
+message Grouping {
+    GroupingType type = 1;
+    repeated ArtistWeight artist_weights = 2;
+    repeated LabelWeight label_weights = 3;
+}
+
+message LabelWeight {
+    int32 label_id = 1;
+    float weight = 2; // Default weight is 0.5
+}
+
+message ArtistWeight {
+    int32 artist_id = 1;
+    float weight = 2;
+}
+
+enum GroupingType {
+    GROUPING_NO_GROUPING = 0;
+    GROUPING_GROUP_BY_LABEL = 1;
+    GROUPING_GROUP_BY_ARTIST = 2;
 }
 
 message Space {
     string name = 6;
     int32 index = 1;
     int32 units = 2;
-
-    // Effective one_of
-    int32 records_width = 3;
-    int32 disks_width = 4;
     float width = 5;
-
     Layout layout = 7;
 }
 
@@ -81,10 +125,6 @@ message FolderSet {
     Sort sort = 4;
 }
 
-message LabelDecider {
-    int32 index = 1;
-    string label_prefix = 2;
-}
 
 message ArtistTranslation {
     string artist_prefix = 1;
