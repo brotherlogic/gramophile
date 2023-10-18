@@ -189,6 +189,27 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		}
 	}
 
+	// Let's run a check that these groups will actually fit on the shelves
+	var nordList []*groupingElement
+	for _, element := range ordList {
+		fits := false
+		for _, shelves := range org.GetSpaces() {
+			if getWidth(element, org.GetDensity(), sleeveMap) <= shelves.GetWidth() && shelves.GetName() != "Spill" {
+				fits = true
+			}
+		}
+
+		// Break out the group if it can't possible fit anywhere
+		if !fits {
+			for _, r := range element.records {
+				nordList = append(nordList, &groupingElement{records: []*pb.Record{r}, id: r.GetRelease().GetInstanceId()})
+			}
+		} else {
+			nordList = append(nordList, element)
+		}
+	}
+	ordList = nordList
+
 	log.Printf("ORGLIST: %v", len(ordList))
 
 	ordMap := make(map[int64]*groupingElement)
@@ -198,7 +219,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	}
 
 	placed := make(map[int64]bool)
-	for i, r := range ordList {
+	i := 0
+	for i < len(ordList) {
+		r := ordList[i]
+		tripped := false
 
 		// Skip records we've already placed
 		if _, ok := placed[r.id]; ok {
@@ -221,6 +245,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				}
 				for _, tr := range ordList[i+1 : edge] {
 					width := getWidth(tr, org.GetDensity(), sleeveMap)
+					log.Printf("Trying %v", width)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
 						placed[tr.id] = true
 						placements = append(placements, &pb.Placement{
@@ -236,6 +261,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				}
 			}
 
+			tripped = true
 			currUnit++
 			currSlotWidth = 0
 		}
@@ -244,6 +270,14 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			currUnit = 1
 			currSlot++
 			currSlotWidth = 0
+
+			// If we're starting a new slot, let's start afresh
+			tripped = true
+		}
+
+		// If we've moved to a new slot or a new unit, let's start afresh to avoid misplacing
+		if tripped {
+			continue
 		}
 
 		placed[r.id] = true
@@ -256,6 +290,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		})
 		index += int32(len(r.records))
 		currSlotWidth += width
+		i++
 	}
 
 	log.Printf("PLACEMENTS %v", len(placements))
