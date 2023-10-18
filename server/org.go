@@ -80,6 +80,7 @@ func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation)
 }
 
 func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+	log.Printf("PROC %+v", r)
 	switch d {
 	case pb.Density_COUNT:
 		return float32(len(r.records))
