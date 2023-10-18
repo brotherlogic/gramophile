@@ -217,9 +217,8 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				// Fill out the slot
 				edge := i + 1 + int(org.GetSpill().GetLookAhead())
 				if org.GetSpill().GetLookAhead() < 0 {
-					edge = len(records)
+					edge = len(records) - 1
 				}
-				log.Printf("Looking ahead to %v", edge)
 				for _, tr := range ordList[i+1 : edge] {
 					width := getWidth(tr, org.GetDensity(), sleeveMap)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
