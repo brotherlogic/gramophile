@@ -168,9 +168,11 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			if s.getLabel(ctx, r, org) == currLabel {
 				currElement.records = append(currElement.records, r)
 			} else {
-				ordList = append(ordList, currElement)
+				if len(currElement.records) > 0 {
+					ordList = append(ordList, currElement)
+				}
 				currLabel = s.getLabel(ctx, r, org)
-				currElement = &groupingElement{records: make([]*pb.Record, 0), id: time.Now().UnixNano()}
+				currElement = &groupingElement{records: []*pb.Record{r}, id: time.Now().UnixNano()}
 			}
 		}
 
@@ -190,6 +192,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 
 	ordMap := make(map[int64]*groupingElement)
 	for _, entry := range ordList {
+		log.Printf("ENTRY: %+v", entry)
 		ordMap[entry.id] = entry
 	}
 
@@ -206,26 +209,30 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
 
 		// Current slot is full - move on to the next unit
-		if org.GetSpill().GetType() == pb.GroupSpill_SPILL_BREAK_ORDERING && currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
-			// Fill out the slot
-			edge := i + 1 + int(org.GetSpill().GetLookAhead())
-			if org.GetSpill().GetLookAhead() < 0 {
-				edge = len(records)
-			}
-			log.Printf("Looking ahead to %v", edge)
-			for _, tr := range ordList[i+1 : edge] {
-				width := getWidth(tr, org.GetDensity(), sleeveMap)
-				if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
-					placed[tr.id] = true
-					placements = append(placements, &pb.Placement{
-						Iid:   tr.id,
-						Space: org.GetSpaces()[currSlot].GetName(),
-						Unit:  currUnit,
-						Index: index + 1,
-						Width: width,
-					})
-					index += int32(len(tr.records))
-					currSlotWidth += width
+		if currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+			log.Printf("Slot is full")
+
+			if org.GetSpill().GetType() == pb.GroupSpill_SPILL_BREAK_ORDERING {
+				// Fill out the slot
+				edge := i + 1 + int(org.GetSpill().GetLookAhead())
+				if org.GetSpill().GetLookAhead() < 0 {
+					edge = len(records)
+				}
+				log.Printf("Looking ahead to %v", edge)
+				for _, tr := range ordList[i+1 : edge] {
+					width := getWidth(tr, org.GetDensity(), sleeveMap)
+					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
+						placed[tr.id] = true
+						placements = append(placements, &pb.Placement{
+							Iid:   tr.id,
+							Space: org.GetSpaces()[currSlot].GetName(),
+							Unit:  currUnit,
+							Index: index + 1,
+							Width: width,
+						})
+						index += int32(len(tr.records))
+						currSlotWidth += width
+					}
 				}
 			}
 
@@ -251,9 +258,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		currSlotWidth += width
 	}
 
+	log.Printf("PLACEMENTS %v", len(placements))
+
 	// Expand the placements
 	var nplacements []*pb.Placement
 	for _, entry := range placements {
+		log.Printf("EXPANDING: %v -> %+v", entry, ordMap[entry.GetIid()])
 		for ri, r := range ordMap[entry.GetIid()].records {
 			nplacements = append(nplacements, &pb.Placement{
 				Iid:   r.GetRelease().GetInstanceId(),

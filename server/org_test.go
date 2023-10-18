@@ -392,14 +392,14 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   50,
 		Sleeve:  "Madeup",
-		Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB", Catno: "2"}}}})
+		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB", Catno: "2"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   10,
 		Sleeve:  "Madeup",
-		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "CC"}}}})
+		Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "CC"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
