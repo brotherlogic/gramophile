@@ -58,14 +58,40 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 	return bestLabel.GetName() + "-" + bestLabel.GetCatno()
 }
 
-func getWidth(r *pb.Record, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+	// Release has no labels
+	if len(r.GetRelease().GetLabels()) == 0 {
+		return ""
+	}
+
+	bestWeight := float32(0.5)
+	bestLabel := r.GetRelease().GetLabels()[0]
+
+	for _, label := range r.GetRelease().GetLabels()[1:] {
+		for _, weight := range c.GetGrouping().GetLabelWeights() {
+			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
+				bestLabel = label
+				bestWeight = weight.GetWeight()
+			}
+		}
+	}
+
+	return bestLabel.GetName()
+}
+
+func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+	log.Printf("PROC %+v", r)
 	switch d {
 	case pb.Density_COUNT:
-		return 1
+		return float32(len(r.records))
 	case pb.Density_DISKS:
-		return 1 //return r.GetDisks()
+		return float32(len(r.records))
 	case pb.Density_WIDTH:
-		return r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+		twidth := float32(0)
+		for _, r := range r.records {
+			twidth += r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+		}
+		return twidth
 	}
 
 	log.Printf("Unknown Width Calculation: %v", d)
@@ -77,6 +103,11 @@ func min(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+type groupingElement struct {
+	records []*pb.Record
+	id      int64
 }
 
 func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation) (*pb.OrganisationSnapshot, error) {
@@ -130,13 +161,110 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		Units: 1,
 	})
 
-	for _, r := range records {
+	var ordList []*groupingElement
+	if org.GetGrouping().GetType() == pb.GroupingType_GROUPING_GROUP {
+		currLabel := ""
+		currElement := &groupingElement{records: make([]*pb.Record, 0)}
+		for _, r := range records {
+			if s.getLabel(ctx, r, org) == currLabel {
+				currElement.records = append(currElement.records, r)
+			} else {
+				if len(currElement.records) > 0 {
+					ordList = append(ordList, currElement)
+				}
+				currLabel = s.getLabel(ctx, r, org)
+				currElement = &groupingElement{records: []*pb.Record{r}, id: time.Now().UnixNano()}
+			}
+		}
+
+		if len(currElement.records) > 0 {
+			ordList = append(ordList, currElement)
+		}
+	} else {
+		for _, r := range records {
+			ordList = append(ordList, &groupingElement{
+				records: []*pb.Record{r},
+				id:      time.Now().UnixNano(),
+			})
+		}
+	}
+
+	// Let's run a check that these groups will actually fit on the shelves
+	var nordList []*groupingElement
+	for _, element := range ordList {
+		fits := false
+		for _, shelves := range org.GetSpaces() {
+			if getWidth(element, org.GetDensity(), sleeveMap) <= shelves.GetWidth() && shelves.GetName() != "Spill" {
+				fits = true
+			}
+		}
+
+		// Break out the group if it can't possible fit anywhere
+		if !fits {
+			for _, r := range element.records {
+				nordList = append(nordList, &groupingElement{records: []*pb.Record{r}, id: r.GetRelease().GetInstanceId()})
+			}
+		} else {
+			nordList = append(nordList, element)
+		}
+	}
+	ordList = nordList
+
+	log.Printf("ORGLIST: %v", len(ordList))
+
+	ordMap := make(map[int64]*groupingElement)
+	for _, entry := range ordList {
+		log.Printf("ENTRY: %+v", entry)
+		ordMap[entry.id] = entry
+	}
+
+	placed := make(map[int64]bool)
+	i := 0
+	for i < len(ordList) {
+		log.Printf("Running %v", i)
+		r := ordList[i]
+		tripped := false
+
+		// Skip records we've already placed
+		if _, ok := placed[r.id]; ok {
+			i++
+			continue
+		}
+
 		width := getWidth(r, org.GetDensity(), sleeveMap)
 
 		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
 
 		// Current slot is full - move on to the next unit
 		if currSlotWidth+width > org.GetSpaces()[currSlot].GetWidth() {
+			log.Printf("Slot is full")
+
+			if org.GetSpill().GetType() == pb.GroupSpill_SPILL_BREAK_ORDERING {
+				// Fill out the slot
+				edge := i + 1 + int(org.GetSpill().GetLookAhead())
+				if org.GetSpill().GetLookAhead() < 0 {
+					edge = len(ordList)
+				}
+				log.Printf("Looking ahead: %v -> %v", i+1, edge)
+				for _, tr := range ordList[i+1 : edge] {
+					width := getWidth(tr, org.GetDensity(), sleeveMap)
+					log.Printf("Trying %v", width)
+					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
+						placed[tr.id] = true
+						placements = append(placements, &pb.Placement{
+							Iid:   tr.id,
+							Space: org.GetSpaces()[currSlot].GetName(),
+							Unit:  currUnit,
+							Index: index + 1,
+							Width: width,
+						})
+						index += int32(len(tr.records))
+						currSlotWidth += width
+					}
+				}
+			}
+
+			tripped = true
 			currUnit++
 			currSlotWidth = 0
 		}
@@ -145,22 +273,49 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			currUnit = 1
 			currSlot++
 			currSlotWidth = 0
+
+			// If we're starting a new slot, let's start afresh
+			tripped = true
 		}
 
+		// If we've moved to a new slot or a new unit, let's start afresh to avoid misplacing
+		if tripped {
+			continue
+		}
+
+		placed[r.id] = true
 		placements = append(placements, &pb.Placement{
-			Iid:   r.GetRelease().GetInstanceId(),
+			Iid:   r.id,
 			Space: org.GetSpaces()[currSlot].GetName(),
 			Unit:  currUnit,
 			Index: index + 1,
 			Width: width,
 		})
-		index++
+		index += int32(len(r.records))
 		currSlotWidth += width
+		i++
+	}
+
+	log.Printf("PLACEMENTS %v", len(placements))
+
+	// Expand the placements
+	var nplacements []*pb.Placement
+	for _, entry := range placements {
+		log.Printf("EXPANDING: %v -> %+v", entry, ordMap[entry.GetIid()])
+		for ri, r := range ordMap[entry.GetIid()].records {
+			nplacements = append(nplacements, &pb.Placement{
+				Iid:   r.GetRelease().GetInstanceId(),
+				Space: entry.GetSpace(),
+				Unit:  entry.GetUnit(),
+				Index: entry.GetIndex() + int32(ri),
+				Width: getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap),
+			})
+		}
 	}
 
 	return &pb.OrganisationSnapshot{
-		Hash:       getHash(placements),
-		Placements: placements,
+		Hash:       getHash(nplacements),
+		Placements: nplacements,
 		Date:       time.Now().Unix(),
 	}, nil
 }
@@ -170,7 +325,9 @@ func getHash(placements []*pb.Placement) string {
 		return placements[i].GetIndex() < placements[j].GetIndex()
 	})
 
-	bytes, _ := proto.Marshal(&pb.OrganisationSnapshot{Placements: placements})
+	val := &pb.OrganisationSnapshot{Placements: placements}
+	bytes, _ := proto.Marshal(val)
+	log.Printf("HASH %v -> %x", val, (sha1.Sum(bytes)))
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
