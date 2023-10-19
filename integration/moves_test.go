@@ -175,6 +175,7 @@ func TestRandomMoveHappensPostIntent_WithPrint(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
+			PrinterConfig: &pb.PrinterConfig{UsePrinter: pb.Mandate_REQUIRED, PrinterAddress: "test", BlockOnPrint: true},
 			CreateFolders: pb.Create_AUTOMATIC,
 			CreateMoves:   pb.Create_AUTOMATIC,
 			Moves: []*pb.FolderMove{
