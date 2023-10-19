@@ -221,11 +221,13 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	placed := make(map[int64]bool)
 	i := 0
 	for i < len(ordList) {
+		log.Printf("Running %v", i)
 		r := ordList[i]
 		tripped := false
 
 		// Skip records we've already placed
 		if _, ok := placed[r.id]; ok {
+			i++
 			continue
 		}
 
@@ -241,8 +243,9 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				// Fill out the slot
 				edge := i + 1 + int(org.GetSpill().GetLookAhead())
 				if org.GetSpill().GetLookAhead() < 0 {
-					edge = len(records) - 1
+					edge = len(ordList)
 				}
+				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
 					width := getWidth(tr, org.GetDensity(), sleeveMap)
 					log.Printf("Trying %v", width)
@@ -311,7 +314,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	}
 
 	return &pb.OrganisationSnapshot{
-		Hash:       getHash(placements),
+		Hash:       getHash(nplacements),
 		Placements: nplacements,
 		Date:       time.Now().Unix(),
 	}, nil
@@ -322,7 +325,9 @@ func getHash(placements []*pb.Placement) string {
 		return placements[i].GetIndex() < placements[j].GetIndex()
 	})
 
-	bytes, _ := proto.Marshal(&pb.OrganisationSnapshot{Placements: placements})
+	val := &pb.OrganisationSnapshot{Placements: placements}
+	bytes, _ := proto.Marshal(val)
+	log.Printf("HASH %v -> %x", val, (sha1.Sum(bytes)))
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 

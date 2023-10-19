@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -236,6 +237,7 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 }
 
 func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
+	log.Printf("RUNNING")
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()
@@ -1090,6 +1092,10 @@ func TestGetSnapshotHash(t *testing.T) {
 
 	if org.GetSnapshot().GetDate() == org2.GetSnapshot().GetDate() || org.GetSnapshot().GetHash() != org2.GetSnapshot().GetHash() {
 		t.Errorf("Hash or Date mismatch on second pull: %v vs %v", org.GetSnapshot(), org2.GetSnapshot())
+		for i, placement := range org.GetSnapshot().Placements {
+			t.Errorf("S1: %v", placement)
+			t.Errorf("S2: %v", org.GetSnapshot().Placements[i])
+		}
 	}
 
 	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "DDD"}}}})
