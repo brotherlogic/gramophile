@@ -135,12 +135,19 @@ message GramophileConfig {
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
+    PrinterConfig printer_config = 16;
 
     Create create_folders = 12;
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
     repeated ValidationRule validations = 15;
+}
+
+message PrinterConfig {
+    Mandate use_printer = 1;
+    string printer_address = 2;
+    bool block_on_print = 3;
 }
 
 message WeightConfig {
