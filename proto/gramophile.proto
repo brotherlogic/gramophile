@@ -101,8 +101,6 @@ message Record {
    KeepStatus keep_status = 17;
 
    discogs.Price median_price = 18;
-
-   int64 last_update = 19;
 }
 
 message SaleInfo {

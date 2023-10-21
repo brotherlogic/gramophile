@@ -265,7 +265,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					RunDate: time.Now().Unix() + int64(i),
 					Entry: &pb.QueueElement_RefreshSales{
 						RefreshSales: &pb.RefreshSales{
-							Page: i, RefreshId: entry.GetRefreshCollection().GetRefreshId()}},
+							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
 					Auth: entry.GetAuth(),
 				}})
 				if err != nil {
@@ -277,7 +277,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				RunDate: time.Now().Unix() + int64(pages.GetPages()) + 10,
 				Entry: &pb.QueueElement_LinkSales{
 					LinkSales: &pb.LinkSales{
-						RefreshId: entry.GetRefreshCollection().GetRefreshId()}},
+						RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
 				Auth: entry.GetAuth(),
 			}})
 			if err != nil {
@@ -330,7 +330,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshRelease:
 		return q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
 	case *pb.QueueElement_RefreshCollection:
-		return q.b.RefreshCollection(ctx, d)
+		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshCollectionEntry:
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
