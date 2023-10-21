@@ -40,6 +40,7 @@ message Placement {
 enum Sort {
     ARTIST_YEAR = 0;
     LABEL_CATNO = 1;
+    RELEASE_YEAR = 2;
 }
 
 enum Layout {
