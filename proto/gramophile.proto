@@ -101,6 +101,8 @@ message Record {
    KeepStatus keep_status = 17;
 
    discogs.Price median_price = 18;
+
+   int64 last_update = 19;
 }
 
 message SaleInfo {
@@ -149,7 +151,7 @@ message QueueElement {
 
     oneof entry {
         RefreshUserEntry refresh_user = 4;
-        RefreshCollectionEntry refresh_collection = 5;
+        RefreshCollectionEntry refresh_collection_entry = 5;
         RefreshIntents refresh_intents = 6;
         RefreshUpdates refresh_updates = 8;
         AddFolderUpdate add_folder_update = 9;
@@ -161,9 +163,19 @@ message QueueElement {
         UpdateSale update_sale = 15;
         MoveRecords move_records = 16;
         MoveRecord move_record = 17;
+        RefreshRelease refresh_release = 18;
+        RefreshCollection refresh_collection = 19;
     }
 
     int64 refresh_id = 7;
+}
+
+message RefreshCollection {
+
+}
+
+message RefreshRelease {
+    int64 iid = 1;
 }
 
 message UpdateSale {
@@ -216,6 +228,7 @@ message RefreshCollectionEntry {
     int32 page = 1;
     int64 refresh_id = 2;
 }
+
 
 message CleanCollectionEntry {
     int64 refresh_id = 1;
