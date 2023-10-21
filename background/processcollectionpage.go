@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -34,7 +33,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			stored.RefreshId = refreshId
 
 			stored.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
-			stored.LastUpdateTime = time.Now().Unix()
+			//stored.LastUpdateTime = time.Now().Unix()
 
 			err = b.db.SaveRecord(ctx, d.GetUserId(), stored)
 			if err != nil {
@@ -44,7 +43,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			record := &pb.Record{Release: release}
 			record.RefreshId = refreshId
 			record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
-			record.LastUpdateTime = time.Now().Unix()
+			//record.LastUpdateTime = time.Now().Unix()
 
 			err = b.db.SaveRecord(ctx, d.GetUserId(), record)
 			if err != nil {

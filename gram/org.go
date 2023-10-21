@@ -8,7 +8,9 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func GetOrganisation() *CLIModule {
@@ -20,7 +22,11 @@ func GetOrganisation() *CLIModule {
 }
 
 func getArtist(r *pbd.Release) string {
-	return "NEED_TO_IMPLEMENT_ARTIST_RETRIEVAL"
+	artist := r.GetArtists()[0].GetName()
+	for _, art := range r.GetArtists()[1:] {
+		artist += ", " + art.GetName()
+	}
+	return artist
 }
 
 func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p *pb.Placement) (string, error) {
@@ -43,7 +49,7 @@ func executeOrg(ctx context.Context, args []string) error {
 		return fmt.Errorf("unable to dial gramophile: %w", err)
 	}
 
-	if len(args) == 1 {
+	if len(args) > 1 {
 		orgFlags := flag.NewFlagSet("orgflags", flag.ExitOnError)
 		name := orgFlags.String("org", "", "The name of the organisation")
 		slot := orgFlags.Int("slot", -1, "The slot to print")
@@ -56,6 +62,11 @@ func executeOrg(ctx context.Context, args []string) error {
 			if err != nil {
 				return fmt.Errorf("unable to get org: %w", err)
 			}
+
+			if len(r.GetSnapshot().GetPlacements()) == 0 {
+				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)
+			}
+
 			currSlot := 0
 			currShelf := ""
 			for _, placement := range r.GetSnapshot().GetPlacements() {
@@ -64,7 +75,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					currSlot++
 				}
 
-				if currSlot == *slot {
+				if currSlot == *slot || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement)
 					if err != nil {
 						return err
