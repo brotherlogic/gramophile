@@ -135,6 +135,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			sort.SliceStable(recs, func(i, j int) bool {
 				return s.getLabelCatno(ctx, recs[i], org) < s.getLabelCatno(ctx, recs[j], org)
 			})
+		case pb.Sort_RELEASE_YEAR:
+			sort.SliceStable(recs, func(i, j int) bool {
+				return recs[i].GetRelease().GetReleaseDate() < recs[j].GetRelease().GetReleaseDate()
+			})
 		}
 
 		records = append(records, recs...)
@@ -209,8 +213,6 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		}
 	}
 	ordList = nordList
-
-	log.Printf("ORGLIST: %v", len(ordList))
 
 	ordMap := make(map[int64]*groupingElement)
 	for _, entry := range ordList {
