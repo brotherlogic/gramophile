@@ -18,7 +18,7 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -33,6 +33,8 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
+
+	di.AddCollectionRelease(&pbd.Release{Id: 123, ReleaseDate: 12345678})
 
 	// Run a full update
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
