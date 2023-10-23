@@ -1,9 +1,3 @@
 # gramophile
 
-Wheeeeeee.
-
-Config.
-
-Updates.
-
-Huh
+Gramophile is a system for managing your record collection through Discogs.
