@@ -22,6 +22,9 @@ func GetOrganisation() *CLIModule {
 }
 
 func getArtist(r *pbd.Release) string {
+     if len(r.GetArtists()) == 0 {
+     	return "NO_ARTIST"
+     }
 	artist := r.GetArtists()[0].GetName()
 	for _, art := range r.GetArtists()[1:] {
 		artist += ", " + art.GetName()
