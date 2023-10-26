@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+enum Enabled {
+    DISABLED = 0;
+    ENABLED = 1;
+}
+
+message LaunchConfig {
+    Enabled organisation_config = 1;
+    Enabled cleaning_config = 2;
+}

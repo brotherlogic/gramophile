@@ -10,6 +10,20 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func (s *Server) cleanConfig(ctx context.Context, config *pb.GramophileConfig) *pb.GramophileConfig {
+	// Clear all config options
+	config.ArrivedConfig.Mandate = pb.Mandate_NONE
+	config.CleaningConfig.Cleaning = pb.Mandate_NONE
+	config.GoalFolderConfig.Mandate = pb.Mandate_NONE
+	config.KeepConfig.Mandate = pb.Mandate_NONE
+	config.ListenConfig.Mandate = pb.Mandate_NONE
+	config.SaleConfig.Mandate = pb.Mandate_NONE
+	config.SleeveConfig.Mandate = pb.Mandate_NONE
+	config.WeightConfig.Mandate = pb.Mandate_NONE
+	config.WidthConfig.Mandate = pb.Mandate_NONE
+
+}
+
 func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
 	u, err := s.getUser(ctx)
 	if err != nil {
@@ -26,7 +40,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	log.Printf("got these fields: %v", fields)
 
-	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
+	folders, moves, verr := config.ValidateConfig(ctx, u, fields, s.cleanConfig(ctx, req.GetConfig()))
 	if verr != nil {
 		return nil, fmt.Errorf("bad validate: %v", verr)
 	}

@@ -28,6 +28,11 @@ type Server struct {
 	d  db.Database
 	di discogs.Discogs
 	qc queue_client.QueueClient
+	lc *pb.LaunchConfig
+}
+
+func (s *Server) GetLaunchConfig() *pb.LaunchConfig {
+	return s.lc
 }
 
 func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server {
