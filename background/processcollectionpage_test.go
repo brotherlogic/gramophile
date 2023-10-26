@@ -8,6 +8,7 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 
 	dpb "github.com/brotherlogic/discogs/proto"
+	pbd "github.com/brotherlogic/discogs/proto"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
@@ -68,5 +69,33 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 	if err == nil && rec.GetRelease().GetRating() == 2 {
 		t.Errorf("Refresh pull did not delete record")
 	}
+}
 
+func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
+	b := GetTestBackgroundRunner()
+
+	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: "123456"}})
+
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	if err != nil {
+		t.Errorf("Bad collection pull: %v", err)
+	}
+
+	record, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err != nil {
+		t.Errorf("Bad get: %v", err)
+	}
+
+	if record.GetRelease().GetRating() != 2 {
+		t.Errorf("Stored record is not quite right: %v", record)
+	}
+
+	if record.GetLastCleanTime() != 123456 {
+		t.Errorf("Unable to retrieve clean time: %v", record)
+	}
+
+	if len(record.GetRelease().GetNotes()) > 0 {
+		t.Errorf("Effective hanging notes here: %v", record.GetRelease())
+	}
 }

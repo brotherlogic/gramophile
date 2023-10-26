@@ -10,6 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	CLEANED_FIELD_NAME = "Cleaned"
+)
+
 type cleaning struct{}
 
 func (*cleaning) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
@@ -28,7 +32,7 @@ func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramop
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
-			if field.GetName() == "Cleaned" {
+			if field.GetName() == CLEANED_FIELD_NAME {
 				found = true
 			}
 		}
