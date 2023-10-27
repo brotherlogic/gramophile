@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/config"
@@ -21,19 +22,19 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 			if f.GetId() == key {
 				switch f.GetName() {
 				case config.CLEANED_FIELD_NAME:
-					val, err := strconv.ParseInt(value, 10, 64)
+					val, err := time.Parse("2006-01-02", value)
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("Unable to parse %v as date: %w", value, err)
 					}
-					r.LastCleanTime = val
+					r.LastCleanTime = val.Unix()
 				case config.ARRIVED_FIELD:
-					val, err := strconv.ParseInt(value, 10, 64)
+					val, err := time.Parse("2006-01-02", value)
 					if err != nil {
 						return nil, err
 					}
-					r.Arrived = val
+					r.LastCleanTime = val.Unix()
 				case config.WIDTH_FIELD:
-					val, err := strconv.ParseFloat(value, 10)
+					val, err := strconv.ParseFloat(value, 32)
 					if err != nil {
 						return nil, err
 					}

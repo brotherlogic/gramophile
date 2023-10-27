@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
@@ -74,8 +75,10 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
+	ti := time.Date(2012, time.April, 10, 0, 0, 0, 0, time.UTC)
+
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
-	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: "123456"}})
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: ti.Format("2006-01-02")}})
 
 	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
 	if err != nil {
@@ -91,8 +94,8 @@ func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 		t.Errorf("Stored record is not quite right: %v", record)
 	}
 
-	if record.GetLastCleanTime() != 123456 {
-		t.Errorf("Unable to retrieve clean time: %v", record)
+	if record.GetLastCleanTime() != ti.Unix() {
+		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(record.GetLastCleanTime(), 0), ti)
 	}
 
 	if len(record.GetRelease().GetNotes()) > 0 {

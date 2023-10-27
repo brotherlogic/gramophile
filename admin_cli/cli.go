@@ -48,6 +48,11 @@ func main() {
 			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "refreshcollection":
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}},
+		})
+		fmt.Printf("%v and %v\n", a, b)
 	case "clean":
 		_, err := sclient.Clean(ctx, &pb.CleanRequest{})
 		if err != nil {
