@@ -217,7 +217,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				RunDate: time.Now().Unix(),
+				RunDate: time.Now().UnixNano(),
 				Entry: &pb.QueueElement_MoveRecords{
 					MoveRecords: &pb.MoveRecords{},
 				},
@@ -262,7 +262,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					RunDate: time.Now().Unix() + int64(i),
+					RunDate: time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_RefreshSales{
 						RefreshSales: &pb.RefreshSales{
 							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
@@ -274,7 +274,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				RunDate: time.Now().Unix() + int64(pages.GetPages()) + 10,
+				RunDate: time.Now().UnixNano() + int64(pages.GetPages()) + 10,
 				Entry: &pb.QueueElement_LinkSales{
 					LinkSales: &pb.LinkSales{
 						RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
@@ -285,7 +285,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 
 			// If we've got here, update the user
-			user.LastSaleRefresh = time.Now().Unix()
+			user.LastSaleRefresh = time.Now().UnixNano()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
@@ -316,7 +316,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		//Move records
 		q.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				RunDate: time.Now().Unix(),
+				RunDate: time.Now().UnixNano(),
 				Entry: &pb.QueueElement_MoveRecords{
 					MoveRecords: &pb.MoveRecords{}},
 				Auth: entry.GetAuth(),
@@ -345,7 +345,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					RunDate: time.Now().Unix() + int64(i),
+					RunDate: time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
 						RefreshCollectionEntry: &pb.RefreshCollectionEntry{
 							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
@@ -361,7 +361,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return fmt.Errorf("unable to get user: %w", err)
 			}
-			user.LastCollectionRefresh = time.Now().Unix()
+			user.LastCollectionRefresh = time.Now().UnixNano()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
@@ -373,7 +373,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().Unix() + int64(rval) + 10,
+					RunDate: time.Now().UnixNano() + int64(rval) + 10,
 					Entry: &pb.QueueElement_MoveRecords{
 						MoveRecords: &pb.MoveRecords{}},
 					Auth: entry.GetAuth(),
