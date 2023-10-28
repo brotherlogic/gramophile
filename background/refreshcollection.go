@@ -27,7 +27,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		if time.Since(time.Unix(rec.GetLastUpdateTime(), 0)) > time.Hour*24 {
 			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().Unix(),
+					RunDate: time.Now().UnixNano(),
 					Auth:    authToken,
 					Entry: &pb.QueueElement_RefreshRelease{
 						RefreshRelease: &pb.RefreshRelease{
