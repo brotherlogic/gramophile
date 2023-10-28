@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/brotherlogic/discogs"
 )
@@ -17,6 +18,8 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if err != nil {
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
 	}
+
+	log.Printf("Refreshing %v", iid)
 
 	// Update the release from the discogs pull
 	record.GetRelease().ReleaseDate = release.GetReleaseDate()
