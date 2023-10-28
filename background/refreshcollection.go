@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -15,6 +16,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		return fmt.Errorf("unable to get records: %w", err)
 	}
 
+	skipped := 0
+	log.Printf("Refreshing %v releases", len(ids))
 	for _, id := range ids {
 		rec, err := b.db.GetRecord(ctx, d.GetUserId(), id)
 		if err != nil {
@@ -22,7 +25,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		}
 
 		if time.Since(time.Unix(rec.GetLastUpdateTime(), 0)) > time.Hour*24 {
-			enqueue(ctx, &pb.EnqueueRequest{
+			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate: time.Now().Unix(),
 					Auth:    authToken,
@@ -31,8 +34,15 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 							Iid: id,
 						}}},
 			})
+			if err != nil {
+				return err
+			}
+		} else {
+			skipped++
 		}
 	}
+
+	log.Printf("Skipped %v releases", skipped)
 
 	return nil
 }
