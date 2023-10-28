@@ -14,6 +14,8 @@ github.com/brotherlogic/gramophile v0.430.0 h1:S0nAFdVyeS+RN/clmyehyH1tyBIlADznh
 github.com/brotherlogic/gramophile v0.430.0/go.mod h1:75icqyE7dXJTzc06Amsj8vQyIsWIdp8TcMh/l1SR1YM=
 github.com/brotherlogic/gramophile v0.436.0 h1:ePMcirQIaYFF9tPIvItGENcR28RMSKqVH1dNt+EK424=
 github.com/brotherlogic/gramophile v0.436.0/go.mod h1:CjlP4g2oUFIdH50juqyGHlP86Tk9dQ+NsTGuLFB5aSI=
+github.com/brotherlogic/gramophile v0.443.0 h1:rbMLFfEYftNfcf8Nkx30FlOys+ArTfYgeW53DzkLSho=
+github.com/brotherlogic/gramophile v0.443.0/go.mod h1:ytZu0XDOI+56QnkfyhSC0FeSobspfpjlKlj5gzBoYyA=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
