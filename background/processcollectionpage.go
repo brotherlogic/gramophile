@@ -24,7 +24,7 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 				case config.CLEANED_FIELD_NAME:
 					val, err := time.Parse("2006-01-02", value)
 					if err != nil {
-						return nil, fmt.Errorf("Unable to parse %v as date: %w", value, err)
+						return nil, fmt.Errorf("unable to parse %v as date: %w", value, err)
 					}
 					r.LastCleanTime = val.Unix()
 				case config.ARRIVED_FIELD:
