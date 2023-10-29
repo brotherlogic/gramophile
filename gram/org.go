@@ -43,7 +43,7 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		return "", err
 	}
 
-	return fmt.Sprintf("%v - %v", getArtist(r.GetRecord().GetRelease()), r.GetRecord().GetRelease().GetTitle()), nil
+	return fmt.Sprintf("%v - %v [%v]", getArtist(r.GetRecord().GetRelease()), r.GetRecord().GetRelease().GetTitle(), p.GetWidth()), nil
 }
 
 func executeOrg(ctx context.Context, args []string) error {
