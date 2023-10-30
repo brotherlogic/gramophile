@@ -9,7 +9,6 @@ message OrganisationConfig {
     repeated Organisation organisations = 2;
 }
 
-
 message OrganisationSnapshot {
     int64 date = 1;
     repeated Placement placements = 2;
