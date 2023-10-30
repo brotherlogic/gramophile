@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -12,6 +13,7 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	log.Printf("Refreshing MID %v", mid)
 	masters, err := d.GetMasterReleases(ctx, mid, 1, pbd.MasterSort_BY_YEAR)
 	if err != nil {
 		return err
@@ -37,6 +39,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 }
 
 func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
+	log.Printf("RRD: %v", rid)
 	release, err := d.GetRelease(ctx, rid)
 	if err != nil {
 		return err
@@ -47,6 +50,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		return err
 	}
 
+	//	log.Printf("HERE: %v", storedRelease.GetEarliestReleaseDate())
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() {
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)

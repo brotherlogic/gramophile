@@ -139,6 +139,14 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			sort.SliceStable(recs, func(i, j int) bool {
 				return recs[i].GetRelease().GetReleaseDate() < recs[j].GetRelease().GetReleaseDate()
 			})
+		case pb.Sort_EARLIEST_RELEASE_YEAR:
+			sort.SliceStable(recs, func(i, j int) bool {
+				if recs[i].GetEarliestReleaseDate() == recs[j].GetEarliestReleaseDate() {
+					return recs[i].GetRelease().GetReleaseDate() < recs[j].GetRelease().GetReleaseDate()
+				}
+				return recs[i].GetEarliestReleaseDate() < recs[j].GetEarliestReleaseDate()
+			})
+
 		}
 
 		records = append(records, recs...)
