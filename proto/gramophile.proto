@@ -71,6 +71,7 @@ message Record {
    discogs.Release release = 1;
 
    int64 last_update_time = 2;
+   int64 last_earliest_time = 20;
 
    string last_good_config_hash = 3;
 

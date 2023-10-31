@@ -37,19 +37,23 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 			if err != nil {
 				return err
 			}
-			_, err = enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano(),
-					Auth:    authToken,
-					Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
-						RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
-							Iid:      id,
-							MasterId: rec.GetRelease().GetMasterId(),
-						}}},
-			})
-			if err != nil {
-				return err
+
+			if time.Since(time.Unix(rec.GetLastEarliestTime(), 0)) > time.Hour*24*30 {
+				_, err = enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano(),
+						Auth:    authToken,
+						Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
+							RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
+								Iid:      id,
+								MasterId: rec.GetRelease().GetMasterId(),
+							}}},
+				})
+				if err != nil {
+					return err
+				}
 			}
+
 		} else {
 			skipped++
 		}
