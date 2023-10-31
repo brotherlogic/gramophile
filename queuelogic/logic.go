@@ -331,6 +331,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
 	case *pb.QueueElement_RefreshCollection:
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
+	case *pb.QueueElement_RefreshEarliestReleaseDates:
+		return q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)
+	case *pb.QueueElement_RefreshEarliestReleaseDate:
+		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()

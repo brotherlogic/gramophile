@@ -9,7 +9,6 @@ message OrganisationConfig {
     repeated Organisation organisations = 2;
 }
 
-
 message OrganisationSnapshot {
     int64 date = 1;
     repeated Placement placements = 2;
@@ -41,6 +40,7 @@ enum Sort {
     ARTIST_YEAR = 0;
     LABEL_CATNO = 1;
     RELEASE_YEAR = 2;
+    EARLIEST_RELEASE_YEAR = 3;
 }
 
 enum Layout {

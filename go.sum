@@ -12,6 +12,10 @@ github.com/brotherlogic/discogs v0.0.0-20231028040311-5497953a2045 h1:iD+zHrmA0s
 github.com/brotherlogic/discogs v0.0.0-20231028040311-5497953a2045/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
 github.com/brotherlogic/discogs v0.0.0-20231028042403-04e541ee70e3 h1:6Vk3xRaNWic0AejulfKG/NCvVFemSnVlro9Di/BOCFM=
 github.com/brotherlogic/discogs v0.0.0-20231028042403-04e541ee70e3/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
+github.com/brotherlogic/discogs v0.0.0-20231030034033-0a1b19475771 h1:R6OzFghDqbNCBfm3T86C8hEGFa79qLbKL5eeHKaoNgI=
+github.com/brotherlogic/discogs v0.0.0-20231030034033-0a1b19475771/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
+github.com/brotherlogic/discogs v0.0.0-20231030221315-387ae6b76b4b h1:oYeAHNm8+esWgRU03LZdTSn5w+QvXvWE+XyuEltAZgY=
+github.com/brotherlogic/discogs v0.0.0-20231030221315-387ae6b76b4b/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
 github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c h1:V+KZ9gFZhBS1SrJWbKlGamC6cb/4lMm70UEn7raXizE=
 github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/recordcollection v0.0.0-20230929004354-8bc2e00c5334 h1:tW5cBWVnoWDMPjvstNbCiheigm4q/y5KFdHmm0Ksj9U=
@@ -61,6 +65,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a/go.mod h1:4cYg8o5yUbm77w8ZX00LhMVNl/YVBFJRYWDc0uYWMs0=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b h1:ZlWIi1wSK56/8hn4QcBp/j9M7Gt3U/3hZw3mC7vDICo=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b/go.mod h1:swOH3j0KzcDDgGUWr+SNpyTen5YrXjS3eyPzFYKc6lc=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 h1:AB/lmRny7e2pLhFEYIbl5qkDAUt2h0ZRO4wGPhZf+ik=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405/go.mod h1:67X1fPuzjcrkymZzZV1vvkFeTn2Rvc6lYF9MYFGCcwE=
 google.golang.org/grpc v1.58.3 h1:BjnpXut1btbtgN/6sp+brB2Kbm2LjNXnidYujAVbSoQ=
 google.golang.org/grpc v1.58.3/go.mod h1:tgX3ZQDlNJGU96V6yHh1T/JeoBQ2TXdr43YbYSsCJk0=
 google.golang.org/grpc v1.59.0 h1:Z5Iec2pjwb+LEOqzpB2MR12/eKFhDPhuqW91O+4bwUk=

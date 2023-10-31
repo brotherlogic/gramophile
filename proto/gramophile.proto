@@ -101,6 +101,8 @@ message Record {
    KeepStatus keep_status = 17;
 
    discogs.Price median_price = 18;
+
+   int64 earliest_release_date = 19;
 }
 
 message SaleInfo {
@@ -163,9 +165,22 @@ message QueueElement {
         MoveRecord move_record = 17;
         RefreshRelease refresh_release = 18;
         RefreshCollection refresh_collection = 19;
+        RefreshEarliestReleaseDates refresh_earliest_release_dates = 20;
+        RefreshEarliestReleaseDate refresh_earliest_release_date = 21;
+
     }
 
     int64 refresh_id = 7;
+}
+
+message RefreshEarliestReleaseDates {
+    int64 iid = 1;
+    int64 master_id = 2;
+}
+
+message RefreshEarliestReleaseDate {
+    int64 iid = 1;
+    int64 other_release = 2;
 }
 
 message RefreshCollection {
