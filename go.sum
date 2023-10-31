@@ -16,6 +16,8 @@ github.com/brotherlogic/discogs v0.0.0-20231030034033-0a1b19475771 h1:R6OzFghDqb
 github.com/brotherlogic/discogs v0.0.0-20231030034033-0a1b19475771/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
 github.com/brotherlogic/discogs v0.0.0-20231030221315-387ae6b76b4b h1:oYeAHNm8+esWgRU03LZdTSn5w+QvXvWE+XyuEltAZgY=
 github.com/brotherlogic/discogs v0.0.0-20231030221315-387ae6b76b4b/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
+github.com/brotherlogic/discogs v0.0.0-20231031043126-5077553f4d9f h1:ozvem950ApOn0sEr+Xs77FKDgyz6Nvj00k/qpm3lqEQ=
+github.com/brotherlogic/discogs v0.0.0-20231031043126-5077553f4d9f/go.mod h1:Q3rt8IYrjhqcSHS1wCpM7Yku3nEJInCgkltXtSBOfvk=
 github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c h1:V+KZ9gFZhBS1SrJWbKlGamC6cb/4lMm70UEn7raXizE=
 github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c/go.mod h1:4wYe3uogEJqP77td2b2j69c+TLcSDrqgd5pqj7vlb6U=
 github.com/brotherlogic/recordcollection v0.0.0-20230929004354-8bc2e00c5334 h1:tW5cBWVnoWDMPjvstNbCiheigm4q/y5KFdHmm0Ksj9U=
@@ -24,6 +26,8 @@ github.com/brotherlogic/recordcollection v0.0.0-20231019051056-a4b21e81ca3d h1:v
 github.com/brotherlogic/recordcollection v0.0.0-20231019051056-a4b21e81ca3d/go.mod h1:7R99V2i2qaR740k+Zw3NZEZSaktqG96DVUFzJIRcOrc=
 github.com/brotherlogic/recordcollection v0.0.0-20231024044144-7e352246adf0 h1:gJheaCe0T7/Hs5dQmSXbWBcXa3p1tmvmXquiih7eS5g=
 github.com/brotherlogic/recordcollection v0.0.0-20231024044144-7e352246adf0/go.mod h1:7R99V2i2qaR740k+Zw3NZEZSaktqG96DVUFzJIRcOrc=
+github.com/brotherlogic/recordcollection v0.0.0-20231031051909-51cd9917cb71 h1:26G3Y7aWzWyV6Bs0W2joasgGZLO3pl5l8lGlfJW06Zc=
+github.com/brotherlogic/recordcollection v0.0.0-20231031051909-51cd9917cb71/go.mod h1:nFmHNh1tSwa0v4FXVGVsUuTKpbzc2SwlPkD3kIoB5So=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
