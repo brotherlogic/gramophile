@@ -47,7 +47,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 }
 
 func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
-	log.Printf("RRD:%v ->  %v", iid, rid)
+	log.Printf("RRD: %v ->  %v", iid, rid)
 	release, err := d.GetRelease(ctx, rid)
 	if err != nil {
 		// We should be able to find any release here
