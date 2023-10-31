@@ -184,6 +184,7 @@ type GramophileEServiceClient interface {
 	GetState(ctx context.Context, in *GetStateRequest, opts ...grpc.CallOption) (*GetStateResponse, error)
 	SetConfig(ctx context.Context, in *SetConfigRequest, opts ...grpc.CallOption) (*SetConfigResponse, error)
 	SetIntent(ctx context.Context, in *SetIntentRequest, opts ...grpc.CallOption) (*SetIntentResponse, error)
+	AddRecord(ctx context.Context, in *AddRecordRequest, opts ...grpc.CallOption) (*AddRecordResponse, error)
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
 	GetOrg(ctx context.Context, in *GetOrgRequest, opts ...grpc.CallOption) (*GetOrgResponse, error)
 	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
@@ -251,6 +252,15 @@ func (c *gramophileEServiceClient) SetConfig(ctx context.Context, in *SetConfigR
 func (c *gramophileEServiceClient) SetIntent(ctx context.Context, in *SetIntentRequest, opts ...grpc.CallOption) (*SetIntentResponse, error) {
 	out := new(SetIntentResponse)
 	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/SetIntent", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gramophileEServiceClient) AddRecord(ctx context.Context, in *AddRecordRequest, opts ...grpc.CallOption) (*AddRecordResponse, error) {
+	out := new(AddRecordResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/AddRecord", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -348,6 +358,7 @@ type GramophileEServiceServer interface {
 	GetState(context.Context, *GetStateRequest) (*GetStateResponse, error)
 	SetConfig(context.Context, *SetConfigRequest) (*SetConfigResponse, error)
 	SetIntent(context.Context, *SetIntentRequest) (*SetIntentResponse, error)
+	AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error)
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
 	GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error)
 	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
@@ -380,6 +391,9 @@ func (UnimplementedGramophileEServiceServer) SetConfig(context.Context, *SetConf
 }
 func (UnimplementedGramophileEServiceServer) SetIntent(context.Context, *SetIntentRequest) (*SetIntentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetIntent not implemented")
+}
+func (UnimplementedGramophileEServiceServer) AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddRecord not implemented")
 }
 func (UnimplementedGramophileEServiceServer) GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecord not implemented")
@@ -524,6 +538,24 @@ func _GramophileEService_SetIntent_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GramophileEServiceServer).SetIntent(ctx, req.(*SetIntentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GramophileEService_AddRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).AddRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/AddRecord",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).AddRecord(ctx, req.(*AddRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -720,6 +752,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetIntent",
 			Handler:    _GramophileEService_SetIntent_Handler,
+		},
+		{
+			MethodName: "AddRecord",
+			Handler:    _GramophileEService_AddRecord_Handler,
 		},
 		{
 			MethodName: "GetRecord",

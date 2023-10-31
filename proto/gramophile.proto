@@ -402,6 +402,7 @@ service GramophileEService {
 
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 
+    rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {};
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
@@ -415,6 +416,12 @@ service GramophileEService {
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
 }
+
+message AddRecordRequest {
+    int64 id = 1;
+}
+
+message AddRecordResponse {}
 
 message UpdateWantlistRequest {
     string name = 1;
