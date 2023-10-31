@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -14,6 +16,12 @@ import (
 
 func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing MID %v", mid)
+
+	// Don't refresh if record has no masters
+	if mid == 0 {
+		return nil
+	}
+
 	masters, err := d.GetMasterReleases(ctx, mid, 1, pbd.MasterSort_BY_YEAR)
 	if err != nil {
 		return err
@@ -42,6 +50,10 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	log.Printf("RRD:%v ->  %v", iid, rid)
 	release, err := d.GetRelease(ctx, rid)
 	if err != nil {
+		// We should be able to find any release here
+		if status.Code(err) == codes.NotFound {
+			return nil
+		}
 		return err
 	}
 
