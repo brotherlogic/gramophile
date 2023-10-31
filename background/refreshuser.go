@@ -8,19 +8,8 @@ import (
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/brotherlogic/gramophile/db"
-
 	pb "github.com/brotherlogic/gramophile/proto"
 )
-
-type BackgroundRunner struct {
-	db                    db.Database
-	key, secret, callback string
-}
-
-func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
-	return &BackgroundRunner{db: db, key: key, secret: secret, callback: callback}
-}
 
 func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, utoken string) error {
 	user, err := d.GetDiscogsUser(ctx)
