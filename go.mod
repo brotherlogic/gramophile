@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/brotherlogic/discogs v0.0.0-20231101000455-00447ee0f04c
 	github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c
-	github.com/brotherlogic/recordcollection v0.0.0-20231024044144-7e352246adf0
+	github.com/brotherlogic/recordcollection v0.0.0-20231031051909-51cd9917cb71
 	github.com/brotherlogic/rstore v0.35.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/golang/protobuf v1.5.3
