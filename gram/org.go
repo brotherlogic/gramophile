@@ -72,6 +72,7 @@ func executeOrg(ctx context.Context, args []string) error {
 
 			currSlot := 0
 			currShelf := ""
+			totalWidth := float32(0)
 			for _, placement := range r.GetSnapshot().GetPlacements() {
 				if placement.GetSpace() != currShelf {
 					currShelf = placement.GetSpace()
@@ -83,7 +84,8 @@ func executeOrg(ctx context.Context, args []string) error {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("%v\n", pstr)
+					fmt.Printf("[%v] %v\n", totalWidth,pstr)
+					totalWidth += placement.GetWidth()
 				}
 			}
 			return nil
