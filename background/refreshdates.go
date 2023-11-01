@@ -64,7 +64,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		return err
 	}
 
-	log.Printf("RRF: %v ---> %v vs %v", iid, release.GetReleaseDate(), storedRelease.GetEarliestReleaseDate())
+	log.Printf("RRF: %v (%v) ---> %v vs %v", iid, rid, release.GetReleaseDate(), storedRelease.GetEarliestReleaseDate())
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
