@@ -278,7 +278,7 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 		if o.Index == 2 && (o.Iid != 1235 || o.GetSpace() == "Second Shelves") {
 			bp = true
 		}
-		if o.Index == 3 && (o.Iid != 1236 || o.GetSpace() == "Second Shelves") {
+		if o.Index == 3 && (o.Iid != 1236 || o.GetSpace() == "Main Shelves") {
 			bp = true
 		}
 	}

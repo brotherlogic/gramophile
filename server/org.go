@@ -117,6 +117,11 @@ type groupingElement struct {
 	id      int64
 }
 
+type sortingElement struct {
+	record *pb.Record
+	sort   pb.Sort
+}
+
 func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation) (*pb.OrganisationSnapshot, error) {
 	allRecords, err := s.GetRecords(ctx, user)
 	if err != nil {
@@ -124,34 +129,34 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	}
 
 	// First sort the records into order
-	var records []*pb.Record
+	var records []*sortingElement
 	for _, folderset := range org.GetFoldersets() {
-		var recs []*pb.Record
+		var recs []*sortingElement
 		for _, record := range allRecords {
 			if record.GetRelease().GetFolderId() == folderset.GetFolder() {
-				recs = append(recs, record)
+				recs = append(recs, &sortingElement{record: record, sort: folderset.GetSort()})
 			}
 		}
 
 		switch folderset.GetSort() {
 		case pb.Sort_ARTIST_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return s.getArtistYear(ctx, recs[i]) < s.getArtistYear(ctx, recs[j])
+				return s.getArtistYear(ctx, recs[i].record) < s.getArtistYear(ctx, recs[j].record)
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return s.getLabelCatno(ctx, recs[i], org) < s.getLabelCatno(ctx, recs[j], org)
+				return s.getLabelCatno(ctx, recs[i].record, org) < s.getLabelCatno(ctx, recs[j].record, org)
 			})
 		case pb.Sort_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return recs[i].GetRelease().GetReleaseDate() < recs[j].GetRelease().GetReleaseDate()
+				return recs[i].record.GetRelease().GetReleaseDate() < recs[j].record.GetRelease().GetReleaseDate()
 			})
 		case pb.Sort_EARLIEST_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				if recs[i].GetEarliestReleaseDate() == recs[j].GetEarliestReleaseDate() {
-					return recs[i].GetRelease().GetReleaseDate() < recs[j].GetRelease().GetReleaseDate()
+				if recs[i].record.GetEarliestReleaseDate() == recs[j].record.GetEarliestReleaseDate() {
+					return recs[i].record.GetRelease().GetReleaseDate() < recs[j].record.GetRelease().GetReleaseDate()
 				}
-				return recs[i].GetEarliestReleaseDate() < recs[j].GetEarliestReleaseDate()
+				return recs[i].record.GetEarliestReleaseDate() < recs[j].record.GetEarliestReleaseDate()
 			})
 
 		}
@@ -185,14 +190,18 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		currLabel := ""
 		currElement := &groupingElement{records: make([]*pb.Record, 0)}
 		for _, r := range records {
-			if s.getLabel(ctx, r, org) == currLabel {
-				currElement.records = append(currElement.records, r)
-			} else {
-				if len(currElement.records) > 0 {
-					ordList = append(ordList, currElement)
+			if r.sort == pb.Sort_LABEL_CATNO {
+				if s.getLabel(ctx, r.record, org) == currLabel {
+					currElement.records = append(currElement.records, r.record)
+				} else {
+					if len(currElement.records) > 0 {
+						ordList = append(ordList, currElement)
+					}
+					currLabel = s.getLabel(ctx, r.record, org)
+					currElement = &groupingElement{records: []*pb.Record{r.record}, id: time.Now().UnixNano()}
 				}
-				currLabel = s.getLabel(ctx, r, org)
-				currElement = &groupingElement{records: []*pb.Record{r}, id: time.Now().UnixNano()}
+			} else {
+				ordList = append(ordList, &groupingElement{records: []*pb.Record{r.record}, id: time.Now().UnixNano()})
 			}
 		}
 
@@ -202,7 +211,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	} else {
 		for _, r := range records {
 			ordList = append(ordList, &groupingElement{
-				records: []*pb.Record{r},
+				records: []*pb.Record{r.record},
 				id:      time.Now().UnixNano(),
 			})
 		}
