@@ -79,6 +79,13 @@ func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation)
 	return bestLabel.GetName()
 }
 
+func oneIfZero(in float32) float32 {
+	if in == 0 {
+		return 1
+	}
+	return in
+}
+
 func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
 	log.Printf("PROC %+v", r)
 	switch d {
@@ -89,7 +96,7 @@ func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve)
 	case pb.Density_WIDTH:
 		twidth := float32(0)
 		for _, r := range r.records {
-			twidth += r.GetWidth() * sleeveMap[r.GetSleeve()].GetWidthMultiplier()
+			twidth += r.GetWidth() * oneIfZero(sleeveMap[r.GetSleeve()].GetWidthMultiplier())
 		}
 		return twidth
 	}
