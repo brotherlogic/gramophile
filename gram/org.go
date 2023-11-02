@@ -79,7 +79,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					currSlot++
 				}
 
-				if currSlot == *slot || *slot == -1 {
+				if placement.GetUnit() == int32(*slot) || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement)
 					if err != nil {
 						return err
