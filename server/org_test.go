@@ -198,15 +198,15 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 	}}
-	err := d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1234, ReleaseDate: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1234, ReleaseDate: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Catno: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1235, ReleaseDate: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1235, ReleaseDate: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Catno: "BBB"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1236, ReleaseDate: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1236, ReleaseDate: 1236, FolderId: 13, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -237,6 +237,12 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 								Name:   "testing",
 								Folder: 12,
 								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							},
+							{
+								Name:   "Testing2",
+								Folder: 13,
+								Index:  2,
 								Sort:   pb.Sort_RELEASE_YEAR,
 							}},
 						Spaces: []*pb.Space{

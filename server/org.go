@@ -164,6 +164,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		records = append(records, recs...)
 	}
 
+	for i, r := range records {
+		log.Printf("POST SORT %v -> %v", i, r.record.GetRelease().GetInstanceId())
+	}
+
 	// Build out the width map
 	sleeveMap := make(map[string]*pb.Sleeve)
 	for _, sleeve := range user.GetConfig().GetSleeveConfig().GetAllowedSleeves() {
@@ -201,6 +205,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 					currElement = &groupingElement{records: []*pb.Record{r.record}, id: time.Now().UnixNano()}
 				}
 			} else {
+				if len(currElement.records) > 0 {
+					ordList = append(ordList, currElement)
+					currElement = &groupingElement{records: make([]*pb.Record, 0)}
+				}
 				ordList = append(ordList, &groupingElement{records: []*pb.Record{r.record}, id: time.Now().UnixNano()})
 			}
 		}
@@ -226,6 +234,8 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				fits = true
 			}
 		}
+
+		log.Printf("%v fits %v", element, fits)
 
 		// Break out the group if it can't possible fit anywhere
 		if !fits {
