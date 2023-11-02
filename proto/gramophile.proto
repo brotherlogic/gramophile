@@ -29,6 +29,7 @@ message WantlistEntry {
     string title = 3;
     int32 index = 4;
     WantState state = 5;
+    int64 date_enabled = 6;
 }
 
 enum WantState {

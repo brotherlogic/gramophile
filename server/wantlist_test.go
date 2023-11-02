@@ -28,7 +28,7 @@ func TestGetWantsFromWantlist(t *testing.T) {
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing"})
+	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing", Type: pb.WantlistType_ONE_BY_ONE})
 	if err != nil {
 		t.Fatalf("Unable to add wantlist: %v", err)
 	}
