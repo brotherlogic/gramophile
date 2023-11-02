@@ -41,6 +41,9 @@ func TestGetWantsFromWantlist(t *testing.T) {
 		t.Fatalf("Unable to update wantlist: %v", err)
 	}
 
+	// Flush out any queue stuff
+	qc.FlushQueue(ctx)
+
 	// We should be able to identify 1234 in wants
 	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
 	if err != nil {
