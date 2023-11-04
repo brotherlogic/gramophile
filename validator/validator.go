@@ -68,7 +68,20 @@ func validateUsers(ctx context.Context) error {
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
-							RefreshCollection: &pb.RefreshCollectionEntry{Page: 1},
+							RefreshCollection: &pb.RefreshCollection{},
+						},
+					},
+				})
+				if err != nil {
+					return err
+				}
+				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:          time.Now().UnixNano(),
+						Auth:             user.GetAuth().GetToken(),
+						BackoffInSeconds: 15,
+						Entry: &pb.QueueElement_RefreshCollectionEntry{
+							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
 					},
 				})
