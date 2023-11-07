@@ -15,12 +15,18 @@ enum WantlistType {
     DATE_BOUNDED = 2;
 }
 
+enum WantlistVisibility {
+    VISIBLE = 0;
+    INVISIBLE = 1;
+}
+
 message Wantlist {
     string name = 1;
     int64 start_date = 2;
     int64 end_date = 3;
     WantlistType type = 4;
     repeated WantlistEntry entries = 5;
+    WantlistVisibility visibility = 6;
 }
 
 message WantlistEntry {
