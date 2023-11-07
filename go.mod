@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile
 go 1.18
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20231101000455-00447ee0f04c
+	github.com/brotherlogic/discogs v0.0.0-20231107004821-06e3235ae4fb
 	github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c
 	github.com/brotherlogic/recordcollection v0.0.0-20231031051909-51cd9917cb71
 	github.com/brotherlogic/rstore v0.35.0
@@ -25,7 +25,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/stretchr/testify v1.8.3 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 )
