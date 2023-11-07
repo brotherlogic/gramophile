@@ -186,3 +186,13 @@ message SaleConfig {
 message KeepConfig {
     Mandate mandate = 1;
 }
+
+enum WantsBasis {
+    WANTS_DISCOGS = 0;
+    WANTS_HYBRID = 1;
+    WANTS_GRAMOPHILE = 2;
+}
+
+message WantsConfig {
+    WantsBasis origin = 1;
+}

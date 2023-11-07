@@ -43,6 +43,7 @@ message Want {
     int64 id = 1;
     int64 want_added_date = 2;
     WantState state = 3;
+    int64 sync_id = 4;
 }
 
 enum NoncomplianceIssue {
@@ -172,6 +173,11 @@ message QueueElement {
     }
 
     int64 refresh_id = 7;
+}
+
+message SyncWants {
+    int32 page = 1;
+    int64 refresh_id = 2;
 }
 
 message RefreshEarliestReleaseDates {
