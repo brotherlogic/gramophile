@@ -39,8 +39,12 @@ func TestSync_WithDiscogs(t *testing.T) {
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
 
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+	_, err := d.AddWant(context.Background(), 12346)
+	if err != nil {
+		t.Fatalf("Unable to add want: %v", err)
+	}
 
-	_, err := b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_DISCOGS})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_DISCOGS})
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -62,8 +66,12 @@ func TestSync_WithHybrid(t *testing.T) {
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
 
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+	_, err := d.AddWant(context.Background(), 12346)
+	if err != nil {
+		t.Fatalf("Unable to add want: %v", err)
+	}
 
-	_, err := b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID})
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
