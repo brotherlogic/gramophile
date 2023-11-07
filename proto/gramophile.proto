@@ -43,6 +43,7 @@ enum WantState {
     RETIRED = 1;
     PURCHASED = 2;
     WANTED = 3;
+    HIDDEN = 4;
 }
 
 message Want {
@@ -399,6 +400,7 @@ message SetOrgSnapshotResponse {}
 message AddWantlistRequest {
     string name = 1;
     WantlistType type = 2;
+    WantlistVisibility visibility = 3;
 }
 
 message AddWantlistResponse {}
