@@ -29,7 +29,7 @@ func validateUsers(ctx context.Context) error {
 	}
 
 	for _, user := range users.GetUsers() {
-		log.Printf("%v -> %v", user, time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
+		log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
 
 		if user.GetUserToken() == "" && time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
@@ -90,7 +90,7 @@ func validateUsers(ctx context.Context) error {
 				}
 			}
 
-			log.Printf("Sales: %v", time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
+			log.Printf("Sales: %v", time.Since(time.Unix(user.GetLastSaleRefresh(), 0)))
 			if time.Since(time.Unix(user.GetLastSaleRefresh(), 0)) > time.Hour*8 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
