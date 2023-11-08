@@ -235,6 +235,42 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefereshWants(ctx, d)
+	case *pb.QueueElement_SyncWants:
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+
+		if entry.GetSyncWants().GetPage() == 1 {
+			entry.GetSyncWants().RefreshId = time.Now().UnixNano()
+		}
+		pages, err := q.b.PullWants(ctx, d, entry.GetSyncWants().GetPage(), entry.GetSyncWants().GetRefreshId(), user.GetConfig().GetWantsConfig())
+		if err != nil {
+			return err
+		}
+		if entry.GetSyncWants().GetPage() == 1 {
+			for i := int32(2); i <= pages; i++ {
+				q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano(),
+						Entry: &pb.QueueElement_SyncWants{
+							SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
+						},
+						Auth: entry.GetAuth(),
+					},
+				})
+			}
+		}
+
+		// If this is the final sync, let's run the alignment
+		if entry.GetSyncWants().GetPage() == pages {
+			err = q.b.SyncWants(ctx, d, user, q.Enqueue)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	case *pb.QueueElement_RefreshWantlists:
 		return q.b.RefreshWantlists(ctx, d, entry.GetAuth())
 	case *pb.QueueElement_LinkSales:
@@ -388,7 +424,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return nil
 	}
 
-	return status.Errorf(codes.NotFound, "Unable to this handle %v -> %v", entry, entry.Entry)
+	return status.Errorf(codes.NotFound, "Unable to this handle (%t), %v -> %v", entry.GetEntry(), entry, entry.Entry)
 }
 
 func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {

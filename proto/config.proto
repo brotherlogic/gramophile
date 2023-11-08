@@ -135,6 +135,7 @@ message GramophileConfig {
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
+    WantsConfig wants_config = 16;
 
     Create create_folders = 12;
     Create create_moves = 13;

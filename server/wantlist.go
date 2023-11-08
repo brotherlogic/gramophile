@@ -5,6 +5,8 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*pb.AddWantlistResponse, error) {
@@ -12,6 +14,11 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 	if err != nil {
 		return nil, err
 	}
+
+	if user.GetConfig().GetWantsConfig().GetOrigin() == pb.WantsBasis_WANTS_DISCOGS {
+		return nil, status.Errorf(codes.FailedPrecondition, "you can't add wantslist to discogs controlled wants")
+	}
+
 	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(),
 		&pb.Wantlist{
 			Name:       req.GetName(),
