@@ -12,7 +12,12 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), &pb.Wantlist{Name: req.GetName(), Type: req.GetType()})
+	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(),
+		&pb.Wantlist{
+			Name:       req.GetName(),
+			Type:       req.GetType(),
+			Visibility: req.GetVisibility(),
+		})
 }
 
 func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*pb.GetWantlistResponse, error) {

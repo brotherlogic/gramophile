@@ -91,11 +91,15 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		case pb.WantState_PURCHASED:
 			continue
 		case pb.WantState_PENDING:
-			entry.State = pb.WantState_WANTED
+			state := pb.WantState_WANTED
+			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
+				state = pb.WantState_HIDDEN
+			}
+			entry.State = state
 			log.Printf("ENTRY: %v", entry)
 			return true, b.db.SaveWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
-				State: pb.WantState_WANTED,
+				State: state,
 			})
 		}
 	}
