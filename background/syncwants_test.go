@@ -42,7 +42,7 @@ func TestSync_WithDiscogs(t *testing.T) {
 	// Seed a saved want
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
 
-	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	_, err := d.AddWant(context.Background(), 12346)
 	if err != nil {
 		t.Fatalf("Unable to add want: %v", err)
@@ -85,7 +85,7 @@ func TestSync_WithHybrid(t *testing.T) {
 	// Seed a saved want
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
 
-	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	_, err := d.AddWant(context.Background(), 12346)
 	if err != nil {
 		t.Fatalf("Unable to add want: %v", err)
