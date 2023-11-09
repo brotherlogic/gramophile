@@ -47,7 +47,7 @@ func (b *BackgroundRunner) SyncWants(ctx context.Context, d discogs.Discogs, use
 	return nil
 }
 
-func (b *BackgroundRunner) RefereshWants(ctx context.Context, d discogs.Discogs) error {
+func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) error {
 	// Look for any wants that have been purchased
 	recs, err := b.db.LoadAllRecords(ctx, d.GetUserId())
 	if err != nil {

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -51,6 +52,12 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		list.Entries = append(list.Entries, &pb.WantlistEntry{
 			Id:    req.GetAddId(),
 			Index: int32(len(list.GetEntries())) + 1,
+		})
+
+		log.Printf("SAVING %v", req.GetAddId())
+		s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), &pb.Want{
+			Id:    req.GetAddId(),
+			State: pb.WantState_PENDING,
 		})
 	}
 

@@ -234,7 +234,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
 	case *pb.QueueElement_RefreshWants:
-		return q.b.RefereshWants(ctx, d)
+		return q.b.RefreshWants(ctx, d)
+	case *pb.QueueElement_RefreshWant:
+		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWantId())
 	case *pb.QueueElement_SyncWants:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {
@@ -263,7 +265,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		// If this is the final sync, let's run the alignment
-		if entry.GetSyncWants().GetPage() == pages {
+		if entry.GetSyncWants().GetPage() >= pages {
 			err = q.b.SyncWants(ctx, d, user, q.Enqueue)
 			if err != nil {
 				return err

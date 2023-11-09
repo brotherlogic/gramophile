@@ -228,7 +228,7 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 }
 
 func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error) {
-	data, err := d.load(ctx, fmt.Sprintf("gramophile/%v/want/%v", userid, wid))
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, wid))
 	if err != nil {
 		return nil, err
 	}
@@ -266,11 +266,12 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
-	log.Printf("SAVING: %v", want)
+	log.Printf("SAVING: %v", fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()))
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
 func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
+	log.Printf("DELETE %v", want)
 	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
 }
 
