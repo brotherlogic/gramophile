@@ -117,4 +117,8 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 		}
 	}
 
+	if val.GetState() == pb.WantState_HIDDEN && want.State != pb.WantState_HIDDEN {
+		val.State = pb.W
+	}
+
 }
