@@ -97,7 +97,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			}
 			entry.State = state
 			log.Printf("ENTRY: %v", entry)
-			return true, b.db.SaveWant(ctx, userid, &pb.Want{
+			return true, b.mergeWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: state,
 			})
@@ -105,4 +105,20 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 	}
 
 	return false, nil
+}
+
+func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb.Want) error {
+	val, err := b.db.GetWant(ctx, userid, want.GetId())
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			val = want
+		} else {
+			return err
+		}
+	}
+
+	if val.GetState() == pb.WantState_HIDDEN && want.State != pb.WantState_HIDDEN {
+		val.State = pb.W
+	}
+
 }
