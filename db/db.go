@@ -73,6 +73,7 @@ type Database interface {
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
+	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
 	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
@@ -226,6 +227,17 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 	return logins, nil
 }
 
+func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, wid))
+	if err != nil {
+		return nil, err
+	}
+
+	want := &pb.Want{}
+	err = proto.Unmarshal(data, want)
+	return want, err
+}
+
 func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
 		Prefix: fmt.Sprintf("gramophile/user/%v/want/", userid),
@@ -254,11 +266,12 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
-	log.Printf("SAVING: %v", want)
+	log.Printf("SAVING: %v", fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()))
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
 func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
+	log.Printf("DELETE %v", want)
 	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
 }
 

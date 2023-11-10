@@ -176,10 +176,15 @@ message QueueElement {
         RefreshCollection refresh_collection = 19;
         RefreshEarliestReleaseDates refresh_earliest_release_dates = 20;
         RefreshEarliestReleaseDate refresh_earliest_release_date = 21;
-
+        SyncWants sync_wants = 22;
+        RefreshWant refresh_want = 23;
     }
 
     int64 refresh_id = 7;
+}
+
+message RefreshWant {
+    int64 want_id = 1;
 }
 
 message SyncWants {

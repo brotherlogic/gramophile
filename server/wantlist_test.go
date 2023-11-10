@@ -27,6 +27,7 @@ func TestGetWantsFromWantlist_hidden(t *testing.T) {
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
 		Name:       "testing",
@@ -77,6 +78,7 @@ func TestGetWantsFromWantlist(t *testing.T) {
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing", Type: pb.WantlistType_ONE_BY_ONE})
 	if err != nil {
@@ -119,6 +121,7 @@ func TestSaveAndLoadWantlist(t *testing.T) {
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing"})
 	if err != nil {
@@ -149,6 +152,7 @@ func TestUpdateWantlist(t *testing.T) {
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing"})
 	if err != nil {
