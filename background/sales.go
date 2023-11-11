@@ -111,6 +111,8 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if err != nil {
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
+			} else {
+				log.Printf("Skipping: %v vs %v", time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
 		}
 	}
@@ -135,6 +137,7 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 	} else {
 		sale.GetCurrentPrice().Value = newprice
 	}
+	sale.LastPriceUpdate = time.Now().Unix()
 	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }
 
