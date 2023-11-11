@@ -174,8 +174,6 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
-	log.Printf("Hard Link with %v records and %v sales", (records), (sales))
-
 	for _, sale := range sales {
 		for _, record := range records {
 			changed := false
