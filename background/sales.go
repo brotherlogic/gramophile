@@ -114,6 +114,8 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 			} else {
 				log.Printf("Skipping: %v vs %v", time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
+		} else {
+			log.Printf("%v is not for sale", sid)
 		}
 	}
 
