@@ -112,7 +112,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
 			} else {
-				log.Printf("Skipping: %v vs %v", time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
+				log.Printf("Skipping %v: %v vs %v", sid, time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
 		} else {
 			log.Printf("%v is not for sale", sid)
