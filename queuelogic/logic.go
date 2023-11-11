@@ -130,15 +130,12 @@ func (q *Queue) Run() {
 		} else {
 			if entry != nil {
 				queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * time.Duration(entry.GetBackoffInSeconds())).Seconds())
-				log.Printf("Sleeping for %v because %v,%v", time.Second*time.Duration(entry.GetBackoffInSeconds()), err, erru)
 				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
 			}
 			queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set(time.Minute.Seconds())
-			log.Printf("Sleeping for %v because %v,%v", time.Minute, err, erru)
 			time.Sleep(time.Minute)
 		}
 		queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * 2).Seconds())
-		log.Printf("Sleeping for %v because %v,%v", time.Second*2, err, erru)
 		time.Sleep(time.Second * 2)
 	}
 }
