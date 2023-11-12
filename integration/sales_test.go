@@ -79,13 +79,10 @@ func TestSyncSales_Success(t *testing.T) {
 		t.Fatalf("Bad record returned: %v", sales)
 	}
 
-	if sales.GetRecord().GetSaleInfo() == nil {
+	if sales.GetRecord().GetSaleId() != 12345 {
 		t.Errorf("Sale info not returned: %v", sales.GetRecord())
 	}
 
-	if sales.GetRecord().GetSaleInfo().GetCurrentPrice().GetValue() != 1234 {
-		t.Errorf("Sale info does not include price: %v", sales.GetRecord().GetSaleInfo())
-	}
 }
 
 func TestSalesPriceIsAdjusted(t *testing.T) {
@@ -106,7 +103,7 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 			FolderId:   12,
 			Condition:  "Very Good Plus (VG+)",
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
-		SaleInfo: si,
+		SaleId: 123456,
 	})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -190,7 +187,7 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 			Condition:  "Very Good Plus (VG+)",
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 1225},
-		SaleInfo:    si,
+		SaleId:      123456,
 	})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)

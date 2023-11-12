@@ -48,12 +48,6 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("%v (%v vs %v)\n", r.GetRelease().GetTitle(), time.Unix(r.GetRelease().GetReleaseDate(), 0), time.Unix(r.GetEarliestReleaseDate(), 0))
 			fmt.Printf("%v / %v\n", r.GetWidth(), r.GetWeight())
 
-			if r.GetSaleInfo().GetSaleId() > 0 {
-				fmt.Printf("For Sale (%v). Current Price: $%2.f [%v] {%v} - %v\n", r.GetSaleInfo().GetSaleId(),
-					float64(r.GetSaleInfo().GetCurrentPrice().GetValue())/100.0,
-					r.GetSaleInfo().GetCondition(), time.Unix(r.GetSaleInfo().GetLastPriceUpdate(), 0), r.GetSaleInfo().GetSaleState())
-			}
-
 			fmt.Printf("Median Price: $%2.f\n", float32(r.GetMedianPrice().GetValue())/100)
 			fmt.Printf("Last Updated on %v\n", time.Unix(r.GetLastUpdateTime(), 0))
 

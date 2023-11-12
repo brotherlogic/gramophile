@@ -29,11 +29,11 @@ func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb
 
 func filter(c *pb.MoveCriteria, r *pb.Record) bool {
 	if c.GetHasSaleId() != pb.Bool_UNKNOWN {
-		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleInfo().GetSaleId() == 0 {
+		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleId() == 0 {
 			return false
 		}
 
-		if c.GetHasSaleId() == pb.Bool_FALSE && r.GetSaleInfo().GetSaleId() > 0 {
+		if c.GetHasSaleId() == pb.Bool_FALSE && r.GetSaleId() > 0 {
 			return false
 		}
 	}

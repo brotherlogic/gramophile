@@ -184,7 +184,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 			changed := false
 			sale_changed := false
 			if record.GetRelease().GetId() == sale.GetReleaseId() {
-				log.Printf("LINK %v or %v ($%v)", record.GetSaleInfo(), record.GetSaleInfo().GetSaleId(), sale)
+				log.Printf("LINK %v or %v ($%v)", record.GetRelease().GetInstanceId(), record.GetSaleId(), sale)
 
 				// Ensure we copy over any changes to the median price
 				if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
@@ -192,17 +192,8 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 					sale_changed = true
 				}
 
-				if record.GetSaleInfo() != nil && record.GetSaleInfo().GetCurrentPrice() != nil && record.GetSaleInfo().GetSaleId() == sale.GetSaleId() {
-					if record.GetSaleInfo().GetSaleState() != sale.GetSaleState() {
-						record.GetSaleInfo().SaleState = sale.GetSaleState()
-						changed = true
-					}
-					if record.GetSaleInfo().GetCurrentPrice().GetValue() != sale.GetCurrentPrice().GetValue() {
-						record.GetSaleInfo().GetCurrentPrice().Value = sale.GetCurrentPrice().GetValue()
-						changed = true
-					}
-				} else {
-					record.SaleInfo = sale
+				if record.GetSaleId() != sale.GetSaleId() {
+					record.SaleId = sale.GetSaleId()
 					changed = true
 				}
 			}
