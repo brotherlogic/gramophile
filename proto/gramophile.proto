@@ -105,7 +105,8 @@ message Record {
 
    float mint_sale_suggestion = 15;
 
-   SaleInfo sale_info = 16;
+   // If set then we have an associated sale id
+   int64 sale_id = 16;
 
    KeepStatus keep_status = 17;
 
