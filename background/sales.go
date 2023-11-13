@@ -94,7 +94,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
 
-				log.Printf("ADJUST PRICE %v -> %v", sale.GetCurrentPrice().GetValue(), nsp)
+				log.Printf("ADJUST PRICE(%v) %v -> %v", sale.GetSaleId(), sale.GetCurrentPrice().GetValue(), nsp)
 
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
@@ -111,8 +111,6 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if err != nil {
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
-			} else {
-				log.Printf("Skipping %v: %v vs %v", sid, time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
 		} else {
 			log.Printf("%v is not for sale", sid)
