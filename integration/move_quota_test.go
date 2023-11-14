@@ -78,12 +78,12 @@ func TestMoveLoopIsCaught(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecord())
+	if r.GetRecordResponse().GetRecord() == nil || r.GetRecordResponse().GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecordResponse().GetRecord())
 	}
 
 	count := 0
-	for _, move := range r.GetRecord().GetUpdates() {
+	for _, move := range r.GetRecordResponse().GetRecord().GetUpdates() {
 		for _, exp := range move.GetExplanation() {
 			if strings.HasPrefix(exp, "Moved to") {
 				count++
@@ -92,7 +92,7 @@ func TestMoveLoopIsCaught(t *testing.T) {
 	}
 
 	if count < 2 || count > 8 {
-		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecord().GetUpdates())
+		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecordResponse().GetRecord().GetUpdates())
 	}
 
 	user, err := s.GetUser(ctx, &pb.GetUserRequest{})

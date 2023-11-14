@@ -44,13 +44,13 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			return err
 		}
 
-		printRecord := func(r *pb.Record) {
-			fmt.Printf("%v (%v vs %v)\n", r.GetRelease().GetTitle(), time.Unix(r.GetRelease().GetReleaseDate(), 0), time.Unix(r.GetEarliestReleaseDate(), 0))
-			fmt.Printf("%v / %v\n", r.GetWidth(), r.GetWeight())
-			fmt.Printf("Sale: %v\n", r.GetSaleId())
+		printRecord := func(r *pb.RecordResponse) {
+			fmt.Printf("%v (%v vs %v)\n", r.GetRecord().GetRelease().GetTitle(), time.Unix(r.GetRecord().GetRelease().GetReleaseDate(), 0), time.Unix(r.GetRecord().GetEarliestReleaseDate(), 0))
+			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
+			fmt.Printf("Sale: %v\n", r.GetRecord().GetSaleId())
 
-			fmt.Printf("Median Price: $%2.f\n", float32(r.GetMedianPrice().GetValue())/100)
-			fmt.Printf("Last Updated on %v\n", time.Unix(r.GetLastUpdateTime(), 0))
+			fmt.Printf("Median Price: $%2.f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100)
+			fmt.Printf("Last Updated on %v\n", time.Unix(r.GetRecord().GetLastUpdateTime(), 0))
 
 			for _, update := range r.GetUpdates() {
 				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
@@ -60,8 +60,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 		for _, record := range resp.GetRecords() {
 			printRecord(record)
 		}
-		if resp.GetRecord() != nil {
-			printRecord(resp.GetRecord())
+		if resp.GetRecordResponse() != nil {
+			printRecord(resp.GetRecordResponse())
 		}
 	}
 	return err

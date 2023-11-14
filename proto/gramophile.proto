@@ -370,6 +370,12 @@ message GetRecordRequest {
     bool include_history = 4;
 }
 
+message RecordResponse {
+    Record record = 1;
+    repeated RecordUpdate updates = 2;
+    SaleInfo sale_info = 3;
+}
+
 message GetRecordWithId {
     int64 instance_id = 1;
     int64 release_id = 2;
@@ -382,8 +388,8 @@ message GetRecordToListenTo {
 }
 
 message GetRecordResponse {
-    Record record = 1;
-    repeated Record records = 2;
+    RecordResponse record_response = 1;
+    repeated RecordResponse records = 2;
 }
 
 message GetOrgRequest {

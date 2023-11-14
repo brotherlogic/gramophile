@@ -73,7 +73,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecord()
+	rec := resp.GetRecordResponse().GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
@@ -139,7 +139,7 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecord()
+	rec := resp.GetRecordResponse().GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}

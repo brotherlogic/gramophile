@@ -62,11 +62,11 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		t.Fatalf("Unable to get release: %v", err)
 	}
 
-	if rec.GetRecord().GetRelease().GetReleaseDate() != 12345678 {
-		t.Errorf("Record was not updated: %v", rec.GetRecord())
+	if rec.GetRecordResponse().GetRecord().GetRelease().GetReleaseDate() != 12345678 {
+		t.Errorf("Record was not updated: %v", rec.GetRecordResponse().GetRecord())
 	}
 
-	if rec.GetRecord().GetEarliestReleaseDate() != 1234 {
-		t.Errorf("Record earliest release date was not updated: %v", rec.GetRecord())
+	if rec.GetRecordResponse().GetRecord().GetEarliestReleaseDate() != 1234 {
+		t.Errorf("Record earliest release date was not updated: %v", rec.GetRecordResponse().GetRecord())
 	}
 }
