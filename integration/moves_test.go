@@ -136,7 +136,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 
 	found := false
-	for _, move := range r.GetRecordResponse().GetRecord().GetUpdates() {
+	for _, move := range r.GetRecordResponse().GetUpdates() {
 		for _, exp := range move.GetExplanation() {
 			if exp == "Moved to Listening Pile following rule test-move" {
 				found = true
@@ -145,6 +145,6 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 
 	if !found {
-		t.Errorf("Did not find update: %v", r.GetRecordResponse().GetRecord().GetUpdates())
+		t.Errorf("Did not find update: %v", r.GetRecordResponse().GetUpdates())
 	}
 }

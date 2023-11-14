@@ -80,7 +80,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 
 	found12InchUpdate := false
 	foundStr := false
-	for _, update := range rec.GetUpdates() {
+	for _, update := range resp.GetRecordResponse().GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -91,7 +91,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecordResponse().GetUpdates()[0].After)
 	}
 
 	/*if !foundStr {
@@ -145,7 +145,7 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 
 	found12InchUpdate := false
-	for _, update := range rec.GetUpdates() {
+	for _, update := range resp.GetRecordResponse().GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -153,6 +153,6 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecordResponse().GetUpdates()[0].After)
 	}
 }

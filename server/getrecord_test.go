@@ -58,7 +58,7 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetRecord().GetUpdates()) > 0 {
+	if len(r.GetRecordResponse().GetUpdates()) > 0 {
 		t.Errorf("Updates retrieved when record is empty: %v", r.GetRecordResponse().GetRecord())
 	}
 
@@ -76,7 +76,7 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetRecord().GetUpdates()) > 0 {
+	if len(r.GetRecordResponse().GetUpdates()) > 0 {
 		t.Errorf("Updates retrieved when not requested: %v", r.GetRecordResponse().GetRecord())
 	}
 
@@ -91,7 +91,7 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetRecord().GetUpdates()) == 0 {
+	if len(r.GetRecordResponse().GetUpdates()) == 0 {
 		t.Errorf("No updates retreived, expected 1: %v", r.GetRecordResponse().GetRecord())
 	}
 }
