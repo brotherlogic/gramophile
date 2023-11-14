@@ -79,7 +79,17 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 		if err != nil {
 			return nil, err
 		}
-		return &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: r}}, nil
+		resp := &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: r}}
+
+		if r.GetSaleId() > 0 {
+			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetSaleId())
+			if err != nil {
+				return nil, err
+			}
+			resp.GetRecordResponse().SaleInfo = sale
+		}
+
+		return resp, nil
 	}
 
 	rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
