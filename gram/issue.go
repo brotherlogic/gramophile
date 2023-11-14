@@ -33,7 +33,7 @@ func executeGetIssue(ctx context.Context, args []string) error {
 		return err
 	}
 
-	fmt.Printf("%v has: %v\n", record.GetRecord().GetRelease().GetId(), record.Record.GetIssues())
-	fmt.Printf("%v\n", record.GetRecord())
+	fmt.Printf("%v has: %v\n", record.GetRecordResponse().GetRecord().GetRelease().GetId(), record.GetRecordResponse().GetRecord().GetIssues())
+	fmt.Printf("%v\n", record.GetRecordResponse().GetRecord())
 	return nil
 }

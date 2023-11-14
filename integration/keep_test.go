@@ -50,7 +50,7 @@ func TestSetKeep_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecord()
+	rec := resp.GetRecordResponse().GetRecord()
 	if rec.GetKeepStatus() != pb.KeepStatus_MINT_UP_KEEP {
 		t.Errorf("Keep was not set: %v", rec)
 	}

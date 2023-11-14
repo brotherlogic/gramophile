@@ -22,9 +22,9 @@ func GetOrganisation() *CLIModule {
 }
 
 func getArtist(r *pbd.Release) string {
-     if len(r.GetArtists()) == 0 {
-     	return "NO_ARTIST"
-     }
+	if len(r.GetArtists()) == 0 {
+		return "NO_ARTIST"
+	}
 	artist := r.GetArtists()[0].GetName()
 	for _, art := range r.GetArtists()[1:] {
 		artist += ", " + art.GetName()
@@ -43,7 +43,10 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		return "", err
 	}
 
-	return fmt.Sprintf("%v - %v [%v]", getArtist(r.GetRecord().GetRelease()), r.GetRecord().GetRelease().GetTitle(), p.GetWidth()), nil
+	return fmt.Sprintf("%v - %v [%v]",
+		getArtist(r.GetRecordResponse().GetRecord().GetRelease()),
+		r.GetRecordResponse().GetRecord().GetRelease().GetTitle(),
+		p.GetWidth()), nil
 }
 
 func executeOrg(ctx context.Context, args []string) error {
@@ -84,7 +87,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("[%v] %v\n", totalWidth,pstr)
+					fmt.Printf("[%v] %v\n", totalWidth, pstr)
 					totalWidth += placement.GetWidth()
 				}
 			}

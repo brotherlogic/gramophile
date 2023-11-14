@@ -75,12 +75,12 @@ func TestSyncSales_Success(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if sales.GetRecord().GetRelease().GetId() != 123 {
+	if sales.GetRecordResponse().GetRecord().GetRelease().GetId() != 123 {
 		t.Fatalf("Bad record returned: %v", sales)
 	}
 
-	if sales.GetRecord().GetSaleId() != 12345 {
-		t.Errorf("Sale info not returned: %v", sales.GetRecord())
+	if sales.GetRecordResponse().GetRecord().GetSaleId() != 12345 {
+		t.Errorf("Sale info not returned: %v", sales.GetRecordResponse().GetRecord())
 	}
 
 }
