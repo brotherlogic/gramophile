@@ -137,6 +137,7 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 	} else {
 		sale.GetCurrentPrice().Value = newprice
 	}
+	sale.Updates = append(sale.Updates, &pb.PriceUpdate{Date: time.Now().Unix(), SetPrice: sale.GetCurrentPrice()})
 	sale.LastPriceUpdate = time.Now().Unix()
 	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }

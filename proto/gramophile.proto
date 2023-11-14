@@ -119,12 +119,19 @@ message SaleInfo {
     discogs.SaleStatus sale_state = 3;
     int64 refresh_id = 4;
     int64 release_id = 5;
-    discogs.Price currentPrice = 6;
+    discogs.Price current_price = 6;
     string condition = 7;
 
     int64 listed_date = 8;
-    discogs.Price initialPrice = 9;
-    discogs.Price medianPrice = 10;
+    discogs.Price initial_price = 9;
+    discogs.Price median_price = 10;
+
+    repeated PriceUpdate updates = 11;
+}
+
+message PriceUpdate {
+    int64 date = 1;
+    discogs.Price set_price = 2;
 }
 
 
