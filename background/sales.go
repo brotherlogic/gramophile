@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -29,17 +31,32 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		} else {
 			log.Printf("WHATSALEITEM: %v", sale)
 		}
-		b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
-			SaleId:          sale.GetSaleId(),
-			LastPriceUpdate: time.Now().Unix(),
-			SaleState:       sale.GetStatus(),
-			ReleaseId:       sale.GetReleaseId(),
-			Condition:       sale.GetCondition(),
-			CurrentPrice: &pbd.Price{
-				Value:    sale.GetPrice().GetValue(),
-				Currency: sale.GetPrice().GetCurrency(),
-			},
-		})
+
+		csale, err := b.db.GetSale(ctx, d.GetUserId(), sale.GetSaleId())
+		if status.Code(err) == codes.NotFound {
+			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
+				SaleId:          sale.GetSaleId(),
+				LastPriceUpdate: time.Now().Unix(),
+				SaleState:       sale.GetStatus(),
+				ReleaseId:       sale.GetReleaseId(),
+				Condition:       sale.GetCondition(),
+				CurrentPrice: &pbd.Price{
+					Value:    sale.GetPrice().GetValue(),
+					Currency: sale.GetPrice().GetCurrency(),
+				},
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else if status.Code(err) == codes.OK {
+			csale.SaleState = sale.GetStatus()
+			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	return pagination, nil
