@@ -34,6 +34,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 
 		csale, err := b.db.GetSale(ctx, d.GetUserId(), sale.GetSaleId())
 		if status.Code(err) == codes.NotFound {
+			log.Printf("Creating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
 			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 				SaleId:          sale.GetSaleId(),
 				LastPriceUpdate: time.Now().Unix(),
