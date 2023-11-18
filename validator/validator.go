@@ -90,7 +90,7 @@ func validateUsers(ctx context.Context) error {
 				}
 			}
 
-			log.Printf("Sales: %v", time.Since(time.Unix(user.GetLastSaleRefresh(), 0)))
+			log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
