@@ -129,6 +129,8 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if err != nil {
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
+			} else {
+				log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
 		} else {
 			log.Printf("%v is not for sale", sid)
