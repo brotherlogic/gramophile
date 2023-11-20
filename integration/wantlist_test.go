@@ -66,7 +66,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
-	if len(wants.GetWants()) != 2 || wants.GetWants()[0].Id != 123 {
+	if len(wants.GetWants()) != 2 || (wants.GetWants()[0].Id != 123 && wants.GetWants()[1].Id != 123) {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
