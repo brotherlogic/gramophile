@@ -38,7 +38,7 @@ func TestMoveApplied(t *testing.T) {
 	// Add a record that needs to be moved
 	d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{FolderId: 125, InstanceId: 1234},
-		Arrived: time.Now().Unix(),
+		Arrived: time.Now().UnixNano(),
 	})
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -114,7 +114,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: 1234,
 		Intent: &pb.Intent{
-			Arrived: time.Now().Unix(),
+			Arrived: time.Now().UnixNano(),
 		},
 	})
 	if err != nil {

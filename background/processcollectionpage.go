@@ -77,7 +77,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			stored.RefreshId = refreshId
 
 			stored.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
-			//stored.LastUpdateTime = time.Now().Unix()
+			//stored.LastUpdateTime = time.Now().UnixNano()
 
 			// Process the notes
 			stored, err = b.processNotes(ctx, fields, stored)

@@ -41,7 +41,7 @@ func (b *BackgroundRunner) RefreshUser(ctx context.Context, d discogs.Discogs, u
 		return err
 	}
 	su.Folders = folders
-	su.LastRefreshTime = time.Now().Unix()
+	su.LastRefreshTime = time.Now().UnixNano()
 
 	return b.db.SaveUser(ctx, su)
 }

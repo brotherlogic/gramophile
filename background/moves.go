@@ -19,7 +19,7 @@ func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb
 
 	var mh []*pb.MoveHistory
 	for _, move := range quota.GetPastMoves() {
-		if time.Since(time.Unix(move.GetTime(), 0)) < time.Hour {
+		if time.Since(time.Unix(0, move.GetTime())) < time.Hour {
 			mh = append(mh, move)
 		}
 	}
@@ -95,7 +95,7 @@ func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota,
 	quota.PastMoves = append(quota.PastMoves, &pb.MoveHistory{
 		Iid:  iid,
 		Move: fm.GetName(),
-		Time: time.Now().Unix(),
+		Time: time.Now().UnixNano(),
 	})
 	err := b.db.SaveMoveQuota(ctx, uid, quota)
 	if err != nil {

@@ -27,7 +27,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if record.GetEarliestReleaseDate() == 0 {
 		record.EarliestReleaseDate = release.GetReleaseDate()
 	}
-	record.LastUpdateTime = time.Now().Unix()
+	record.LastUpdateTime = time.Now().UnixNano()
 
 	return b.db.SaveRecord(ctx, d.GetUserId(), record)
 }

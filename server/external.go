@@ -27,7 +27,7 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 		&pb.UserLoginAttempt{
 			RequestToken: token,
 			Secret:       secret,
-			DateAdded:    time.Now().Unix(),
+			DateAdded:    time.Now().UnixNano(),
 		})
 
 	log.Printf("Attempting this: %v", token)

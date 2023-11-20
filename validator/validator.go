@@ -30,7 +30,7 @@ func runValidationLoop(ctx context.Context) error {
 	}
 
 	for _, user := range users.GetUsers() {
-		log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
+		log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(0, user.GetLastRefreshTime())))
 
 		if user.GetUserToken() == "" && time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
@@ -61,8 +61,8 @@ func runValidationLoop(ctx context.Context) error {
 				return err
 			}
 
-			log.Printf("Collection: %v", time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
-			if time.Since(time.Unix(user.GetLastCollectionRefresh(), 0)) > time.Hour*24 {
+			log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastRefreshTime(), 0)))
+			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) > time.Hour*24 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().UnixNano(),
@@ -91,7 +91,7 @@ func runValidationLoop(ctx context.Context) error {
 				}
 			}
 
-			log.Printf("Sales: %v", time.Since(time.Unix(user.GetLastSaleRefresh(), 0)))
+			log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*8 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{

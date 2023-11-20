@@ -47,7 +47,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	u.Moves = append(u.Moves, moves...)
 	u.Config = req.GetConfig()
-	u.LastConfigUpdate = time.Now().Unix()
+	u.LastConfigUpdate = time.Now().UnixNano()
 
 	log.Printf("Updated user: %v", u)
 

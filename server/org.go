@@ -352,7 +352,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 	return &pb.OrganisationSnapshot{
 		Hash:       getHash(nplacements),
 		Placements: nplacements,
-		Date:       time.Now().Unix(),
+		Date:       time.Now().UnixNano(),
 	}, nil
 }
 
