@@ -37,7 +37,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			log.Printf("Creating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
 			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 				SaleId:          sale.GetSaleId(),
-				LastPriceUpdate: time.Now().Unix(),
+				LastPriceUpdate: time.Now().UnixNano(),
 				SaleState:       sale.GetStatus(),
 				ReleaseId:       sale.GetReleaseId(),
 				Condition:       sale.GetCondition(),
@@ -106,7 +106,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
-			if time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)) > getUpdateTime(c) {
+			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
 				nsp, err := adjustPrice(ctx, sale, c)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
@@ -157,8 +157,8 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 	} else {
 		sale.GetCurrentPrice().Value = newprice
 	}
-	sale.Updates = append(sale.Updates, &pb.PriceUpdate{Date: time.Now().Unix(), SetPrice: sale.GetCurrentPrice()})
-	sale.LastPriceUpdate = time.Now().Unix()
+	sale.Updates = append(sale.Updates, &pb.PriceUpdate{Date: time.Now().UnixNano(), SetPrice: sale.GetCurrentPrice()})
+	sale.LastPriceUpdate = time.Now().UnixNano()
 	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }
 

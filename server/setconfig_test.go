@@ -48,7 +48,7 @@ func TestConfigUpdate_UpdatesTime(t *testing.T) {
 	}
 
 	if c1.GetLastConfigUpdate() == c2.GetLastConfigUpdate() {
-		t.Errorf("Collection sync time was not updated: %v (%v)", c2.GetLastConfigUpdate(), time.Unix(c2.GetLastConfigUpdate(), 0))
+		t.Errorf("Collection sync time was not updated: %v (%v)", c2.GetLastConfigUpdate(), time.Unix(0, c2.GetLastConfigUpdate()))
 	}
 }
 

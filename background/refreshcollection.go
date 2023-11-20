@@ -24,7 +24,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 			return fmt.Errorf("unable to get record %v: %w", id, err)
 		}
 
-		if time.Since(time.Unix(rec.GetLastUpdateTime(), 0)) > time.Hour*24 {
+		if time.Since(time.Unix(0, rec.GetLastUpdateTime())) > time.Hour*24 {
 			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate: time.Now().UnixNano(),

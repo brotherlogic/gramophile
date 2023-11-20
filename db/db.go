@@ -506,7 +506,7 @@ func ResolveDiff(update *pb.RecordUpdate) []string {
 
 func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
 	update := &pb.RecordUpdate{
-		Date:   time.Now().UnixMilli(),
+		Date:   time.Now().UnixNano(),
 		Before: old,
 		After:  new,
 	}

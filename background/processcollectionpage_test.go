@@ -95,7 +95,7 @@ func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 	}
 
 	if record.GetLastCleanTime() != ti.Unix() {
-		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(record.GetLastCleanTime(), 0), ti)
+		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(0, record.GetLastCleanTime()), ti)
 	}
 
 	if len(record.GetRelease().GetNotes()) > 0 {

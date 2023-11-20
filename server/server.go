@@ -102,7 +102,7 @@ func generateContext(ctx context.Context, origin string) context.Context {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	hostname := "kubernetes"
-	tracev := fmt.Sprintf("%v-%v-%v-%v", origin, time.Now().Unix(), r.Int63(), hostname)
+	tracev := fmt.Sprintf("%v-%v-%v-%v", origin, time.Now().UnixNano(), r.Int63(), hostname)
 	mContext := metadata.AppendToOutgoingContext(ctx, "trace-id", tracev)
 	return mContext
 }

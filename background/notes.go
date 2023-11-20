@@ -86,7 +86,7 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 		return status.Errorf(codes.FailedPrecondition, "Unable to locate Cleaned field (from %+v)", fields)
 	}
 
-	err := d.SetField(ctx, r.GetRelease(), cfield, time.Unix(i.GetCleanTime(), 0).Format("2006-01-02"))
+	err := d.SetField(ctx, r.GetRelease(), cfield, time.Unix(0, i.GetCleanTime()).Format("2006-01-02"))
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 		return status.Errorf(codes.FailedPrecondition, "Unable to locate Listen field (from %+v)", fields)
 	}
 
-	err := d.SetField(ctx, r.GetRelease(), cfield, time.Unix(i.GetListenTime(), 0).Format("2006-01-02"))
+	err := d.SetField(ctx, r.GetRelease(), cfield, time.Unix(0, i.GetListenTime()).Format("2006-01-02"))
 	if err != nil {
 		return err
 	}

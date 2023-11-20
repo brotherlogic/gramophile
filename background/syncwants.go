@@ -56,7 +56,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 		if !found {
 			err := b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{
 				Id:            want.GetId(),
-				WantAddedDate: time.Now().Unix(),
+				WantAddedDate: time.Now().UnixNano(),
 				State:         pb.WantState_WANTED,
 				SyncId:        sid,
 			})

@@ -34,7 +34,7 @@ func TestUpdateArrived(t *testing.T) {
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	ti := time.Now().Unix()
+	ti := time.Now().UnixNano()
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		Intent:     &pb.Intent{Arrived: ti},
@@ -80,7 +80,7 @@ func TestSetArrivedMovesToListeningPile(t *testing.T) {
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	ti := time.Now().Unix()
+	ti := time.Now().UnixNano()
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		Intent:     &pb.Intent{Arrived: ti},

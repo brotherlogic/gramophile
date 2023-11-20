@@ -74,7 +74,7 @@ func executeListen(ctx context.Context, args []string) error {
 				return err
 			}
 			if tu > 5 {
-				t = time.Unix(tu, 0)
+				t = time.Unix(0, tu)
 			} else {
 				newScore = int32(tu)
 			}

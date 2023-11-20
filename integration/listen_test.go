@@ -47,7 +47,7 @@ func TestSetListen_Success(t *testing.T) {
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		Intent: &pb.Intent{
-			ListenTime: time.Now().Unix(),
+			ListenTime: time.Now().UnixNano(),
 			NewScore:   5},
 		InstanceId: 1234,
 	})
@@ -107,7 +107,7 @@ func TestSetListen_ResetScore(t *testing.T) {
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		Intent: &pb.Intent{
-			ListenTime: time.Now().Unix(),
+			ListenTime: time.Now().UnixNano(),
 			NewScore:   -1},
 		InstanceId: 1234,
 	})
