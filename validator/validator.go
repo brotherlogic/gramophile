@@ -6,18 +6,19 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func validateUsers(ctx context.Context) error {
-	conn, err := grpc.Dial("gramophile.gramophile:8083", grpc.WithInsecure())
+func runValidationLoop(ctx context.Context) error {
+	conn, err := grpc.Dial("gramophile.gramophile:8083", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	qconn, err := grpc.Dial("gramophile-queue.gramophile:8080", grpc.WithInsecure())
+	qconn, err := grpc.Dial("gramophile-queue.gramophile:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
@@ -31,7 +32,7 @@ func validateUsers(ctx context.Context) error {
 	for _, user := range users.GetUsers() {
 		log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(user.GetLastRefreshTime(), 0)))
 
-		if user.GetUserToken() == "" && time.Since(time.Unix(user.GetLastRefreshTime(), 0)) > time.Hour*24*7 {
+		if user.GetUserToken() == "" && time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
 		} else {
 			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
@@ -117,8 +118,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	err := validateUsers(ctx)
+	ts := time.Now()
+	err := runValidationLoop(ctx)
+	log.Printf("Completing validation in %v", time.Since(ts))
 	if err != nil {
-		log.Fatalf("Cannot validate users: %v", err)
+		log.Fatalf("Cannot run validation loop: %v", err)
 	}
 }
