@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20231109144239-72579994cbb2
-	github.com/brotherlogic/gramophile v0.486.0
+	github.com/brotherlogic/gramophile v0.491.0
 	github.com/brotherlogic/rstore v0.35.0
 	github.com/prometheus/client_golang v1.17.0
 	google.golang.org/grpc v1.59.0
@@ -25,5 +25,5 @@ require (
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 )
