@@ -52,13 +52,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 				fmt.Printf("  %v -> %v\n", time.Unix(0, update.GetDate()), update.GetSetPrice().GetValue())
 			}
 
-<<<<<<< Updated upstream
-			fmt.Printf("Median Price: $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100)
-			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
-=======
 			fmt.Printf("Median Price: $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100.0)
 			fmt.Printf("Last Updated on %v\n", time.Unix(r.GetRecord().GetLastUpdateTime(), 0))
->>>>>>> Stashed changes
 
 			for _, update := range r.GetUpdates() {
 				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
