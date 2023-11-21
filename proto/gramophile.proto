@@ -111,6 +111,7 @@ message Record {
    discogs.Price median_price = 18;
 
    int64 earliest_release_date = 19;
+   int64 last_earliest_release_update = 20;
 }
 
 message SaleInfo {

@@ -30,9 +30,15 @@ func executeGetState(ctx context.Context, args []string) error {
 		return err
 	}
 
+<<<<<<< Updated upstream
 	fmt.Printf("User last updated: %v (%v folders) \n", time.Unix(0, state.GetLastUserRefresh()), state.GetFolderCount())
 	fmt.Printf("Config last udpate: %v [%v]\n", time.Unix(0, state.GetLastConfigUpdate()), state.ConfigHash)
 	fmt.Printf("Collection last synced: %v\n", time.Unix(0, state.GetLastCollectionSync()))
+=======
+	fmt.Printf("User last updated: %v (%v folders) \n", time.Unix(state.GetLastUserRefresh(), 0), state.GetFolderCount())
+	fmt.Printf("Config last udpate: %v [%v]\n", time.Unix(state.GetLastConfigUpdate(), 0), state.ConfigHash)
+	fmt.Printf("Collection last synced: %v\n", time.Unix(0,state.GetLastCollectionSync()))
+>>>>>>> Stashed changes
 	fmt.Printf("%v records in collection (%v are marked bad)\n", state.GetCollectionSize(), state.GetCollectionMisses())
 	return nil
 }

@@ -59,6 +59,9 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	}
 
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
+	needsSave := time.Since(time.Unix(0, storedRelease.GetLastEarliestReleaseUpdate())) > time.Hour
+	storedRelease.LastEarliestReleaseUpdate = time.Now().UnixNano()
+
 	log.Printf("RRD: %v --> %v", iid, err)
 	if err != nil {
 		return err
@@ -67,6 +70,10 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	log.Printf("RRF: %v (%v) ---> %v vs %v", iid, rid, release.GetReleaseDate(), storedRelease.GetEarliestReleaseDate())
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
+		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
+	}
+
+	if needsSave {
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
 	}
 
