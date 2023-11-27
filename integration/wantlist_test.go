@@ -141,7 +141,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		Visibility: pb.WantlistVisibility_INVISIBLE,
 	})
 	if err != nil {
-		t.Fatalf("Unable to add wantlist: %v", err)
+		t.Fatalf("unable to add wantlist: %v", err)
 	}
 
 	// Update
@@ -150,7 +150,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		AddId: 123,
 	})
 	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
+		t.Fatalf("unable to add to wantlist: %v", err)
 	}
 
 	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
@@ -158,7 +158,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		AddId: 124,
 	})
 	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
+		t.Fatalf("unable to add to wantlist: %v", err)
 	}
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
