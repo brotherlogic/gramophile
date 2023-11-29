@@ -29,10 +29,12 @@ func executeWantlist(ctx context.Context, args []string) error {
 	if args[0] == "add" {
 
 		_, err = client.AddWantlist(ctx, &pb.AddWantlistRequest{
-			Name: args[1],
+			Name:       args[1],
+			Type:       pb.WantlistType_ONE_BY_ONE,
+			Visibility: pb.WantlistVisibility_VISIBLE,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to add wantlist: %w", err)
 		}
 
 		for _, id := range args[2:] {

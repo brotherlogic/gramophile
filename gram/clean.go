@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -48,10 +49,11 @@ func executeClean(ctx context.Context, args []string) error {
 	}
 
 	client := pb.NewGramophileEServiceClient(conn)
+	log.Printf("Setting: %v", t)
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			CleanTime: t.Unix(),
+			CleanTime: t.UnixNano(),
 		},
 	})
 	return err

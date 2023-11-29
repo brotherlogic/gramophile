@@ -20,7 +20,7 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 		return nil, status.Errorf(codes.FailedPrecondition, "you can't add wantslist to discogs controlled wants")
 	}
 
-	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(),
+	return &pb.AddWantlistResponse{}, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(),
 		&pb.Wantlist{
 			Name:       req.GetName(),
 			Type:       req.GetType(),
