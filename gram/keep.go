@@ -40,6 +40,8 @@ func executeKeep(ctx context.Context, args []string) error {
 		keepState = pb.KeepStatus_KEEP
 	case "mintup":
 		keepState = pb.KeepStatus_MINT_UP_KEEP
+	case "reset":
+		keepState = pb.KeepStatus_RESET
 	default:
 		return status.Errorf(codes.FailedPrecondition, "%v is not a valid keep state (none, digital, keep, mintup)", args[1])
 	}
