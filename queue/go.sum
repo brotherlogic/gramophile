@@ -4,6 +4,10 @@ github.com/brotherlogic/discogs v0.0.0-20231109144239-72579994cbb2 h1:bnFeD+4sh/
 github.com/brotherlogic/discogs v0.0.0-20231109144239-72579994cbb2/go.mod h1:9ULqgA4E0RJ5rbxHwJ+jyO/wsVlJUXRTOQTMQXm5tzw=
 github.com/brotherlogic/gramophile v0.495.0 h1:HmxR/pPrfNM9GM4FNBtf/entpcJiGzYGONEpEFMpGNw=
 github.com/brotherlogic/gramophile v0.495.0/go.mod h1:y0hf04KYH6/RTl1jruAmPN4oGJ+vrqplv4yKOY2LTfk=
+github.com/brotherlogic/gramophile v0.496.0 h1:6bpTG08IOCT8NFXXe04SecsHzrifGSllORYsEwpHyM8=
+github.com/brotherlogic/gramophile v0.496.0/go.mod h1:dO7FU7kgAib7OCLcr7glv88bJsgmJMUK8tPACoi6lRY=
+github.com/brotherlogic/gramophile v0.497.0 h1:70E75aN4VIAbT6vqBKyomtF0J7sE3vsTDJiAlMQX/0A=
+github.com/brotherlogic/gramophile v0.497.0/go.mod h1:dO7FU7kgAib7OCLcr7glv88bJsgmJMUK8tPACoi6lRY=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
@@ -16,6 +20,7 @@ github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zkfA9PSy5pEvNWRP0ET0TIVo=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 h1:jWpvCLoY8Z/e3VKvlsiIGKtc+UG6U5vzxaoagmhXfyg=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0/go.mod h1:QUyp042oQthUoa9bqDv0ER0wrtXnBruoNd7aNjkbP+k=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
