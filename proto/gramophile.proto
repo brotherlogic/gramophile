@@ -74,6 +74,7 @@ enum KeepStatus {
     DIGITAL_KEEP = 2;
     MINT_UP_KEEP = 3;
     KEEP = 4;
+    RESET = 5;
 }
 
 message Record {

@@ -297,12 +297,19 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		return status.Errorf(codes.FailedPrecondition, "Unable to locate keep field (from %+v), looking for %v", fields, config.KEEP_FIELD)
 	}
 
-	err := d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetKeep()))
+	newKeep := fmt.Sprintf("%v", i.GetKeep())
+	if i.GetKeep() == pb.KeepStatus_RESET {
+		newKeep = ""
+	}
+	err := d.SetField(ctx, r.GetRelease(), cfield, newKeep)
 	if err != nil {
 		return err
 	}
 
 	r.KeepStatus = i.GetKeep()
+	if i.GetKeep() == pb.KeepStatus_RESET {
+		r.KeepStatus = pb.KeepStatus_KEEP_UNKNOWN
+	}
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
