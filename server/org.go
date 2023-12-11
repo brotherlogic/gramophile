@@ -86,7 +86,7 @@ func oneIfZero(in float32) float32 {
 	return in
 }
 
-func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve) float32 {
+func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve, defaultWidth float32) float32 {
 	log.Printf("PROC %+v", r)
 	switch d {
 	case pb.Density_COUNT:
@@ -96,7 +96,11 @@ func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve)
 	case pb.Density_WIDTH:
 		twidth := float32(0)
 		for _, r := range r.records {
-			twidth += r.GetWidth() * oneIfZero(sleeveMap[r.GetSleeve()].GetWidthMultiplier())
+			if r.GetWidth() == 0 {
+				twidth += defaultWidth * oneIfZero(sleeveMap[r.GetSleeve()].GetWidthMultiplier())
+			} else {
+				twidth += r.GetWidth() * oneIfZero(sleeveMap[r.GetSleeve()].GetWidthMultiplier())
+			}
 		}
 		return twidth
 	}
@@ -225,12 +229,26 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		}
 	}
 
+	defaultWidth := float32(0.0)
+	defaultCount := float32(0.0)
+	for _, element := range ordList {
+		for _, r := range element.records {
+			defaultWidth += r.GetWidth()
+			if r.GetWidth() > 0 {
+				defaultCount++
+			}
+		}
+	}
+	if defaultCount > 0 && org.GetMissingWidthHandling() == pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE {
+		defaultWidth /= defaultCount
+	}
+
 	// Let's run a check that these groups will actually fit on the shelves
 	var nordList []*groupingElement
 	for _, element := range ordList {
 		fits := false
 		for _, shelves := range org.GetSpaces() {
-			if getWidth(element, org.GetDensity(), sleeveMap) <= shelves.GetWidth() && shelves.GetName() != "Spill" {
+			if getWidth(element, org.GetDensity(), sleeveMap, defaultWidth) <= shelves.GetWidth() && shelves.GetName() != "Spill" {
 				fits = true
 			}
 		}
@@ -267,7 +285,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			continue
 		}
 
-		width := getWidth(r, org.GetDensity(), sleeveMap)
+		width := getWidth(r, org.GetDensity(), sleeveMap, defaultWidth)
 
 		log.Printf("Current %v with %v taken from %v", width, currSlotWidth, org.GetSpaces()[currSlot].GetWidth())
 
@@ -283,7 +301,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				}
 				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
-					width := getWidth(tr, org.GetDensity(), sleeveMap)
+					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
 					log.Printf("Trying %v", width)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
 						placed[tr.id] = true
@@ -344,7 +362,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				Space: entry.GetSpace(),
 				Unit:  entry.GetUnit(),
 				Index: entry.GetIndex() + int32(ri),
-				Width: getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap),
+				Width: getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap, defaultWidth),
 			})
 		}
 	}

@@ -1482,7 +1482,7 @@ func TestWidths_MissingWidth(t *testing.T) {
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
-		Width:   2.4,
+		Width:   2.5,
 		Sleeve:  "TestSleeve",
 		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
