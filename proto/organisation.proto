@@ -39,6 +39,7 @@ message Placement {
 
     // This is the unfiltered index
     int32 original_index = 7;
+    string observations = 8;
 
     //Optional
     string sort_key = 6;

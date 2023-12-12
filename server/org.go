@@ -306,6 +306,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
 					log.Printf("Trying %v", width)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
+						str := fmt.Sprintf("Placing %v -> %v + %v / %v", tr.id, currSlotWidth, width, org.GetSpaces()[currSlot].GetWidth())
 						placed[tr.id] = true
 						placements = append(placements, &pb.Placement{
 							Iid:           tr.id,
@@ -314,6 +315,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 							Index:         index + 1,
 							Width:         width,
 							OriginalIndex: int32(ogMap[tr.id]),
+							Observations:  str,
 						})
 						index += int32(len(tr.records))
 						currSlotWidth += width
@@ -348,6 +350,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 			Index:         index + 1,
 			Width:         width,
 			OriginalIndex: int32(ogMap[r.id]),
+			Observations:  "regular",
 		})
 		index += int32(len(r.records))
 		currSlotWidth += width
@@ -368,6 +371,7 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 				Index:         entry.GetIndex() + int32(ri),
 				Width:         getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap, defaultWidth),
 				OriginalIndex: int32(ogMap[r.GetRelease().GetInstanceId()]),
+				Observations:  entry.GetObservations(),
 			})
 		}
 	}
