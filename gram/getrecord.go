@@ -29,6 +29,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	var id = idSet.Int("id", 0, "Id of record to get")
 	var iid = idSet.Int("iid", 0, "IId of record to get")
 	var history = idSet.Bool("history", false, "Whether to get the history")
+	var debug = idSet.Bool("debug", false, "Show debug stuff")
 	if err := idSet.Parse(args); err == nil {
 
 		client := pb.NewGramophileEServiceClient(conn)
@@ -44,7 +45,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			return err
 		}
 
-		printRecord := func(r *pb.RecordResponse) {
+		printRecord := func(r *pb.RecordResponse, debug bool) {
 			fmt.Printf("%v (%v vs %v)\n", r.GetRecord().GetRelease().GetTitle(), time.Unix(0, r.GetRecord().GetRelease().GetReleaseDate()), time.Unix(0, r.GetRecord().GetEarliestReleaseDate()))
 			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
 			fmt.Printf("Sale: %v -> %v [%v]\n", r.GetRecord().GetSaleId(), time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()), r.GetSaleInfo().GetCurrentPrice().GetValue())
@@ -55,16 +56,20 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("Median Price: $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100.0)
 			fmt.Printf("Last Updated on %v\n", time.Unix(r.GetRecord().GetLastUpdateTime(), 0))
 
+			if debug {
+				fmt.Printf("%v\n", r.GetRecord())
+			}
+
 			for _, update := range r.GetUpdates() {
 				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
 			}
 		}
 
 		for _, record := range resp.GetRecords() {
-			printRecord(record)
+			printRecord(record, *debug)
 		}
 		if resp.GetRecordResponse() != nil {
-			printRecord(resp.GetRecordResponse())
+			printRecord(resp.GetRecordResponse(), *debug)
 		}
 	}
 	return err
