@@ -168,8 +168,10 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		records = append(records, recs...)
 	}
 
+	ogMap := make(map[int64]int)
 	for i, r := range records {
 		log.Printf("POST SORT %v -> %v", i, r.record.GetRelease().GetInstanceId())
+		ogMap[r.record.GetRelease().GetInstanceId()] = i
 	}
 
 	// Build out the width map
@@ -306,11 +308,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
 						placed[tr.id] = true
 						placements = append(placements, &pb.Placement{
-							Iid:   tr.id,
-							Space: org.GetSpaces()[currSlot].GetName(),
-							Unit:  currUnit,
-							Index: index + 1,
-							Width: width,
+							Iid:           tr.id,
+							Space:         org.GetSpaces()[currSlot].GetName(),
+							Unit:          currUnit,
+							Index:         index + 1,
+							Width:         width,
+							OriginalIndex: int32(ogMap[tr.id]),
 						})
 						index += int32(len(tr.records))
 						currSlotWidth += width
@@ -339,11 +342,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 
 		placed[r.id] = true
 		placements = append(placements, &pb.Placement{
-			Iid:   r.id,
-			Space: org.GetSpaces()[currSlot].GetName(),
-			Unit:  currUnit,
-			Index: index + 1,
-			Width: width,
+			Iid:           r.id,
+			Space:         org.GetSpaces()[currSlot].GetName(),
+			Unit:          currUnit,
+			Index:         index + 1,
+			Width:         width,
+			OriginalIndex: int32(ogMap[r.id]),
 		})
 		index += int32(len(r.records))
 		currSlotWidth += width
@@ -358,11 +362,12 @@ func (s *Server) buildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb
 		log.Printf("EXPANDING: %v -> %+v", entry, ordMap[entry.GetIid()])
 		for ri, r := range ordMap[entry.GetIid()].records {
 			nplacements = append(nplacements, &pb.Placement{
-				Iid:   r.GetRelease().GetInstanceId(),
-				Space: entry.GetSpace(),
-				Unit:  entry.GetUnit(),
-				Index: entry.GetIndex() + int32(ri),
-				Width: getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap, defaultWidth),
+				Iid:           r.GetRelease().GetInstanceId(),
+				Space:         entry.GetSpace(),
+				Unit:          entry.GetUnit(),
+				Index:         entry.GetIndex() + int32(ri),
+				Width:         getWidth(&groupingElement{records: []*pb.Record{r}}, org.GetDensity(), sleeveMap, defaultWidth),
+				OriginalIndex: int32(ogMap[r.GetRelease().GetInstanceId()]),
 			})
 		}
 	}

@@ -32,7 +32,7 @@ func getArtist(r *pbd.Release) string {
 	return artist
 }
 
-func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p *pb.Placement) (string, error) {
+func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p *pb.Placement, debug bool) (string, error) {
 	r, err := client.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{
@@ -43,10 +43,15 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		return "", err
 	}
 
-	return fmt.Sprintf("%v - %v [%v]",
+	str := fmt.Sprintf("%v - %v [%v]",
 		getArtist(r.GetRecordResponse().GetRecord().GetRelease()),
 		r.GetRecordResponse().GetRecord().GetRelease().GetTitle(),
-		p.GetWidth()), nil
+		p.GetWidth())
+	if debug {
+		str += fmt.Sprintf(" {%v}", p.GetOriginalIndex())
+	}
+
+	return str, nil
 }
 
 func executeOrg(ctx context.Context, args []string) error {
@@ -59,6 +64,7 @@ func executeOrg(ctx context.Context, args []string) error {
 		orgFlags := flag.NewFlagSet("orgflags", flag.ExitOnError)
 		name := orgFlags.String("org", "", "The name of the organisation")
 		slot := orgFlags.Int("slot", -1, "The slot to print")
+		debug := orgFlags.Bool("debug", false, "Include debug info")
 
 		if err := orgFlags.Parse(args); err == nil {
 			client := pb.NewGramophileEServiceClient(conn)
@@ -83,7 +89,7 @@ func executeOrg(ctx context.Context, args []string) error {
 				}
 
 				if placement.GetUnit() == int32(*slot) || *slot == -1 {
-					pstr, err := resolvePlacement(ctx, client, placement)
+					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
 						return err
 					}
