@@ -4,6 +4,11 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum MissingWidthHandling {
+    MISSING_WIDTH_IGNORE = 0;
+    MISSING_WIDTH_AVERAGE = 1;
+}
+
 message OrganisationConfig {
     repeated ArtistTranslation artist_translation = 1;
     repeated Organisation organisations = 2;
@@ -62,6 +67,7 @@ message Organisation {
 
     bool auto_artist_translate = 5;
     Density density = 3;
+    MissingWidthHandling missing_width_handling = 8;
 
     Grouping grouping = 4;
     Spill spill = 7;
