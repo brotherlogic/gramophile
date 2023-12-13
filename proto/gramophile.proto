@@ -223,6 +223,7 @@ message UpdateSale {
     int32 new_price = 2;
     int64 release_id = 3;
     string condition = 4;
+    bool expire = 5;
 }
 
 message MoveRecord {
@@ -311,6 +312,14 @@ message StoredUser {
 
     repeated discogs.Folder folders = 9;
     repeated FolderMove moves = 10;
+
+    HolidayState holiday_state = 12;
+}
+
+enum HolidayState {
+    NOT_ON_HOLIDAY = 0;
+    ON_HOLIDAY_PAUSE_SALES = 1;
+    ON_HOLIDAY_DELETE_SALES = 2;
 }
 
 message GramophileAuth {

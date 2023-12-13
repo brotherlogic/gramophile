@@ -105,39 +105,72 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 			return fmt.Errorf("unable to read sale: %w", err)
 		}
 
-		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
-			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
-				nsp, err := adjustPrice(ctx, sale, c)
-				if err != nil {
-					return fmt.Errorf("unable to adjust price: %w", err)
-				}
-
-				log.Printf("ADJUST PRICE(%v) %v -> %v", sale.GetSaleId(), sale.GetCurrentPrice().GetValue(), nsp)
-
+		if user.GetHolidayState() == pb.HolidayState_ON_HOLIDAY_PAUSE_SALES {
+			if sale.GetSaleState() != pbd.SaleStatus_EXPIRED {
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate: time.Now().UnixNano(),
 						Auth:    user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_UpdateSale{
 							UpdateSale: &pb.UpdateSale{
-								SaleId:    sid,
-								NewPrice:  nsp,
-								ReleaseId: sale.GetReleaseId(),
-								Condition: sale.GetCondition(),
+								Expire: true,
 							}}},
 				})
 				if err != nil {
-					return fmt.Errorf("unable to queue sales: %v", err)
+					return err
 				}
-			} else {
-				log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
 			}
 		} else {
-			log.Printf("%v is not for sale", sid)
+
+			if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+				if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
+					nsp, err := adjustPrice(ctx, sale, c)
+					if err != nil {
+						return fmt.Errorf("unable to adjust price: %w", err)
+					}
+
+					log.Printf("ADJUST PRICE(%v) %v -> %v", sale.GetSaleId(), sale.GetCurrentPrice().GetValue(), nsp)
+
+					_, err = enqueue(ctx, &pb.EnqueueRequest{
+						Element: &pb.QueueElement{
+							RunDate: time.Now().UnixNano(),
+							Auth:    user.GetAuth().GetToken(),
+							Entry: &pb.QueueElement_UpdateSale{
+								UpdateSale: &pb.UpdateSale{
+									SaleId:    sid,
+									NewPrice:  nsp,
+									ReleaseId: sale.GetReleaseId(),
+									Condition: sale.GetCondition(),
+								}}},
+					})
+					if err != nil {
+						return fmt.Errorf("unable to queue sales: %v", err)
+					}
+				} else {
+					log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
+				}
+			} else {
+				log.Printf("%v is not for sale", sid)
+			}
 		}
 	}
 
 	return nil
+}
+
+func (b *BackgroundRunner) ExpireSale(ctx context.Context, d discogs.Discogs, sid int64) error {
+	err := d.ExpireSale(ctx, sid)
+	if err != nil {
+		return err
+	}
+
+	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
+	if err != nil {
+		return fmt.Errorf("unable to load sale: %w", err)
+	}
+	sale.SaleState = pbd.SaleStatus_EXPIRED
+	return b.db.SaveSale(ctx, d.GetUserId(), sale)
+
 }
 
 func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, releaseid int64, condition string, newprice int32) error {

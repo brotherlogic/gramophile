@@ -168,6 +168,102 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 	}
 }
 
+func TestSalesPriceIsNotAdjustedWhenOnHoliday(t *testing.T) {
+	ctx, s, d, q := buildTestScaffold(t)
+
+	si := &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		SaleId:          123456,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		ReleaseId:       12,
+	}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         123,
+			InstanceId: 1234,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}}},
+		SaleId: 123456,
+	})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		Folders:      []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:         &pbd.User{DiscogsUserId: 123},
+		HolidayState: pb.HolidayState_ON_HOLIDAY_PAUSE_SALES,
+		Auth:         &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't save the user: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, si)
+	if err != nil {
+		t.Fatalf("Can't save sale: %v", err)
+	}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Mandate:                pb.Mandate_REQUIRED,
+				HandlePriceUpdates:     pb.Mandate_REQUIRED,
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_MINIMAL_REDUCE,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// Run a sale update loop
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to enqueue request: %v", err)
+	}
+	q.FlushQueue(ctx)
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("Cannot get sales: %v", err)
+	}
+
+	if len(sales) != 1 {
+		t.Fatalf("Wrong number of sales: %v", sales)
+	}
+
+	found := false
+	for _, sid := range sales {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("Cannot get sale: %v", err)
+		}
+
+		if sale.GetSaleId() == 123456 {
+			found = true
+			if sale.GetCurrentPrice().Value != 1234 {
+				t.Errorf("Price was not updated (should be 1233): %v", sale)
+			}
+			if sale.GetSaleState() != pbd.SaleStatus_EXPIRED {
+				t.Errorf("Sale should have been expired: %v", sale)
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("Unable to find sale: %v", sales)
+	}
+}
+
 func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
