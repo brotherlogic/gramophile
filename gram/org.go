@@ -48,7 +48,7 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		r.GetRecordResponse().GetRecord().GetRelease().GetTitle(),
 		p.GetWidth())
 	if debug {
-		str += fmt.Sprintf(" {%v}", p.GetOriginalIndex())
+		str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
 	}
 
 	return str, nil
