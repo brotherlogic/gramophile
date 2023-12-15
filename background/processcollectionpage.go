@@ -92,7 +92,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 		} else if status.Code(err) == codes.NotFound {
 			record := &pb.Record{Release: release}
 			record.RefreshId = refreshId
-			r //ecord.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
+			//record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
 
 			// Process the notes
 			record, err = b.processNotes(ctx, fields, record)
