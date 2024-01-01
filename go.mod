@@ -7,7 +7,7 @@ require (
 	github.com/brotherlogic/godiscogs v0.0.0-20230922000443-fb73651e941c
 	github.com/brotherlogic/recordcollection v0.0.0-20240101062803-0900b4a9ed9b
 	github.com/brotherlogic/rstore v0.35.0
-	github.com/brotherlogic/scraper v0.58.0
+	github.com/brotherlogic/scraper v0.68.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/golang/protobuf v1.5.3
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
