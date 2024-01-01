@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
+	scraper_client "github.com/brotherlogic/scraper/client"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -58,6 +59,11 @@ type Queue struct {
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
 	log.Printf("GETTING QUEUE")
+	sc, err := scraper_client.GetClient()
+	if err != nil {
+		panic(err)
+	}
+	d.SetDownloader(&DownloaderBridge{scraper: sc})
 	return &Queue{
 		b: b, d: d, rstore: r, db: db,
 	}

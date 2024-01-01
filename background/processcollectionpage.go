@@ -64,10 +64,10 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 	}
 
 	for _, release := range releases {
-		/*stats, err := d.GetReleaseStats(ctx, release.GetId())
+		stats, err := d.GetReleaseStats(ctx, release.GetId())
 		if err != nil {
 			return -1, fmt.Errorf("unable to get release stats for %v: %w", release.GetId(), err)
-		}*/
+		}
 
 		stored, err := b.db.GetRecord(ctx, d.GetUserId(), release.GetInstanceId())
 
@@ -76,8 +76,8 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			stored.Release = release
 			stored.RefreshId = refreshId
 
-			//stored.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
-			//stored.LastUpdateTime = time.Now().UnixNano()
+			stored.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
+			stored.LastUpdateTime = time.Now().UnixNano()
 
 			// Process the notes
 			stored, err = b.processNotes(ctx, fields, stored)
