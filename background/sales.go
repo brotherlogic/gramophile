@@ -149,6 +149,11 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 	log.Printf("Updating price %v -> %v", sale, newprice)
 	err = d.UpdateSale(ctx, sid, releaseid, condition, newprice)
 	if err != nil {
+		// We expect FailedPrecondition if the sale status has chnaged since the sale price request went in (e.g. the
+		// item has sold or take off the marketplace). In this case we silently succeed
+		if status.Code(err) == codes.FailedPrecondition {
+			return nil
+		}
 		return fmt.Errorf("unable to update sale price: %w", err)
 	}
 
