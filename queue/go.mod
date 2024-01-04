@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile/queue
 go 1.19
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20240103234840-34729beba980
+	github.com/brotherlogic/discogs v0.0.0-20240104000157-1f7788d5a021
 	github.com/brotherlogic/gramophile v0.509.0
 	github.com/brotherlogic/rstore v0.42.0
 	github.com/prometheus/client_golang v1.18.0
@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brotherlogic/scraper v0.68.0 // indirect
+	github.com/brotherlogic/scraper v0.69.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dghubble/oauth1 v0.7.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
