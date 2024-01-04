@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240104000157-1f7788d5a021
-	github.com/brotherlogic/gramophile v0.509.0
+	github.com/brotherlogic/gramophile v0.512.0
 	github.com/brotherlogic/rstore v0.42.0
 	github.com/prometheus/client_golang v1.18.0
 	google.golang.org/grpc v1.60.1
@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brotherlogic/scraper v0.69.0 // indirect
+	github.com/brotherlogic/scraper v0.77.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dghubble/oauth1 v0.7.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -22,7 +22,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
