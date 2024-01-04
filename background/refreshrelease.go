@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	pbd "github.com/brotherlogic/discogs/proto"
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs) error {
@@ -21,6 +22,13 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if err != nil {
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
 	}
+
+	// Update the median sale price
+	stats, err := d.GetReleaseStats(ctx, release.GetId())
+	if err != nil {
+		return err
+	}
+	record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
 
 	// Update the release from the discogs pull
 	record.GetRelease().ReleaseDate = release.GetReleaseDate()
