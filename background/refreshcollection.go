@@ -10,6 +10,10 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+const (
+	RefreshReleasePeriod = time.Hour * 24 * 7 // Once a week
+)
+
 func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	ids, err := b.db.GetRecords(ctx, d.GetUserId())
 	if err != nil {
@@ -24,7 +28,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 			return fmt.Errorf("unable to get record %v: %w", id, err)
 		}
 
-		if time.Since(time.Unix(0, rec.GetLastUpdateTime())) > time.Hour*24 {
+		if time.Since(time.Unix(0, rec.GetLastUpdateTime())) > RefreshReleasePeriod {
 			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate: time.Now().UnixNano(),
