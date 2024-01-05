@@ -11,12 +11,13 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs) error {
-	log.Printf("Refreshing %v", iid)
 
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
 		return fmt.Errorf("unable to get record from db: %w", err)
 	}
+
+	log.Printf("Refreshing %v (%v)", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
 
 	if time.Since(time.Unix(0, record.GetLastUpdateTime())) < RefreshReleasePeriod {
 		return nil
