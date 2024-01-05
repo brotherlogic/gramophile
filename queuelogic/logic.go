@@ -146,6 +146,22 @@ func (q *Queue) Run() {
 	}
 }
 
+func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainResponse, error) {
+	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys.GetKeys() {
+		_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &pb.DrainResponse{Count: int32(len(keys.GetKeys()))}, nil
+}
+
 func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {

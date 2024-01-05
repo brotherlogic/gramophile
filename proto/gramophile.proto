@@ -290,10 +290,16 @@ message ListResponse {
     repeated QueueElement elements = 2;
 }
 
+message DrainRequest{}
+message DrainResponse{
+    int32 count = 1;
+}
+
 service QueueService {
     rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {};
     rpc Execute(EnqueueRequest) returns (EnqueueResponse) {};
     rpc List(ListRequest) returns (ListResponse) {};
+    rpc Drain(DrainRequest) returns (DrainResponse) {};
 }
 
 message StoredUser {

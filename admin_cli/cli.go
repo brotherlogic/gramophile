@@ -32,6 +32,12 @@ func main() {
 	sclient := pb.NewGramophileServiceClient(sconn)
 
 	switch os.Args[2] {
+	case "drain":
+		resp, err := client.Drain(ctx, &pb.DrainRequest{})
+		if err != nil {
+			log.Fatalf("Unable to drain queue: %v", err)
+		}
+		fmt.Printf("Drained %v items\n", resp.GetCount())
 	case "users":
 		users, err := sclient.GetUsers(ctx, &pb.GetUsersRequest{})
 		if err != nil {
