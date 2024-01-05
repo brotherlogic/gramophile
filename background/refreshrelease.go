@@ -18,6 +18,10 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		return fmt.Errorf("unable to get record from db: %w", err)
 	}
 
+	if time.Since(time.Unix(0, record.GetLastUpdateTime())) < RefreshReleasePeriod {
+		return nil
+	}
+
 	release, err := d.GetRelease(ctx, record.GetRelease().GetId())
 	if err != nil {
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
