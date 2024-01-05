@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	RefreshReleasePeriod = time.Hour * 24 * 7 // Once a week
+	RefreshReleasePeriod      = time.Hour * 24 * 7      // Once a week
+	RefreshReleaseDatesPeriod = time.Hour * 24 * 7 * 30 // Once a month
 )
 
 func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
@@ -41,7 +42,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 			if err != nil {
 				return err
 			}
-			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > time.Hour*24*7*30 {
+			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > RefreshReleaseDatesPeriod {
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate: time.Now().UnixNano(),

@@ -47,9 +47,13 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 }
 
 func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
-	log.Printf("RRD: %v ->  %v", iid, rid)
+
+	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
+	if err != nil {
+		return err
+	}
+
 	release, err := d.GetRelease(ctx, rid)
-	log.Printf("RRD: %v -> %v", iid, err)
 	if err != nil {
 		// We should be able to find any release here
 		if status.Code(err) == codes.NotFound {
@@ -58,17 +62,12 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		return err
 	}
 
-	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	needsSave := time.Since(time.Unix(0, storedRelease.GetLastEarliestReleaseUpdate())) > time.Hour
 	storedRelease.LastEarliestReleaseUpdate = time.Now().UnixNano()
 
-	log.Printf("RRD: %v --> %v", iid, err)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("RRF: %v (%v) ---> %v vs %v", iid, rid, release.GetReleaseDate(), storedRelease.GetEarliestReleaseDate())
+	log.Printf("GOT %v vs %v", release, storedRelease)
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
+		//log.Printf("Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
 	}
