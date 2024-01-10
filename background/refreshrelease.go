@@ -34,6 +34,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		return err
 	}
 	record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
+	record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
 
 	// Update the release from the discogs pull
 	record.GetRelease().ReleaseDate = release.GetReleaseDate()

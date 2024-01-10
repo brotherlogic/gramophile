@@ -110,6 +110,7 @@ message Record {
    KeepStatus keep_status = 17;
 
    discogs.Price median_price = 18;
+   discogs.Price low_price = 21;
 
    int64 earliest_release_date = 19;
    int64 last_earliest_release_update = 20;
