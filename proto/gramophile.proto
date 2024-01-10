@@ -130,6 +130,8 @@ message SaleInfo {
     discogs.Price median_price = 10;
 
     repeated PriceUpdate updates = 11;
+
+    int64 time_at_median = 12;
 }
 
 message PriceUpdate {

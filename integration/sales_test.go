@@ -256,6 +256,10 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 				t.Errorf("Price was not updated (should be 1225): %v", sale)
 			}
 		}
+
+		if sale.GetTimeAtMedian() == 0 {
+			t.Errorf("The time at median was not updated: %v", sale)
+		}
 	}
 
 	if !found {

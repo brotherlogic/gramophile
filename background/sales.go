@@ -112,6 +112,17 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
 
+				// If we've reached the median price, then explicitly set this
+				if c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN &&
+					nsp == sale.GetMedianPrice().GetValue() && sale.TimeAtMedian == 0 {
+					sale.TimeAtMedian = time.Now().UnixNano()
+
+					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
+					if err != nil {
+						return err
+					}
+				}
+
 				log.Printf("ADJUST PRICE(%v) %v -> %v", sale.GetSaleId(), sale.GetCurrentPrice().GetValue(), nsp)
 
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
