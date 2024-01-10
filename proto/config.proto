@@ -182,6 +182,19 @@ message SaleConfig {
     SaleUpdateType update_type = 4;
 
     int32 reduction = 5;
+    int64 time_at_median = 6;
+
+    // Supports reduce to median post changes
+    int64 post_median_time = 7;
+    int32 post_median_reduction = 8;
+    int64 post_median_reduction_frequency = 9;
+    LowerBoundStrategy lower_bound_strategy = 10;
+    int32 lower_bound = 11;
+}
+
+enum LowerBoundStrategy {
+    DISCOGS_LOW = 0;
+    STATIC_LOW = 1;
 }
 
 message KeepConfig {
