@@ -12,6 +12,7 @@ import (
 )
 
 func GetGetRecord() *CLIModule {
+
 	return &CLIModule{
 		Command: "get",
 		Help:    "Get a record from the db",
@@ -54,6 +55,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 
 			fmt.Printf("Median Price: $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100.0)
+			fmt.Printf("Low Price:    $%.2f\n", float32(r.GetRecord().GetLowPrice().GetValue())/100.0)
 			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
 
 			if debug {
