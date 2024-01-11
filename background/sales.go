@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -86,6 +87,18 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 		if s.GetMedianPrice().GetValue() == 0 {
 			return s.GetCurrentPrice().GetValue(), nil
 		}
+
+		// Are we in post reduction time?
+		if s.GetTimeAtMedian() > 0 {
+			postMedianCycles := int32(math.Floor(time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() / float64(c.GetPostMedianReductionFrequency())))
+			lowerBound := c.GetLowerBound()
+			if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+				lowerBound = s.GetL
+			}
+			newPrice := max(s.GetMedianPrice().GetValue() - postMedianCycles*c.GetPostMedianReduction())
+
+		}
+
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
