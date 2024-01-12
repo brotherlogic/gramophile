@@ -128,6 +128,7 @@ message SaleInfo {
     int64 listed_date = 8;
     discogs.Price initial_price = 9;
     discogs.Price median_price = 10;
+    discogs.Price low_price = 13;
 
     repeated PriceUpdate updates = 11;
 
