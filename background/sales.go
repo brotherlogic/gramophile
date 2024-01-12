@@ -91,12 +91,16 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 		// Are we in post reduction time?
 		if s.GetTimeAtMedian() > 0 {
 			postMedianCycles := int32(math.Floor(time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() / float64(c.GetPostMedianReductionFrequency())))
+			log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianReductionFrequency())
+
 			lowerBound := c.GetLowerBound()
 			if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
-				lowerBound = s.GetL
+				lowerBound = s.GetLowPrice().GetValue()
 			}
-			newPrice := max(s.GetMedianPrice().GetValue() - postMedianCycles*c.GetPostMedianReduction())
-
+			log.Printf("Found lower bound %v", lowerBound)
+			if lowerBound > 0 {
+				return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), nil
+			}
 		}
 
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
@@ -237,6 +241,11 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				// Ensure we copy over any changes to the median price
 				if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
 					sale.MedianPrice = record.GetMedianPrice()
+					sale_changed = true
+				}
+
+				if record.GetLowPrice().GetValue() != sale.GetLowPrice().GetValue() {
+					sale.LowPrice = record.GetLowPrice()
 					sale_changed = true
 				}
 
