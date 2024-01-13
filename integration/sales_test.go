@@ -369,7 +369,7 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 
 	si := &pb.SaleInfo{
 		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
-		SaleId:          123456,
+		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
@@ -452,10 +452,112 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 			t.Fatalf("Cannot get sale: %v", err)
 		}
 
-		if sale.GetSaleId() == 123456 {
+		if sale.GetSaleId() == 1836758812 {
 			found = true
 			if sale.GetCurrentPrice().Value != 2000 {
 				t.Errorf("Price was not updated (should be 2000): %v", sale)
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("Unable to find sale: %v", sales)
+	}
+}
+
+func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
+
+	ctx, s, d, q := buildTestScaffold(t)
+
+	si := &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		SaleId:          1836758812,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		ReleaseId:       123,
+		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
+	}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         123,
+			InstanceId: 1234,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}}},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      123456,
+	})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveSale(ctx, 123, si)
+	if err != nil {
+		t.Fatalf("Can't save sale: %v", err)
+	}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Mandate:                      pb.Mandate_REQUIRED,
+				HandlePriceUpdates:           pb.Mandate_REQUIRED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+				PostMedianTime:               10 * 60, // 10 minutes
+				PostMedianReduction:          125,
+				PostMedianReductionFrequency: 15 * 60, // 30 minutes
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// Run a sale update loop
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_LinkSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Bad enqueue: %v", err)
+	}
+	q.FlushQueue(ctx)
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to enqueue request: %v", err)
+	}
+	q.FlushQueue(ctx)
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("Cannot get sales: %v", err)
+	}
+
+	if len(sales) != 1 {
+		t.Fatalf("Wrong number of sales: %v", sales)
+	}
+
+	found := false
+	for _, sid := range sales {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("Cannot get sale: %v", err)
+		}
+
+		if sale.GetSaleId() == 1836758812 {
+			found = true
+			if sale.GetCurrentPrice().Value != 3750 {
+				t.Errorf("Price was not updated (should be 3750): %v", sale)
 			}
 		}
 	}
@@ -470,7 +572,7 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 
 	si := &pb.SaleInfo{
 		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
-		SaleId:          123456,
+		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
@@ -554,7 +656,7 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 			t.Fatalf("Cannot get sale: %v", err)
 		}
 
-		if sale.GetSaleId() == 123456 {
+		if sale.GetSaleId() == 1836758812 {
 			found = true
 			if sale.GetCurrentPrice().Value != 2100 {
 				t.Errorf("Price was not updated (should be 2100): %v", sale)
@@ -572,7 +674,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 
 	si := &pb.SaleInfo{
 		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
-		SaleId:          123456,
+		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
@@ -656,7 +758,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 			t.Fatalf("Cannot get sale: %v", err)
 		}
 
-		if sale.GetSaleId() == 123456 {
+		if sale.GetSaleId() == 1836758812 {
 			found = true
 			if sale.GetCurrentPrice().Value != 3500 {
 				t.Errorf("Price was not updated (should be 3500): %v", sale)
