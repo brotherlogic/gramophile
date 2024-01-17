@@ -19,9 +19,9 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 
 	log.Printf("Refreshing %v (%v)", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
 
-	if time.Since(time.Unix(0, record.GetLastUpdateTime())) < RefreshReleasePeriod {
-		return nil
-	}
+	//if time.Since(time.Unix(0, record.GetLastUpdateTime())) < RefreshReleasePeriod {
+	//	return nil
+	//}
 
 	release, err := d.GetRelease(ctx, record.GetRelease().GetId())
 	if err != nil {
