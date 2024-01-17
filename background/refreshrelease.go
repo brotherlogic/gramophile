@@ -33,6 +33,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if err != nil {
 		return err
 	}
+	log.Printf("Stats for %v == %v (%v)", iid, stats, err)
 	record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
 	record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
 
