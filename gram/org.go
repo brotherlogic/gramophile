@@ -65,6 +65,7 @@ func executeOrg(ctx context.Context, args []string) error {
 		name := orgFlags.String("org", "", "The name of the organisation")
 		slot := orgFlags.Int("slot", -1, "The slot to print")
 		debug := orgFlags.Bool("debug", false, "Include debug info")
+		//space := orgFlags.String("space", "")
 
 		if err := orgFlags.Parse(args); err == nil {
 			client := pb.NewGramophileEServiceClient(conn)
@@ -93,7 +94,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("[%v] %v\n", totalWidth, pstr)
+					fmt.Printf("[%v] %v %v\n", placement.GetSpace(), totalWidth, pstr)
 					totalWidth += placement.GetWidth()
 				}
 			}

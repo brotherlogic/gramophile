@@ -119,15 +119,13 @@ func (q *Queue) Run() {
 				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
-				log.Printf("Ran %v in %v", entry, time.Since(st))
+				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
 				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
 
-		if status.Code(err) != codes.NotFound {
-			log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
-		}
+		log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
