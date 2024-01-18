@@ -249,7 +249,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			log.Printf("Skipping %v", entry)
 			return nil
 		}
-		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+
+		// Not Found means the sale was deleted - if so remove from the db
+		if status.Code(err) == codes.NotFound {
+			return q.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetUpdateSale().GetSaleId())
+		}
+		return err
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefreshWants(ctx, d)
 	case *pb.QueueElement_RefreshWant:
