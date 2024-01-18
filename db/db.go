@@ -83,6 +83,7 @@ type Database interface {
 	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
+	DeleteSale(ctx context.Context, userId int32, saleid int64) error
 	GetSales(ctx context.Context, userId int32) ([]int64, error)
 	GetSale(ctx context.Context, userId int32, saleId int64) (*pb.SaleInfo, error)
 
@@ -204,6 +205,10 @@ func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist str
 
 func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) error {
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, sale.GetSaleId()), sale)
+}
+
+func (d *DB) DeleteSale(ctx context.Context, userid int32, saleid int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, saleid))
 }
 
 func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
