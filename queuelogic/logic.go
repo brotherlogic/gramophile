@@ -253,6 +253,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		// Not Found means the sale was deleted - if so remove from the db
 		if status.Code(err) == codes.NotFound {
+			log.Printf("Deleting sale for %v (%v) since we can't locate the sale", entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetSaleId())
 			return q.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetUpdateSale().GetSaleId())
 		}
 		return err
