@@ -125,7 +125,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
-			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
+			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) || sale.GetSaleId() == 1836758812 {
 				nsp, err := adjustPrice(ctx, sale, c)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
