@@ -133,6 +133,7 @@ message SaleInfo {
     repeated PriceUpdate updates = 11;
 
     int64 time_at_median = 12;
+    int64 time_created = 14;
 }
 
 message PriceUpdate {
