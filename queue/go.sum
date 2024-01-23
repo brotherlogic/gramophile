@@ -46,6 +46,8 @@ github.com/brotherlogic/gramophile v0.538.0 h1:mCFe3Cv27IRJGhGgulWgt5YtRLqwj/JN4
 github.com/brotherlogic/gramophile v0.538.0/go.mod h1:XcIZFvkIsq2tJlJzf6MXx1kx4uQY2jZIZoY2F6luOgo=
 github.com/brotherlogic/gramophile v0.540.0 h1:4M6mEzmr99NaAsFcgQGJejjUmNNglHNIiW1g7GCw3sY=
 github.com/brotherlogic/gramophile v0.540.0/go.mod h1:XcIZFvkIsq2tJlJzf6MXx1kx4uQY2jZIZoY2F6luOgo=
+github.com/brotherlogic/gramophile v0.542.0 h1:WgUJcoSGAf90DAfD0Az3eM3ZHYnXgiK/KVVwoTwnoS8=
+github.com/brotherlogic/gramophile v0.542.0/go.mod h1:XcIZFvkIsq2tJlJzf6MXx1kx4uQY2jZIZoY2F6luOgo=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.42.0 h1:ecD2hzK947R47mlEQ8iBE/STQ51HN1n09bmoTr8+YfA=
@@ -114,6 +116,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac/go.mod h1:daQN87bsDqDoe316QbbvX60nMoJQa4r6Ds0ZuoAe5yA=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240122161410-6c6643bf1457 h1:6Bi3wdn5Ed9baJn7P0gOhjwA98wOr6uSPjKagPHOVsE=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240122161410-6c6643bf1457/go.mod h1:PAREbraiVEVGVdTZsVWjSbbTtSyGbAgIIvni8a8CD5s=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 h1:AjyfHzEPEFp/NpvfN5g+KDla3EMojjhRVZc1i7cj+oM=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80/go.mod h1:PAREbraiVEVGVdTZsVWjSbbTtSyGbAgIIvni8a8CD5s=
 google.golang.org/grpc v1.60.0 h1:6FQAR0kM31P6MRdeluor2w2gPaS4SVNrD/DNTxrQ15k=
 google.golang.org/grpc v1.60.0/go.mod h1:OlCHIeLYqSSsLi6i49B5QGdzaMZK9+M7LXN2FKz4eGM=
 google.golang.org/grpc v1.60.1 h1:26+wFr+cNqSGFcOXcabYC0lUVJVRa2Sb2ortSK7VrEU=
