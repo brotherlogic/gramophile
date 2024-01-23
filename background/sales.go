@@ -76,7 +76,7 @@ func max(a, b int32) int32 {
 }
 
 func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
-	log.Printf("Adjusting with config: %v", c)
+	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
 	switch c.GetUpdateType() {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, nil
@@ -90,6 +90,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 
 		// Are we in post reduction time?
 		if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 && s.GetSaleId() == 1836758812 {
+			log.Printf("For %v in post reduction", s.GetSaleId())
 			if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
 				postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
 				log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianReductionFrequency())
@@ -102,6 +103,8 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 				if lowerBound > 0 {
 					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), nil
 				}
+			} else {
+				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 			}
 		}
 
