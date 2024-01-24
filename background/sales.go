@@ -71,8 +71,10 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 				return nil, err
 			}
 		} else if status.Code(err) == codes.OK {
+			before := len(csale.GetUpdates())
 			csale.SaleState = sale.GetStatus()
 			tidyUpdates(csale)
+			log.Printf("Setting sale state for %v and tidying updates: %v -> %v", csale.GetSaleId(), before, len(csale.GetUpdates()))
 			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
 			if err != nil {
 				return nil, err
