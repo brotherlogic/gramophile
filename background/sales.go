@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -14,6 +15,24 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
+
+func tidyUpdates(s *pb.SaleInfo) {
+	updates := s.GetUpdates()
+	sort.SliceStable(updates, func(i, j int) bool {
+		return updates[i].GetDate() < updates[j].GetDate()
+	})
+
+	var nupdates []*pb.PriceUpdate
+	currPrice := int32(-100)
+
+	for _, update := range updates {
+		if currPrice != (update.GetSetPrice().GetValue()) {
+			nupdates = append(nupdates, update)
+			currPrice = update.GetSetPrice().GetValue()
+		}
+	}
+	s.Updates = nupdates
+}
 
 func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, page int32, id int64) (*pbd.Pagination, error) {
 	sales, pagination, err := d.ListSales(ctx, page)
@@ -53,6 +72,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			}
 		} else if status.Code(err) == codes.OK {
 			csale.SaleState = sale.GetStatus()
+			tidyUpdates(csale)
 			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
 			if err != nil {
 				return nil, err
