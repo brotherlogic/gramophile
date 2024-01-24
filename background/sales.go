@@ -90,7 +90,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 		}
 
 		// Are we in post reduction time?
-		if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 && s.GetSaleId() == 1836758812 {
+		if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
 			log.Printf("For %v in post reduction", s.GetSaleId())
 			if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
 				postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
@@ -108,7 +108,6 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 			}
 
-			log.Printf("Fell through on post reductions for %v")
 		}
 
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
@@ -131,7 +130,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
-			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) || sale.GetSaleId() == 1836758812 {
+			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
 				log.Printf("Working off of: %v", sale)
 				nsp, err := adjustPrice(ctx, sale, c)
 				if err != nil {
