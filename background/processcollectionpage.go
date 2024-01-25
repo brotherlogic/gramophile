@@ -75,8 +75,6 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			stored.Release = release
 			stored.RefreshId = refreshId
 
-			stored.LastUpdateTime = time.Now().UnixNano()
-
 			// Process the notes
 			stored, err = b.processNotes(ctx, fields, stored)
 			if err != nil {
