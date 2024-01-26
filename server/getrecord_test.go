@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/brotherlogic/gramophile/db"
@@ -31,6 +32,35 @@ func TestReverse(t *testing.T) {
 
 	if nrecs[0].GetRelease().GetInstanceId() != 2 {
 		t.Errorf("Bad reverse")
+	}
+}
+
+func TestGetSaleCleared(t *testing.T) {
+	ctx := getTestContext(123)
+
+	d := db.NewTestDB(rstore_client.GetTestClient())
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}, SaleId: 1234})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d}
+
+	r, err := s.GetRecord(ctx, &pb.GetRecordRequest{Request: &pb.GetRecordRequest_GetRecordWithId{
+		GetRecordWithId: &pb.GetRecordWithId{
+			InstanceId: int64(1234),
+		},
+	}})
+	if err != nil {
+		log.Fatalf("Bad sale return: %v", err)
+	}
+
+	if r.GetRecordResponse().GetRecord().GetSaleId() != 0 {
+		t.Errorf("Returned a sale: %v", r)
 	}
 }
 
