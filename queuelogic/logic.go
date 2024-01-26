@@ -320,7 +320,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to get user: %w", err)
 		}
-		log.Printf("Got user: %v", user)
+		log.Printf("Got user: %v with %v", user, entry.GetRefreshSales())
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
@@ -328,7 +328,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					RunDate: time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_RefreshSales{
 						RefreshSales: &pb.RefreshSales{
-							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
+							Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 					Auth: entry.GetAuth(),
 				}})
 				if err != nil {
@@ -340,7 +340,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				RunDate: time.Now().UnixNano() + int64(pages.GetPages()) + 10,
 				Entry: &pb.QueueElement_LinkSales{
 					LinkSales: &pb.LinkSales{
-						RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
+						RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 				Auth: entry.GetAuth(),
 			}})
 			if err != nil {
@@ -353,11 +353,19 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
 			}
-			return err
 		}
 
-		// Adjust all sale prices
-		return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
+		log.Printf("Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
+		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
+			err := q.b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
+			if err != nil {
+				return err
+			}
+			// Adjust all sale prices
+			return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
+		}
+
+		return nil
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {

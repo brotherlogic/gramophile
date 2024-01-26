@@ -86,6 +86,87 @@ func TestSyncSales_Success(t *testing.T) {
 
 }
 
+func TestSyncSales_DeleteSuccess(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+		},
+	})
+
+	qc.FlushQueue(ctx)
+
+	sales, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if sales.GetRecordResponse().GetRecord().GetRelease().GetId() != 123 {
+		t.Fatalf("Bad record returned: %v", sales)
+	}
+
+	if sales.GetRecordResponse().GetRecord().GetSaleId() != 12345 {
+		t.Errorf("Sale info not returned pre delete: %v", sales.GetRecordResponse().GetRecord())
+	}
+
+	// Now remove the record from the mix
+	di = &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		Sales:  []*pbd.SaleItem{}}
+	qc = queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s = server.BuildServer(d, di, qc)
+
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+		},
+	})
+
+	qc.FlushQueue(ctx)
+
+	sales, err = s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if sales.GetRecordResponse().GetRecord().GetRelease().GetId() != 123 {
+		t.Fatalf("Bad record returned: %v", sales)
+	}
+
+	if sales.GetRecordResponse().GetRecord().GetSaleId() == 12345 {
+		t.Errorf("Sale inof has not been removed post delete: %v", sales.GetRecordResponse().GetRecord())
+	}
+
+}
+
 func TestSalesPriceIsAdjusted(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
