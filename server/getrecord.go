@@ -84,6 +84,13 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 		if r.GetSaleId() > 0 {
 			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetSaleId())
 			if err != nil {
+
+				// If we get not found here, the sale has been deleted
+				if status.Code(err) == codes.NotFound {
+					r.SaleId = 0
+					return resp, s.d.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
+				}
+
 				return nil, err
 			}
 			resp.GetRecordResponse().SaleInfo = sale
