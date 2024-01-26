@@ -446,6 +446,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					Auth: entry.GetAuth(),
 				}})
 			return err
+		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
+			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
 
 		return nil
