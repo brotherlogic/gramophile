@@ -134,6 +134,7 @@ message SaleInfo {
 
     int64 time_at_median = 12;
     int64 time_created = 14;
+    int64 time_refreshed = 15;
 }
 
 message PriceUpdate {

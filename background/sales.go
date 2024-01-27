@@ -65,8 +65,9 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 					Value:    sale.GetPrice().GetValue(),
 					Currency: sale.GetPrice().GetCurrency(),
 				},
-				TimeCreated: time.Now().UnixNano(),
-				RefreshId:   id,
+				TimeCreated:   time.Now().UnixNano(),
+				RefreshId:     id,
+				TimeRefreshed: time.Now().UnixNano(),
 			})
 			if err != nil {
 				return nil, err
@@ -75,6 +76,16 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			before := len(csale.GetUpdates())
 			csale.SaleState = sale.GetStatus()
 			csale.RefreshId = id
+			csale.TimeRefreshed = time.Now().UnixNano()
+			csale.Updates = append(csale.Updates, &pb.PriceUpdate{
+				Date:     time.Now().UnixNano(),
+				SetPrice: sale.GetPrice(),
+			})
+			csale.CurrentPrice = &pbd.Price{
+				Value:    sale.GetPrice().GetValue(),
+				Currency: sale.GetPrice().GetCurrency(),
+			}
+
 			tidyUpdates(csale)
 			log.Printf("Setting sale state for %v and tidying updates: %v -> %v", csale.GetSaleId(), before, len(csale.GetUpdates()))
 			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
