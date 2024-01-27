@@ -47,7 +47,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 		}
 
 		printRecord := func(r *pb.RecordResponse, debug bool) {
-			fmt.Printf("%v (%v vs %v)\n", r.GetRecord().GetRelease().GetTitle(), time.Unix(0, r.GetRecord().GetRelease().GetReleaseDate()), time.Unix(0, r.GetRecord().GetEarliestReleaseDate()))
+			fmt.Printf("%v [%v]\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId())
 			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
 			fmt.Printf("Sale: %v -> %v [%v]\n", r.GetRecord().GetSaleId(), time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()), r.GetSaleInfo().GetCurrentPrice().GetValue())
 			for _, update := range r.GetSaleInfo().GetUpdates() {
