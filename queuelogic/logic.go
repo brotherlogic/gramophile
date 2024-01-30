@@ -309,6 +309,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshSales:
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+			log.Printf("Starting Updating run for 2836578592 -> %v", entry.GetRefreshSales().GetRefreshId())
 		}
 		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
 
