@@ -125,7 +125,9 @@ func (q *Queue) Run() {
 			}
 		}
 
-		log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
+		if status.Code(err) != codes.NotFound {
+			log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
+		}
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
