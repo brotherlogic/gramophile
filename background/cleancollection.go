@@ -41,6 +41,7 @@ func (b *BackgroundRunner) CleanSales(ctx context.Context, userid int32, refresh
 		}
 
 		if sale.GetRefreshId() != refreshId {
+			log.Printf("Deleting %v since %v does not equal %v", sale.GetSaleId(), sale.GetRefreshId(), refreshId)
 			b.db.DeleteSale(ctx, userid, r)
 		}
 	}
