@@ -73,7 +73,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 				return nil, err
 			}
 		} else if status.Code(err) == codes.OK {
-			log.Printf("Updating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
+			log.Printf("Updating sale: %v, %v -> %v (%v)", d.GetUserId(), sale.GetSaleId(), err, id)
 
 			before := len(csale.GetUpdates())
 			csale.SaleState = sale.GetStatus()
