@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -500,6 +502,10 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	if len(keys.GetKeys()) == 0 {
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
 	}
+
+	sort.SliceStable(keys.Keys, func(i, j int) bool {
+		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
+	})
 
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: keys.GetKeys()[0]})
 	if err != nil {
