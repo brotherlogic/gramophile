@@ -50,3 +50,30 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("Bad update: %v", updates[2])
 	}
 }
+
+func TestFirstUpdate(t *testing.T) {
+	updatesb := []*pb.PriceUpdate{
+		{
+			Date:     1,
+			SetPrice: &pbd.Price{Value: 100},
+		},
+		{
+			Date:     2,
+			SetPrice: &pbd.Price{Value: 100},
+		},
+	}
+
+	saleInfo := &pb.SaleInfo{Updates: updatesb}
+
+	tidyUpdates(saleInfo)
+
+	if len(saleInfo.GetUpdates()) != 1 {
+		t.Errorf("Should have just 1 update: %v", len(saleInfo.GetUpdates()))
+	}
+
+	updates := saleInfo.GetUpdates()
+	if updates[0].Date != 1 || updates[0].SetPrice.Value != 100 {
+		t.Errorf("Bad update: %v", updates[0])
+	}
+
+}
