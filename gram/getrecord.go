@@ -60,7 +60,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 
 			fmt.Printf("Current Price: $%.2f\n", float32(r.GetSaleInfo().GetCurrentPrice().GetValue())/100.0)
 			fmt.Printf("Median Price:  $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100.0)
-			fmt.Printf("Low Price:     $%.2f\n", float32(r.GetRecord().GetLowPrice().GetValue())/100.0)
+			fmt.Printf("Low Price:     $%.2f\n", float32(r.GetRecord().GetLowPrice().GetValue()))
 			fmt.Printf("Median Reached on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeAtMedian()))
 			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
 			fmt.Printf("Sale Updated on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeRefreshed()))
