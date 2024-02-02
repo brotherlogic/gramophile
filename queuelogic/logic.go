@@ -143,8 +143,6 @@ func (q *Queue) Run() {
 			queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set(time.Minute.Seconds())
 			time.Sleep(time.Minute)
 		}
-		queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * 2).Seconds())
-		time.Sleep(time.Second * 2)
 	}
 }
 
