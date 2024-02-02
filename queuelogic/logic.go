@@ -100,17 +100,19 @@ func (q *Queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {
 		ctx := context.Background()
+		t1 := time.Now()
 		entry, err := q.getNextEntry(ctx)
 		if status.Code(err) != codes.NotFound {
-			log.Printf("Got Entry: %v and %v", entry, err)
+			log.Printf("Got Entry: %v and %v (%v)", entry, err, time.Since(t1))
 		}
 		var erru error
 		if err == nil {
+			t2 := time.Now()
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			erru = errv
 			if err == nil {
-				log.Printf("Processing user: %v -> %v", user, user.GetUser())
+				log.Printf("Processing user: %v -> %v (%v)", user, user.GetUser(), time.Since(t2))
 				if user.GetUser() == nil {
 					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
 				} else {
