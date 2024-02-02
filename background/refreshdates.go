@@ -48,6 +48,10 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 
 func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
 
+	if true {
+		return nil
+	}
+
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
 		return err
