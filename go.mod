@@ -5,14 +5,14 @@ go 1.18
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240109144226-a09e2a13a097
 	github.com/brotherlogic/godiscogs v0.0.0-20240116051314-7d3de02a07c4
-	github.com/brotherlogic/recordcollection v0.0.0-20240116051733-5e795c4784ce
-	github.com/brotherlogic/rstore v0.42.0
+	github.com/brotherlogic/recordcollection v0.0.0-20240201232823-0cce7f5d57fa
+	github.com/brotherlogic/rstore v0.44.0
 	github.com/brotherlogic/scraper v0.78.0
 	github.com/dghubble/oauth1 v0.7.2
 	github.com/golang/protobuf v1.5.3
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.18.0
-	google.golang.org/grpc v1.60.1
+	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0
 )
 
@@ -28,5 +28,5 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240125205218-1f4bbc51befe // indirect
 )
