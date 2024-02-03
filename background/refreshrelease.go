@@ -11,9 +11,6 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs) error {
-	if iid != 1097737265 {
-		return nil
-	}
 
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
