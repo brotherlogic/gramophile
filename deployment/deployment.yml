@@ -30,25 +30,25 @@ spec:
       targetPort: 8083
   selector:
     app: gramophile
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: gramophile
-  namespace: monitoring
-  labels:
-    release: kube-prometheus-stack
-spec:
-  endpoints:
-    - port: metrics
-      path: /metrics
-      interval: 30s
-  namespaceSelector:
-    matchNames:
-      - gramophile
-  selector:
-    matchLabels:
-      app: gramophile
+#---
+#apiVersion: monitoring.coreos.com/v1
+#kind: ServiceMonitor
+#metadata:
+#  name: gramophile
+#  namespace: monitoring
+#  labels:
+#    release: kube-prometheus-stack
+#spec:
+#  endpoints:
+#    - port: metrics
+#      path: /metrics
+#      interval: 30s
+#  namespaceSelector:
+#    matchNames:
+#      - gramophile
+#  selector:
+#    matchLabels:
+#      app: gramophile
 ---
 apiVersion: apps/v1
 kind: Deployment

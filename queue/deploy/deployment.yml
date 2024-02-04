@@ -19,25 +19,25 @@ spec:
       targetPort: 8081
   selector:
     app: gramophile-queue
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: gramophile-queue
-  namespace: monitoring
-  labels:
-    release: kube-prometheus-stack
-spec:
-  endpoints:
-    - port: metrics
-      path: /metrics
-      interval: 30s
-  namespaceSelector:
-    matchNames:
-      - gramophile
-  selector:
-    matchLabels:
-      app: gramophile-queue
+#---
+#apiVersion: monitoring.coreos.com/v1
+#kind: ServiceMonitor
+#metadata:
+#  name: gramophile-queue
+#  namespace: monitoring
+#  labels:
+#    release: kube-prometheus-stack
+#spec:
+#  endpoints:
+#    - port: metrics
+#      path: /metrics
+#      interval: 30s
+#  namespaceSelector:
+#    matchNames:
+#      - gramophile
+#  selector:
+#    matchLabels:
+#      app: gramophile-queue
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -56,7 +56,7 @@ spec:
     spec:
       containers:
       - name: gramophile-queue
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.576.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
+        image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.564.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
         ports:
         - containerPort: 8080
         env:
