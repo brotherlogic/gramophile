@@ -20,9 +20,15 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 		}
 
 		if record.GetRefreshId() != refreshId {
-			b.db.DeleteRecord(ctx, d.GetUserId(), r)
+			err = b.db.DeleteRecord(ctx, d.GetUserId(), r)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	// Reset the refresh lock
+	b.ReleaseRefresh = 0
 
 	return nil
 }

@@ -412,6 +412,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
+		if q.b.ReleaseRefresh != 0 {
+			return status.Errorf(codes.InvalidArgument, "There is a release running: %v", q.b.ReleaseRefresh)
+		}
+
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
 		}
