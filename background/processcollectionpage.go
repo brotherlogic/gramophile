@@ -56,7 +56,7 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 
 var (
 	crefresh = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "gramophile_refreshId",
+		Name: "gramophile_refreshid",
 		Help: "The length of the working queue I think yes",
 	})
 )
