@@ -30,25 +30,25 @@ spec:
       targetPort: 8083
   selector:
     app: gramophile
-#---
-#apiVersion: monitoring.coreos.com/v1
-#kind: ServiceMonitor
-#metadata:
-#  name: gramophile
-#  namespace: monitoring
-#  labels:
-#    release: kube-prometheus-stack
-#spec:
-#  endpoints:
-#    - port: metrics
-#      path: /metrics
-#      interval: 30s
-#  namespaceSelector:
-#    matchNames:
-#      - gramophile
-#  selector:
-#    matchLabels:
-#      app: gramophile
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gramophile
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - gramophile
+  selector:
+    matchLabels:
+      app: gramophile
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -66,22 +66,22 @@ spec:
         app: gramophile
     spec:
       containers:
-      - name: gramophile
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.576.0 # {"$imagepolicy": "flux-system:gramophile"}
-        ports:
-        - containerPort: 8080
-        env:
-        - name: DISCOGS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: discogs
-              key: discogs_key
-        - name: DISCOGS_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: discogs
-              key: discogs_secret
-        - name: DISCOGS_CALLBACK
-          value: "https://gramophile.brotherlogic-backend.com/callback"
+        - name: gramophile
+          image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.576.0 # {"$imagepolicy": "flux-system:gramophile"}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DISCOGS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: discogs
+                  key: discogs_key
+            - name: DISCOGS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: discogs
+                  key: discogs_secret
+            - name: DISCOGS_CALLBACK
+              value: "https://gramophile.brotherlogic-backend.com/callback"
       imagePullSecrets:
-      - name: regcred
+        - name: regcred
