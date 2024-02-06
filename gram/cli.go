@@ -37,7 +37,7 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 	}
 
 	mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", user.GetToken())
-	ctx, cancel := context.WithTimeout(mContext, time.Minute*5)
+	ctx, cancel := context.WithTimeout(mContext, time.Minute*30)
 	return ctx, cancel, nil
 }
 
