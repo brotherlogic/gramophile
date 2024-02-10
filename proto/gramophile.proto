@@ -436,6 +436,12 @@ message AddWantlistRequest {
 
 message AddWantlistResponse {}
 
+message RefreshRecordRequest {
+    int64 instance_id = 1;
+}
+
+message RefreshRecordResponse {}
+
 
 // Externally accessible service
 service GramophileEService {
@@ -449,6 +455,7 @@ service GramophileEService {
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
+    rpc RefrehsRecord(RefreshRecordRequest) returns (RefreshRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
