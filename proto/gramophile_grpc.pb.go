@@ -221,6 +221,7 @@ type GramophileEServiceClient interface {
 	SetConfig(ctx context.Context, in *SetConfigRequest, opts ...grpc.CallOption) (*SetConfigResponse, error)
 	SetIntent(ctx context.Context, in *SetIntentRequest, opts ...grpc.CallOption) (*SetIntentResponse, error)
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
+	RefreshRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error)
 	GetOrg(ctx context.Context, in *GetOrgRequest, opts ...grpc.CallOption) (*GetOrgResponse, error)
 	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
 	AddWant(ctx context.Context, in *AddWantRequest, opts ...grpc.CallOption) (*AddWantResponse, error)
@@ -296,6 +297,15 @@ func (c *gramophileEServiceClient) SetIntent(ctx context.Context, in *SetIntentR
 func (c *gramophileEServiceClient) GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error) {
 	out := new(GetRecordResponse)
 	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/GetRecord", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gramophileEServiceClient) RefreshRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error) {
+	out := new(RefreshRecordResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/RefreshRecord", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -385,6 +395,7 @@ type GramophileEServiceServer interface {
 	SetConfig(context.Context, *SetConfigRequest) (*SetConfigResponse, error)
 	SetIntent(context.Context, *SetIntentRequest) (*SetIntentResponse, error)
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
+	RefreshRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error)
 	GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error)
 	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
 	AddWant(context.Context, *AddWantRequest) (*AddWantResponse, error)
@@ -419,6 +430,9 @@ func (UnimplementedGramophileEServiceServer) SetIntent(context.Context, *SetInte
 }
 func (UnimplementedGramophileEServiceServer) GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecord not implemented")
+}
+func (UnimplementedGramophileEServiceServer) RefreshRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshRecord not implemented")
 }
 func (UnimplementedGramophileEServiceServer) GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrg not implemented")
@@ -578,6 +592,24 @@ func _GramophileEService_GetRecord_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GramophileEServiceServer).GetRecord(ctx, req.(*GetRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GramophileEService_RefreshRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).RefreshRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/RefreshRecord",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).RefreshRecord(ctx, req.(*RefreshRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -760,6 +792,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRecord",
 			Handler:    _GramophileEService_GetRecord_Handler,
+		},
+		{
+			MethodName: "RefreshRecord",
+			Handler:    _GramophileEService_RefreshRecord_Handler,
 		},
 		{
 			MethodName: "GetOrg",
