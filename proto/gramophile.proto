@@ -114,6 +114,7 @@ message Record {
 
    int64 earliest_release_date = 19;
    int64 last_earliest_release_update = 20;
+   int64 last_stat_refresh = 22;
 }
 
 message SaleInfo {
