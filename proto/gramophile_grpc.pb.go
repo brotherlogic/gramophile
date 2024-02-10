@@ -221,7 +221,7 @@ type GramophileEServiceClient interface {
 	SetConfig(ctx context.Context, in *SetConfigRequest, opts ...grpc.CallOption) (*SetConfigResponse, error)
 	SetIntent(ctx context.Context, in *SetIntentRequest, opts ...grpc.CallOption) (*SetIntentResponse, error)
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
-	RefrehsRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error)
+	RefreshRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error)
 	GetOrg(ctx context.Context, in *GetOrgRequest, opts ...grpc.CallOption) (*GetOrgResponse, error)
 	SetOrgSnapshot(ctx context.Context, in *SetOrgSnapshotRequest, opts ...grpc.CallOption) (*SetOrgSnapshotResponse, error)
 	AddWant(ctx context.Context, in *AddWantRequest, opts ...grpc.CallOption) (*AddWantResponse, error)
@@ -303,9 +303,9 @@ func (c *gramophileEServiceClient) GetRecord(ctx context.Context, in *GetRecordR
 	return out, nil
 }
 
-func (c *gramophileEServiceClient) RefrehsRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error) {
+func (c *gramophileEServiceClient) RefreshRecord(ctx context.Context, in *RefreshRecordRequest, opts ...grpc.CallOption) (*RefreshRecordResponse, error) {
 	out := new(RefreshRecordResponse)
-	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/RefrehsRecord", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/RefreshRecord", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ type GramophileEServiceServer interface {
 	SetConfig(context.Context, *SetConfigRequest) (*SetConfigResponse, error)
 	SetIntent(context.Context, *SetIntentRequest) (*SetIntentResponse, error)
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
-	RefrehsRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error)
+	RefreshRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error)
 	GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error)
 	SetOrgSnapshot(context.Context, *SetOrgSnapshotRequest) (*SetOrgSnapshotResponse, error)
 	AddWant(context.Context, *AddWantRequest) (*AddWantResponse, error)
@@ -431,8 +431,8 @@ func (UnimplementedGramophileEServiceServer) SetIntent(context.Context, *SetInte
 func (UnimplementedGramophileEServiceServer) GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecord not implemented")
 }
-func (UnimplementedGramophileEServiceServer) RefrehsRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RefrehsRecord not implemented")
+func (UnimplementedGramophileEServiceServer) RefreshRecord(context.Context, *RefreshRecordRequest) (*RefreshRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshRecord not implemented")
 }
 func (UnimplementedGramophileEServiceServer) GetOrg(context.Context, *GetOrgRequest) (*GetOrgResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrg not implemented")
@@ -596,20 +596,20 @@ func _GramophileEService_GetRecord_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GramophileEService_RefrehsRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GramophileEService_RefreshRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshRecordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GramophileEServiceServer).RefrehsRecord(ctx, in)
+		return srv.(GramophileEServiceServer).RefreshRecord(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gramophile.GramophileEService/RefrehsRecord",
+		FullMethod: "/gramophile.GramophileEService/RefreshRecord",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GramophileEServiceServer).RefrehsRecord(ctx, req.(*RefreshRecordRequest))
+		return srv.(GramophileEServiceServer).RefreshRecord(ctx, req.(*RefreshRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -794,8 +794,8 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GramophileEService_GetRecord_Handler,
 		},
 		{
-			MethodName: "RefrehsRecord",
-			Handler:    _GramophileEService_RefrehsRecord_Handler,
+			MethodName: "RefreshRecord",
+			Handler:    _GramophileEService_RefreshRecord_Handler,
 		},
 		{
 			MethodName: "GetOrg",

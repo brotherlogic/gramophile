@@ -455,7 +455,7 @@ service GramophileEService {
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
-    rpc RefrehsRecord(RefreshRecordRequest) returns (RefreshRecordResponse) {};
+    rpc RefreshRecord(RefreshRecordRequest) returns (RefreshRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
