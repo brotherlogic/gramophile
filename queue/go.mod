@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240109144226-a09e2a13a097
-	github.com/brotherlogic/gramophile v0.583.0
+	github.com/brotherlogic/gramophile v0.585.0
 	github.com/brotherlogic/rstore v0.44.0
 	github.com/prometheus/client_golang v1.18.0
 	google.golang.org/grpc v1.61.0
