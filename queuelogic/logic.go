@@ -50,6 +50,10 @@ var (
 		Help:    "The length of the working queue I think yes",
 		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
 	}, []string{"type"})
+	queueAdd = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_adds",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
 )
 
 type Queue struct {
@@ -479,6 +483,8 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement())}).Inc()
+
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
