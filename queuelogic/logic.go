@@ -129,7 +129,6 @@ func (q *Queue) Run() {
 					user.GetUser().UserToken = user.GetUserToken()
 				}
 				d := q.d.ForUser(user.GetUser())
-				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
@@ -207,7 +206,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v -> %v", entry, u)
+	log.Printf("Running queue entry: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
