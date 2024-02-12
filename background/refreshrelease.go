@@ -16,6 +16,9 @@ const (
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs) error {
+	if true {
+		return nil
+	}
 
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
