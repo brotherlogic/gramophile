@@ -50,6 +50,11 @@ var (
 		Help:    "The length of the working queue I think yes",
 		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
 	}, []string{"type"})
+	queueLoadTime = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "gramophile_queue_load_time",
+		Help:    "The length of the working queue I think yes",
+		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
+	}, []string{"type"})
 	queueAdd = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_adds",
 		Help: "The length of the working queue I think yes",
@@ -502,6 +507,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
+	t := time.Now()
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
@@ -524,5 +530,6 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	entry := &pb.QueueElement{}
 	err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+	queueLoadTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(t).Milliseconds()))
 	return entry, err
 }
