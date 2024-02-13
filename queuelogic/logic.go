@@ -97,7 +97,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Fatalf("Failed to execute internal: %v", errp)
+			log.Fatalf("Failed to execute internal: %v -> %v", errp, elem)
 		}
 
 		elem, err = q.getNextEntry(ctx)
@@ -487,6 +487,15 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+
+	// Validate entries
+	switch req.GetElement().GetEntry().(type) {
+	case *pb.QueueElement_RefreshRelease:
+		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
+		}
+	}
+
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 
 	data, err := proto.Marshal(req.GetElement())

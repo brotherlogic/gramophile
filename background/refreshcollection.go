@@ -36,7 +36,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 					Auth:    authToken,
 					Entry: &pb.QueueElement_RefreshRelease{
 						RefreshRelease: &pb.RefreshRelease{
-							Iid: id,
+							Iid:       id,
+							Intention: "from-refresh-collection",
 						}}},
 			})
 			if err != nil {

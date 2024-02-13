@@ -223,6 +223,7 @@ message RefreshCollection {
 
 message RefreshRelease {
     int64 iid = 1;
+    string intention = 2;
 }
 
 message UpdateSale {
