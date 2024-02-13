@@ -54,7 +54,6 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 		Element: &pb.QueueElement{
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
-
 					Iid:       1234,
 					Intention: "Just Testing",
 				},
