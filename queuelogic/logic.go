@@ -487,6 +487,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 
 	data, err := proto.Marshal(req.GetElement())
