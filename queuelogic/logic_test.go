@@ -28,12 +28,21 @@ func TestRunWithEmptyQueue(t *testing.T) {
 }
 
 func TestMarkerCreationAndRemoval(t *testing.T) {
+	ctx := getTestContext(123)
+
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
 
-	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 0,
 			Entry: &pb.QueueElement_RefreshRelease{
@@ -50,7 +59,7 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 		t.Fatalf("Error enqueueing: %v", err)
 	}
 
-	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 0,
 			Entry: &pb.QueueElement_RefreshRelease{
@@ -67,9 +76,9 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 		t.Fatalf("Should have err'd or is not AlreadyExists: %v", err)
 	}
 
-	q.FlushQueue(context.Background())
+	q.FlushQueue(ctx)
 
-	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 0,
 			Entry: &pb.QueueElement_RefreshRelease{

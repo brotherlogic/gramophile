@@ -2,6 +2,7 @@ package queuelogic
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"sort"
@@ -80,8 +81,30 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 }
 
-func getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
-	return 1, status.Errorf(codes.Unimplemented, "Not done it")
+func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
+	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+		Value: &anypb.Any{Value: b},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) {
@@ -497,6 +520,21 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
+		}
+
+		// Check for a marker
+		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
+			}
+		} else if marker > 0 {
+			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue")
+		}
+
+		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	}
 
