@@ -55,27 +55,27 @@ spec:
         app: gramophile-queue
     spec:
       containers:
-      - name: gramophile-queue
-        image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.522.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
-        ports:
-        - containerPort: 8080
-        env:
-        - name: TZ
-          value: America/Los_Angeles
-        - name: DISCOGS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: discogs
-              key: discogs_key
-        - name: DISCOGS_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: discogs
-              key: discogs_secret
-        - name: DISCOGS_CALLBACK
-          value: "https://gramophile.brotherlogic-backend.com/callback"
+        - name: gramophile-queue
+          image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.597.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TZ
+              value: America/Los_Angeles
+            - name: DISCOGS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: discogs
+                  key: discogs_key
+            - name: DISCOGS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: discogs
+                  key: discogs_secret
+            - name: DISCOGS_CALLBACK
+              value: "https://gramophile.brotherlogic-backend.com/callback"
       imagePullSecrets:
-      - name: regcred
+        - name: regcred
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

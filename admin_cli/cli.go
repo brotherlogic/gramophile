@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*60)
 	defer cancel()
 
 	conn, err := grpc.Dial(os.Args[1], grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -70,7 +70,7 @@ func main() {
 			log.Fatalf("Bad list: %v", err)
 		}
 		for _, item := range items.GetElements() {
-			fmt.Printf("%v\n", item)
+			fmt.Printf("%T\n", item)
 		}
 	case "syncsales":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{

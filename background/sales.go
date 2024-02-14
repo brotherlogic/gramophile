@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
+	"sort"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -13,6 +15,24 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
+
+func tidyUpdates(s *pb.SaleInfo) {
+	updates := s.GetUpdates()
+	sort.SliceStable(updates, func(i, j int) bool {
+		return updates[i].GetDate() < updates[j].GetDate()
+	})
+
+	var nupdates []*pb.PriceUpdate
+	currPrice := int32(-100)
+
+	for _, update := range updates {
+		if currPrice != (update.GetSetPrice().GetValue()) {
+			nupdates = append(nupdates, update)
+			currPrice = update.GetSetPrice().GetValue()
+		}
+	}
+	s.Updates = nupdates
+}
 
 func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, page int32, id int64) (*pbd.Pagination, error) {
 	sales, pagination, err := d.ListSales(ctx, page)
@@ -45,12 +65,31 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 					Value:    sale.GetPrice().GetValue(),
 					Currency: sale.GetPrice().GetCurrency(),
 				},
+				TimeCreated:   time.Now().UnixNano(),
+				RefreshId:     id,
+				TimeRefreshed: time.Now().UnixNano(),
 			})
 			if err != nil {
 				return nil, err
 			}
 		} else if status.Code(err) == codes.OK {
+			log.Printf("Updating sale: %v, %v -> %v (%v)", d.GetUserId(), sale.GetSaleId(), err, id)
+
+			before := len(csale.GetUpdates())
 			csale.SaleState = sale.GetStatus()
+			csale.RefreshId = id
+			csale.TimeRefreshed = time.Now().UnixNano()
+			csale.Updates = append(csale.Updates, &pb.PriceUpdate{
+				Date:     time.Now().UnixNano(),
+				SetPrice: sale.GetPrice(),
+			})
+			csale.CurrentPrice = &pbd.Price{
+				Value:    sale.GetPrice().GetValue(),
+				Currency: sale.GetPrice().GetCurrency(),
+			}
+
+			tidyUpdates(csale)
+			log.Printf("Setting sale state for %v and tidying updates: %v -> %v", csale.GetSaleId(), before, len(csale.GetUpdates()))
 			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
 			if err != nil {
 				return nil, err
@@ -75,7 +114,7 @@ func max(a, b int32) int32 {
 }
 
 func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
-	log.Printf("Adjusting with config: %v", c)
+	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
 	switch c.GetUpdateType() {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, nil
@@ -86,6 +125,28 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 		if s.GetMedianPrice().GetValue() == 0 {
 			return s.GetCurrentPrice().GetValue(), nil
 		}
+
+		// Are we in post reduction time?
+		if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
+			log.Printf("For %v in post reduction", s.GetSaleId())
+			if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
+				postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
+				log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds()-float64(c.GetPostMedianTime()), c.GetPostMedianReductionFrequency())
+
+				lowerBound := c.GetLowerBound()
+				if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+					lowerBound = s.GetLowPrice().GetValue()
+				}
+				log.Printf("Found lower bound %v", lowerBound)
+				if lowerBound > 0 {
+					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), nil
+				}
+			} else {
+				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
+			}
+
+		}
+
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
 	default:
 		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
@@ -107,6 +168,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
+				log.Printf("Working off of: %v", sale)
 				nsp, err := adjustPrice(ctx, sale, c)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
@@ -141,7 +203,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
 			} else {
-				log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(sale.GetLastPriceUpdate(), 0)), getUpdateTime(c))
+				log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(0, sale.GetLastPriceUpdate())), getUpdateTime(c))
 			}
 		} else {
 			log.Printf("%v is not for sale", sid)
@@ -224,6 +286,11 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				// Ensure we copy over any changes to the median price
 				if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
 					sale.MedianPrice = record.GetMedianPrice()
+					sale_changed = true
+				}
+
+				if record.GetLowPrice().GetValue() != sale.GetLowPrice().GetValue() {
+					sale.LowPrice = record.GetLowPrice()
 					sale_changed = true
 				}
 

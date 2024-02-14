@@ -10,6 +10,8 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
@@ -52,7 +54,16 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 	return r, nil
 }
 
+var (
+	crefresh = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_refreshid",
+		Help: "The length of the working queue I think yes",
+	})
+)
+
 func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32, refreshId int64) (int32, error) {
+	crefresh.Set(float64(refreshId))
+
 	releases, pag, err := d.GetCollection(ctx, page)
 	if err != nil {
 		return -1, err
@@ -74,8 +85,6 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			log.Printf("Huh: %v and %v", stored, release)
 			stored.Release = release
 			stored.RefreshId = refreshId
-
-			stored.LastUpdateTime = time.Now().UnixNano()
 
 			// Process the notes
 			stored, err = b.processNotes(ctx, fields, stored)

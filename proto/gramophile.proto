@@ -114,6 +114,7 @@ message Record {
 
    int64 earliest_release_date = 19;
    int64 last_earliest_release_update = 20;
+   int64 last_stat_refresh = 22;
 }
 
 message SaleInfo {
@@ -128,10 +129,13 @@ message SaleInfo {
     int64 listed_date = 8;
     discogs.Price initial_price = 9;
     discogs.Price median_price = 10;
+    discogs.Price low_price = 13;
 
     repeated PriceUpdate updates = 11;
 
     int64 time_at_median = 12;
+    int64 time_created = 14;
+    int64 time_refreshed = 15;
 }
 
 message PriceUpdate {
@@ -219,6 +223,7 @@ message RefreshCollection {
 
 message RefreshRelease {
     int64 iid = 1;
+    string intention = 2;
 }
 
 message UpdateSale {
@@ -433,6 +438,12 @@ message AddWantlistRequest {
 
 message AddWantlistResponse {}
 
+message RefreshRecordRequest {
+    int64 instance_id = 1;
+}
+
+message RefreshRecordResponse {}
+
 
 // Externally accessible service
 service GramophileEService {
@@ -446,6 +457,7 @@ service GramophileEService {
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
+    rpc RefreshRecord(RefreshRecordRequest) returns (RefreshRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};

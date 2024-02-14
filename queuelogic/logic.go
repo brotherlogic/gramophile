@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -48,6 +50,15 @@ var (
 		Help:    "The length of the working queue I think yes",
 		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
 	}, []string{"type"})
+	queueLoadTime = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "gramophile_queue_load_time",
+		Help:    "The length of the working queue I think yes",
+		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
+	}, []string{"type"})
+	queueAdd = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_adds",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
 )
 
 type Queue struct {
@@ -70,7 +81,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 }
 
 func getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
-
+	return 1, status.Errorf(codes.Unimplemented, "Not done it")
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) {
@@ -90,7 +101,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Fatalf("Failed to execute internal: %v", errp)
+			log.Fatalf("Failed to execute internal: %v -> %v", errp, elem)
 		}
 
 		elem, err = q.getNextEntry(ctx)
@@ -102,17 +113,19 @@ func (q *Queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {
 		ctx := context.Background()
+		t1 := time.Now()
 		entry, err := q.getNextEntry(ctx)
 		if status.Code(err) != codes.NotFound {
-			log.Printf("Got Entry: %v and %v", entry, err)
+			log.Printf("Got Entry: %v and %v (%v)", entry, err, time.Since(t1))
 		}
 		var erru error
 		if err == nil {
+			t2 := time.Now()
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			erru = errv
 			if err == nil {
-				log.Printf("Processing user: %v -> %v", user, user.GetUser())
+				log.Printf("Processing user: %v -> %v (%v)", user, user.GetUser(), time.Since(t2))
 				if user.GetUser() == nil {
 					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
 				} else {
@@ -120,10 +133,9 @@ func (q *Queue) Run() {
 					user.GetUser().UserToken = user.GetUserToken()
 				}
 				d := q.d.ForUser(user.GetUser())
-				log.Printf("Got USER: %+v and %+v", user, d)
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
-				log.Printf("Ran %v in %v", entry, time.Since(st))
+				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
 				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
@@ -145,8 +157,6 @@ func (q *Queue) Run() {
 			queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set(time.Minute.Seconds())
 			time.Sleep(time.Minute)
 		}
-		queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * 2).Seconds())
-		time.Sleep(time.Second * 2)
 	}
 }
 
@@ -200,7 +210,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v -> %v", entry, u)
+	log.Printf("Running queue entry: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
@@ -255,7 +265,15 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			log.Printf("Skipping %v", entry)
 			return nil
 		}
-		return q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		log.Printf("Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
+
+		// Not Found means the sale was deleted - if so remove from the db
+		if status.Code(err) == codes.NotFound {
+			log.Printf("Deleting sale for %v (%v) since we can't locate the sale", entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetSaleId())
+			return q.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetUpdateSale().GetSaleId())
+		}
+		return err
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefreshWants(ctx, d)
 	case *pb.QueueElement_RefreshWant:
@@ -307,6 +325,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshSales:
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+			log.Printf("Starting Updating run for 2836578592 -> %v", entry.GetRefreshSales().GetRefreshId())
 		}
 		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
 
@@ -318,7 +337,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to get user: %w", err)
 		}
-		log.Printf("Got user: %v", user)
+		log.Printf("Got user: %v with %v", user, entry.GetRefreshSales())
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
@@ -326,7 +345,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					RunDate: time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_RefreshSales{
 						RefreshSales: &pb.RefreshSales{
-							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
+							Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 					Auth: entry.GetAuth(),
 				}})
 				if err != nil {
@@ -338,7 +357,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				RunDate: time.Now().UnixNano() + int64(pages.GetPages()) + 10,
 				Entry: &pb.QueueElement_LinkSales{
 					LinkSales: &pb.LinkSales{
-						RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
+						RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 				Auth: entry.GetAuth(),
 			}})
 			if err != nil {
@@ -351,11 +370,19 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
 			}
-			return err
 		}
 
-		// Adjust all sale prices
-		return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
+		log.Printf("Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
+		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
+			err := q.b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
+			if err != nil {
+				return err
+			}
+			// Adjust all sale prices
+			return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
+		}
+
+		return nil
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {
@@ -397,6 +424,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
+		if q.b.ReleaseRefresh != 0 {
+			return status.Errorf(codes.InvalidArgument, "There is a release running: %v", q.b.ReleaseRefresh)
+		}
+
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
 		}
@@ -444,6 +475,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					Auth: entry.GetAuth(),
 				}})
 			return err
+		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
+			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
 
 		return nil
@@ -458,6 +491,17 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+
+	// Validate entries
+	switch req.GetElement().GetEntry().(type) {
+	case *pb.QueueElement_RefreshRelease:
+		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
+		}
+	}
+
+	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
+
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
 		return nil, err
@@ -475,6 +519,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
+	t := time.Now()
 	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
@@ -486,6 +531,10 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
 	}
 
+	sort.SliceStable(keys.Keys, func(i, j int) bool {
+		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
+	})
+
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: keys.GetKeys()[0]})
 	if err != nil {
 		return nil, err
@@ -493,5 +542,6 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	entry := &pb.QueueElement{}
 	err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+	queueLoadTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(t).Milliseconds()))
 	return entry, err
 }

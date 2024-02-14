@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	RefreshReleasePeriod      = time.Hour * 24 * 7      // Once a week
+	RefreshReleasePeriod      = time.Hour * 24          // Once a week
 	RefreshReleaseDatesPeriod = time.Hour * 24 * 7 * 30 // Once a month
 )
 
@@ -36,7 +36,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 					Auth:    authToken,
 					Entry: &pb.QueueElement_RefreshRelease{
 						RefreshRelease: &pb.RefreshRelease{
-							Iid: id,
+							Iid:       id,
+							Intention: "from-refresh-collection",
 						}}},
 			})
 			if err != nil {

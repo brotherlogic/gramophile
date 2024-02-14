@@ -33,7 +33,7 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 
-	_, err := q.Enqueue(context.Background(), &pb.QueueEntry{
+	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 0,
 			Entry: &pb.QueueElement_RefreshRelease{
@@ -50,19 +50,78 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 		t.Fatalf("Error enqueueing: %v", err)
 	}
 
-	refresh, err := q.getRefreshMarker("hello", 1234)
-	if err != nil {
-		t.Fatalf("Error getting refresh maker")
-	}
-	if refresh == 0 {
-		t.Fatalf("Marker was not created")
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: 0,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       1234,
+					Intention: "What",
+				},
+			},
+			Auth: "hello",
+		},
+	})
+
+	if err == nil || status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("Should have err'd or is not AlreadyExists: %v", err)
 	}
 
 	q.FlushQueue(context.Background())
 
-	refresh, err := q.getRefreshMarker("hello", 1234)
-	if err == nil || status.Code(err) != codes.NotFound {
-		t.Errorf("Marker still exists (nil), or bad read: %v", err)
-	}
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: 0,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       1234,
+					Intention: "What",
+				},
+			},
+			Auth: "hello",
+		},
+	})
 
+	if err != nil {
+		t.Errorf("Error in enqueing: %v", err)
+	}
+}
+
+func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+
+	res, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid: 1234,
+				},
+			}}})
+
+	if err == nil {
+		t.Errorf("We were able to add with an empty intention: %v", res)
+	}
+}
+
+func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+
+	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       1234,
+					Intention: "Just Testing",
+				},
+			}}})
+
+	if err != nil {
+		t.Errorf("Unable to add refresh with intention: %v", err)
+	}
 }
