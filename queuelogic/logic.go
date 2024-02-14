@@ -69,6 +69,10 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 }
 
+func getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
+
+}
+
 func (q *Queue) FlushQueue(ctx context.Context) {
 	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
