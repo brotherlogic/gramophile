@@ -526,14 +526,27 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	return err
 }
 
+var (
+	intention = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_intention",
+		Help: "The length of the working queue I think yes",
+	}, []string{"intention"})
+	markerCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gramophile_marker_rejects",
+		Help: "The length of the working queue I think yes",
+	})
+)
+
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
+			intention.With(prometheus.Labels{"intention": "REJECT"}).Inc()
 			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
 		}
+		intention.With(prometheus.Labels{"intention": req.GetElement().GetRefreshRelease().GetIntention()}).Inc()
 
 		// Check for a marker
 		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
@@ -542,6 +555,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
 			}
 		} else if marker > 0 {
+			markerCount.Inc()
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue")
 		}
 
