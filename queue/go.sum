@@ -1,4 +1,5 @@
 gitgithub.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
+github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/brotherlogic/discogs v0.0.0-20231215171754-19ac50e03ef9 h1:uI2X5i8JYAfKmrM0y9bEYE2z6WmfCK0cIwL9w0bJ8us=
 github.com/brotherlogic/discogs v0.0.0-20231215171754-19ac50e03ef9/go.mod h1:L1LXTUkBx9S+OtoWIInMpdWfOZs7cqaBEqdi6TS2n4M=
@@ -102,6 +103,8 @@ github.com/brotherlogic/gramophile v0.595.0 h1:hJvRvdxpSFxkBGUa7yjM1JznjM/s4KWiP
 github.com/brotherlogic/gramophile v0.595.0/go.mod h1:7mlCdVLNQ5k0T+1xpskEzIsVlzIo5O+iwscu2hFHNIk=
 github.com/brotherlogic/gramophile v0.598.0 h1:dX+HOokscCU8NJJErDv2o3mSTCR9XAhQPuEezXsck/Q=
 github.com/brotherlogic/gramophile v0.598.0/go.mod h1:kD1Lu6OmCzU8EX38Upc1g3geBhcr3Y5l3krM+HFebHs=
+github.com/brotherlogic/gramophile v0.600.0 h1:BP8mHh2JHjv5YvbqXCxmhnsEXHMOJ2vbPDRcH8WKljc=
+github.com/brotherlogic/gramophile v0.600.0/go.mod h1:kD1Lu6OmCzU8EX38Upc1g3geBhcr3Y5l3krM+HFebHs=
 github.com/brotherlogic/rstore v0.35.0 h1:Ebr6qZH2Q7bbA2SAyeAwfkqxmQLVd7UrlzdtNzT0qy0=
 github.com/brotherlogic/rstore v0.35.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/rstore v0.42.0 h1:ecD2hzK947R47mlEQ8iBE/STQ51HN1n09bmoTr8+YfA=
