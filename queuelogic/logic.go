@@ -2,6 +2,7 @@ package queuelogic
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"sort"
@@ -80,6 +81,40 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 }
 
+func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
+	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+		Value: &anypb.Any{Value: b},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+	})
+
+	return err
+}
+
 func (q *Queue) FlushQueue(ctx context.Context) {
 	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
@@ -92,6 +127,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
+		log.Printf("USER: %v", user)
 		d := q.d.ForUser(user.GetUser())
 		errp := q.ExecuteInternal(ctx, d, user, elem)
 		if errp == nil {
@@ -206,7 +242,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v", entry)
+	log.Printf("Running queue entry: %v with %v", entry, u)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
@@ -412,7 +448,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUpdates:
 		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshRelease:
-		return q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
+		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
+		if err != nil {
+			return err
+		}
+		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshCollection:
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
@@ -493,6 +533,21 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
+		}
+
+		// Check for a marker
+		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
+			}
+		} else if marker > 0 {
+			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue")
+		}
+
+		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	}
 
