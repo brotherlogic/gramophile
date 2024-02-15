@@ -107,6 +107,14 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 	return nil
 }
 
+func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+	})
+
+	return err
+}
+
 func (q *Queue) FlushQueue(ctx context.Context) {
 	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
@@ -119,6 +127,7 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
+		log.Printf("USER: %v", user)
 		d := q.d.ForUser(user.GetUser())
 		errp := q.ExecuteInternal(ctx, d, user, elem)
 		if errp == nil {
@@ -233,7 +242,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v", entry)
+	log.Printf("Running queue entry: %v with %v", entry, u)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
@@ -439,7 +448,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUpdates:
 		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshRelease:
-		return q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
+		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
+		if err != nil {
+			return err
+		}
+		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshCollection:
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:

@@ -495,6 +495,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 		Value: &anypb.Any{Value: data},
 	})
+	log.Printf("Writing gramophile/user/%v/release/%v -> %v", userid, record.GetRelease().GetInstanceId(), err)
 
 	return err
 }
@@ -544,7 +545,7 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Bad read: %w", err)
 	}
 
 	su := &pb.Record{}

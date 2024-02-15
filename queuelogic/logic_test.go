@@ -2,10 +2,13 @@ package queuelogic
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/brotherlogic/discogs"
@@ -27,12 +30,19 @@ func TestRunWithEmptyQueue(t *testing.T) {
 	}
 }
 
+func getTestContext(userid int) context.Context {
+	return metadata.AppendToOutgoingContext(context.Background(),
+		"auth-token",
+		fmt.Sprintf("%v", userid))
+}
+
 func TestMarkerCreationAndRemoval(t *testing.T) {
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
+	di.AddCollectionRelease(&pbd.Release{InstanceId: 1234})
 	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
@@ -42,16 +52,21 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 		t.Fatalf("Bad user: %v", err)
 	}
 
-	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 0,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
-					Intention: "What",
+					Intention: "Marker",
 				},
 			},
-			Auth: "hello",
+			Auth: "123",
 		},
 	})
 
@@ -65,10 +80,10 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
-					Intention: "What",
+					Intention: "Marker",
 				},
 			},
-			Auth: "hello",
+			Auth: "123",
 		},
 	})
 
@@ -84,10 +99,10 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
-					Intention: "What",
+					Intention: "Marker",
 				},
 			},
-			Auth: "hello",
+			Auth: "123",
 		},
 	})
 
