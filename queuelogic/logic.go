@@ -152,7 +152,6 @@ func (q *Queue) Run() {
 		}
 		var erru error
 		if err == nil {
-			t2 := time.Now()
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			erru = errv
