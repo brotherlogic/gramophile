@@ -66,6 +66,15 @@ func executeWantlist(ctx context.Context, args []string) error {
 				return fmt.Errorf("unable to delete want: %w", err)
 			}
 		}
+	} else if args[0] == "list" {
+		lists, err := client.ListWantlists(ctx, &pb.ListWantlistsRequest{})
+		if err != nil {
+			return fmt.Errorf("unable to delete want: %w", err)
+		}
+
+		for i, list := range lists.GetLists() {
+			fmt.Printf("%v. %v\n", i, list.GetName())
+		}
 	} else {
 		wantlist, err := client.GetWantlist(ctx, &pb.GetWantlistRequest{Name: args[0]})
 		if err != nil {

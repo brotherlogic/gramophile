@@ -469,6 +469,12 @@ service GramophileEService {
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
+    rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
+}
+
+message ListWantlistsRequest {}
+message ListWantlistsResponse {
+    repeated Wantlist lists = 1;
 }
 
 message UpdateWantlistRequest {
