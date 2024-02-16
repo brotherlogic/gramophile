@@ -246,7 +246,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
-		log.Printf("MMMMOVE: %v", entry.GetMoveRecord())
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
 		if err != nil {
 			return fmt.Errorf("unable to get record: %w", err)
@@ -327,7 +326,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			for i := int32(2); i <= pages; i++ {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
+						RunDate: time.Now().UnixNano() + int64(i),
 						Entry: &pb.QueueElement_SyncWants{
 							SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
 						},
@@ -340,6 +339,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		// If this is the final sync, let's run the alignment
 		if entry.GetSyncWants().GetPage() >= pages {
 			err = q.b.SyncWants(ctx, d, user, q.Enqueue)
+			if err != nil {
+				return err
+			}
+
+			err = q.b.AlignWants(ctx, d, user.GetConfig().GetWantsConfig())
 			if err != nil {
 				return err
 			}
