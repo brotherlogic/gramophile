@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -28,6 +29,7 @@ func (b *BackgroundRunner) CullWants(ctx context.Context, d discogs.Discogs, sid
 
 func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, page int32, sid int64, wc *pb.WantsConfig) (int32, error) {
 	wants, pag, err := d.GetWants(ctx, page)
+	log.Printf("HERE: %v", wants)
 
 	if err != nil {
 		return -1, err

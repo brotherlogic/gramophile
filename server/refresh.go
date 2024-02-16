@@ -21,7 +21,7 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       req.GetInstanceId(),
-					Intention: "ManualRefresh",
+					Intention: "Manual Update",
 				}}},
 	})
 
