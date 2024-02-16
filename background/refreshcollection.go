@@ -42,6 +42,9 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 							Intention: "from-refresh-collection",
 						}}},
 			})
+			if err == nil {
+				log.Printf("Refreshing %v", id)
+			}
 
 			// If the refresh is already in the queue, then that's fine
 			if err != nil && status.Code(err) != codes.AlreadyExists {
