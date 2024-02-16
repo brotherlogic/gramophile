@@ -457,6 +457,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshCollection:
+		log.Printf("RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		return q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)

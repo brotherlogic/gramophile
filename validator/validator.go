@@ -69,7 +69,9 @@ func runValidationLoop(ctx context.Context) error {
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
-							RefreshCollection: &pb.RefreshCollection{},
+							RefreshCollection: &pb.RefreshCollection{
+								Intention: "from-validator",
+							},
 						},
 					},
 				})

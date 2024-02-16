@@ -218,7 +218,7 @@ message RefreshEarliestReleaseDate {
 }
 
 message RefreshCollection {
-
+    string intention = 1;
 }
 
 message RefreshRelease {
