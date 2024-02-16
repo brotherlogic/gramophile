@@ -142,6 +142,15 @@ func TestSaveAndLoadWantlist(t *testing.T) {
 	if val.GetList().GetName() != "testing" {
 		t.Errorf("Bad list returned: %v", val)
 	}
+
+	// Also test that we can get all wantlists
+	lists, err := s.ListWantlists(ctx, &pb.ListWantlistsRequest{})
+	if err != nil {
+		t.Fatalf("Error getting wantlists: %v", err)
+	}
+	if len(lists.GetLists()) != 1 || lists.GetLists()[0].GetName() != "testing" {
+		t.Errorf("Bad wantlist return: %v", lists)
+	}
 }
 
 func TestUpdateWantlist(t *testing.T) {
