@@ -320,6 +320,7 @@ message StoredUser {
     int64 last_collection_refresh = 6;
     int64 last_config_update = 7;
     int64 last_sale_refresh = 11;
+    int64 last_want_refresh = 12;
 
     GramophileConfig config = 8;    
 
