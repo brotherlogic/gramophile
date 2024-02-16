@@ -152,12 +152,10 @@ func (q *Queue) Run() {
 		}
 		var erru error
 		if err == nil {
-			t2 := time.Now()
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			erru = errv
 			if err == nil {
-				log.Printf("Processing user: %v -> %v (%v)", user, user.GetUser(), time.Since(t2))
 				if user.GetUser() == nil {
 					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
 				} else {
@@ -242,7 +240,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v with %v", entry, u)
+	log.Printf("Running queue entry: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
@@ -452,6 +450,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUpdates:
 		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshRelease:
+		log.Printf("Refreshing %v for %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid())
 		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
 		if err != nil {
 			return err

@@ -21,7 +21,7 @@ jobs:
           images: |
             brotherlogic/gramophile
           flavor: |
-            latest=false1
+            latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=pr

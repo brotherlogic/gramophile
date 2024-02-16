@@ -13,12 +13,20 @@ import (
 const (
 	// Refresh core stats every week
 	refreshStatsFrequency = time.Hour * 24 * 7
+
+	// Min refresh frequency
+	minRefreshFreq = time.Hour * 2
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs) error {
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
 		return fmt.Errorf("unable to get record from db: %w", err)
+	}
+
+	if time.Since(time.Unix(0, record.GetLastUpdateTime())) < minRefreshFreq {
+		log.Printf("Not refreshing %v as %v", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
+		return nil
 	}
 
 	log.Printf("Refreshing %v (%v)", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
