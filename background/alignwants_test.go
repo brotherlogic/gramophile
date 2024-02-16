@@ -48,7 +48,7 @@ func TestWantsDropped_Drop(t *testing.T) {
 		t.Fatalf("Unable to load wants: %v", err)
 	}
 
-	if len(wants) != 0 {
+	if len(wants) == 0 || wants[0].State != pb.WantState_RETIRED {
 		t.Errorf("Bad want pull post align: %v", wants)
 	}
 }
@@ -94,7 +94,7 @@ func TestWantsDropped_TransferToNew(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error pulling wants: %v", err)
 	}
-	if len(wlist) != 1 || len(wlist[0].GetEntries()) != 1 || wlist[0].GetEntries()[0].Id == 12345 {
+	if len(wlist) != 1 || len(wlist[0].GetEntries()) != 1 || wlist[0].GetEntries()[0].Id != 12345 {
 		t.Errorf("Wantlist was not created or populated correctly: %v", wlist)
 	}
 }
@@ -106,7 +106,7 @@ func TestWantsDropped_TransferToExisting(t *testing.T) {
 		Existing: pb.WantsExisting_EXISTING_LIST, TransferList: "testing"}
 	ctx := getTestContext(123)
 
-	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}, {Id: 12345}}})
+	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}}})
 
 	d.AddWant(ctx, 12345)
 	_, err := b.PullWants(ctx, d, 1, 12345, c)

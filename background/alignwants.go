@@ -27,6 +27,7 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 		}
 	}
 
+	updated := false
 	for _, w := range wants {
 		found := false
 		for _, wl := range wantlists {
@@ -39,8 +40,18 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 		}
 
 		if !found {
-			cwantlist.Entries = append(cwantlist.Entries, &pb.WantlistEntry{Id: w.GetId()})
+			if c.GetExisting() == pb.WantsExisting_EXISTING_DROP {
+				w.State = pb.WantState_RETIRED
+				b.db.SaveWant(ctx, di.GetUserId(), w)
+			} else {
+				updated = true
+				cwantlist.Entries = append(cwantlist.Entries, &pb.WantlistEntry{Id: w.GetId()})
+			}
 		}
+	}
+
+	if updated {
+		return b.db.SaveWantlist(ctx, di.GetUserId(), cwantlist)
 	}
 
 	return nil
