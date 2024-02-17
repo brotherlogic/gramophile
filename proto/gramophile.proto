@@ -410,8 +410,7 @@ message GetRecordToListenTo {
 }
 
 message GetRecordResponse {
-    RecordResponse record_response = 1;
-    repeated RecordResponse records = 2;
+    repeated RecordResponse records = 1;
 }
 
 message GetOrgRequest {

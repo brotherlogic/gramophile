@@ -64,7 +64,7 @@ func TestSetListen_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetLastListenTime() == 0 || rec.Release.GetRating() != 5 {
 		t.Errorf("Listening was not set: %v", rec)
 	}
@@ -124,7 +124,7 @@ func TestSetListen_ResetScore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetLastListenTime() == 0 || rec.Release.GetRating() != 0 {
 		t.Errorf("Listening was not set (should have listen time and zero rating): %v", rec)
 	}

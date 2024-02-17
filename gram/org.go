@@ -43,12 +43,16 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		return "", err
 	}
 
-	str := fmt.Sprintf("%v - %v [%v]",
-		getArtist(r.GetRecordResponse().GetRecord().GetRelease()),
-		r.GetRecordResponse().GetRecord().GetRelease().GetTitle(),
-		p.GetWidth())
-	if debug {
-		str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
+	str := ""
+	for _, record := range r.GetRecords() {
+		str += fmt.Sprintf("%v - %v [%v]",
+			getArtist(record.GetRecord().GetRelease()),
+			record.GetRecord().GetRelease().GetTitle(),
+			p.GetWidth())
+		if debug {
+			str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
+		}
+		str += "\n"
 	}
 
 	return str, nil
