@@ -44,6 +44,7 @@ enum WantState {
     PURCHASED = 2;
     WANTED = 3;
     HIDDEN = 4;
+    DELETED = 5;
 }
 
 message Want {
@@ -464,8 +465,7 @@ service GramophileEService {
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
-    rpc DeleteWant(DeleteWantRequest) returns (DeleteWantResponse) {};
-
+  
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
@@ -490,11 +490,6 @@ message GetWantsResponse{
     repeated Want wants = 1;
 }
 
-message DeleteWantRequest {
-    int64 want_id = 1;
-}
-
-message DeleteWantResponse {}
 
 message AddWantRequest {
     int64 want_id = 1;
