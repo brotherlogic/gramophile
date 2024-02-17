@@ -88,7 +88,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			return false, nil
 		case pb.WantState_PURCHASED:
 			continue
-		case pb.WantState_PENDING:
+		case pb.WantState_PENDING, pb.WantState_RETIRED:
 			state := pb.WantState_WANTED
 			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
 				state = pb.WantState_HIDDEN
