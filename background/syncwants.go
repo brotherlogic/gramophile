@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -32,7 +33,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 	log.Printf("HERE: %v", wants)
 
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("bad get wants: %w", err)
 	}
 
 	swants, err := b.db.GetWants(ctx, d.GetUserId())
@@ -49,7 +50,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 				swant.SyncId = sid
 				err := b.db.SaveWant(ctx, d.GetUserId(), swant)
 				if err != nil {
-					return -1, err
+					return -1, fmt.Errorf("error on save in pull: %w", err)
 				}
 				continue
 			}
@@ -64,7 +65,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 			})
 
 			if err != nil {
-				return -1, err
+				return -1, fmt.Errorf("error on new want in pull: %w", err)
 			}
 		}
 	}

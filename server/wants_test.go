@@ -58,5 +58,4 @@ func TestAddWant_Failure(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Should have failed: %v", val)
 	}
-
 }
