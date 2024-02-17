@@ -39,15 +39,12 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 
 	changed := false
 	for _, entry := range list.GetEntries() {
-		log.Printf("Processing wantlist entry: %v", entry)
 		if entry.GetState() == pb.WantState_WANTED {
 			log.Printf("STATE matches")
 			for _, r := range records {
 				if r.GetRelease().GetId() == entry.GetId() {
-					log.Printf("Found match %v", r)
 					entry.State = pb.WantState_PURCHASED
 					changed = true
-					log.Printf("Resovled: %v", entry)
 				}
 			}
 		}
