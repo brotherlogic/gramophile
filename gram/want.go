@@ -35,7 +35,10 @@ func executeWant(ctx context.Context, args []string) error {
 		}
 
 		for i, want := range wants.GetWants() {
-			fmt.Printf("%v. %v %v - %v\n", i, want.GetId(), want, want)
+			fmt.Printf("%v. %v\n", i, want.GetWant().GetId())
+			for _, update := range want.GetUpdates() {
+				fmt.Printf("  %v\n", update)
+			}
 		}
 
 		return nil

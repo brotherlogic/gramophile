@@ -23,6 +23,8 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 		return nil, err
 	}
 
+	var responses []*pb.WantResponse
+
 	// Also pull wants from wantlists
 	wantlists, err := s.d.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
@@ -43,7 +45,18 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 		}
 	}
 
-	return &pb.GetWantsResponse{Wants: wants}, nil
+	for _, want := range wants {
+		updates, err := s.d.GetWantUpdates(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, &pb.WantResponse{
+			Want:    want,
+			Updates: updates,
+		})
+	}
+
+	return &pb.GetWantsResponse{Wants: responses}, nil
 }
 
 func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWantResponse, error) {
