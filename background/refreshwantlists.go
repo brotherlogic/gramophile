@@ -54,7 +54,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	}
 
 	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list)
-	if err != nil {
+	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
 
@@ -74,6 +74,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 	case pb.WantlistType_ONE_BY_ONE:
 		return b.refreshOneByOneWantlist(ctx, userid, list)
 	default:
+		log.Printf("Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
 	}
 }

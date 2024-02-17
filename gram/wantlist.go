@@ -81,9 +81,9 @@ func executeWantlist(ctx context.Context, args []string) error {
 			return err
 		}
 
-		fmt.Printf("List: %v\n", wantlist.GetList().GetName())
+		fmt.Printf("List: %v (%v)\n", wantlist.GetList().GetName(), wantlist.GetList().GetType())
 		for _, entry := range wantlist.GetList().GetEntries() {
-			fmt.Printf("  [%v] %v - %v ", entry.GetId(), entry.GetArtist(), entry.GetTitle())
+			fmt.Printf("  [%v] %v - %v (%v)\n", entry.GetId(), entry.GetArtist(), entry.GetTitle(), entry.GetState())
 		}
 	}
 
