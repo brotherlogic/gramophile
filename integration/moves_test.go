@@ -61,8 +61,8 @@ func TestMoveApplied(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecordResponse().GetRecord() == nil || r.GetRecordResponse().GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecordResponse().GetRecord())
+	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
 	}
 }
 
@@ -131,12 +131,12 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecordResponse().GetRecord() == nil || r.GetRecordResponse().GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecordResponse().GetRecord())
+	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	found := false
-	for _, move := range r.GetRecordResponse().GetUpdates() {
+	for _, move := range r.GetRecords()[0].GetUpdates() {
 		for _, exp := range move.GetExplanation() {
 			if exp == "Moved to Listening Pile following rule test-move" {
 				found = true
@@ -145,6 +145,6 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 
 	if !found {
-		t.Errorf("Did not find update: %v", r.GetRecordResponse().GetUpdates())
+		t.Errorf("Did not find update: %v", r.GetRecords()[0].GetUpdates())
 	}
 }

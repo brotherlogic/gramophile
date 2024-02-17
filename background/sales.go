@@ -318,5 +318,22 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		}
 	}
 
+	for _, record := range records {
+		found := false
+		for _, sale := range sales {
+			if sale.GetReleaseId() == record.GetRelease().GetId() {
+				found = true
+			}
+		}
+
+		if !found {
+			record.SaleId = 0
+			err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }

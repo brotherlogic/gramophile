@@ -36,7 +36,9 @@ func executeListen(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v\n", r.GetRecordResponse().GetRecord().GetRelease().GetInstanceId())
+		for _, record := range r.GetRecords() {
+			fmt.Printf("%v\n", record.GetRecord().GetRelease().GetInstanceId())
+		}
 		return nil
 	}
 
@@ -52,7 +54,9 @@ func executeListen(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v\n", r.GetRecordResponse().GetRecord().GetRelease().GetInstanceId())
+		for _, record := range r.GetRecords() {
+			fmt.Printf("%v\n", record.GetRecord().GetRelease().GetInstanceId())
+		}
 		return nil
 	}
 

@@ -59,7 +59,7 @@ func TestGetSaleCleared(t *testing.T) {
 		log.Fatalf("Bad sale return: %v", err)
 	}
 
-	if r.GetRecordResponse().GetRecord().GetSaleId() != 0 {
+	if r.GetRecords()[0].GetRecord().GetSaleId() != 0 {
 		t.Errorf("Returned a sale: %v", r)
 	}
 }
@@ -88,8 +88,8 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetUpdates()) > 0 {
-		t.Errorf("Updates retrieved when record is empty: %v", r.GetRecordResponse().GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) > 0 {
+		t.Errorf("Updates retrieved when record is empty: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 13}})
@@ -106,8 +106,8 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetUpdates()) > 0 {
-		t.Errorf("Updates retrieved when not requested: %v", r.GetRecordResponse().GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) > 0 {
+		t.Errorf("Updates retrieved when not requested: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	r, err = s.GetRecord(ctx, &pb.GetRecordRequest{
@@ -121,7 +121,7 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecordResponse().GetUpdates()) == 0 {
-		t.Errorf("No updates retreived, expected 1: %v", r.GetRecordResponse().GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) == 0 {
+		t.Errorf("No updates retreived, expected 1: %v", r.GetRecords()[0].GetRecord())
 	}
 }

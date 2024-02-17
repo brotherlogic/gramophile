@@ -78,9 +78,6 @@ func executeGetRecord(ctx context.Context, args []string) error {
 		for _, record := range resp.GetRecords() {
 			printRecord(record, *debug)
 		}
-		if resp.GetRecordResponse() != nil {
-			printRecord(resp.GetRecordResponse(), *debug)
-		}
 	}
 	return err
 }
