@@ -45,7 +45,7 @@ func TestAddWant_Success(t *testing.T) {
 		t.Fatalf("Unable to get wantlsit: %v", err)
 	}
 
-	if len(val.GetWants()) != 1 || val.GetWants()[0].Id != 45 {
+	if len(val.GetWants()) != 1 || val.GetWants()[0].GetWant().Id != 45 {
 		t.Errorf("Error in returned wants for set: %v", val)
 	}
 }

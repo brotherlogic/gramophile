@@ -65,7 +65,7 @@ func TestGetWantsFromWantlist_hidden(t *testing.T) {
 		t.Errorf("No wants listed")
 	}
 
-	if wants.GetWants()[0].State != pb.WantState_HIDDEN {
+	if wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN {
 		t.Errorf("Want was not hidden: %v", wants)
 	}
 }

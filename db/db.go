@@ -74,6 +74,7 @@ type Database interface {
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
+	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
 
@@ -268,6 +269,29 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	}
 
 	return wants, nil
+}
+
+func (d *DB) GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/user/%v/want/%v/updates/", userid, wid),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var updates []*pb.Update
+	for _, key := range keys.GetKeys() {
+		data, err := d.load(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		update := &pb.Update{}
+		proto.Unmarshal(data, update)
+		updates = append(updates, update)
+	}
+
+	return updates, nil
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {

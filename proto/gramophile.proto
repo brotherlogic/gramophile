@@ -500,9 +500,16 @@ message UpdateWantlistRequest {
 
 message UpdateWantlistResponse {}
 
-message GetWantsRequest{}
+message GetWantsRequest{
+    bool include_updates = 2;
+}
 message GetWantsResponse{
-    repeated Want wants = 1;
+    repeated WantResponse wants = 1;
+}
+
+message WantResponse {
+    Want want = 1;
+    repeated Update updates = 2;
 }
 
 

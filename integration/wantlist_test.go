@@ -66,7 +66,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
-	if len(wants.GetWants()) != 2 || (wants.GetWants()[0].Id != 123 && wants.GetWants()[1].Id != 123) {
+	if len(wants.GetWants()) != 2 || (wants.GetWants()[0].GetWant().Id != 123 && wants.GetWants()[1].GetWant().Id != 123) {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
@@ -100,7 +100,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 	// We should have wanted the new record
 	found := false
 	for _, r := range wants.GetWants() {
-		if r.GetId() == 124 {
+		if r.GetWant().GetId() == 124 {
 			found = true
 		}
 	}
@@ -177,8 +177,8 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 	}
 
 	if len(wants.GetWants()) != 2 ||
-		(wants.GetWants()[0].Id != 123 && wants.GetWants()[1].Id != 123) ||
-		(wants.GetWants()[0].State != pb.WantState_HIDDEN && wants.GetWants()[1].State != pb.WantState_HIDDEN) {
+		(wants.GetWants()[0].GetWant().Id != 123 && wants.GetWants()[1].GetWant().Id != 123) ||
+		(wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN && wants.GetWants()[1].GetWant().State != pb.WantState_HIDDEN) {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
@@ -265,8 +265,8 @@ func TestWantlistUpdatedOnSync_HiddenAndInvisible(t *testing.T) {
 	}
 
 	if len(wants.GetWants()) != 1 ||
-		wants.GetWants()[0].Id != 123 ||
-		wants.GetWants()[0].State != pb.WantState_WANTED {
+		wants.GetWants()[0].GetWant().Id != 123 ||
+		wants.GetWants()[0].GetWant().State != pb.WantState_WANTED {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
