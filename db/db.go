@@ -244,7 +244,8 @@ func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, er
 
 func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/user/%v/want/", userid),
+		Prefix:      fmt.Sprintf("gramophile/user/%v/want/", userid),
+		AvoidSuffix: []string{"update"},
 	})
 	if err != nil {
 		return nil, err
@@ -270,8 +271,28 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
-	log.Printf("SAVING: %v", fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()))
+	err := d.saveWantUpdates(ctx, userid, want)
+	if err != nil {
+		return err
+	}
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
+}
+
+func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want) error {
+	old, err := d.GetWant(ctx, userid, want.GetId())
+	if err != nil && status.Code(err) != codes.NotFound {
+		return err
+	}
+
+	updates := buildWantUpdates(old, want)
+	if updates != nil {
+		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {

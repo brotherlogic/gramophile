@@ -69,6 +69,21 @@ message RecordUpdate {
     repeated string explanation = 4;
 }
 
+message Update {
+    int64 date = 1;
+    repeated Change changes = 2;
+}
+
+message Change {
+    enum ChangeType {
+        ADDED = 0;
+        REMOVED = 1;
+        CHANGED = 2;
+    }
+    ChangeType type = 1;
+    string description = 2;
+}
+
 enum KeepStatus {
     KEEP_UNKNOWN = 0;
     NO_KEEP = 1;
