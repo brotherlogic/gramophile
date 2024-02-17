@@ -2,8 +2,8 @@ name: Create production promotion pull request
 on:
   push:
     branches:
+      - '*'
       - '!main'
-
 jobs:
  pull-request:
     runs-on: ubuntu-latest
