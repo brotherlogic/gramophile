@@ -76,7 +76,6 @@ type Database interface {
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
-	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
 
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
@@ -273,11 +272,6 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
 	log.Printf("SAVING: %v", fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()))
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
-}
-
-func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
-	log.Printf("DELETE %v", want)
-	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
