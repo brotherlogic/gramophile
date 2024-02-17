@@ -2,7 +2,7 @@ name: Create production promotion pull request
 on:
   push:
     branches:
-      - !main
+      - '!main'
 
 jobs:
  pull-request:
