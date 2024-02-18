@@ -345,6 +345,17 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return err
 			}
+
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 60,
+					Entry: &pb.QueueElement_RefreshWantlists{
+						RefreshWantlists: &pb.RefreshWantlists{},
+					},
+				},
+			})
 		}
 
 		return nil

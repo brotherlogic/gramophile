@@ -126,6 +126,7 @@ func runValidationLoop(ctx context.Context) error {
 					return err
 				}
 			}
+
 		}
 	}
 

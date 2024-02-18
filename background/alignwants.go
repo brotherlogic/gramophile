@@ -20,7 +20,7 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 		return err
 	}
 
-	cwantlist := &pb.Wantlist{Name: c.GetTransferList(), Type: pb.WantlistType_EN_MASSE}
+	cwantlist := &pb.Wantlist{Name: c.GetTransferList(), Type: pb.WantlistType_ONE_BY_ONE}
 	for _, wl := range wantlists {
 		if wl.GetName() == c.GetTransferList() {
 			cwantlist = wl
