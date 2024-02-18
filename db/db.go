@@ -207,7 +207,15 @@ func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) erro
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, sale.GetSaleId()), sale)
 }
 
+var (
+	saleDeletes = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_sale_deletes",
+		Help: "The size of the user list",
+	}, []string{"id"})
+)
+
 func (d *DB) DeleteSale(ctx context.Context, userid int32, saleid int64) error {
+	saleDeletes.With(prometheus.Labels{"id": fmt.Sprintf("saleid")}).Inc()
 	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, saleid))
 }
 
