@@ -75,7 +75,7 @@ func executeWantlist(ctx context.Context, args []string) error {
 		}
 
 		for i, list := range lists.GetLists() {
-			fmt.Printf("%v. %v\n", i, list.GetName())
+			fmt.Printf("%v. %v [%v]\n", i, list.GetName(), list.GetType())
 		}
 	} else if args[0] == "type" {
 		ntype := pb.WantlistType_TYPE_UNKNOWN
