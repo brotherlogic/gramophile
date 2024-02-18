@@ -39,6 +39,13 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 
 	changed := false
 	for _, entry := range list.GetEntries() {
+		// Hard sync from the want
+		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
+		if err != nil {
+			return err
+		}
+		entry.State = want.GetState()
+
 		if entry.GetState() == pb.WantState_WANTED {
 			log.Printf("STATE matches")
 			for _, r := range records {
