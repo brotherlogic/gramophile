@@ -10,9 +10,10 @@ import "organisation.proto";
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 enum WantlistType {
-    EN_MASSE = 0;
-    ONE_BY_ONE = 1;
-    DATE_BOUNDED = 2;
+    TYPE_UNKNOWN = 0;
+    EN_MASSE = 1;
+    ONE_BY_ONE = 2;
+    DATE_BOUNDED = 3;
 }
 
 enum WantlistVisibility {
@@ -496,6 +497,7 @@ message UpdateWantlistRequest {
     string name = 1;
     int64 add_id = 2;
     int64 delete_id = 3;
+    WantlistType new_type = 4;
 }
 
 message UpdateWantlistResponse {}

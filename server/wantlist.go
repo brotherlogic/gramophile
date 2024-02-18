@@ -85,6 +85,10 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		list.Entries = entries
 	}
 
+	if req.GetNewType() != pb.WantlistType_TYPE_UNKNOWN {
+		list.Type = req.GetNewType()
+	}
+
 	err = s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
 	if err != nil {
 		return nil, err
