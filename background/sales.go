@@ -9,11 +9,20 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+)
+
+var (
+	saleAdds = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_sale_adds",
+		Help: "The size of the user list",
+	}, []string{"id"})
 )
 
 func tidyUpdates(s *pb.SaleInfo) {
@@ -55,6 +64,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		csale, err := b.db.GetSale(ctx, d.GetUserId(), sale.GetSaleId())
 		if status.Code(err) == codes.NotFound {
 			log.Printf("Creating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
+			saleAdds.With(prometheus.Labels{"id": fmt.Sprintf("%v", sale.GetSaleId())}).Inc()
 			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 				SaleId:          sale.GetSaleId(),
 				LastPriceUpdate: time.Now().UnixNano(),
