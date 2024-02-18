@@ -486,6 +486,16 @@ service GramophileEService {
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
     rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
+
+    rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
+}
+
+message GetSaleRequest {
+    int64 id = 1;
+}
+
+message GetSaleResponse {
+    SaleInfo sale = 1;
 }
 
 message ListWantlistsRequest {}

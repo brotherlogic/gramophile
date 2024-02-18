@@ -230,6 +230,7 @@ type GramophileEServiceClient interface {
 	GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error)
 	UpdateWantlist(ctx context.Context, in *UpdateWantlistRequest, opts ...grpc.CallOption) (*UpdateWantlistResponse, error)
 	ListWantlists(ctx context.Context, in *ListWantlistsRequest, opts ...grpc.CallOption) (*ListWantlistsResponse, error)
+	GetSale(ctx context.Context, in *GetSaleRequest, opts ...grpc.CallOption) (*GetSaleResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -384,6 +385,15 @@ func (c *gramophileEServiceClient) ListWantlists(ctx context.Context, in *ListWa
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) GetSale(ctx context.Context, in *GetSaleRequest, opts ...grpc.CallOption) (*GetSaleResponse, error) {
+	out := new(GetSaleResponse)
+	err := c.cc.Invoke(ctx, "/gramophile.GramophileEService/GetSale", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility
@@ -404,6 +414,7 @@ type GramophileEServiceServer interface {
 	GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error)
 	UpdateWantlist(context.Context, *UpdateWantlistRequest) (*UpdateWantlistResponse, error)
 	ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error)
+	GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have forward compatible implementations.
@@ -457,6 +468,9 @@ func (UnimplementedGramophileEServiceServer) UpdateWantlist(context.Context, *Up
 }
 func (UnimplementedGramophileEServiceServer) ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListWantlists not implemented")
+}
+func (UnimplementedGramophileEServiceServer) GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSale not implemented")
 }
 
 // UnsafeGramophileEServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -758,6 +772,24 @@ func _GramophileEService_ListWantlists_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_GetSale_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSaleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).GetSale(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gramophile.GramophileEService/GetSale",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).GetSale(ctx, req.(*GetSaleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -828,6 +860,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWantlists",
 			Handler:    _GramophileEService_ListWantlists_Handler,
+		},
+		{
+			MethodName: "GetSale",
+			Handler:    _GramophileEService_GetSale_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
