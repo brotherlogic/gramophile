@@ -126,7 +126,7 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 		val.State = want.State
 	}
 	if want.State == pb.WantState_HIDDEN {
-		if val.State == pb.WantState_PENDING {
+		if val.State == pb.WantState_PENDING || val.State == pb.WantState_WANTED {
 			val.State = want.State
 		}
 	}
