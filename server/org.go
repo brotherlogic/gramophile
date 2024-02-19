@@ -62,7 +62,7 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 		}
 	}
 
-	return bestLabel.GetName() + "-" + bestLabel.GetCatno()
+	return strings.ToLower(bestLabel.GetName() + "-" + bestLabel.GetCatno())
 }
 
 func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
