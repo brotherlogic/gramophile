@@ -30,6 +30,8 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist) error {
+	log.Printf("Processing %v", list.GetName())
+
 	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to load all records: %w", err)
@@ -92,6 +94,12 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		log.Printf("Refreshing entry: %v", entry)
 		switch entry.GetState() {
 		case pb.WantState_WANTED:
+			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
+				return true, b.mergeWant(ctx, userid, &pb.Want{
+					Id:    entry.GetId(),
+					State: pb.WantState_HIDDEN,
+				})
+			}
 			return false, nil
 		case pb.WantState_PURCHASED:
 			continue

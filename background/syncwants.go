@@ -41,11 +41,6 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 		found := false
 		for _, swant := range swants {
 			if want.GetId() == swant.GetId() {
-				if wc.GetOrigin() == pb.WantsBasis_WANTS_GRAMOPHILE {
-					swant.State = pb.WantState_RETIRED
-				} else {
-					swant.State = pb.WantState_WANTED
-				}
 				found = true
 				swant.SyncId = sid
 				err := b.db.SaveWant(ctx, d.GetUserId(), swant, "Updating on refresh")
@@ -57,10 +52,14 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 		}
 
 		if !found {
+			state := pb.WantState_WANTED
+			if wc.GetOrigin() == pb.WantsBasis_WANTS_GRAMOPHILE {
+				state = pb.WantState_RETIRED
+			}
 			err := b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{
 				Id:            want.GetId(),
 				WantAddedDate: time.Now().UnixNano(),
-				State:         pb.WantState_WANTED,
+				State:         state,
 				SyncId:        sid,
 			}, "Creating in sync")
 
