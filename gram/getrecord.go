@@ -29,11 +29,21 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	idSet := flag.NewFlagSet("ids", flag.ExitOnError)
 	var id = idSet.Int("id", 0, "Id of record to get")
 	var iid = idSet.Int("iid", 0, "IId of record to get")
+	var sid = idSet.Int("sid", 0, "Sale ID")
 	var history = idSet.Bool("history", false, "Whether to get the history")
 	var debug = idSet.Bool("debug", false, "Show debug stuff")
 	if err := idSet.Parse(args); err == nil {
-
 		client := pb.NewGramophileEServiceClient(conn)
+
+		if *sid > 0 {
+			sale, err := client.GetSale(ctx, &pb.GetSaleRequest{Id: int64(*sid)})
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%v\n", sale)
+			return nil
+		}
+
 		resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{
 			IncludeHistory: *history,
 			Request: &pb.GetRecordRequest_GetRecordWithId{
