@@ -83,7 +83,7 @@ func (s *Server) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation)
 		}
 	}
 
-	return bestLabel.GetName()
+	return strings.ToLower(bestLabel.GetName())
 }
 
 func oneIfZero(in float32) float32 {
