@@ -42,7 +42,7 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 		if !found {
 			if c.GetExisting() == pb.WantsExisting_EXISTING_DROP {
 				w.State = pb.WantState_RETIRED
-				b.db.SaveWant(ctx, di.GetUserId(), w)
+				b.db.SaveWant(ctx, di.GetUserId(), w, "Config is set to EXISTING_DROP")
 			} else {
 				updated = true
 				cwantlist.Entries = append(cwantlist.Entries, &pb.WantlistEntry{Id: w.GetId()})
