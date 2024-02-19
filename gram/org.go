@@ -66,7 +66,7 @@ func executeOrg(ctx context.Context, args []string) error {
 	if len(args) > 1 {
 		orgFlags := flag.NewFlagSet("orgflags", flag.ExitOnError)
 		name := orgFlags.String("org", "", "The name of the organisation")
-		slot := orgFlags.Int("slot", -1, "The slot to print")
+		slot := orgFlags.Int("slot", 1, "The slot to print")
 		debug := orgFlags.Bool("debug", false, "Include debug info")
 		//space := orgFlags.String("space", "")
 
@@ -83,21 +83,30 @@ func executeOrg(ctx context.Context, args []string) error {
 				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)
 			}
 
+			firstShelf := ""
+			firstSlot := -1
 			currSlot := 0
 			currShelf := ""
 			totalWidth := float32(0)
 			for i, placement := range r.GetSnapshot().GetPlacements() {
+				if firstShelf == "" {
+					firstShelf = placement.GetSpace()
+				}
+				if firstSlot < 0 {
+					firstSlot = int(placement.GetUnit())
+				}
+
 				if placement.GetSpace() != currShelf {
 					currShelf = placement.GetSpace()
 					currSlot++
 				}
 
-				if placement.GetUnit() == int32(*slot) || *slot == -1 {
+				if (placement.GetUnit() == int32(*slot) || *slot == -1) && currShelf != "Spill" {
 					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
 						return err
 					}
-					fmt.Printf("%v. %v\n", i, pstr)
+					fmt.Printf("%v. [%v-%v] %v\n", i, placement.GetSpace(), placement.GetUnit(), pstr)
 					totalWidth += placement.GetWidth()
 				}
 			}
