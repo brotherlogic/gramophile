@@ -130,5 +130,5 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 			val.State = want.State
 		}
 	}
-	return b.db.SaveWant(ctx, userid, val)
+	return b.db.SaveWant(ctx, userid, val, "Updated from refresh wantlist")
 }
