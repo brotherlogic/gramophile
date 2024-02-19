@@ -52,7 +52,6 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		if debug {
 			str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
 		}
-		str += "\n"
 	}
 
 	return str, nil
@@ -87,7 +86,7 @@ func executeOrg(ctx context.Context, args []string) error {
 			currSlot := 0
 			currShelf := ""
 			totalWidth := float32(0)
-			for _, placement := range r.GetSnapshot().GetPlacements() {
+			for i, placement := range r.GetSnapshot().GetPlacements() {
 				if placement.GetSpace() != currShelf {
 					currShelf = placement.GetSpace()
 					currSlot++
@@ -98,7 +97,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("[%v] %v %v\n", placement.GetSpace(), totalWidth, pstr)
+					fmt.Printf("%v. %v\n", i, pstr)
 					totalWidth += placement.GetWidth()
 				}
 			}

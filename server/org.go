@@ -43,6 +43,12 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 		return ""
 	}
 
+	// Sort labels alphabetically
+	labels := r.GetRelease().GetLabels()
+	sort.SliceStable(labels, func(i, j int) bool {
+		return labels[i].GetName() < labels[j].GetName()
+	})
+
 	bestWeight := float32(0.5)
 	bestLabel := r.GetRelease().GetLabels()[0]
 

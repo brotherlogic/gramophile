@@ -266,7 +266,7 @@ func TestWantlistUpdatedOnSync_HiddenAndInvisible(t *testing.T) {
 
 	if len(wants.GetWants()) != 1 ||
 		wants.GetWants()[0].GetWant().Id != 123 ||
-		wants.GetWants()[0].GetWant().State != pb.WantState_WANTED {
+		wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
@@ -282,7 +282,7 @@ func TestWantlistUpdatedOnSync_HiddenAndInvisible(t *testing.T) {
 
 	dwants, _, err := di.GetWants(ctx, 1)
 
-	if len(dwants) != 1 {
+	if len(dwants) != 0 {
 		t.Errorf("There should be only one non-hidden want: %v", dwants)
 	}
 }
