@@ -76,7 +76,7 @@ type Database interface {
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
 	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
-	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
+	SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error
 
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
@@ -302,21 +302,21 @@ func (d *DB) GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb
 	return updates, nil
 }
 
-func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
-	err := d.saveWantUpdates(ctx, userid, want)
+func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error {
+	err := d.saveWantUpdates(ctx, userid, want, reason)
 	if err != nil {
 		return err
 	}
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
-func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want) error {
+func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, reason string) error {
 	old, err := d.GetWant(ctx, userid, want.GetId())
 	if err != nil && status.Code(err) != codes.NotFound {
 		return err
 	}
 
-	updates := buildWantUpdates(old, want)
+	updates := buildWantUpdates(old, want, reason)
 	if updates != nil {
 		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
 		if err != nil {

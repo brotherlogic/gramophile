@@ -71,7 +71,7 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), &pb.Want{
 			Id:    req.GetAddId(),
 			State: pb.WantState_PENDING,
-		})
+		}, "Adding from updated wantlist")
 	}
 
 	// Runs delete

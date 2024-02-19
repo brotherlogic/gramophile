@@ -13,7 +13,7 @@ func TestSync_WithGramophile(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
 	// Seed a saved want
-	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
+	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 
@@ -40,7 +40,7 @@ func TestSync_WithDiscogs(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
 	// Seed a saved want
-	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
+	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	_, err := d.AddWant(context.Background(), 12346)
@@ -83,7 +83,7 @@ func TestSync_WithHybrid(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
 	// Seed a saved want
-	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345})
+	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	_, err := d.AddWant(context.Background(), 12346)
