@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -46,7 +47,7 @@ func (s *Server) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisa
 	// Sort labels alphabetically
 	labels := r.GetRelease().GetLabels()
 	sort.SliceStable(labels, func(i, j int) bool {
-		return labels[i].GetName() < labels[j].GetName()
+		return strings.ToLower(labels[i].GetName()) < strings.ToLower(labels[j].GetName())
 	})
 
 	bestWeight := float32(0.5)
