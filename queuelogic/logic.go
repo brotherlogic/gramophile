@@ -571,7 +571,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			}
 		} else if marker > 0 {
 			markerCount.Inc()
-			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue")
+			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
 		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
