@@ -569,7 +569,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			if status.Code(err) != codes.NotFound {
 				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
 			}
-		} else if marker > 0 {
+		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
 			markerCount.Inc()
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
