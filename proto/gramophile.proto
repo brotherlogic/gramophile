@@ -494,10 +494,11 @@ service GramophileEService {
 
 message GetSaleRequest {
     int64 id = 1;
+    int64 min_median = 2;
 }
 
 message GetSaleResponse {
-    SaleInfo sale = 1;
+    repeated SaleInfo sales = 1;
 }
 
 message ListWantlistsRequest {}

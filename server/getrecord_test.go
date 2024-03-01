@@ -118,7 +118,7 @@ func TestGetSale(t *testing.T) {
 		t.Fatalf("Bad sale return %v", err)
 	}
 
-	if sale.GetSale().GetCurrentPrice().GetValue() != 12345 {
+	if sale.GetSales()[0].GetCurrentPrice().GetValue() != 12345 {
 		t.Errorf("Bad sale return: %v", sale)
 	}
 }
