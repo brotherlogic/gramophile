@@ -25,7 +25,7 @@ func (s *Server) GetSale(ctx context.Context, req *pb.GetSaleRequest) (*pb.GetSa
 			if err != nil {
 				return nil, err
 			}
-			if time.Since(time.Unix(0, sale.GetTimeAtMedian())) > time.Second*time.Duration(req.GetMinMedian()) {
+			if sale.GetTimeAtMedian() > 0 && time.Since(time.Unix(0, sale.GetTimeAtMedian())) > time.Second*time.Duration(req.GetMinMedian()) {
 				ret = append(ret, sale)
 			}
 		}

@@ -45,6 +45,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			for _, sale := range sales.GetSales() {
 				fmt.Printf("%v - %v\n", sale.GetSaleId(), time.Unix(0, sale.GetTimeAtMedian()))
 			}
+
+			return nil
 		}
 
 		if *sid > 0 {
