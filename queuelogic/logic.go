@@ -149,7 +149,7 @@ func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string, id int
 	return err
 }
 
-func (q *Queue) FlushQueue(ctx context.Context) {
+func (q *Queue) FlushQueue(ctx context.Context) error {
 	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
@@ -167,12 +167,15 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Fatalf("Failed to execute internal: %v -> %v", errp, elem)
+			log.Printf("Failed to execute internal: %v -> %v", errp, elem)
+			return errp
 		}
 
 		elem, err = q.getNextEntry(ctx)
 		log.Printf("Post flush: %v", err)
 	}
+
+	return nil
 }
 
 func (q *Queue) Run() {
@@ -616,7 +619,8 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		if err != nil {
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
-	case *pb.QueueElement_RefreshEarliestReleaseDate:
+	case *pb.QueueElement_RefreshEarliestReleaseDates:
+		log.Printf("Trying to: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
 		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {

@@ -67,7 +67,10 @@ func TestSyncSales_Success(t *testing.T) {
 		},
 	})
 
-	qc.FlushQueue(ctx)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
@@ -116,7 +119,10 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 		},
 	})
 
-	qc.FlushQueue(ctx)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
@@ -148,7 +154,10 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 		},
 	})
 
-	qc.FlushQueue(ctx)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err = s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
@@ -218,7 +227,10 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -303,7 +315,10 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -313,7 +328,10 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -402,7 +420,10 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -412,7 +433,10 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -504,7 +528,10 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -514,7 +541,10 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -606,7 +636,10 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -616,7 +649,10 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -708,7 +744,10 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -718,7 +757,10 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {
@@ -810,7 +852,10 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad enqueue: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
@@ -820,7 +865,10 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to enqueue request: %v", err)
 	}
-	q.FlushQueue(ctx)
+	err = q.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	sales, err := d.GetSales(ctx, 123)
 	if err != nil {

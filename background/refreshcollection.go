@@ -61,7 +61,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 								MasterId: rec.GetRelease().GetMasterId(),
 							}}},
 				})
-				if err != nil {
+				if err != nil && status.Code(err) != codes.AlreadyExists {
 					return err
 				}
 			}
