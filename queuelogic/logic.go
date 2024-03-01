@@ -331,7 +331,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			log.Printf("Skipping %v", entry)
 			return nil
 		}
-		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice(), entry.GetUpdateSale().GetMotivation())
 		log.Printf("Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
 
 		// Not Found means the sale was deleted - if so remove from the db
