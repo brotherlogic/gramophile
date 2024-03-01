@@ -331,7 +331,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			log.Printf("Skipping %v", entry)
 			return nil
 		}
-		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice(), entry.GetUpdateSale().GetMotivation())
 		log.Printf("Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
 
 		// Not Found means the sale was deleted - if so remove from the db
@@ -620,7 +620,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		log.Printf("Trying to: %v", req.GetElement().GetRefreshEarliestReleaseDates())
+		log.Printf("Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
 		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
@@ -629,6 +629,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			}
 		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
 			markerCount.Inc()
+			log.Printf("REJECTING because we have a refresh date in the queue")
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
