@@ -51,7 +51,10 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		},
 	})
 
-	qc.FlushQueue(ctx)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	// Get the record
 	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
