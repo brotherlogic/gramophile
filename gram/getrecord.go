@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	pbgd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -43,7 +45,19 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 
 			for _, sale := range sales.GetSales() {
-				fmt.Printf("%v - %v\n", sale.GetSaleId(), time.Unix(0, sale.GetTimeAtMedian()))
+				lowdate := time.Now().Add(time.Hour).UnixNano()
+				for _, hist := range sale.GetUpdates() {
+					if hist.GetSetPrice().GetValue() == sale.GetLowPrice().GetValue() {
+						if hist.GetDate() < lowdate {
+							lowdate = hist.GetDate()
+						}
+					}
+				}
+				if time.Unix(0, lowdate).Before(time.Now()) {
+					if sale.GetSaleState() == pbgd.SaleStatus_FOR_SALE {
+						fmt.Printf("%v - %v\n", time.Since(time.Unix(0, lowdate)), sale.GetReleaseId())
+					}
+				}
 			}
 		}
 
