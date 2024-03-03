@@ -59,6 +59,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 					}
 				}
 			}
+
+			return nil
 		}
 
 		if *sid > 0 {
