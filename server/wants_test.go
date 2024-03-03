@@ -45,7 +45,7 @@ func TestAddWant_Success(t *testing.T) {
 		t.Fatalf("Unable to get wantlsit: %v", err)
 	}
 
-	if len(val.GetWants()) != 1 || val.GetWants()[0].Id != 45 {
+	if len(val.GetWants()) != 1 || val.GetWants()[0].GetWant().Id != 45 {
 		t.Errorf("Error in returned wants for set: %v", val)
 	}
 }
@@ -57,38 +57,5 @@ func TestAddWant_Failure(t *testing.T) {
 	val, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
 	if err == nil {
 		t.Fatalf("Should have failed: %v", val)
-	}
-
-}
-
-func TestDeleteWant_Success(t *testing.T) {
-	s, ctx := getTestServer(t)
-
-	_, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist: %v", err)
-	}
-
-	val, err := s.GetWants(ctx, &pb.GetWantsRequest{})
-	if err != nil {
-		t.Fatalf("Unable to get wantlsit: %v", err)
-	}
-
-	if len(val.GetWants()) != 1 || val.GetWants()[0].Id != 45 {
-		t.Errorf("Error in returned wants for set: %v", val)
-	}
-
-	_, err = s.DeleteWant(ctx, &pb.DeleteWantRequest{WantId: 45})
-	if err != nil {
-		t.Fatalf("unable to delete want: %v", err)
-	}
-
-	val, err = s.GetWants(ctx, &pb.GetWantsRequest{})
-	if err != nil {
-		t.Fatalf("Unable to get wantlsit: %v", err)
-	}
-
-	if len(val.GetWants()) != 0 {
-		t.Errorf("Error in returned wants for set: %v", val)
 	}
 }

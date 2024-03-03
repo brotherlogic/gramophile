@@ -1,8 +1,6 @@
 name: Code Coverage
 
 on:
-    push:
-      branches: [ main ]
     pull_request:
       # The branches below must be a subset of the branches above
       branches: [ main ]
@@ -16,7 +14,7 @@ jobs:
           fetch-depth: 2
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.19'
+          go-version: '1.20'
       - name: Run coverage
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
       - name: Upload coverage to Codecov

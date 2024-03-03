@@ -69,7 +69,9 @@ func runValidationLoop(ctx context.Context) error {
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
-							RefreshCollection: &pb.RefreshCollection{},
+							RefreshCollection: &pb.RefreshCollection{
+								Intention: "from-validator",
+							},
 						},
 					},
 				})
@@ -107,6 +109,24 @@ func runValidationLoop(ctx context.Context) error {
 					return err
 				}
 			}
+
+			log.Printf("Wants: %v", time.Since(time.Unix(0, user.GetLastWantRefresh())))
+			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Minute*50 {
+				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:          time.Now().UnixNano(),
+						Auth:             user.GetAuth().GetToken(),
+						BackoffInSeconds: 15,
+						Entry: &pb.QueueElement_SyncWants{
+							SyncWants: &pb.SyncWants{Page: 1},
+						},
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+
 		}
 	}
 

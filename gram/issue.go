@@ -26,14 +26,16 @@ func executeGetIssue(ctx context.Context, args []string) error {
 	}
 
 	client := pb.NewGramophileEServiceClient(conn)
-	record, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+	records, err := client.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithIssue{},
 	})
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%v has: %v\n", record.GetRecordResponse().GetRecord().GetRelease().GetId(), record.GetRecordResponse().GetRecord().GetIssues())
-	fmt.Printf("%v\n", record.GetRecordResponse().GetRecord())
+	for _, record := range records.GetRecords() {
+		fmt.Printf("%v has: %v\n", record.GetRecord().GetRelease().GetId(), record.GetRecord().GetIssues())
+		fmt.Printf("%v\n", record.GetRecord())
+	}
 	return nil
 }

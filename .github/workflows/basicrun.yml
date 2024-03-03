@@ -1,8 +1,6 @@
 name: RunBasic
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ main ]
@@ -19,7 +17,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
-        go-version: '1.19.1'
+        go-version: '1.20.0'
 
     - name: Run build
       run: go build ./...

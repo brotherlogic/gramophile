@@ -10,6 +10,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func (s *Server) ListWantlists(ctx context.Context, _ *pb.ListWantlistsRequest) (*pb.ListWantlistsResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lists, err := s.d.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListWantlistsResponse{Lists: lists}, nil
+}
+
 func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*pb.AddWantlistResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
@@ -58,7 +71,7 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), &pb.Want{
 			Id:    req.GetAddId(),
 			State: pb.WantState_PENDING,
-		})
+		}, "Adding from updated wantlist")
 	}
 
 	// Runs delete
@@ -70,6 +83,10 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 			}
 		}
 		list.Entries = entries
+	}
+
+	if req.GetNewType() != pb.WantlistType_TYPE_UNKNOWN {
+		list.Type = req.GetNewType()
 	}
 
 	err = s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)

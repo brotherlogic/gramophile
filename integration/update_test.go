@@ -73,14 +73,14 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
 
 	found12InchUpdate := false
 	foundStr := false
-	for _, update := range resp.GetRecordResponse().GetUpdates() {
+	for _, update := range resp.GetRecords()[0].GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -91,7 +91,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", resp.GetRecordResponse().GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
 	}
 
 	/*if !foundStr {
@@ -139,13 +139,13 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
 
 	found12InchUpdate := false
-	for _, update := range resp.GetRecordResponse().GetUpdates() {
+	for _, update := range resp.GetRecords()[0].GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -153,6 +153,6 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", resp.GetRecordResponse().GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
 	}
 }

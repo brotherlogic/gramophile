@@ -9,11 +9,20 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+)
+
+var (
+	saleAdds = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_sale_adds",
+		Help: "The size of the user list",
+	}, []string{"id"})
 )
 
 func tidyUpdates(s *pb.SaleInfo) {
@@ -55,6 +64,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		csale, err := b.db.GetSale(ctx, d.GetUserId(), sale.GetSaleId())
 		if status.Code(err) == codes.NotFound {
 			log.Printf("Creating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
+			saleAdds.With(prometheus.Labels{"id": fmt.Sprintf("%v", sale.GetSaleId())}).Inc()
 			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 				SaleId:          sale.GetSaleId(),
 				LastPriceUpdate: time.Now().UnixNano(),
@@ -113,17 +123,17 @@ func max(a, b int32) int32 {
 	return b
 }
 
-func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, error) {
+func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, string, error) {
 	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
 	switch c.GetUpdateType() {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
-		return s.GetCurrentPrice().Value - 1, nil
+		return s.GetCurrentPrice().Value - 1, "no adjustment", nil
 	case pb.SaleUpdateType_NO_SALE_UPDATE:
-		return s.GetCurrentPrice().GetValue(), nil
+		return s.GetCurrentPrice().GetValue(), "no adjustment", nil
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
 		// Bail if there is not current median price
 		if s.GetMedianPrice().GetValue() == 0 {
-			return s.GetCurrentPrice().GetValue(), nil
+			return s.GetCurrentPrice().GetValue(), "no median available", nil
 		}
 
 		// Are we in post reduction time?
@@ -139,7 +149,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 				}
 				log.Printf("Found lower bound %v", lowerBound)
 				if lowerBound > 0 {
-					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), nil
+					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
 				}
 			} else {
 				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
@@ -147,9 +157,9 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 
 		}
 
-		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), nil
+		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), "reducing to median", nil
 	default:
-		return 0, fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
+		return 0, "no adjustment", fmt.Errorf("unable to adjust price for %v", c.GetUpdateType())
 	}
 }
 
@@ -169,7 +179,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
 				log.Printf("Working off of: %v", sale)
-				nsp, err := adjustPrice(ctx, sale, c)
+				nsp, motivation, err := adjustPrice(ctx, sale, c)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
@@ -193,10 +203,11 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 						Auth:    user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_UpdateSale{
 							UpdateSale: &pb.UpdateSale{
-								SaleId:    sid,
-								NewPrice:  nsp,
-								ReleaseId: sale.GetReleaseId(),
-								Condition: sale.GetCondition(),
+								SaleId:     sid,
+								NewPrice:   nsp,
+								ReleaseId:  sale.GetReleaseId(),
+								Condition:  sale.GetCondition(),
+								Motivation: motivation,
 							}}},
 				})
 				if err != nil {
@@ -213,7 +224,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 	return nil
 }
 
-func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, releaseid int64, condition string, newprice int32) error {
+func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, releaseid int64, condition string, newprice int32, motivation string) error {
 	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
 	if err != nil {
 		return fmt.Errorf("unable to load sale: %w", err)
@@ -235,7 +246,7 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 	} else {
 		sale.GetCurrentPrice().Value = newprice
 	}
-	sale.Updates = append(sale.Updates, &pb.PriceUpdate{Date: time.Now().UnixNano(), SetPrice: sale.GetCurrentPrice()})
+	sale.Updates = append(sale.Updates, &pb.PriceUpdate{Date: time.Now().UnixNano(), SetPrice: sale.GetCurrentPrice(), Motivation: motivation})
 	sale.LastPriceUpdate = time.Now().UnixNano()
 	return b.db.SaveSale(ctx, d.GetUserId(), sale)
 }
@@ -296,6 +307,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 
 				if record.GetSaleId() != sale.GetSaleId() {
 					record.SaleId = sale.GetSaleId()
+
 					changed = true
 				}
 			}
@@ -313,6 +325,23 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				if err != nil {
 					return fmt.Errorf("unable to save sale info: %w", err)
 				}
+			}
+		}
+	}
+
+	for _, record := range records {
+		found := false
+		for _, sale := range sales {
+			if sale.GetReleaseId() == record.GetRelease().GetId() {
+				found = true
+			}
+		}
+
+		if !found {
+			record.SaleId = 0
+			err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+			if err != nil {
+				return err
 			}
 		}
 	}

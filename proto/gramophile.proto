@@ -10,9 +10,10 @@ import "organisation.proto";
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 enum WantlistType {
-    EN_MASSE = 0;
-    ONE_BY_ONE = 1;
-    DATE_BOUNDED = 2;
+    TYPE_UNKNOWN = 0;
+    EN_MASSE = 1;
+    ONE_BY_ONE = 2;
+    DATE_BOUNDED = 3;
 }
 
 enum WantlistVisibility {
@@ -44,6 +45,7 @@ enum WantState {
     PURCHASED = 2;
     WANTED = 3;
     HIDDEN = 4;
+    DELETED = 5;
 }
 
 message Want {
@@ -66,6 +68,21 @@ message RecordUpdate {
     string metadata = 5;
 
     repeated string explanation = 4;
+}
+
+message Update {
+    int64 date = 1;
+    repeated Change changes = 2;
+}
+
+message Change {
+    enum ChangeType {
+        ADDED = 0;
+        REMOVED = 1;
+        CHANGED = 2;
+    }
+    ChangeType type = 1;
+    string description = 2;
 }
 
 enum KeepStatus {
@@ -141,6 +158,7 @@ message SaleInfo {
 message PriceUpdate {
     int64 date = 1;
     discogs.Price set_price = 2;
+    string motivation = 3;
 }
 
 
@@ -218,11 +236,12 @@ message RefreshEarliestReleaseDate {
 }
 
 message RefreshCollection {
-
+    string intention = 1;
 }
 
 message RefreshRelease {
     int64 iid = 1;
+    string intention = 2;
 }
 
 message UpdateSale {
@@ -230,6 +249,7 @@ message UpdateSale {
     int32 new_price = 2;
     int64 release_id = 3;
     string condition = 4;
+    string motivation = 5;
 }
 
 message MoveRecord {
@@ -319,6 +339,7 @@ message StoredUser {
     int64 last_collection_refresh = 6;
     int64 last_config_update = 7;
     int64 last_sale_refresh = 11;
+    int64 last_want_refresh = 12;
 
     GramophileConfig config = 8;    
 
@@ -408,8 +429,7 @@ message GetRecordToListenTo {
 }
 
 message GetRecordResponse {
-    RecordResponse record_response = 1;
-    repeated RecordResponse records = 2;
+    repeated RecordResponse records = 1;
 }
 
 message GetOrgRequest {
@@ -463,31 +483,50 @@ service GramophileEService {
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
-    rpc DeleteWant(DeleteWantRequest) returns (DeleteWantResponse) {};
-
+  
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
+    rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
+
+    rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
+}
+
+message GetSaleRequest {
+    int64 id = 1;
+    int64 min_median = 2;
+}
+
+message GetSaleResponse {
+    repeated SaleInfo sales = 1;
+}
+
+message ListWantlistsRequest {}
+message ListWantlistsResponse {
+    repeated Wantlist lists = 1;
 }
 
 message UpdateWantlistRequest {
     string name = 1;
     int64 add_id = 2;
     int64 delete_id = 3;
+    WantlistType new_type = 4;
 }
 
 message UpdateWantlistResponse {}
 
-message GetWantsRequest{}
+message GetWantsRequest{
+    bool include_updates = 2;
+}
 message GetWantsResponse{
-    repeated Want wants = 1;
+    repeated WantResponse wants = 1;
 }
 
-message DeleteWantRequest {
-    int64 want_id = 1;
+message WantResponse {
+    Want want = 1;
+    repeated Update updates = 2;
 }
 
-message DeleteWantResponse {}
 
 message AddWantRequest {
     int64 want_id = 1;

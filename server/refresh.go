@@ -20,7 +20,8 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 			Auth:    user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
-					Iid: req.GetInstanceId(),
+					Iid:       req.GetInstanceId(),
+					Intention: "Manual Update",
 				}}},
 	})
 

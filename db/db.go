@@ -74,9 +74,9 @@ type Database interface {
 	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
 
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
+	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
-	SaveWant(ctx context.Context, userid int32, want *pb.Want) error
-	DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error
+	SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error
 
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
@@ -207,7 +207,15 @@ func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) erro
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, sale.GetSaleId()), sale)
 }
 
+var (
+	saleDeletes = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_sale_deletes",
+		Help: "The size of the user list",
+	}, []string{"id"})
+)
+
 func (d *DB) DeleteSale(ctx context.Context, userid int32, saleid int64) error {
+	saleDeletes.With(prometheus.Labels{"id": fmt.Sprintf("saleid")}).Inc()
 	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/sale/%v", userid, saleid))
 }
 
@@ -245,7 +253,8 @@ func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, er
 
 func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/user/%v/want/", userid),
+		Prefix:      fmt.Sprintf("gramophile/user/%v/want/", userid),
+		AvoidSuffix: []string{"update"},
 	})
 	if err != nil {
 		return nil, err
@@ -270,14 +279,52 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 	return wants, nil
 }
 
-func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want) error {
-	log.Printf("SAVING: %v", fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()))
+func (d *DB) GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/user/%v/want/%v/updates/", userid, wid),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var updates []*pb.Update
+	for _, key := range keys.GetKeys() {
+		data, err := d.load(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		update := &pb.Update{}
+		proto.Unmarshal(data, update)
+		updates = append(updates, update)
+	}
+
+	return updates, nil
+}
+
+func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error {
+	err := d.saveWantUpdates(ctx, userid, want, reason)
+	if err != nil {
+		return err
+	}
 	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 }
 
-func (d *DB) DeleteWant(ctx context.Context, user *pb.StoredUser, want int64) error {
-	log.Printf("DELETE %v", want)
-	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", user.GetUser().GetDiscogsUserId(), want))
+func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, reason string) error {
+	old, err := d.GetWant(ctx, userid, want.GetId())
+	if err != nil && status.Code(err) != codes.NotFound {
+		return err
+	}
+
+	updates := buildWantUpdates(old, want, reason)
+	if updates != nil {
+		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
@@ -495,6 +542,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 		Value: &anypb.Any{Value: data},
 	})
+	log.Printf("Writing gramophile/user/%v/release/%v -> %v", userid, record.GetRelease().GetInstanceId(), err)
 
 	return err
 }
@@ -544,7 +592,7 @@ func (d *DB) GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Bad read: %w", err)
 	}
 
 	su := &pb.Record{}

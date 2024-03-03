@@ -2,9 +2,7 @@ package server
 
 import (
 	"context"
-	"math/rand"
 	"sort"
-	"time"
 
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -52,15 +50,18 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 		return resp, err
 	}
 
-	if req.IncludeHistory {
-		if resp.GetRecordResponse().GetRecord() != nil {
-			up, err := s.d.GetUpdates(ctx, u.GetUser().GetDiscogsUserId(), resp.GetRecordResponse().GetRecord())
+	// Get any sale data
+	for _, r := range resp.GetRecords() {
+		if r.GetRecord().GetSaleId() > 0 {
+			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetRecord().GetSaleId())
 			if err != nil {
 				return nil, err
 			}
-			resp.RecordResponse.Updates = up
+			r.SaleInfo = sale
 		}
+	}
 
+	if req.IncludeHistory {
 		for _, r := range resp.GetRecords() {
 			up, err := s.d.GetUpdates(ctx, u.GetUser().DiscogsUserId, r.GetRecord())
 			if err != nil {
@@ -79,36 +80,14 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 		if err != nil {
 			return nil, err
 		}
-		resp := &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: r}}
-
-		if r.GetSaleId() > 0 {
-			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetSaleId())
-			if err != nil {
-
-				// If we get not found here, the sale has been deleted
-				if status.Code(err) == codes.NotFound {
-					r.SaleId = 0
-					return resp, s.d.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
-				}
-
-				return nil, err
-			}
-			resp.GetRecordResponse().SaleInfo = sale
+		return &pb.GetRecordResponse{Records: []*pb.RecordResponse{{Record: r}}}, nil
+	} else if req.GetGetRecordWithId().GetReleaseId() > 0 {
+		var records []*pb.RecordResponse
+		rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
 		}
 
-		return resp, nil
-	}
-
-	rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(rids), func(i, j int) { rids[i], rids[j] = rids[j], rids[i] })
-
-	if req.GetGetRecordWithId() != nil {
-		var records []*pb.RecordResponse
 		for _, r := range rids {
 			r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
 			if err != nil {
@@ -134,6 +113,11 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 			return nil, status.Errorf(codes.NotFound, "Unable to find a listening filter with name %v", req.GetGetRecordToListenTo().GetFilter())
 		}
 
+		rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
+		}
+
 		var records []*pb.Record
 		for _, r := range rids {
 			r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
@@ -149,7 +133,12 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 		if ret == nil {
 			return nil, status.Errorf(codes.NotFound, "Unable to locate record to listen to from %v", req.GetGetRecordToListenTo().GetFilter())
 		}
-		return &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: ret}}, nil
+		return &pb.GetRecordResponse{Records: []*pb.RecordResponse{{Record: ret}}}, nil
+	}
+
+	rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
 	}
 
 	for _, rec := range rids {
@@ -159,11 +148,11 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 		}
 
 		if req.GetGetRecordToListenTo() != nil {
-			return &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: r}}, nil
+			return &pb.GetRecordResponse{Records: []*pb.RecordResponse{{Record: r}}}, nil
 		}
 
 		if len(r.GetIssues()) > 0 {
-			return &pb.GetRecordResponse{RecordResponse: &pb.RecordResponse{Record: r}}, nil
+			return &pb.GetRecordResponse{Records: []*pb.RecordResponse{{Record: r}}}, nil
 		}
 	}
 

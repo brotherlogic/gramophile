@@ -54,7 +54,7 @@ func TestUpdateArrived(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetArrived() != ti {
 		t.Errorf("Arrived was not set: %v", rec)
 	}
@@ -100,7 +100,7 @@ func TestSetArrivedMovesToListeningPile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecordResponse().GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetArrived() != ti {
 		t.Errorf("Arrived was not set: %v", rec)
 	}

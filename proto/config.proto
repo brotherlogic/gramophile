@@ -212,12 +212,13 @@ enum WantsBasis {
 }
 
 enum WantsExisting {
-    EXISTING_DROP = 0;
-    EXISTING_LIST = 1;
+    EXISTING_UNKNOWN = 0;
+    EXISTING_DROP = 1;
+    EXISTING_LIST = 2;
 }
 
 message WantsConfig {
     WantsBasis origin = 1;
     WantsExisting existing = 2;
-    string existing_list = 3;
+    string transfer_list = 3;
 }

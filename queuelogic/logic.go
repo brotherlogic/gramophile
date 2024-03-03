@@ -2,6 +2,7 @@ package queuelogic
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"sort"
@@ -80,7 +81,75 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 }
 
-func (q *Queue) FlushQueue(ctx context.Context) {
+func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
+	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
+	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+		Value: &anypb.Any{Value: b},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (q *Queue) setRefreshDateMarker(ctx context.Context, user string, id int64) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
+		Value: &anypb.Any{Value: b},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+	})
+
+	return err
+}
+
+func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string, id int64) error {
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
+	})
+
+	return err
+}
+
+func (q *Queue) FlushQueue(ctx context.Context) error {
 	log.Printf("Flushing queue")
 	elem, err := q.getNextEntry(ctx)
 	log.Printf("First Entry: %v", elem)
@@ -92,17 +161,21 @@ func (q *Queue) FlushQueue(ctx context.Context) {
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
+		log.Printf("USER: %v", user)
 		d := q.d.ForUser(user.GetUser())
 		errp := q.ExecuteInternal(ctx, d, user, elem)
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Fatalf("Failed to execute internal: %v", errp)
+			log.Printf("Failed to execute internal: %v -> %v", errp, elem)
+			return errp
 		}
 
 		elem, err = q.getNextEntry(ctx)
 		log.Printf("Post flush: %v", err)
 	}
+
+	return nil
 }
 
 func (q *Queue) Run() {
@@ -116,12 +189,10 @@ func (q *Queue) Run() {
 		}
 		var erru error
 		if err == nil {
-			t2 := time.Now()
 			user, errv := q.db.GetUser(ctx, entry.GetAuth())
 			err = errv
 			erru = errv
 			if err == nil {
-				log.Printf("Processing user: %v -> %v (%v)", user, user.GetUser(), time.Since(t2))
 				if user.GetUser() == nil {
 					user.User = &pbd.User{UserSecret: user.GetUserSecret(), UserToken: user.GetUserToken()}
 				} else {
@@ -210,7 +281,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
-		log.Printf("MMMMOVE: %v", entry.GetMoveRecord())
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
 		if err != nil {
 			return fmt.Errorf("unable to get record: %w", err)
@@ -261,7 +331,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			log.Printf("Skipping %v", entry)
 			return nil
 		}
-		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice())
+		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice(), entry.GetUpdateSale().GetMotivation())
 		log.Printf("Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
 
 		// Not Found means the sale was deleted - if so remove from the db
@@ -291,7 +361,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			for i := int32(2); i <= pages; i++ {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
+						RunDate: time.Now().UnixNano() + int64(i),
 						Entry: &pb.QueueElement_SyncWants{
 							SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
 						},
@@ -307,6 +377,22 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return err
 			}
+
+			err = q.b.AlignWants(ctx, d, user.GetConfig().GetWantsConfig())
+			if err != nil {
+				return err
+			}
+
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 60,
+					Entry: &pb.QueueElement_RefreshWantlists{
+						RefreshWantlists: &pb.RefreshWantlists{},
+					},
+				},
+			})
 		}
 
 		return nil
@@ -412,11 +498,21 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUpdates:
 		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshRelease:
-		return q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d)
+		log.Printf("Refreshing %v for %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid())
+		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetRefreshRelease().GetIntention() == "Manual Update")
+		if err != nil {
+			return err
+		}
+		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshCollection:
+		log.Printf("RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		return q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)
+		err := q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)
+		if err != nil {
+			return err
+		}
+		return q.deleteRefreshDateMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
@@ -486,7 +582,63 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	return err
 }
 
+var (
+	intention = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_intention",
+		Help: "The length of the working queue I think yes",
+	}, []string{"intention"})
+	markerCount = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gramophile_marker_rejects",
+		Help: "The length of the working queue I think yes",
+	})
+)
+
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+
+	// Validate entries
+	switch req.GetElement().GetEntry().(type) {
+	case *pb.QueueElement_RefreshRelease:
+		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
+			intention.With(prometheus.Labels{"intention": "REJECT"}).Inc()
+			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
+		}
+		intention.With(prometheus.Labels{"intention": req.GetElement().GetRefreshRelease().GetIntention()}).Inc()
+
+		// Check for a marker
+		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
+			}
+		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
+			markerCount.Inc()
+			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
+		}
+
+		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
+		}
+	case *pb.QueueElement_RefreshEarliestReleaseDates:
+		log.Printf("Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
+		// Check for a marker
+		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				return nil, fmt.Errorf("Unable to get refresh datemarker: %w", err)
+			}
+		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
+			markerCount.Inc()
+			log.Printf("REJECTING because we have a refresh date in the queue")
+			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
+		}
+
+		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to write refresh date marker: %w", err)
+		}
+	}
+
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 
 	data, err := proto.Marshal(req.GetElement())

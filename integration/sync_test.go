@@ -51,7 +51,10 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		},
 	})
 
-	qc.FlushQueue(ctx)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
 
 	// Get the record
 	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
@@ -62,11 +65,11 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		t.Fatalf("Unable to get release: %v", err)
 	}
 
-	if rec.GetRecordResponse().GetRecord().GetRelease().GetReleaseDate() != 12345678 {
-		t.Errorf("Record was not updated: %v", rec.GetRecordResponse().GetRecord())
+	if rec.GetRecords()[0].GetRecord().GetRelease().GetReleaseDate() != 12345678 {
+		t.Errorf("Record was not updated: %v", rec.GetRecords()[0].GetRecord())
 	}
 
-	if rec.GetRecordResponse().GetRecord().GetEarliestReleaseDate() != 1234 {
-		t.Errorf("Record earliest release date was not updated: %v", rec.GetRecordResponse().GetRecord())
+	if rec.GetRecords()[0].GetRecord().GetEarliestReleaseDate() != 1234 {
+		t.Errorf("Record earliest release date was not updated: %v", rec.GetRecords()[0].GetRecord())
 	}
 }

@@ -30,6 +30,8 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist) error {
+	log.Printf("Processing %v", list.GetName())
+
 	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to load all records: %w", err)
@@ -39,22 +41,26 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 
 	changed := false
 	for _, entry := range list.GetEntries() {
-		log.Printf("Processing wantlist entry: %v", entry)
+		// Hard sync from the want
+		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
+		if err != nil {
+			return err
+		}
+		entry.State = want.GetState()
+
 		if entry.GetState() == pb.WantState_WANTED {
 			log.Printf("STATE matches")
 			for _, r := range records {
 				if r.GetRelease().GetId() == entry.GetId() {
-					log.Printf("Found match %v", r)
 					entry.State = pb.WantState_PURCHASED
 					changed = true
-					log.Printf("Resovled: %v", entry)
 				}
 			}
 		}
 	}
 
 	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list)
-	if err != nil {
+	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
 
@@ -74,6 +80,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 	case pb.WantlistType_ONE_BY_ONE:
 		return b.refreshOneByOneWantlist(ctx, userid, list)
 	default:
+		log.Printf("Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
 	}
 }
@@ -87,10 +94,16 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		log.Printf("Refreshing entry: %v", entry)
 		switch entry.GetState() {
 		case pb.WantState_WANTED:
+			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
+				return true, b.mergeWant(ctx, userid, &pb.Want{
+					Id:    entry.GetId(),
+					State: pb.WantState_HIDDEN,
+				})
+			}
 			return false, nil
 		case pb.WantState_PURCHASED:
 			continue
-		case pb.WantState_PENDING:
+		case pb.WantState_PENDING, pb.WantState_RETIRED:
 			state := pb.WantState_WANTED
 			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
 				state = pb.WantState_HIDDEN
@@ -121,9 +134,9 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 		val.State = want.State
 	}
 	if want.State == pb.WantState_HIDDEN {
-		if val.State == pb.WantState_PENDING {
+		if val.State == pb.WantState_PENDING || val.State == pb.WantState_WANTED {
 			val.State = want.State
 		}
 	}
-	return b.db.SaveWant(ctx, userid, val)
+	return b.db.SaveWant(ctx, userid, val, "Updated from refresh wantlist")
 }

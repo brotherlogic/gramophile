@@ -27,11 +27,6 @@ func executeWant(ctx context.Context, args []string) error {
 	}
 	client := pb.NewGramophileEServiceClient(conn)
 
-	wid, err := strconv.ParseInt(args[1], 10, 64)
-	if err != nil {
-		return err
-	}
-
 	// This is just a list
 	if len(args) == 0 {
 		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{})
@@ -40,18 +35,23 @@ func executeWant(ctx context.Context, args []string) error {
 		}
 
 		for i, want := range wants.GetWants() {
-			fmt.Printf("%v. %v\n", i, want.GetId())
+			fmt.Printf("%v. %v [%v]\n", i, want.GetWant().GetId(), want.GetWant().GetState())
+			for _, update := range want.GetUpdates() {
+				fmt.Printf("  %v\n", update)
+			}
 		}
+
+		return nil
+	}
+
+	wid, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		return err
 	}
 
 	switch args[0] {
 	case "add":
 		_, err = client.AddWant(ctx, &pb.AddWantRequest{
-			WantId: wid,
-		})
-		return err
-	case "delete":
-		_, err = client.DeleteWant(ctx, &pb.DeleteWantRequest{
 			WantId: wid,
 		})
 		return err

@@ -7,7 +7,9 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func GetWantlist() *CLIModule {
@@ -66,15 +68,40 @@ func executeWantlist(ctx context.Context, args []string) error {
 				return fmt.Errorf("unable to delete want: %w", err)
 			}
 		}
+	} else if args[0] == "list" {
+		lists, err := client.ListWantlists(ctx, &pb.ListWantlistsRequest{})
+		if err != nil {
+			return fmt.Errorf("unable to delete want: %w", err)
+		}
+
+		for i, list := range lists.GetLists() {
+			fmt.Printf("%v. %v [%v]\n", i, list.GetName(), list.GetType())
+		}
+	} else if args[0] == "type" {
+		ntype := pb.WantlistType_TYPE_UNKNOWN
+		switch args[2] {
+		case "one":
+			ntype = pb.WantlistType_ONE_BY_ONE
+		default:
+			return status.Errorf(codes.InvalidArgument, "%v is not a known type [one]", args[2])
+		}
+
+		_, err = client.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+			Name:    args[1],
+			NewType: ntype,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to delete want: %w", err)
+		}
 	} else {
 		wantlist, err := client.GetWantlist(ctx, &pb.GetWantlistRequest{Name: args[0]})
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("List: %v\n", wantlist.GetList().GetName())
+		fmt.Printf("List: %v (%v)\n", wantlist.GetList().GetName(), wantlist.GetList().GetType())
 		for _, entry := range wantlist.GetList().GetEntries() {
-			fmt.Printf("  [%v] %v - %v ", entry.GetId(), entry.GetArtist(), entry.GetTitle())
+			fmt.Printf("  [%v] %v - %v (%v)\n", entry.GetId(), entry.GetArtist(), entry.GetTitle(), entry.GetState())
 		}
 	}
 

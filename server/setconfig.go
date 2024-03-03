@@ -28,7 +28,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
 	if verr != nil {
-		return nil, fmt.Errorf("bad validate: %v", verr)
+		return nil, fmt.Errorf("bad validate: %w", verr)
 	}
 
 	log.Printf("got folders: %v", folders)

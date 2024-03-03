@@ -8,6 +8,8 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -36,10 +38,16 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 					Auth:    authToken,
 					Entry: &pb.QueueElement_RefreshRelease{
 						RefreshRelease: &pb.RefreshRelease{
-							Iid: id,
+							Iid:       id,
+							Intention: "from-refresh-collection",
 						}}},
 			})
-			if err != nil {
+			if err == nil {
+				log.Printf("Refreshing %v", id)
+			}
+
+			// If the refresh is already in the queue, then that's fine
+			if err != nil && status.Code(err) != codes.AlreadyExists {
 				return err
 			}
 			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > RefreshReleaseDatesPeriod {
@@ -53,7 +61,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 								MasterId: rec.GetRelease().GetMasterId(),
 							}}},
 				})
-				if err != nil {
+				if err != nil && status.Code(err) != codes.AlreadyExists {
 					return err
 				}
 			}
