@@ -189,6 +189,11 @@ message SaleConfig {
     int64 post_median_reduction_frequency = 8;
     LowerBoundStrategy lower_bound_strategy = 9;
     int32 lower_bound = 10;
+
+    // Time based sales
+    int32 time_to_median_days = 11;
+    int32 time_to_lower_days = 12;
+    int32 time_to_stale_days = 13;
 }
 
 enum LowerBoundStrategy {
