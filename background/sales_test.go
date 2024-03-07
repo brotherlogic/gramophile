@@ -1,8 +1,10 @@
 package background
 
 import (
+	"context"
 	"sort"
 	"testing"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -75,5 +77,50 @@ func TestFirstUpdate(t *testing.T) {
 	if updates[0].Date != 1 || updates[0].SetPrice.Value != 100 {
 		t.Errorf("Bad update: %v", updates[0])
 	}
+}
 
+var reductionTests = []struct {
+	name           string
+	startPrice     int32
+	medianPrice    int32
+	lowPrice       int32
+	expectedPrice  int32
+	timeSinceStart int32
+	timeToMedian   int32
+	timeToLow      int32
+}{
+	{
+		name:           "Half Way Median",
+		startPrice:     100,
+		medianPrice:    50,
+		lowPrice:       10,
+		expectedPrice:  75,
+		timeSinceStart: 5,
+		timeToMedian:   10,
+		timeToLow:      10,
+	},
+}
+
+func TestReduction(t *testing.T) {
+	for _, test := range reductionTests {
+		config := &pb.SaleConfig{
+			TimeToMedianDays: test.timeToMedian,
+			TimeToLowerDays:  test.timeToLow,
+			UpdateType:       pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+		}
+		sale := &pb.SaleInfo{
+			InitialPrice: &pbd.Price{Value: test.startPrice},
+			ListedDate:   time.Now().Add(-time.Hour * time.Duration(24*test.timeSinceStart)).UnixNano(),
+			MedianPrice:  &pbd.Price{Value: test.medianPrice},
+			LowPrice:     &pbd.Price{Value: test.lowPrice},
+		}
+
+		nPrice, _, err := adjustPrice(context.Background(), sale, config)
+		if err != nil {
+			t.Errorf("Bad price reduction: %v", err)
+		}
+		if nPrice != test.expectedPrice {
+			t.Errorf("Price was %v, expected %v (%v)", nPrice, test.expectedPrice, test.name)
+		}
+	}
 }
