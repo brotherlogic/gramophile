@@ -12,3 +12,11 @@ flag_management:
         - type: project
           target: auto
           threshold: 0%
+    - name: queue
+      paths:
+        - background/
+        - queuelogic/
+      statuses:
+        - type: project
+          target: auto
+          threshold: 0%
