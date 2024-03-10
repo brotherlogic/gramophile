@@ -16,6 +16,9 @@ import (
 
 func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing MID %v", mid)
+	if true {
+	return nil
+	}
 
 	// Don't refresh if record has no masters
 	if mid == 0 {
