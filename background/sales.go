@@ -123,6 +123,33 @@ func max(a, b int32) int32 {
 	return b
 }
 
+func timeReduce(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, string, error) {
+	log.Printf("Performing time reduction on %v", s.GetSaleId())
+
+	// Are we in pre-median or post-median time?
+	if s.GetTimeAtMedian() == 0 {
+		// Pre-median
+		timeOnSale := time.Since(time.Unix(0, s.GetListedDate()))
+		percTimeOnSale := float64(timeOnSale.Seconds()) / float64(c.GetTimeToMedianDays()*24*60*60)
+		if percTimeOnSale > 1.0 {
+			percTimeOnSale = 1.0
+		}
+		nprice := s.GetInitialPrice().GetValue() - int32(float64(s.GetInitialPrice().GetValue()-s.GetMedianPrice().GetValue())*percTimeOnSale)
+		return nprice, "Time Reduction To Median", nil
+	} else {
+		timeOnLow := time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())
+		if timeOnLow < 0 {
+			return s.GetCurrentPrice().GetValue(), "Holding in Post Median State", nil
+		}
+		percTimePostMedian := float64(timeOnLow) / float64(c.GetTimeToLowerDays()*24*60*60)
+		if percTimePostMedian > 1.0 {
+			percTimePostMedian = 1.0
+		}
+		nprice := s.GetMedianPrice().GetValue() - int32(float64(s.GetMedianPrice().GetValue()-s.GetLowPrice().GetValue())*percTimePostMedian)
+		return nprice, "Time Reduction to Low", nil
+	}
+}
+
 func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, string, error) {
 	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
 	switch c.GetUpdateType() {
@@ -134,6 +161,10 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 		// Bail if there is not current median price
 		if s.GetMedianPrice().GetValue() == 0 {
 			return s.GetCurrentPrice().GetValue(), "no median available", nil
+		}
+
+		if c.GetTimeToMedianDays() > 0 {
+			return timeReduce(ctx, s, c)
 		}
 
 		// Are we in post reduction time?
