@@ -2,8 +2,6 @@ module github.com/brotherlogic/gramophile/queue
 
 go 1.21
 
-toolchain go1.22.1
-
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240307225848-29e51213882e
 	github.com/brotherlogic/gramophile v0.660.0
