@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
@@ -36,8 +38,13 @@ func executeWant(ctx context.Context, args []string) error {
 
 		for i, want := range wants.GetWants() {
 			fmt.Printf("%v. %v [%v]\n", i, want.GetWant().GetId(), want.GetWant().GetState())
+
+			sort.SliceStable(want.Updates, func(i, j int) bool {
+				return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
+			})
+
 			for _, update := range want.GetUpdates() {
-				fmt.Printf("  %v\n", update)
+				fmt.Printf("  %v - %v\n", time.Unix(0, update.GetDate()), update)
 			}
 		}
 
