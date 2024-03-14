@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	RefreshReleasePeriod      = time.Hour * 24          // Once a week
+	RefreshReleasePeriod      = time.Hour * 24 * 7          // Once a week
 	RefreshReleaseDatesPeriod = time.Hour * 24 * 7 * 30 // Once a month
 )
 
