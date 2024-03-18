@@ -594,6 +594,7 @@ var (
 )
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	log.Printf("Enqueue: %v", req)
 
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
@@ -625,6 +626,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
+				log.Printf("NO DATEMARKER")
 				return nil, fmt.Errorf("Unable to get refresh datemarker: %w", err)
 			}
 		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {

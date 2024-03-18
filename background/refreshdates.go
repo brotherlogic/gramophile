@@ -15,10 +15,7 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	log.Printf("Refreshing MID %v", mid)
-	if true {
-		return nil
-	}
+	log.Printf("Refreshing the MID %v", mid)
 
 	// Don't refresh if record has no masters
 	if mid == 0 {
@@ -27,9 +24,11 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 
 	masters, err := d.GetMasterReleases(ctx, mid, 1, pbd.MasterSort_BY_YEAR)
 	if err != nil {
+		log.Printf("Can't get masters: %v", err)
 		return err
 	}
 
+	log.Printf("FOUND MASTERS: %v", masters)
 	for _, m := range masters {
 		_, err = enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
@@ -41,6 +40,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 						OtherRelease: m.GetId(),
 					}}},
 		})
+		log.Printf("ENQUEED %v", iid)
 		if err != nil {
 			return fmt.Errorf("unable to queue sales: %v", err)
 		}
