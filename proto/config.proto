@@ -7,6 +7,12 @@ option go_package = "github.com/brotherlogic/gramophile/proto";
 import "organisation.proto";
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
+message Filter {
+    repeated string formats = 1;
+    repeated int32 exclude_folder = 2;
+    repeated int32 include_folder = 3;
+}
+
 enum Basis {
     DISCOGS = 0;
     GRAMOPHILE = 1;
@@ -70,12 +76,6 @@ message MoveHistory {
     string move = 1;
     int64 iid = 2;
     int64 time = 3;
-}
-
-message Filter {
-    repeated string formats = 1;
-    repeated int32 exclude_folder = 2;
-    repeated int32 include_folder = 3;
 }
 
 enum MoveSource {
