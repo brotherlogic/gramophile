@@ -28,6 +28,8 @@ message Wantlist {
     WantlistType type = 4;
     repeated WantlistEntry entries = 5;
     WantlistVisibility visibility = 6;
+
+    WantFilter global_filter = 7;
 }
 
 message WantlistEntry {
@@ -48,11 +50,18 @@ enum WantState {
     DELETED = 5;
 }
 
+message WantFilter {
+    repeated string formats = 1;
+   repeated string exclude_formats = 2;
+}
+
 message Want {
     int64 id = 1;
     int64 want_added_date = 2;
     WantState state = 3;
     int64 sync_id = 4;
+    int64 master_id = 5;
+    WantFilter master_filter = 6;
 }
 
 enum NoncomplianceIssue {
