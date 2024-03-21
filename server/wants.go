@@ -67,6 +67,6 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	return &pb.AddWantResponse{}, s.d.SaveWant(
 		ctx,
 		user.GetUser().GetDiscogsUserId(),
-		&pb.Want{Id: req.GetWantId()},
+		&pb.Want{Id: req.GetWantId(), MasterId: req.GetMasterWantId(), MasterFilter: req.GetFilter()},
 		"Added from API")
 }

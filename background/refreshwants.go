@@ -6,16 +6,94 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	dpb "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, wid int64) error {
+func (b *BackgroundRunner) AddWant(ctx context.Context, wid int64, d discogs.Discogs) error {
+	_, err := d.AddWant(ctx, wid)
+	if err != nil {
+		return err
+	}
+
+	return b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{
+		Id: wid,
+	}, "Adding want from background task")
+}
+
+func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
+	for _, ef := range filter.GetExcludeFormats() {
+		for _, f := range release.GetFormats() {
+			if f.GetName() == ef {
+				return false
+			}
+		}
+	}
+
+	if len(filter.GetFormats()) == 0 {
+		return true
+	}
+
+	found := false
+	for _, af := range filter.GetFormats() {
+		for _, f := range release.GetFormats() {
+			if f.GetName() == af {
+				found = true
+			}
+		}
+	}
+	return found
+}
+
+func AddMasterWant(ctx context.Context, wid int64, filter *pb.WantFilter, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	release, err := d.GetRelease(ctx, wid)
+	if err != nil {
+		return err
+	}
+
+	if wfilter(filter, release) {
+		enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth: authToken,
+				Entry: &pb.QueueElement_AddWant{
+					AddWant: &pb.AddWant{
+						Id: release.GetId(),
+						MasterId: rela
+					},
+				},
+			},
+		})
+	}
+}
+
+func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	master, err := d.GetMasterReleases(ctx, want.GetMasterId(), 1, dpb.MasterSort_BY_YEAR)
+	if err != nil {
+		return err
+	}
+
+	for _, pwant := range master {
+		enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth: authToken,
+				Entry: &pb.QueueElement_AddWant{
+					AddWant: &pb.AddWant{Id: pwant, Masterid: want.GetMasterId(), Filter:want.GetMasterFilter(),
+				},
+			},
+		})
+	}
+}
+
+func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, wid int64, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	want, err := b.db.GetWant(ctx, d.GetUserId(), wid)
 	if err != nil {
 		return err
 	}
 
 	if want.GetState() == pb.WantState_WANTED {
+		if want.GetMasterId() > 0 {
+			return b.handleMasterWant(ctx, d, want, authToken, enqueue)
+		}
 		_, err := d.AddWant(ctx, wid)
 		return err
 	}

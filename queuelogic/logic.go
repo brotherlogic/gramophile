@@ -465,6 +465,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		return nil
+	case *pb.QueueElement_AddWant:
+		return q.b.AddWant(ctx, entry.GetAddWant(), d)
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {
