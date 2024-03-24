@@ -35,6 +35,11 @@ var (
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
 	})
+	dlQeueLen = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_dlqlen",
+		Help: "The length of the working queue I think yes",
+	})
+
 	queueLast = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_last_proc",
 		Help: "The length of the working queue I think yes",
@@ -225,6 +230,8 @@ func (q *Queue) Run() {
 					Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
 					Value: &anypb.Any{Value: data},
 				})
+				dlQeueLen.Inc()
+
 				if err == nil {
 					q.delete(ctx, entry)
 				}
