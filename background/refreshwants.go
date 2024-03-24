@@ -57,8 +57,8 @@ func AddMasterWant(ctx context.Context, wid int64, filter *pb.WantFilter, d disc
 				Auth: authToken,
 				Entry: &pb.QueueElement_AddWant{
 					AddWant: &pb.AddWant{
-						Id: release.GetId(),
-						MasterId: rela
+						Id:       release.GetId(),
+						MasterId: release.GetMasterId(),
 					},
 				},
 			},
@@ -77,10 +77,9 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 			Element: &pb.QueueElement{
 				Auth: authToken,
 				Entry: &pb.QueueElement_AddWant{
-					AddWant: &pb.AddWant{Id: pwant, Masterid: want.GetMasterId(), Filter:want.GetMasterFilter(),
+					AddWant: &pb.AddWant{Id: pwant, Masterid: want.GetMasterId(), Filter: want.GetMasterFilter()},
 				},
-			},
-		})
+			}})
 	}
 }
 
