@@ -28,12 +28,18 @@ import (
 )
 
 var (
-	QUEUE_PREFIX = "gramophile/taskqueue/"
+	QUEUE_PREFIX    = "gramophile/taskqueue/"
+	DL_QUEUE_PREFIX = "gramophile/dlq/"
 
 	queueLen = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
 	})
+	dlQeueLen = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_dlqlen",
+		Help: "The length of the working queue I think yes",
+	})
+
 	queueLast = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_last_proc",
 		Help: "The length of the working queue I think yes",
@@ -217,12 +223,19 @@ func (q *Queue) Run() {
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
-			if entry != nil {
-				queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set((time.Second * time.Duration(entry.GetBackoffInSeconds())).Seconds())
-				time.Sleep(time.Second * time.Duration(entry.GetBackoffInSeconds()))
+			// Move this over to the DLQ
+			data, err := proto.Marshal(entry)
+			if err == nil {
+				_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
+					Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
+					Value: &anypb.Any{Value: data},
+				})
+				dlQeueLen.Inc()
+
+				if err == nil {
+					q.delete(ctx, entry)
+				}
 			}
-			queueSleep.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry)}).Set(time.Minute.Seconds())
-			time.Sleep(time.Minute)
 		}
 	}
 }
