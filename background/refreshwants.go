@@ -14,7 +14,6 @@ import (
 )
 
 func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
-	log.Printf("FILTER: %v", filter)
 	for _, ef := range filter.GetExcludeFormats() {
 		for _, f := range release.GetFormats() {
 			if f.GetName() == ef {
