@@ -14,6 +14,7 @@ import (
 )
 
 func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
+	log.Printf("FILTER: %v", filter)
 	for _, ef := range filter.GetExcludeFormats() {
 		for _, f := range release.GetFormats() {
 			if f.GetName() == ef {
@@ -37,6 +38,19 @@ func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
 	return found
 }
 
+func (b *BackgroundRunner) AddMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want) error {
+	// Load the record
+	record, err := d.GetRelease(ctx, want.GetId())
+	if err != nil {
+		return err
+	}
+
+	if wfilter(want.GetMasterFilter(), record) {
+		return b.db.SaveWant(ctx, d.GetUserId(), want, "Adding from master")
+	}
+	return nil
+}
+
 func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	master, err := d.GetMasterReleases(ctx, want.GetMasterId(), 1, dpb.MasterSort_BY_YEAR)
 	log.Printf("MASTERS: %v %v", master, err)
@@ -45,7 +59,12 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 	}
 
 	for _, pwant := range master {
-		b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId()}, "Adding from master")
+		_, err = enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth:    authToken,
+				RunDate: time.Now().UnixNano(),
+				Entry:   &pb.QueueElement_AddMasterWant{AddMasterWant: &pb.AddMasterWant{Want: &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId(), MasterFilter: want.GetMasterFilter()}}},
+			}})
 	}
 
 	// resync the wants if we added anything

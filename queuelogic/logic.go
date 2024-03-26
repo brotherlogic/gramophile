@@ -338,6 +338,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return err
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
+	case *pb.QueueElement_AddMasterWant:
+		return q.b.AddMasterWant(ctx, d, entry.GetAddMasterWant().GetWant())
 	case *pb.QueueElement_UpdateSale:
 		//Short cut if sale data is not complete
 		if entry.GetUpdateSale().GetCondition() == "" {

@@ -230,7 +230,6 @@ message QueueElement {
 
 message AddMasterWant {
     Want want = 1;
-    int64 release_id = 2;
 }
 
 message DeleteMasterWant {
