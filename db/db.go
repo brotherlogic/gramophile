@@ -76,6 +76,7 @@ type Database interface {
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
 	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
+	GetMasterWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error
 
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
@@ -249,6 +250,34 @@ func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, er
 	want := &pb.Want{}
 	err = proto.Unmarshal(data, want)
 	return want, err
+}
+
+func (d *DB) GetMasterWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix:      fmt.Sprintf("gramophile/user/%v/masterwant/", userid),
+		AvoidSuffix: []string{"update"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var wants []*pb.Want
+	for _, key := range keys.GetKeys() {
+		data, err := d.load(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+
+		want := &pb.Want{}
+		err = proto.Unmarshal(data, want)
+		if err != nil {
+			return nil, err
+		}
+
+		wants = append(wants, want)
+	}
+
+	return wants, nil
 }
 
 func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {

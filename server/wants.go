@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -64,9 +65,17 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	if err != nil {
 		return nil, err
 	}
-	return &pb.AddWantResponse{}, s.d.SaveWant(
+
+	err = s.d.SaveWant(
 		ctx,
 		user.GetUser().GetDiscogsUserId(),
-		&pb.Want{Id: req.GetWantId(), MasterId: req.GetMasterWantId(), MasterFilter: req.GetFilter()},
+		&pb.Want{
+			State:        pb.WantState_WANTED,
+			Id:           req.GetWantId(),
+			MasterId:     req.GetMasterWantId(),
+			MasterFilter: req.GetFilter()},
 		"Added from API")
+	log.Printf("SAVED %v (%v)", err, user.GetUser().GetDiscogsUserId())
+
+	return &pb.AddWantResponse{}, err
 }

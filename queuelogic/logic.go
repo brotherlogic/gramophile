@@ -343,7 +343,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefreshWants(ctx, d)
 	case *pb.QueueElement_RefreshWant:
-		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWantId())
+		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_SyncWants:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {
@@ -465,8 +465,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		return nil
-	case *pb.QueueElement_AddWant:
-		return q.b.AddWant(ctx, entry.GetAddWant(), d)
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {

@@ -26,13 +26,25 @@ func TestAddMasterWant(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	di.AddCollectionRelease(&pbd.Release{Id: 12, MasterId: 123})
+	di.AddCollectionRelease(&pbd.Release{Id: 13, MasterId: 123})
 
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	val, err := s.AddWant(ctx, &pb.AddWantRequest{
+	_, err = s.AddWant(ctx, &pb.AddWantRequest{
 		MasterWantId: 123,
 	})
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:    "123",
+			RunDate: 1,
+			Entry:   &pb.QueueElement_SyncWants{},
+		},
+	})
+
+	qc.FlushQueue(ctx)
 
 	if err != nil {
 		t.Fatalf("Unable to add want: %v", err)

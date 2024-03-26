@@ -3,23 +3,15 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
 	dpb "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
-
-func (b *BackgroundRunner) AddWant(ctx context.Context, wid int64, d discogs.Discogs) error {
-	_, err := d.AddWant(ctx, wid)
-	if err != nil {
-		return err
-	}
-
-	return b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{
-		Id: wid,
-	}, "Adding want from background task")
-}
 
 func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
 	for _, ef := range filter.GetExcludeFormats() {
@@ -45,59 +37,45 @@ func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
 	return found
 }
 
-func AddMasterWant(ctx context.Context, wid int64, filter *pb.WantFilter, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	release, err := d.GetRelease(ctx, wid)
-	if err != nil {
-		return err
-	}
-
-	if wfilter(filter, release) {
-		enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Auth: authToken,
-				Entry: &pb.QueueElement_AddWant{
-					AddWant: &pb.AddWant{
-						Id:       release.GetId(),
-						MasterId: release.GetMasterId(),
-					},
-				},
-			},
-		})
-	}
-}
-
 func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	master, err := d.GetMasterReleases(ctx, want.GetMasterId(), 1, dpb.MasterSort_BY_YEAR)
+	log.Printf("MASTERS: %v %v", master, err)
 	if err != nil {
 		return err
 	}
 
 	for _, pwant := range master {
-		enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Auth: authToken,
-				Entry: &pb.QueueElement_AddWant{
-					AddWant: &pb.AddWant{Id: pwant, Masterid: want.GetMasterId(), Filter: want.GetMasterFilter()},
-				},
-			}})
+		b.db.SaveWant(ctx, d.GetUserId(), &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId()}, "Adding from master")
 	}
+
+	// resync the wants if we added anything
+	if len(master) > 0 {
+		_, err := enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth:    authToken,
+				RunDate: time.Now().UnixNano(),
+				Entry:   &pb.QueueElement_SyncWants{},
+			},
+		})
+		return err
+	}
+
+	return nil
 }
 
-func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, wid int64, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	want, err := b.db.GetWant(ctx, d.GetUserId(), wid)
-	if err != nil {
-		return err
-	}
-
+func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	if want.GetState() == pb.WantState_WANTED {
-		if want.GetMasterId() > 0 {
+		if want.GetMasterId() > 0 && want.GetId() == 0 {
 			return b.handleMasterWant(ctx, d, want, authToken, enqueue)
 		}
-		_, err := d.AddWant(ctx, wid)
+		_, err := d.AddWant(ctx, want.GetId())
 		return err
 	}
 
-	return d.DeleteWant(ctx, wid)
+	if want.GetMasterId() > 0 {
+		return status.Errorf(codes.Internal, "Unable to delete master id currently")
+	}
+	return d.DeleteWant(ctx, want.GetId())
 }
 
 func (b *BackgroundRunner) SyncWants(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
@@ -113,7 +91,27 @@ func (b *BackgroundRunner) SyncWants(ctx context.Context, d discogs.Discogs, use
 				Auth:    user.GetAuth().GetToken(),
 				Entry: &pb.QueueElement_RefreshWant{
 					RefreshWant: &pb.RefreshWant{
-						WantId: w.GetId(),
+						Want: w,
+					}}},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	mwants, err := b.db.GetMasterWants(ctx, d.GetUserId())
+	if err != nil {
+		return err
+	}
+
+	for _, w := range mwants {
+		_, err = enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate: time.Now().UnixNano(),
+				Auth:    user.GetAuth().GetToken(),
+				Entry: &pb.QueueElement_RefreshWant{
+					RefreshWant: &pb.RefreshWant{
+						Want: w,
 					}}},
 		})
 		if err != nil {

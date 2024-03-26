@@ -210,7 +210,6 @@ message QueueElement {
         RefreshSales refresh_sales = 10;
         LinkSales link_sales = 11;
         RefreshWantlists refresh_wantlists = 12;
-        AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
         UpdateSale update_sale = 15;
         MoveRecords move_records = 16;
@@ -221,19 +220,25 @@ message QueueElement {
         RefreshEarliestReleaseDate refresh_earliest_release_date = 21;
         SyncWants sync_wants = 22;
         RefreshWant refresh_want = 23;
-        HandleMasterWant handle_master_want = 24;
+        AddMasterWant add_master_want = 24;
+        DeleteMasterWant delete_master_want = 25;
     }
 
     int64 refresh_id = 7;
 }
 
 
-message HandleMasterWant {
+message AddMasterWant {
+    Want want = 1;
+    int64 release_id = 2;
+}
+
+message DeleteMasterWant {
     Want want = 1;
 }
 
 message RefreshWant {
-    int64 want_id = 1;
+   Want want = 1;
 }
 
 message SyncWants {
