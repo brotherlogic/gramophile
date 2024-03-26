@@ -60,6 +60,7 @@ message Want {
     int64 want_added_date = 2;
     WantState state = 3;
     int64 sync_id = 4;
+
     int64 master_id = 5;
     WantFilter master_filter = 6;
 }
@@ -209,7 +210,6 @@ message QueueElement {
         RefreshSales refresh_sales = 10;
         LinkSales link_sales = 11;
         RefreshWantlists refresh_wantlists = 12;
-        AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
         UpdateSale update_sale = 15;
         MoveRecords move_records = 16;
@@ -220,13 +220,24 @@ message QueueElement {
         RefreshEarliestReleaseDate refresh_earliest_release_date = 21;
         SyncWants sync_wants = 22;
         RefreshWant refresh_want = 23;
+        AddMasterWant add_master_want = 24;
+        DeleteMasterWant delete_master_want = 25;
     }
 
     int64 refresh_id = 7;
 }
 
+
+message AddMasterWant {
+    Want want = 1;
+}
+
+message DeleteMasterWant {
+    Want want = 1;
+}
+
 message RefreshWant {
-    int64 want_id = 1;
+   Want want = 1;
 }
 
 message SyncWants {
@@ -273,6 +284,8 @@ message RefreshWants {}
 
 message AddWant {
     int64 id = 1;
+    int64 master_id = 2;
+    WantFilter filter = 3;
 }
 
 message RefreshWantlists {
@@ -539,6 +552,8 @@ message WantResponse {
 
 message AddWantRequest {
     int64 want_id = 1;
+    int64 master_want_id = 2;
+    WantFilter filter = 3;
 }
 
 message AddWantResponse {}

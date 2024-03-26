@@ -338,6 +338,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return err
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
+	case *pb.QueueElement_AddMasterWant:
+		return q.b.AddMasterWant(ctx, d, entry.GetAddMasterWant().GetWant())
 	case *pb.QueueElement_UpdateSale:
 		//Short cut if sale data is not complete
 		if entry.GetUpdateSale().GetCondition() == "" {
@@ -356,7 +358,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefreshWants(ctx, d)
 	case *pb.QueueElement_RefreshWant:
-		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWantId())
+		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_SyncWants:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {

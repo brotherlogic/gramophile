@@ -4,8 +4,8 @@ go 1.21
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240313230453-4b08cadeead8
-	github.com/brotherlogic/gramophile v0.665.0
-	github.com/brotherlogic/rstore v0.44.0
+	github.com/brotherlogic/gramophile v0.666.0
+	github.com/brotherlogic/rstore v0.45.0
 	github.com/prometheus/client_golang v1.19.0
 	google.golang.org/grpc v1.62.1
 )
