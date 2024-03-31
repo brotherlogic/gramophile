@@ -94,7 +94,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 	var ckeys []int64
 	for _, key := range keys.GetKeys() {
-		value, err := strconv.ParseInt(key, 10, 64)
+		value, err := strconv.ParseInt(key[len(QUEUE_PREFIX):], 10, 64)
 		if err != nil {
 			log.Fatalf("Bad parse: %v (%v)", err, key)
 		}
@@ -727,7 +727,7 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return keys[i] < keys[j]
 	})
 
-	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v", keys[0])})
+	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, keys[0])})
 	if err != nil {
 		return nil, err
 	}
