@@ -106,6 +106,12 @@ func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota,
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	moves := user.GetMoves()
+
+	// Fast return on empty moves
+	if len(moves) == 0 {
+		return nil
+	}
+
 	quota, err := b.loadMoveQuota(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
