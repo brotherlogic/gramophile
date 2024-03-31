@@ -15,7 +15,7 @@ const (
 	refreshStatsFrequency = time.Hour * 24 * 7
 
 	// Min refresh frequency
-	minRefreshFreq = time.Hour * 2
+	minRefreshFreq = time.Hour * 24 * 7
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs, force bool) error {
