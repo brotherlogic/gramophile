@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -73,6 +73,7 @@ type Queue struct {
 	b      *background.BackgroundRunner
 	d      discogs.Discogs
 	db     db.Database
+	keys   []int64
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
@@ -82,8 +83,26 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 		panic(err)
 	}
 	d.SetDownloader(&DownloaderBridge{scraper: sc})
+
+	log.Printf("Loading cache")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	keys, err := r.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	if err != nil {
+		log.Fatalf("Unable to get keys: %v", err)
+	}
+	var ckeys []int64
+	for _, key := range keys.GetKeys() {
+		value, err := strconv.ParseInt(key, 10, 64)
+		if err != nil {
+			log.Fatalf("Bad parse: %v (%v)", err, key)
+		}
+		ckeys = append(ckeys, value)
+	}
+
 	return &Queue{
-		b: b, d: d, rstore: r, db: db,
+		b: b, d: d, rstore: r, db: db, keys: ckeys,
 	}
 }
 
@@ -593,8 +612,14 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 }
 
 func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
-	return err
+	var nkeys []int64
+	for _, key := range q.keys {
+		if key != entry.GetRunDate() {
+			nkeys = append(nkeys, key)
+		}
+	}
+	q.keys = nkeys
+	return nil
 }
 
 var (
@@ -670,13 +695,14 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	if err == nil {
 		queueLen.Inc()
 	}
+	q.keys = append(q.keys, req.GetElement().GetRunDate())
 
 	return &pb.EnqueueResponse{}, err
 }
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	t := time.Now()
-	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	/*keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
 	}
@@ -689,13 +715,24 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	sort.SliceStable(keys.Keys, func(i, j int) bool {
 		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
+	})*/
+
+	log.Printf("Entries: %v", len(q.keys))
+	if len(q.keys) == 0 {
+		return nil, status.Errorf(codes.NotFound, "No queue entries")
+	}
+
+	keys := q.keys
+	sort.SliceStable(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
 	})
 
-	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: keys.GetKeys()[0]})
+	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v", keys[0])})
 	if err != nil {
 		return nil, err
 	}
 
+	queueLen.Set(float64(len(keys)))
 	entry := &pb.QueueElement{}
 	err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 	queueLoadTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(t).Milliseconds()))
