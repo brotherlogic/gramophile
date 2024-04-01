@@ -242,17 +242,23 @@ func (q *Queue) Run() {
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
 		} else {
-			// Move this over to the DLQ
-			data, err := proto.Marshal(entry)
-			if err == nil {
-				_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
-					Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
-					Value: &anypb.Any{Value: data},
-				})
-				dlQeueLen.Inc()
-
+			// This is discogs throttling us
+			if status.Code(err) == codes.ResourceExhausted {
+				log.Printf("Waiting for a minute to let our tokens regenerate")
+				time.Sleep(time.Minute)
+			} else {
+				// Move this over to the DLQ
+				data, err := proto.Marshal(entry)
 				if err == nil {
-					q.delete(ctx, entry)
+					_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
+						Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
+						Value: &anypb.Any{Value: data},
+					})
+					dlQeueLen.Inc()
+
+					if err == nil {
+						q.delete(ctx, entry)
+					}
 				}
 			}
 		}
