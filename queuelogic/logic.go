@@ -619,7 +619,10 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 		}
 	}
 	q.keys = nkeys
-	return nil
+
+	// Also delete the stored key
+	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
+	return err
 }
 
 var (
