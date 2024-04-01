@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240328133145-e24051e2a765
-	github.com/brotherlogic/gramophile v0.672.0
+	github.com/brotherlogic/gramophile v0.674.0
 	github.com/brotherlogic/rstore v0.45.0
 	github.com/prometheus/client_golang v1.19.0
 	google.golang.org/grpc v1.62.1
