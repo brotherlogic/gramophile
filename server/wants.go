@@ -19,6 +19,31 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 	if err != nil {
 		return nil, err
 	}
+
+	if req.GetReleaseId() > 0 {
+		want, err := s.d.GetWant(ctx, user.GetUser().GetDiscogsUserId(), req.GetReleaseId())
+		if err != nil {
+			return nil, err
+		}
+
+		var updates []*pb.Update
+		if req.GetIncludeUpdates() {
+			updates, err = s.d.GetWantUpdates(ctx, user.User.GetDiscogsUserId(), req.GetReleaseId())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return &pb.GetWantsResponse{
+			Wants: []*pb.WantResponse{
+				{
+					Want:    want,
+					Updates: updates,
+				},
+			},
+		}, nil
+	}
+
 	wants, err := s.d.GetWants(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, err

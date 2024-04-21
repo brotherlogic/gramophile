@@ -539,6 +539,7 @@ message UpdateWantlistResponse {}
 
 message GetWantsRequest{
     bool include_updates = 2;
+    int64 release_id = 3;
 }
 message GetWantsResponse{
     repeated WantResponse wants = 1;
