@@ -37,6 +37,9 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 	}
 
 	swants, err := b.db.GetWants(ctx, d.GetUserId())
+	if err != nil {
+		return -1, err
+	}
 	for _, want := range wants {
 		found := false
 		for _, swant := range swants {
