@@ -26,6 +26,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 	skipped := 0
 	log.Printf("Refreshing %v releases", len(ids))
 	for _, id := range ids {
+		log.Printf("REFRESH: %v", id)
 		rec, err := b.db.GetRecord(ctx, d.GetUserId(), id)
 		if err != nil {
 			return fmt.Errorf("unable to get record %v: %w", id, err)
