@@ -46,7 +46,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 			if want.GetId() == swant.GetId() {
 				found = true
 				swant.SyncId = sid
-				err := b.db.SaveWant(ctx, d.GetUserId(), swant, "Updating on refresh")
+				err := b.db.SaveWant(ctx, d.GetUserId(), swant, fmt.Sprintf("Updating on refresh (%v)", swant.GetState()))
 				if err != nil {
 					return -1, fmt.Errorf("error on save in pull: %w", err)
 				}
