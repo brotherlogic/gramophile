@@ -62,6 +62,26 @@ func executeWant(ctx context.Context, args []string) error {
 			WantId: wid,
 		})
 		return err
+	case "get":
+		id, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return err
+		}
+		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{ReleaseId: id, IncludeUpdates: true})
+		if err != nil {
+			return err
+		}
+		want := wants.GetWants()[0]
+		fmt.Printf("%v [%v]\n", want.GetWant().GetId(), want.GetWant().GetState())
+
+		sort.SliceStable(want.Updates, func(i, j int) bool {
+			return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
+		})
+
+		for _, update := range want.GetUpdates() {
+			fmt.Printf("  %v - %v\n", time.Unix(0, update.GetDate()), update)
+		}
+		return nil
 	default:
 		return status.Errorf(codes.InvalidArgument, "%v is not a valid command for handling wants", args[0])
 	}

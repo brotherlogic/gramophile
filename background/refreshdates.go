@@ -55,15 +55,10 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 }
 
 func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
-
+	log.Printf("STORED %v -> %v", iid, rid)
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
 		return err
-	}
-
-	if time.Since(time.Unix(0, storedRelease.GetLastEarliestReleaseUpdate())) < refreshRelaseDateFrequency {
-		log.Printf("Not updating release dates since %v is less than %v", time.Unix(0, storedRelease.GetLastEarliestReleaseUpdate()), refreshRelaseDateFrequency)
-		return nil
 	}
 
 	release, err := d.GetRelease(ctx, rid)

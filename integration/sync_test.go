@@ -36,7 +36,7 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 	di.AddCollectionRelease(&pbd.Release{Id: 123, InstanceId: 1234, MasterId: 12345, FolderId: 12, ReleaseDate: 12345678, Labels: []*pbd.Label{{Name: "AAA"}}})
-	di.AddCollectionRelease(&pbd.Release{Id: 124, MasterId: 12345, ReleaseDate: 1234, Labels: []*pbd.Label{{Name: "AAA"}}})
+	di.AddCollectionRelease(&pbd.Release{Id: 124, InstanceId: 555, MasterId: 12345, ReleaseDate: 1234, Labels: []*pbd.Label{{Name: "AAA"}}})
 
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
