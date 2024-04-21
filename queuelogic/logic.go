@@ -428,6 +428,17 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					RunDate:          time.Now().UnixNano(),
 					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 60,
+					Entry: &pb.QueueElement_RefreshWants{
+						RefreshWants: &pb.RefreshWants{},
+					},
+				},
+			})
+
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 60,
 					Entry: &pb.QueueElement_RefreshWantlists{
 						RefreshWantlists: &pb.RefreshWantlists{},
 					},
