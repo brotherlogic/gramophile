@@ -71,11 +71,14 @@ func (s *Server) GetWants(ctx context.Context, req *pb.GetWantsRequest) (*pb.Get
 		}
 	}
 
-	for _, want := range wants {
-		updates, err := s.d.GetWantUpdates(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+		for _, want := range wants {
+			var updates []*pb.Update
+			if req.GetIncludeUpdates() {
+		updates, err = s.d.GetWantUpdates(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
 		if err != nil {
 			return nil, err
 		}
+	}
 		responses = append(responses, &pb.WantResponse{
 			Want:    want,
 			Updates: updates,
