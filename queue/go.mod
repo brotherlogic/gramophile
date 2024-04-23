@@ -5,8 +5,8 @@ go 1.22
 toolchain go1.22.1
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20240328133145-e24051e2a765
-	github.com/brotherlogic/gramophile v0.679.0
+	github.com/brotherlogic/discogs v0.0.0-20240423133614-439f08ef1ded
+	github.com/brotherlogic/gramophile v0.680.0
 	github.com/brotherlogic/rstore v0.46.0
 	github.com/prometheus/client_golang v1.19.0
 	google.golang.org/grpc v1.63.2
