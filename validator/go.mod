@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.1
 
 require (
-	github.com/brotherlogic/gramophile v0.680.0
+	github.com/brotherlogic/gramophile v0.681.0
 	google.golang.org/grpc v1.63.2
 )
 
