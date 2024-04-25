@@ -444,6 +444,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					},
 				},
 			})
+
+			user.LastWantRefresh = time.Now().UnixNano()
+			return q.db.SaveUser(ctx, user)
 		}
 
 		return nil
