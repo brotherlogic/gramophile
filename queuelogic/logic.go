@@ -237,6 +237,11 @@ func (q *Queue) Run() {
 			log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
 		}
 
+		if status.Code(err) == codes.NotFound {
+			// Sleep when there's nothing to do
+			time.Sleep(time.Minute)
+		}
+
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
