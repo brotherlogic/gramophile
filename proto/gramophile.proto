@@ -42,12 +42,13 @@ message WantlistEntry {
 }
 
 enum WantState {
-    PENDING = 0;
-    RETIRED = 1;
-    PURCHASED = 2;
-    WANTED = 3;
-    HIDDEN = 4;
-    DELETED = 5;
+    WANT_UNKNOWN = 0;
+    PENDING = 1;
+    RETIRED = 2;
+    PURCHASED = 3;
+    WANTED = 4;
+    HIDDEN = 5;
+    DELETED = 6;
 }
 
 message WantFilter {
@@ -221,7 +222,7 @@ message QueueElement {
         SyncWants sync_wants = 22;
         RefreshWant refresh_want = 23;
         AddMasterWant add_master_want = 24;
-        DeleteMasterWant delete_master_want = 25;
+        UpdateMasterWant update_master_want = 25;
     }
 
     int64 refresh_id = 7;
@@ -232,12 +233,18 @@ message AddMasterWant {
     Want want = 1;
 }
 
-message DeleteMasterWant {
+message UpdateMasterWant {
     Want want = 1;
+    WantState new_state = 2;
+    bool delete = 3;
 }
 
 message RefreshWant {
    Want want = 1;
+   WantState new_state = 2;
+   bool delete = 3;
+
+
 }
 
 message SyncWants {
