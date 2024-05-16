@@ -217,8 +217,16 @@ enum WantsExisting {
     EXISTING_LIST = 2;
 }
 
+enum DigitalWants {
+    DIGITAL_WANTS_UNKNOWN = 0;
+    DIGITAL_WANTS_MANUAL = 1;
+    DIGITAL_WANTS_GRAMOPHILE = 2;
+}
+
 message WantsConfig {
     WantsBasis origin = 1;
     WantsExisting existing = 2;
     string transfer_list = 3;
+
+    DigitalWants digital_wants = 4;
 }
