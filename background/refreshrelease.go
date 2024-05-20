@@ -7,7 +7,11 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	pbd "github.com/brotherlogic/discogs/proto"
+	pb "github.com/brotherlogic/gramophile/proto"
 )
 
 const (
@@ -16,6 +20,8 @@ const (
 
 	// Min refresh frequency
 	minRefreshFreq = time.Hour * 24 * 7
+
+	digitalWantlistName = "digital"
 )
 
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs, force bool) error {
@@ -64,5 +70,46 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	}
 	record.LastUpdateTime = time.Now().UnixNano()
 
+	err = b.refreshWantlists(ctx, d, record)
+
 	return b.db.SaveRecord(ctx, d.GetUserId(), record)
+}
+
+func (b *BackgroundRunner) refreshWantlists(ctx context.Context, d discogs.Discogs, record *pb.Record) error {
+	if record.GetKeepStatus() == pb.KeepStatus_DIGITAL_KEEP {
+		isPhysical := false
+		for _, format := range record.GetRelease().GetFormats() {
+			if format.GetName() == "Vinyl" {
+				isPhysical = true
+			}
+		}
+
+		if isPhysical {
+			wantlist, err := b.db.LoadWantlist(ctx, d.GetUserId(), digitalWantlistName)
+			if err != nil && status.Code(err) == codes.NotFound {
+				// Create a digital wantlist here
+				return b.db.SaveWantlist(ctx, d.GetUserId(), &pb.Wantlist{
+					Name:    digitalWantlistName,
+					Type:    pb.WantlistType_ONE_BY_ONE,
+					Entries: []*pb.WantlistEntry{{Id: record.GetRelease().GetId()}},
+				})
+			}
+			if err != nil {
+				return err
+			}
+
+			found := false
+			for _, entry := range wantlist.GetEntries() {
+				if entry.GetId() == record.GetRelease().GetId() {
+					found = true
+				}
+			}
+			if !found {
+				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{MasterId: record.GetRelease().GetMasterId(), DigitalOnly: true})
+				return b.db.SaveWantlist(ctx, d.GetUserId(), wantlist)
+			}
+		}
+	}
+
+	return nil
 }

@@ -46,7 +46,7 @@ func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
+	list, err := s.d.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
 	return &pb.GetWantlistResponse{List: list}, err
 }
 
@@ -56,7 +56,7 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		return nil, err
 	}
 
-	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
+	list, err := s.d.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
 	if err != nil {
 		return nil, err
 	}
