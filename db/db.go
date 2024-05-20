@@ -80,7 +80,7 @@ type Database interface {
 	SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error
 
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
-	LoadWantlist(ctx context.Context, user *pb.StoredUser, name string) (*pb.Wantlist, error)
+	LoadWantlist(ctx context.Context, userid int32, name string) (*pb.Wantlist, error)
 	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
@@ -193,8 +193,8 @@ func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantli
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
-func (d *DB) LoadWantlist(ctx context.Context, user *pb.StoredUser, wantlist string) (*pb.Wantlist, error) {
-	data, err := d.load(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist))
+func (d *DB) LoadWantlist(ctx context.Context, userId int32, wantlist string) (*pb.Wantlist, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userId, wantlist))
 	if err != nil {
 		return nil, err
 	}
