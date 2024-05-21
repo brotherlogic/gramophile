@@ -47,7 +47,7 @@ var (
 	queueRun = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_proc",
 		Help: "The length of the working queue I think yes",
-	}, []string{"type"})
+	}, []string{"type", "code"})
 	queueSleep = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_queue_sleep",
 		Help: "The length of the working queue I think yes",
@@ -228,7 +228,7 @@ func (q *Queue) Run() {
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
-				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
+				queueRunTime.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err)), "type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
