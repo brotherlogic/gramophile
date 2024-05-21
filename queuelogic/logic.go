@@ -43,11 +43,11 @@ var (
 	queueLast = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_last_proc",
 		Help: "The length of the working queue I think yes",
-	}, []string{"code"})
+	}, []string{"code", "type"})
 	queueRun = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_proc",
 		Help: "The length of the working queue I think yes",
-	}, []string{"type", "code"})
+	}, []string{"type"})
 	queueSleep = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_queue_sleep",
 		Help: "The length of the working queue I think yes",
@@ -228,8 +228,8 @@ func (q *Queue) Run() {
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
 				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
-				queueRunTime.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err)), "type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
-				queueLast.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
+				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
+				queueLast.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry()), "code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
 
@@ -316,6 +316,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	log.Printf("Running queue entry: %v", entry)
+	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
