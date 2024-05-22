@@ -37,8 +37,6 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		return fmt.Errorf("unable to load all records: %w", err)
 	}
 
-	log.Printf("Found records: %v", records)
-
 	changed := false
 	for _, entry := range list.GetEntries() {
 		// Hard sync from the want
