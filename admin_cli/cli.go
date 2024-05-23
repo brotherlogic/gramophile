@@ -64,6 +64,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error in clean: %v", err)
 		}
+		log.Printf("Cleaned: %v", err)
 	case "list":
 		items, err := client.List(context.Background(), &pb.ListRequest{})
 		if err != nil {
