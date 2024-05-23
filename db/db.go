@@ -782,5 +782,29 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 
 func (d *DB) Clean(ctx context.Context) error {
 
+	// Load each wantlist and reset to want_unknown
+	users, err := d.GetUsers(ctx)
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		suser, err := d.GetUser(ctx, user)
+		if err != nil {
+			return err
+		}
+		wantlists, err := d.GetWantlists(ctx, suser.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return err
+		}
+		for _, wantlist := range wantlists {
+			for _, want := range wantlist.GetEntries() {
+				want.State = pb.WantState_WANT_UNKNOWN
+			}
+			err = d.SaveWantlist(ctx, suser.GetUser().GetDiscogsUserId(), wantlist)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
