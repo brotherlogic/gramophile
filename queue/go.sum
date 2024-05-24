@@ -4,6 +4,8 @@ github.com/brotherlogic/discogs v0.0.0-20240423133614-439f08ef1ded h1:mRRK6BG+xx
 github.com/brotherlogic/discogs v0.0.0-20240423133614-439f08ef1ded/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/gramophile v0.696.0 h1:c7GMjYGsM6TA1sj8BXVT9JWbvzWS62VTa3s+Pmo+DoI=
 github.com/brotherlogic/gramophile v0.696.0/go.mod h1:VGtXDdlfh2wV+RzFzibdcO6B1P6naNHMMQ5KW7QnNjw=
+github.com/brotherlogic/gramophile v0.699.0 h1:Oz4FIC+0aerTDVT9OBGJ60qJgscbEsVBhfaU6vRom24=
+github.com/brotherlogic/gramophile v0.699.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
 github.com/brotherlogic/rstore v0.46.0 h1:ClShExbSiWDsPA3zRqHuIGuiUfsxh1gCuOxmq2aJRmk=
 github.com/brotherlogic/rstore v0.46.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
