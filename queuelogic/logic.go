@@ -318,6 +318,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	log.Printf("Queue entry start: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	if fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollectionEntry" {
+		log.Printf("Skipping '%T'", entry.Entry)
 		return nil
 	}
 	switch entry.Entry.(type) {
