@@ -227,7 +227,7 @@ func (q *Queue) Run() {
 				d := q.d.ForUser(user.GetUser())
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
-				log.Printf("Ran %v in %v -> %v ", entry, time.Since(st), err)
+				log.Printf("Queue entry end %v in %v -> %v ", entry, time.Since(st), err)
 				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry()), "code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
@@ -315,7 +315,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Running queue entry: %v", entry)
+	log.Printf("Queue entry start: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_MoveRecord:
