@@ -252,6 +252,7 @@ message RefreshWant {
 message SyncWants {
     int32 page = 1;
     int64 refresh_id = 2;
+    bool force = 3;
 }
 
 message RefreshEarliestReleaseDates {
