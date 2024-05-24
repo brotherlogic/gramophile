@@ -390,6 +390,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
+		// Only refresh every 24 hours
+		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 {
+			return nil
+		}
+
 		if entry.GetSyncWants().GetPage() == 1 {
 			entry.GetSyncWants().RefreshId = time.Now().UnixNano()
 		}
