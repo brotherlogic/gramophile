@@ -749,7 +749,6 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
 	})*/
 
-	log.Printf("Entries: %v", len(q.keys))
 	if len(q.keys) == 0 {
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
 	}
