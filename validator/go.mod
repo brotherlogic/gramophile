@@ -1,17 +1,14 @@
 module github.com/brotherlogic/gramophile/validator
 
-go 1.22
-
-toolchain go1.22.1
+go 1.22.3
 
 require (
-	github.com/brotherlogic/gramophile v0.681.0
-	google.golang.org/grpc v1.63.2
+	github.com/brotherlogic/gramophile v0.696.0
+	google.golang.org/grpc v1.64.0
 )
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240423133614-439f08ef1ded // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
