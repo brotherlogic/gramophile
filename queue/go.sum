@@ -8,6 +8,8 @@ github.com/brotherlogic/gramophile v0.699.0 h1:Oz4FIC+0aerTDVT9OBGJ60qJgscbEsVBh
 github.com/brotherlogic/gramophile v0.699.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
 github.com/brotherlogic/gramophile v0.700.0 h1:WO7DyekY5MoTe9gEEWaMA+EvjjVFYTK8zVYM4q9FSp0=
 github.com/brotherlogic/gramophile v0.700.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
+github.com/brotherlogic/gramophile v0.702.0 h1:QFox5MuUW8rKONtoHYAmHRAytoxvnYuafj8SbsKqhO8=
+github.com/brotherlogic/gramophile v0.702.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
 github.com/brotherlogic/rstore v0.46.0 h1:ClShExbSiWDsPA3zRqHuIGuiUfsxh1gCuOxmq2aJRmk=
 github.com/brotherlogic/rstore v0.46.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
@@ -26,6 +28,8 @@ github.com/prometheus/procfs v0.15.0 h1:A82kmvXJq2jTu5YUhSGNlYoxh85zLnKgPz4bMZgI
 github.com/prometheus/procfs v0.15.0/go.mod h1:Y0RJ/Y5g5wJpkTisOtqwDSo4HwhGmLB4VQSw2sQJLHk=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 h1:vr/HnozRka3pE4EsMEg1lgkXJkTFJCVUX+S/ZT6wYzM=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
+golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d h1:N0hmiNbwsSNwHBAvR3QB5w25pUwH4tK0Y/RltD1j1h4=
+golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
 golang.org/x/net v0.25.0 h1:d/OCCoBEUq33pjydKrGQhw7IlUPI2Oylr+8qLx49kac=
 golang.org/x/net v0.25.0/go.mod h1:JkAGAh7GEvH74S6FOH42FLoXpXbE/aqXSrIQjXgsiwM=
 golang.org/x/sys v0.20.0 h1:Od9JTbYCk261bKm4M/mw7AklTlFYIa0bIp9BgSm1S8Y=
