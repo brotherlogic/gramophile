@@ -111,7 +111,7 @@ func runValidationLoop(ctx context.Context) error {
 			}
 
 			log.Printf("Wants: %v", time.Since(time.Unix(0, user.GetLastWantRefresh())))
-			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
+			if time.Since(time.Unix(0, user.GetLastWantRefresh())) > time.Hour*24 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().UnixNano(),
