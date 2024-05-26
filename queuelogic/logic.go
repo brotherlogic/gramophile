@@ -319,6 +319,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	if fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollectionEntry" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshIntents" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWants" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWant" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
 		return nil
