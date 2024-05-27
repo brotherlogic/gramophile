@@ -321,6 +321,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshIntents" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWants" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWant" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshRelease" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
 		return nil
@@ -568,6 +569,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		log.Printf("Refreshing %v for %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid())
 		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetRefreshRelease().GetIntention() == "Manual Update")
 		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano(),
+						Entry: &pb.QueueElement_RefreshCollectionEntry{
+							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+						},
+					},
+				})
+			}
 			return err
 		}
 		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
