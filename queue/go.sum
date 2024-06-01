@@ -18,6 +18,8 @@ github.com/brotherlogic/gramophile v0.708.0 h1:uI7EieVGJZRWh2R+8YLrqU4CVLrHAPzxO
 github.com/brotherlogic/gramophile v0.708.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
 github.com/brotherlogic/gramophile v0.710.0 h1:eEMo5I0QOtzSRXLze4rwUWyBbWgQ1RUMPB7SkIgO2QU=
 github.com/brotherlogic/gramophile v0.710.0/go.mod h1:e+iWlB5bljATdg2ebbDac8Gc1lvYEbBdOPG3/s07lnQ=
+github.com/brotherlogic/gramophile v0.715.0 h1:iq+Bw7ip/kMNIVyX0xjAY7yAWQuj/r07NfWVBBUD8yY=
+github.com/brotherlogic/gramophile v0.715.0/go.mod h1:P2M7f97/5OW5Jd8lPxdBfKR1PKDurhFzCzsY1vM6SvY=
 github.com/brotherlogic/rstore v0.46.0 h1:ClShExbSiWDsPA3zRqHuIGuiUfsxh1gCuOxmq2aJRmk=
 github.com/brotherlogic/rstore v0.46.0/go.mod h1:OvTUW9id/7lcCxTnh/0ZcvcGFLjIlHP3WQ0AdxnJyLg=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
@@ -34,12 +36,16 @@ github.com/prometheus/common v0.53.0 h1:U2pL9w9nmJwJDa4qqLQ3ZaePJ6ZTwt7cMD3AG3+a
 github.com/prometheus/common v0.53.0/go.mod h1:BrxBKv3FWBIGXw89Mg1AeBq7FSyRzXWI3l3e7W3RN5U=
 github.com/prometheus/procfs v0.15.0 h1:A82kmvXJq2jTu5YUhSGNlYoxh85zLnKgPz4bMZgI5Ek=
 github.com/prometheus/procfs v0.15.0/go.mod h1:Y0RJ/Y5g5wJpkTisOtqwDSo4HwhGmLB4VQSw2sQJLHk=
+github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
+github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 h1:vr/HnozRka3pE4EsMEg1lgkXJkTFJCVUX+S/ZT6wYzM=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
 golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d h1:N0hmiNbwsSNwHBAvR3QB5w25pUwH4tK0Y/RltD1j1h4=
 golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
 golang.org/x/exp v0.0.0-20240530194437-404ba88c7ed0 h1:Mi0bCswbz+9cXmwFAdxoo5GPFMKONUpua6iUdtQS7lk=
 golang.org/x/exp v0.0.0-20240530194437-404ba88c7ed0/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
+golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc h1:O9NuF4s+E/PvMIy+9IUZB9znFwUIXEWSstNjek6VpVg=
+golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=
 golang.org/x/net v0.25.0 h1:d/OCCoBEUq33pjydKrGQhw7IlUPI2Oylr+8qLx49kac=
 golang.org/x/net v0.25.0/go.mod h1:JkAGAh7GEvH74S6FOH42FLoXpXbE/aqXSrIQjXgsiwM=
 golang.org/x/sys v0.20.0 h1:Od9JTbYCk261bKm4M/mw7AklTlFYIa0bIp9BgSm1S8Y=
