@@ -85,7 +85,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	d.SetDownloader(&DownloaderBridge{scraper: sc})
 
 	log.Printf("Loading cache")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
 
 	keys, err := r.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
