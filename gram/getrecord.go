@@ -35,8 +35,26 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	var minmed = idSet.Int64("minmed", 0, "Minumum median seconds")
 	var history = idSet.Bool("history", false, "Whether to get the history")
 	var debug = idSet.Bool("debug", false, "Show debug stuff")
+	var mintup = idSet.Bool("mintup", false, "Get records to mint up on")
 	if err := idSet.Parse(args); err == nil {
 		client := pb.NewGramophileEServiceClient(conn)
+
+		if *mintup {
+			resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+				Request: &pb.GetRecordRequest_GetRecordsMintUp{
+					GetRecordsMintUp: true,
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			for _, r := range resp.GetRecords() {
+				fmt.Printf("%v [%v]\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId())
+			}
+
+			return nil
+		}
 
 		if *minmed > 0 {
 			sales, err := client.GetSale(ctx, &pb.GetSaleRequest{MinMedian: *minmed})

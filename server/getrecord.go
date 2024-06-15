@@ -99,6 +99,23 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 			}
 		}
 		return &pb.GetRecordResponse{Records: records}, nil
+	} else if req.GetGetRecordsMintUp() {
+		var records []*pb.RecordResponse
+		rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, rid := range rids {
+			r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), rid)
+			if err != nil {
+				return nil, err
+			}
+			if r.GetKeepStatus() == pb.KeepStatus_MINT_UP_KEEP {
+				records = append(records, &pb.RecordResponse{Record: r})
+			}
+		}
+		return &pb.GetRecordResponse{Records: records}, nil
 	}
 
 	if req.GetGetRecordToListenTo() != nil && req.GetGetRecordToListenTo().GetFilter() != "" {

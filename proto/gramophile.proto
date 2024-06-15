@@ -438,6 +438,7 @@ message GetRecordRequest {
         GetRecordWithIssue get_record_with_issue = 1;
         GetRecordToListenTo get_record_to_listen_to = 2;
         GetRecordWithId get_record_with_id = 3;
+        bool get_records_mint_up = 5;
     }
 
     bool include_history = 4;
