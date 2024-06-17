@@ -182,6 +182,8 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 				if lowerBound > 0 {
 					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
 				}
+				log.Printf("Bottomed out on the post median reductions")
+				return 0, "no adjustment", fmt.Errorf("Already reached low price for %v", s.GetSaleId())
 			} else {
 				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 			}
