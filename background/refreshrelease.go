@@ -51,6 +51,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
 	}
 
+	log.Printf("Checking stats")
 	if time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
 		stats, err := d.GetReleaseStats(ctx, release.GetId())
