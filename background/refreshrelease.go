@@ -62,7 +62,10 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
 
 		record.LastStatRefresh = time.Now().UnixNano()
+	} else {
+		log.Printf("Skipping stats because %v", time.Unix(0, record.GetLastStatRefresh()))
 	}
+
 	// Update the release from the discogs pull
 	record.GetRelease().ReleaseDate = release.GetReleaseDate()
 	if record.GetEarliestReleaseDate() == 0 {
