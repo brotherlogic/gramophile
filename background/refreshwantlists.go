@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
@@ -52,6 +53,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 				if r.GetRelease().GetId() == entry.GetId() {
 					entry.State = pb.WantState_PURCHASED
 					changed = true
+					list.LastPurchaseDate = time.Now().UnixNano()
 				}
 			}
 		}

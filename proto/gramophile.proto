@@ -30,6 +30,8 @@ message Wantlist {
     WantlistVisibility visibility = 6;
 
     WantFilter global_filter = 7;
+
+    int64 last_purchase_date = 8;
 }
 
 message WantlistEntry {
