@@ -229,4 +229,6 @@ message WantsConfig {
     string transfer_list = 3;
 
     DigitalWants digital_wants = 4;
+
+    int32 max_active_want_lists = 5;
 }
