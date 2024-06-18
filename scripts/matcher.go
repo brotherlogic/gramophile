@@ -41,6 +41,13 @@ func main() {
 	r, err := kclient.GetOrg(ctx, &pbg.GetOrgRequest{
 		OrgName: os.Args[2],
 	})
-	log.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()))
+	if err != nil {
+		log.Fatalf("Unable to get org: %v", err)
+	}
+	fmt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
 
+	if len(r.GetSnapshot().GetPlacements()) != len(records.GetLocations()[0].GetReleasesLocation()) {
+		fmt.Printf("MISMATCH: Different number of entries in each\n")
+		return
+	}
 }
