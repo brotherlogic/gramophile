@@ -4,7 +4,7 @@ metadata:
   labels:
     grafana_dashboard: "1"
   name: gramophile-queue-dash
-  namespace: gramophile-queue
+  namespace: gramophile
 data:
   gramophile-queue-dash.json: |
     {
