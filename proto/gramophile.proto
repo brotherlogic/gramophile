@@ -53,6 +53,7 @@ enum WantState {
     WANTED = 4;
     HIDDEN = 5;
     DELETED = 6;
+    IN_TRANSIT = 7;
 }
 
 message WantFilter {
