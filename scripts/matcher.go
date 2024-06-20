@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,6 +16,9 @@ import (
 
 	pbg "github.com/brotherlogic/gramophile/proto"
 	pbro "github.com/brotherlogic/recordsorganiser/proto"
+
+	ghbclient "github.com/brotherlogic/githubridge/client"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 )
 
 func main() {
@@ -39,6 +43,29 @@ func main() {
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "auth-token", user.GetToken())
 
+	result, err := getDiff(ctx)
+	if err != nil {
+		log.Fatalf("err")
+	}
+
+	password, err := os.ReadFile(fmt.Sprintf("%v/.ghb", dirname))
+	if err != nil {
+		log.Fatalf("Can't read token: %v", err)
+	}
+	client, err := ghbclient.GetExternalClient(password)
+	_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+		User:  "brotherlogic",
+		Repo:  "gramophile",
+		Title: "Sorting mismtach",
+		Body:  result,
+	})
+	if err != nil {
+		log.Fatalf("Bad create: %v", err)
+	}
+
+}
+
+func getDiff(ctx context.Context) (string, error) {
 	conn, err := utils.LFDialServer(ctx, "recordsorganiser")
 	if err != nil {
 		log.Fatalf("Bad dial: %v", err)
@@ -68,14 +95,12 @@ func main() {
 	fmt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
 
 	if len(r.GetSnapshot().GetPlacements()) != len(records.GetLocations()[0].GetReleasesLocation()) {
-		fmt.Printf("MISMATCH: Different number of entries in each\n")
-		return
+		return "MISMATCH: Different number of entries in each", nil
 	}
 
 	for i, p := range r.GetSnapshot().GetPlacements() {
 		if p.GetIid() != int64(records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()) {
-			fmt.Printf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId())
-			return
+			return fmt.Sprintf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()), nil
 		}
 	}
 }
