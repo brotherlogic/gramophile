@@ -20,7 +20,7 @@ func (*arrived) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	if c.GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
 		return []*pb.FolderMove{
 			{
-				Name:       "MoveToListeningPileOnceArrived",
+				Name:       "Move_To_Listening_Pile_Once_Arrived",
 				Origin:     pb.Create_AUTOMATIC,
 				MoveFolder: "Listening Pile",
 				Criteria: &pb.MoveCriteria{
