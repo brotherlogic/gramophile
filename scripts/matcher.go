@@ -71,4 +71,11 @@ func main() {
 		fmt.Printf("MISMATCH: Different number of entries in each\n")
 		return
 	}
+
+	for i, p := range r.GetSnapshot().GetPlacements() {
+		if p.GetIid() != int64(records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()) {
+			fmt.Printf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId())
+			return
+		}
+	}
 }
