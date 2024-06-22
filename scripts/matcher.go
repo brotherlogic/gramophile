@@ -48,21 +48,26 @@ func main() {
 		log.Fatalf("err")
 	}
 
-	password, err := os.ReadFile(fmt.Sprintf("%v/.ghb", dirname))
-	if err != nil {
-		log.Fatalf("Can't read token: %v", err)
-	}
-	client, err := ghbclient.GetExternalClient(password)
-	_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
-		User:  "brotherlogic",
-		Repo:  "gramophile",
-		Title: "Sorting mismtach",
-		Body:  result,
-	})
-	if err != nil {
-		log.Fatalf("Bad create: %v", err)
-	}
+	if len(result) > 0 {
 
+		password, err := os.ReadFile(fmt.Sprintf("%v/.ghb", dirname))
+		if err != nil {
+			log.Fatalf("Can't read token: %v", err)
+		}
+		client, err := ghbclient.GetClientExternal(string(password))
+		if err != nil {
+			log.Fatalf("Bad client: %v", err)
+		}
+		_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+			User:  "brotherlogic",
+			Repo:  "gramophile",
+			Title: "Sorting mismtach",
+			Body:  result,
+		})
+		if err != nil {
+			log.Fatalf("Bad create: %v", err)
+		}
+	}
 }
 
 func getDiff(ctx context.Context) (string, error) {
@@ -79,7 +84,7 @@ func getDiff(ctx context.Context) (string, error) {
 		log.Fatalf("Bad org get: %v", err)
 	}
 
-	fmt.Printf("Found %v records in %v\n", len(records.GetLocations()[0].GetReleasesLocation()), os.Args[1])
+	//fmt.Printf("Found %v records in %v\n", len(records.GetLocations()[0].GetReleasesLocation()), os.Args[1])
 
 	conn2, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -92,7 +97,7 @@ func getDiff(ctx context.Context) (string, error) {
 	if err != nil {
 		log.Fatalf("Unable to get org: %v", err)
 	}
-	fmt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
+	f //mt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
 
 	if len(r.GetSnapshot().GetPlacements()) != len(records.GetLocations()[0].GetReleasesLocation()) {
 		return "MISMATCH: Different number of entries in each", nil
@@ -103,4 +108,6 @@ func getDiff(ctx context.Context) (string, error) {
 			return fmt.Sprintf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()), nil
 		}
 	}
+
+	return "", nil
 }
