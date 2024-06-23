@@ -325,6 +325,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshSales" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_LinkSales" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_UpdateSale" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWantlists" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
 		return nil
