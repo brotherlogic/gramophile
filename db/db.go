@@ -39,8 +39,13 @@ var (
 	USER_PREFIX = "gramophile/user/"
 )
 
+type ChangeProcessor interface {
+	ProcessChange(ctx context.Context, change *pb.DBChange) error
+}
+
 type DB struct {
-	client rstore_client.RStoreClient
+	client   rstore_client.RStoreClient
+	changers []ChangeProcessor
 }
 
 func NewTestDB(cl rstore_client.RStoreClient) Database {
@@ -71,7 +76,7 @@ type Database interface {
 
 	LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, hash string) (*pb.OrganisationSnapshot, error)
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
-	GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error)
+	GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error)
 
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
 	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
@@ -93,6 +98,7 @@ type Database interface {
 	SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error
 
 	SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error
+	DeletePrintMove(ctx context.Context, userId int32, iid int64) error
 	LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error)
 }
 
@@ -191,9 +197,13 @@ func (d *DB) SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) 
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory", userId), mh)
 }
 
+func (d *DB) DeletePrintMove(ctx context.Context, userId int32, iid int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v", userId, iid))
+}
+
 func (d *DB) LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error) {
 	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/%v/movehistory/", userId)})
+		Prefix: fmt.Sprintf("gramophile/%v/pmoves/", userId)})
 	if err != nil {
 		return nil, err
 	}
@@ -451,8 +461,8 @@ func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, 
 	return snapshot, nil
 }
 
-func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org string) (*pb.OrganisationSnapshot, error) {
-	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/org/%v/", user.GetUser().GetDiscogsUserId(), cleanOrgString(org))})
+func (d *DB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/org/%v/", userid, cleanOrgString(org))})
 	if err != nil {
 		return nil, fmt.Errorf("Cannot get keys to find latest snapshot: %w", err)
 	}
@@ -460,7 +470,7 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, user *pb.StoredUser, org str
 	sort.Strings(keys.Keys)
 
 	if len(keys.Keys) == 0 {
-		return nil, status.Errorf(codes.NotFound, "no orgs for %v found", user.GetUser().GetDiscogsUserId())
+		return nil, status.Errorf(codes.NotFound, "no orgs for %v found", userid)
 	}
 
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
@@ -626,6 +636,18 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 		Before: old,
 		After:  new,
 	}
+
+	for _, c := range d.changers {
+		err := c.ProcessChange(ctx, &pb.DBChange{
+			Type:      pb.DBChange_CHANGE_RECORD,
+			OldRecord: old,
+			NewRecord: new,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return d.SaveUpdate(ctx, userid, new, update)
 }
 

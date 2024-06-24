@@ -9,6 +9,18 @@ import "organisation.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message DBChange {
+    enum Type {
+        CHANGE_UNKNOWN = 0;
+        CHANGE_RECORD = 1;
+    }
+
+    Type type = 1;
+    Record old_record = 2;
+    Record new_record = 3;
+    int32 user_id = 4;
+}
+
 message PrintMove {
     int64 timestamp = 1;
     int64 iid = 2;
