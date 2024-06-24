@@ -91,6 +91,9 @@ type Database interface {
 	Clean(ctx context.Context) error
 	LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, error)
 	SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error
+
+	SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error
+	LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error)
 }
 
 func NewDatabase(ctx context.Context) Database {
@@ -186,6 +189,33 @@ func (d *DB) LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, er
 }
 func (d *DB) SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error {
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory", userId), mh)
+}
+
+func (d *DB) LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/%v/movehistory/", userId)})
+	if err != nil {
+		return nil, err
+	}
+
+	var moves []*pb.PrintMove
+	for _, k := range keys.GetKeys() {
+		val, err := d.load(ctx, k)
+		if err != nil {
+			return nil, err
+		}
+		pm := &pb.PrintMove{}
+		err = proto.Unmarshal(val, pm)
+		if err != nil {
+			return nil, err
+		}
+		moves = append(moves, pm)
+	}
+	return moves, nil
+}
+
+func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error {
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v", userId, m.GetIid()), m)
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
