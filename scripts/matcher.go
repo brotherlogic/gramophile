@@ -97,7 +97,7 @@ func getDiff(ctx context.Context) (string, error) {
 	if err != nil {
 		log.Fatalf("Unable to get org: %v", err)
 	}
-	f //mt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
+	//fmt.Printf("Found %v records in %v\n", len(r.GetSnapshot().GetPlacements()), os.Args[2])
 
 	if len(r.GetSnapshot().GetPlacements()) != len(records.GetLocations()[0].GetReleasesLocation()) {
 		return "MISMATCH: Different number of entries in each", nil
