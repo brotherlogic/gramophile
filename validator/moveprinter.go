@@ -5,11 +5,20 @@ import (
 	"fmt"
 
 	"github.com/brotherlogic/gramophile/db"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	gpb "github.com/brotherlogic/gramophile/proto"
 	pqpb "github.com/brotherlogic/printqueue/proto"
 
 	printqueueclient "github.com/brotherlogic/printqueue/client"
+)
+
+var (
+	printQueueLen = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_print_queue_len",
+		Help: "The length of the working queue I think yes",
+	})
 )
 
 func buildRepresentation(move *gpb.PrintMove) []string {
@@ -49,6 +58,8 @@ func runPrintLoop(ctx context.Context, uid string) error {
 	if err != nil {
 		return err
 	}
+
+	printQueueLen.Set(float64(len(moves)))
 
 	pClient, err := printqueueclient.NewPrintQueueClient(ctx)
 	if err != nil {
