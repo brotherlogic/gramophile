@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -104,5 +105,6 @@ func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange) error {
 		Iid:         c.GetOldRecord().GetRelease().GetInstanceId(),
 		Origin:      oldLoc,
 		Destination: newLoc,
+		Record:      fmt.Sprintf("%v - %v", c.GetOldRecord().GetRelease().GetArtists()[0].GetName(), c.GetOldRecord().GetRelease().GetTitle()),
 	})
 }
