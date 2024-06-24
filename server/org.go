@@ -452,7 +452,7 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 		return nil, fmt.Errorf("unable to build snapshot: %w", err)
 	}
 
-	latest, err := s.d.GetLatestSnapshot(ctx, user, req.GetOrgName())
+	latest, err := s.d.GetLatestSnapshot(ctx, user.GetUser().GetDiscogsUserId(), req.GetOrgName())
 	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, fmt.Errorf("unable to load previous snapshot: %w", err)
 	}
