@@ -136,12 +136,19 @@ message GramophileConfig {
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
     WantsConfig wants_config = 16;
+    PrintMoveConfig print_move_config = 17;
 
     Create create_folders = 12;
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
     repeated ValidationRule validations = 15;
+}
+
+message PrintMoveConfig {
+    Mandate mandate = 1;
+    int32 context = 2;
+    string print_target = 3;
 }
 
 message WeightConfig {

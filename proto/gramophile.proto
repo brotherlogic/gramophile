@@ -9,6 +9,24 @@ import "organisation.proto";
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message PrintMove {
+    int64 timestamp = 1;
+    int64 iid = 2;
+    Location origin = 3;
+    Location destination = 4;
+}
+
+message Location {
+    string location_name = 1;
+    repeated Context before = 2;
+    repeated Context after = 3;
+}
+
+message Context {
+    int32 index = 1;
+    int64 iid = 2;
+}
+
 enum WantlistType {
     TYPE_UNKNOWN = 0;
     EN_MASSE = 1;
