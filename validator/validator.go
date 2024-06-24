@@ -130,6 +130,8 @@ func runValidationLoop(ctx context.Context) error {
 		}
 	}
 
+	//err := runPrintLoop(ctx)
+
 	return nil
 }
 

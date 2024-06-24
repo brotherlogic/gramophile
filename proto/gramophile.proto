@@ -26,6 +26,7 @@ message PrintMove {
     int64 iid = 2;
     Location origin = 3;
     Location destination = 4;
+    string record = 5;
 }
 
 message Location {
