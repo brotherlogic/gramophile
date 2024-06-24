@@ -17,14 +17,23 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 
 	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
 
-	lines = append(lines, fmt.Sprintf("%v", move.GetBefore().GetLocationName()))
-	for _, c := range move.GetBefore().GetContext() {
+	lines = append(lines, fmt.Sprintf("%v", move.GetOrigin().GetLocationName()))
+	for _, c := range move.GetOrigin().GetBefore() {
 		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
 	}
+	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
+	for _, c := range move.GetOrigin().GetAfter() {
+		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+	}
+
 	lines = append(lines, "")
 
-	lines = append(lines, fmt.Sprintf("%v", move.GetAfter().GetLocationName()))
-	for _, c := range move.GetAfter().GetContext() {
+	lines = append(lines, fmt.Sprintf("%v", move.GetDestination().GetLocationName()))
+	for _, c := range move.GetDestination().GetBefore() {
+		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+	}
+	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
+	for _, c := range move.GetDestination().GetAfter() {
 		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
 	}
 
@@ -57,7 +66,9 @@ func runPrintLoop(ctx context.Context, uid string) error {
 		})
 
 		if err == nil {
-			db.DeletePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move.GetInstanceId())
+			db.DeletePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move.GetIid())
 		}
 	}
+
+	return nil
 }
