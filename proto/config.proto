@@ -150,6 +150,7 @@ message MintUpConfig {
     // 0 here means no mint ups are sent
     int32 period_in_seconds = 1;
     string print_target = 2;
+    int64 last_mint_up_delivery = 3;
 }
 
 message PrintMoveConfig {

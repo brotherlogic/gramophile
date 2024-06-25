@@ -132,6 +132,10 @@ func runValidationLoop(ctx context.Context) error {
 				return err
 			}
 
+			err = runMintPrinter(ctx, user.GetUserToken())
+			if err != nil {
+				return err
+			}
 		}
 	}
 
