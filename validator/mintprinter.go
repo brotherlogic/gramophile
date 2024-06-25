@@ -23,7 +23,7 @@ func runMintPrinter(ctx context.Context, uid string) error {
 	}
 
 	// Don't send mint ups if the user doesn't want them.
-	if time.Since(time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery())).Seconds() < user.GetConfig().GetMintUpConfig().GetPeriodInSeconds() ||
+	if time.Since(time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery())).Seconds() < float64(user.GetConfig().GetMintUpConfig().GetPeriodInSeconds()) ||
 		user.GetConfig().GetMintUpConfig().GetPeriodInSeconds() == 0 {
 		return nil
 	}
@@ -65,4 +65,6 @@ func runMintPrinter(ctx context.Context, uid string) error {
 		}
 
 	}
+
+	return nil
 }
