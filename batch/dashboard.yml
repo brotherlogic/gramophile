@@ -127,7 +127,7 @@ data:
           "type": "timeseries"
         }
       ],
-      "refresh": "",
+      "refresh": "1m",
       "schemaVersion": 39,
       "tags": [],
       "templating": {
@@ -139,7 +139,7 @@ data:
       },
       "timepicker": {},
       "timezone": "",
-      "title": "Gramophile Print Queue",
+      "title": "Print Queue",
       "uid": "a62c4249-8311-4fbf-b1cb-5ee83c34fe5a",
       "version": 1,
       "weekStart": ""
