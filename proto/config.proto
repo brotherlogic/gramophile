@@ -137,6 +137,7 @@ message GramophileConfig {
     KeepConfig keep_config = 11;
     WantsConfig wants_config = 16;
     PrintMoveConfig print_move_config = 17;
+    MintUpConfig mint_up_config = 18;
 
     Create create_folders = 12;
     Create create_moves = 13;

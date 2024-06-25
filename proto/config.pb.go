@@ -1455,6 +1455,7 @@ type GramophileConfig struct {
 	KeepConfig         *KeepConfig         `protobuf:"bytes,11,opt,name=keep_config,json=keepConfig,proto3" json:"keep_config,omitempty"`
 	WantsConfig        *WantsConfig        `protobuf:"bytes,16,opt,name=wants_config,json=wantsConfig,proto3" json:"wants_config,omitempty"`
 	PrintMoveConfig    *PrintMoveConfig    `protobuf:"bytes,17,opt,name=print_move_config,json=printMoveConfig,proto3" json:"print_move_config,omitempty"`
+	MintUpConfig       *MintUpConfig       `protobuf:"bytes,18,opt,name=mint_up_config,json=mintUpConfig,proto3" json:"mint_up_config,omitempty"`
 	CreateFolders      Create              `protobuf:"varint,12,opt,name=create_folders,json=createFolders,proto3,enum=gramophile.Create" json:"create_folders,omitempty"`
 	CreateMoves        Create              `protobuf:"varint,13,opt,name=create_moves,json=createMoves,proto3,enum=gramophile.Create" json:"create_moves,omitempty"`
 	Moves              []*FolderMove       `protobuf:"bytes,14,rep,name=moves,proto3" json:"moves,omitempty"`
@@ -1580,6 +1581,13 @@ func (x *GramophileConfig) GetWantsConfig() *WantsConfig {
 func (x *GramophileConfig) GetPrintMoveConfig() *PrintMoveConfig {
 	if x != nil {
 		return x.PrintMoveConfig
+	}
+	return nil
+}
+
+func (x *GramophileConfig) GetMintUpConfig() *MintUpConfig {
+	if x != nil {
+		return x.MintUpConfig
 	}
 	return nil
 }
@@ -2316,7 +2324,7 @@ var file_config_proto_rawDesc = []byte{
 	0x06, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x27, 0x0a, 0x05, 0x6f, 0x72, 0x64, 0x65, 0x72,
 	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68,
 	0x69, 0x6c, 0x65, 0x2e, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x52, 0x05, 0x6f, 0x72, 0x64, 0x65, 0x72,
-	0x22, 0xad, 0x08, 0x0a, 0x10, 0x47, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x43,
+	0x22, 0xed, 0x08, 0x0a, 0x10, 0x47, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x43,
 	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x27, 0x0a, 0x05, 0x62, 0x61, 0x73, 0x69, 0x73, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x0e, 0x32, 0x11, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c,
 	0x65, 0x2e, 0x42, 0x61, 0x73, 0x69, 0x73, 0x52, 0x05, 0x62, 0x61, 0x73, 0x69, 0x73, 0x12, 0x43,
@@ -2369,6 +2377,10 @@ var file_config_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c,
 	0x65, 0x2e, 0x50, 0x72, 0x69, 0x6e, 0x74, 0x4d, 0x6f, 0x76, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69,
 	0x67, 0x52, 0x0f, 0x70, 0x72, 0x69, 0x6e, 0x74, 0x4d, 0x6f, 0x76, 0x65, 0x43, 0x6f, 0x6e, 0x66,
+	0x69, 0x67, 0x12, 0x3e, 0x0a, 0x0e, 0x6d, 0x69, 0x6e, 0x74, 0x5f, 0x75, 0x70, 0x5f, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x18, 0x12, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x67, 0x72, 0x61,
+	0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x4d, 0x69, 0x6e, 0x74, 0x55, 0x70, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x52, 0x0c, 0x6d, 0x69, 0x6e, 0x74, 0x55, 0x70, 0x43, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x12, 0x39, 0x0a, 0x0e, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x66, 0x6f, 0x6c,
 	0x64, 0x65, 0x72, 0x73, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x12, 0x2e, 0x67, 0x72, 0x61,
 	0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52, 0x0d,
@@ -2619,28 +2631,29 @@ var file_config_proto_depIdxs = []int32{
 	34, // 31: gramophile.GramophileConfig.keep_config:type_name -> gramophile.KeepConfig
 	35, // 32: gramophile.GramophileConfig.wants_config:type_name -> gramophile.WantsConfig
 	28, // 33: gramophile.GramophileConfig.print_move_config:type_name -> gramophile.PrintMoveConfig
-	6,  // 34: gramophile.GramophileConfig.create_folders:type_name -> gramophile.Create
-	6,  // 35: gramophile.GramophileConfig.create_moves:type_name -> gramophile.Create
-	17, // 36: gramophile.GramophileConfig.moves:type_name -> gramophile.FolderMove
-	16, // 37: gramophile.GramophileConfig.validations:type_name -> gramophile.ValidationRule
-	1,  // 38: gramophile.PrintMoveConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 39: gramophile.WeightConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 40: gramophile.WidthConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 41: gramophile.GoalFolderConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 42: gramophile.ArrivedConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 43: gramophile.SaleConfig.mandate:type_name -> gramophile.Mandate
-	1,  // 44: gramophile.SaleConfig.handle_price_updates:type_name -> gramophile.Mandate
-	7,  // 45: gramophile.SaleConfig.update_type:type_name -> gramophile.SaleUpdateType
-	8,  // 46: gramophile.SaleConfig.lower_bound_strategy:type_name -> gramophile.LowerBoundStrategy
-	1,  // 47: gramophile.KeepConfig.mandate:type_name -> gramophile.Mandate
-	9,  // 48: gramophile.WantsConfig.origin:type_name -> gramophile.WantsBasis
-	10, // 49: gramophile.WantsConfig.existing:type_name -> gramophile.WantsExisting
-	11, // 50: gramophile.WantsConfig.digital_wants:type_name -> gramophile.DigitalWants
-	51, // [51:51] is the sub-list for method output_type
-	51, // [51:51] is the sub-list for method input_type
-	51, // [51:51] is the sub-list for extension type_name
-	51, // [51:51] is the sub-list for extension extendee
-	0,  // [0:51] is the sub-list for field type_name
+	27, // 34: gramophile.GramophileConfig.mint_up_config:type_name -> gramophile.MintUpConfig
+	6,  // 35: gramophile.GramophileConfig.create_folders:type_name -> gramophile.Create
+	6,  // 36: gramophile.GramophileConfig.create_moves:type_name -> gramophile.Create
+	17, // 37: gramophile.GramophileConfig.moves:type_name -> gramophile.FolderMove
+	16, // 38: gramophile.GramophileConfig.validations:type_name -> gramophile.ValidationRule
+	1,  // 39: gramophile.PrintMoveConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 40: gramophile.WeightConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 41: gramophile.WidthConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 42: gramophile.GoalFolderConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 43: gramophile.ArrivedConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 44: gramophile.SaleConfig.mandate:type_name -> gramophile.Mandate
+	1,  // 45: gramophile.SaleConfig.handle_price_updates:type_name -> gramophile.Mandate
+	7,  // 46: gramophile.SaleConfig.update_type:type_name -> gramophile.SaleUpdateType
+	8,  // 47: gramophile.SaleConfig.lower_bound_strategy:type_name -> gramophile.LowerBoundStrategy
+	1,  // 48: gramophile.KeepConfig.mandate:type_name -> gramophile.Mandate
+	9,  // 49: gramophile.WantsConfig.origin:type_name -> gramophile.WantsBasis
+	10, // 50: gramophile.WantsConfig.existing:type_name -> gramophile.WantsExisting
+	11, // 51: gramophile.WantsConfig.digital_wants:type_name -> gramophile.DigitalWants
+	52, // [52:52] is the sub-list for method output_type
+	52, // [52:52] is the sub-list for method input_type
+	52, // [52:52] is the sub-list for extension type_name
+	52, // [52:52] is the sub-list for extension extendee
+	0,  // [0:52] is the sub-list for field type_name
 }
 
 func init() { file_config_proto_init() }
