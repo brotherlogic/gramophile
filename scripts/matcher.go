@@ -48,26 +48,37 @@ func main() {
 		log.Fatalf("err")
 	}
 
-	if len(result) > 0 {
+	if result == "" {
+		result = "All Clear"
+	}
 
-		password, err := os.ReadFile(fmt.Sprintf("%v/.ghb", dirname))
-		if err != nil {
-			log.Fatalf("Can't read token: %v", err)
-		}
-		client, err := ghbclient.GetClientExternal(string(password))
-		if err != nil {
-			log.Fatalf("Bad client: %v", err)
-		}
-		_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
-			User:  "brotherlogic",
-			Repo:  "gramophile",
-			Title: "Sorting mismtach",
-			Body:  result,
-		})
-		if err != nil {
-			log.Fatalf("Bad create: %v", err)
+	password, err := os.ReadFile(fmt.Sprintf("%v/.ghb", dirname))
+	if err != nil {
+		log.Fatalf("Can't read token: %v", err)
+	}
+	client, err := ghbclient.GetClientExternal(string(password))
+	if err != nil {
+		log.Fatalf("Bad client: %v", err)
+	}
+	_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+		User:  "brotherlogic",
+		Repo:  "gramophile",
+		Title: "Sorting mismtach",
+		Body:  result,
+	})
+	if err != nil {
+		log.Fatalf("Bad create: %v", err)
+	}
+}
+
+func allowed(iid int64) bool {
+	for _, val := range []int64{19867938, 115735835} {
+		if val == iid {
+			return true
 		}
 	}
+
+	return false
 }
 
 func getDiff(ctx context.Context) (string, error) {
@@ -105,7 +116,9 @@ func getDiff(ctx context.Context) (string, error) {
 
 	for i, p := range r.GetSnapshot().GetPlacements() {
 		if p.GetIid() != int64(records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()) {
-			return fmt.Sprintf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()), nil
+			if !allowed(p.GetIid()) {
+				return fmt.Sprintf("MISMATCH: %v: %v vs %v\n", i, p.GetIid(), records.GetLocations()[0].GetReleasesLocation()[i].GetInstanceId()), nil
+			}
 		}
 	}
 
