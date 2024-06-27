@@ -72,7 +72,11 @@ func main() {
 }
 
 func allowed(iid int64) bool {
-	for _, val := range []int64{19867938, 115735835} {
+	for _, val := range []int64{
+		19867938,
+		19867939,
+		19867401,
+		115735835} {
 		if val == iid {
 			return true
 		}
