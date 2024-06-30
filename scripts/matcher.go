@@ -76,6 +76,8 @@ func allowed(iid int64) bool {
 		19867938,
 		19867939,
 		19867401,
+		1473580069,
+		19867473,
 		115735835} {
 		if val == iid {
 			return true
