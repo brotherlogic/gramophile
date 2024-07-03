@@ -127,11 +127,13 @@ func runValidationLoop(ctx context.Context) error {
 				}
 			}
 
+			log.Printf("Running print loop")
 			err = runPrintLoop(ctx, user.GetUserToken())
 			if err != nil {
 				return err
 			}
 
+			log.Printf("Running mint printer")
 			err = runMintPrinter(ctx, user.GetUserToken())
 			if err != nil {
 				return err
