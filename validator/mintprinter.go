@@ -14,13 +14,8 @@ import (
 	printqueueclient "github.com/brotherlogic/printqueue/client"
 )
 
-func runMintPrinter(ctx context.Context, uid string) error {
+func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 	db := db.NewDatabase(ctx)
-
-	user, err := db.GetUser(ctx, uid)
-	if err != nil {
-		return err
-	}
 
 	// Don't send mint ups if the user doesn't want them.
 	if time.Since(time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery())).Seconds() < float64(user.GetConfig().GetMintUpConfig().GetPeriodInSeconds()) ||

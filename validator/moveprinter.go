@@ -50,10 +50,8 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 	return lines
 }
 
-func runPrintLoop(ctx context.Context, uid string) error {
+func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 	db := db.NewDatabase(ctx)
-
-	user, err := db.GetUser(ctx, uid)
 
 	moves, err := db.LoadPrintMoves(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
