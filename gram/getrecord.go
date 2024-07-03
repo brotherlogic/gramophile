@@ -102,6 +102,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 
 		printRecord := func(r *pb.RecordResponse, debug bool) {
 			fmt.Printf("%v [%v]\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId())
+			fmt.Printf("In folder %v\n", r.GetRecord().GetRelease().GetFolderId())
 			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
 			fmt.Printf("Sale: %v -> %v [%v / %v]\n", r.GetRecord().GetSaleId(),
 				time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()),

@@ -67,6 +67,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if record.GetEarliestReleaseDate() == 0 {
 		record.EarliestReleaseDate = release.GetReleaseDate()
 	}
+	record.Release = release
 	record.LastUpdateTime = time.Now().UnixNano()
 
 	err = b.refreshWantlists(ctx, d, record)
