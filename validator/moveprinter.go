@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,15 +50,15 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 	return lines
 }
 
-func runPrintLoop(ctx context.Context, uid string) error {
+func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 	db := db.NewDatabase(ctx)
-
-	user, err := db.GetUser(ctx, uid)
 
 	moves, err := db.LoadPrintMoves(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Found %v moves", len(moves))
 
 	printQueueLen.Set(float64(len(moves)))
 
