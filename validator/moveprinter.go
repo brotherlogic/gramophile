@@ -25,6 +25,7 @@ var (
 func buildRepresentation(move *gpb.PrintMove) []string {
 	var lines []string
 
+	lines = append(lines, "Gramophile Move: ")
 	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
 
 	lines = append(lines, fmt.Sprintf("%v", move.GetOrigin().GetLocationName()))
