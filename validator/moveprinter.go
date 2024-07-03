@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,6 +59,8 @@ func runPrintLoop(ctx context.Context, uid string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Found %v moves", len(moves))
 
 	printQueueLen.Set(float64(len(moves)))
 
