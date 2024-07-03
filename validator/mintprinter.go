@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 	db := db.NewDatabase(ctx)
 
+	log.Printf("Mint Up %v vs %v", time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery()), user.GetConfig().GetMintUpConfig().GetPeriodInSeconds())
 	// Don't send mint ups if the user doesn't want them.
 	if time.Since(time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery())).Seconds() < float64(user.GetConfig().GetMintUpConfig().GetPeriodInSeconds()) ||
 		user.GetConfig().GetMintUpConfig().GetPeriodInSeconds() == 0 {

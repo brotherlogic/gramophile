@@ -41,6 +41,10 @@ func (m *MoveChanger) buildLocation(ctx context.Context, org *pb.Organisation, s
 	}
 }
 
+func (m *MoveChanger) Name() string {
+	return "move_changer"
+}
+
 func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Record) (*pb.Location, error) {
 	for _, org := range m.orgs.GetOrganisations() {
 		found := false

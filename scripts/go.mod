@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/brotherlogic/githubridge v0.2802.0
 	github.com/brotherlogic/goserver v0.0.0-20240303220030-80da220f0393
-	github.com/brotherlogic/gramophile v0.737.0
+	github.com/brotherlogic/gramophile v0.753.0
 	github.com/brotherlogic/recordsorganiser v0.0.0-20240621190900-41e53fe66127
 	github.com/golang/protobuf v1.5.4
 	google.golang.org/grpc v1.64.0
