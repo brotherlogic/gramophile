@@ -51,7 +51,7 @@ func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 				Destination: pqpb.Destination_DESTINATION_RECEIPT,
 				Urgency:     pqpb.Urgency_URGENCY_REGULAR,
 				Fanout:      pqpb.Fanout_FANOUT_ONE,
-				Lines:       []string{fmt.Sprintf("%v - %v", rec.GetRelease().GetArtists()[0].GetName(), rec.GetRelease().GetTitle())},
+				Lines:       []string{fmt.Sprintf("Mintup: %v - %v", rec.GetRelease().GetArtists()[0].GetName(), rec.GetRelease().GetTitle())},
 			})
 			if err != nil {
 				return err
