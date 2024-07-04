@@ -135,6 +135,7 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 		Value: &anypb.Any{Value: b},
 	})
+	log.Printf("Setting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
 
 	if err != nil {
 		return err
@@ -162,6 +163,7 @@ func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) 
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 	})
+	log.Printf("Deleting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
 
 	return err
 }
@@ -570,8 +572,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUpdates:
 		return q.b.RefreshUpdates(ctx, d)
 	case *pb.QueueElement_RefreshRelease:
-		log.Printf("Refreshing %v for %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid())
 		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetRefreshRelease().GetIntention() == "Manual Update")
+		log.Printf("Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 		if err != nil {
 			if status.Code(err) == codes.NotFound {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
@@ -583,9 +585,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					},
 				})
 			}
+		}
+		derr := q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+		if derr != nil {
 			return err
 		}
-		return q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+		return derr
 	case *pb.QueueElement_RefreshCollection:
 		log.Printf("RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
@@ -702,7 +707,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			if status.Code(err) != codes.NotFound {
 				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
 			}
-		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
+		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 && req.GetElement().GetRefreshRelease().GetIntention() != "Manual Update" {
 			markerCount.Inc()
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
