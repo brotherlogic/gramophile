@@ -785,7 +785,6 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return keys[i] < keys[j]
 	})
 
-	log.Printf("Found %v and %v", keys[0], keys[1])
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, keys[0])})
 	if err != nil {
 		return nil, err
