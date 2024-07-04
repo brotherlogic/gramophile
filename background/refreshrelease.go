@@ -72,7 +72,8 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 
 	err = b.refreshWantlists(ctx, d, record)
 
-	return b.db.SaveRecord(ctx, d.GetUserId(), record)
+	err = b.db.SaveRecord(ctx, d.GetUserId(), record)
+	log.Printf("Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
 }
 
 func (b *BackgroundRunner) refreshWantlists(ctx context.Context, d discogs.Discogs, record *pb.Record) error {
