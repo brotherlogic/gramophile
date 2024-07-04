@@ -56,7 +56,7 @@ spec:
     spec:
       containers:
         - name: gramophile-queue
-          image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.773.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
+          image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.774.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
           ports:
             - containerPort: 8080
           env:
