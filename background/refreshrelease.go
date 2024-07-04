@@ -9,6 +9,7 @@ import (
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -67,8 +68,16 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if record.GetEarliestReleaseDate() == 0 {
 		record.EarliestReleaseDate = release.GetReleaseDate()
 	}
-	record.Release = release
+
+	// Clear repeated fields so they don't get concatenated when we merge
+	record.GetRelease().Artists = []*pbd.Artist{}
+	record.GetRelease().Formats = []*pbd.Format{}
+	record.GetRelease().Labels = []*pbd.Label{}
+	proto.Merge(record.Release, release)
+
 	record.LastUpdateTime = time.Now().UnixNano()
+
+	//TODO: Need to pull the instance specifc details in here
 
 	err = b.refreshWantlists(ctx, d, record)
 
