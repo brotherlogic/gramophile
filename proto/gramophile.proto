@@ -532,6 +532,7 @@ message AddWantlistResponse {}
 
 message RefreshRecordRequest {
     int64 instance_id = 1;
+    bool just_state = 2;
 }
 
 message RefreshRecordResponse {}

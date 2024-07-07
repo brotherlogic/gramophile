@@ -14,14 +14,30 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 		return nil, fmt.Errorf("Error getting user: %w", err)
 	}
 
+	if !req.JustState {
+		_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate: time.Now().UnixNano(),
+				Auth:    user.GetAuth().GetToken(),
+				Entry: &pb.QueueElement_RefreshRelease{
+					RefreshRelease: &pb.RefreshRelease{
+						Iid:       req.GetInstanceId(),
+						Intention: "Manual Update",
+					}}},
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: time.Now().UnixNano(),
 			Auth:    user.GetAuth().GetToken(),
-			Entry: &pb.QueueElement_RefreshRelease{
-				RefreshRelease: &pb.RefreshRelease{
-					Iid:       req.GetInstanceId(),
-					Intention: "Manual Update",
+			Entry: &pb.QueueElement_RefreshState{
+				RefreshState: &pb.RefreshState{
+					Iid: req.GetInstanceId(),
 				}}},
 	})
 
