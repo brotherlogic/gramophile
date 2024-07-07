@@ -16,7 +16,7 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 		return fmt.Errorf("unable to get record from db: %w", err)
 	}
 
-	release, p, err := d.GetCollectionRelease(ctx, iid, 1)
+	release, p, err := d.GetCollectionRelease(ctx, record.GetRelease().GetId(), 1)
 
 	if err != nil {
 		return err
