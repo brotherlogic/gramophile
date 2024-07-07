@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
@@ -25,10 +26,13 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 		return status.Errorf(codes.Internal, "Unable to process state with > 1 pages (%v)", iid)
 	}
 
+	log.Printf("%v -> %v", iid, len(release))
 	for _, rel := range release {
 		if rel.GetInstanceId() == iid {
 			//Update the elements that are pulled in the get collection retlease
 			record.GetRelease().FolderId = rel.GetFolderId()
+
+			log.Printf("Found and updated %v -> %v", iid, record.GetRelease().FolderId)
 
 			return b.db.SaveRecord(ctx, d.GetUserId(), record)
 		}
