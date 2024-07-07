@@ -259,9 +259,15 @@ message QueueElement {
         RefreshWant refresh_want = 23;
         AddMasterWant add_master_want = 24;
         UpdateMasterWant update_master_want = 25;
+        RefreshState refresh_state = 26;
     }
 
     int64 refresh_id = 7;
+}
+
+message RefreshState {
+    int64 iid = 1;
+    bool force = 2;
 }
 
 
