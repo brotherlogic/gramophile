@@ -32,7 +32,7 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 			//Update the elements that are pulled in the get collection retlease
 			record.GetRelease().FolderId = rel.GetFolderId()
 
-			log.Printf("Found and updated %v -> %v", iid, record.GetRelease().FolderId)
+			log.Printf("Found and updated %v -> %v from %v", iid, record.GetRelease().FolderId, rel)
 
 			return b.db.SaveRecord(ctx, d.GetUserId(), record)
 		}
