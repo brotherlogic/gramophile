@@ -11,9 +11,7 @@ import (
 )
 
 type MoveChanger struct {
-	c    *pb.PrintMoveConfig
-	orgs *pb.OrganisationConfig
-	d    Database
+	d Database
 }
 
 func (m *MoveChanger) buildLocation(ctx context.Context, org *pb.Organisation, s *pb.OrganisationSnapshot, index int32, nc int32) *pb.Location {
@@ -45,8 +43,8 @@ func (m *MoveChanger) Name() string {
 	return "move_changer"
 }
 
-func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Record) (*pb.Location, error) {
-	for _, org := range m.orgs.GetOrganisations() {
+func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Record, config *pb.GramophileConfig) (*pb.Location, error) {
+	for _, org := range config.GetOrganisationConfig().GetOrganisations() {
 		found := false
 		for _, folder := range org.GetFoldersets() {
 			if folder.GetFolder() == r.GetRelease().GetFolderId() {
@@ -72,14 +70,14 @@ func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Recor
 				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot", r.GetRelease().GetInstanceId(), org.GetName())
 			}
 
-			return m.buildLocation(ctx, org, snapshot, int32(index), m.c.GetContext()), nil
+			return m.buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext()), nil
 		}
 	}
 
 	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org", r.GetRelease().GetInstanceId())
 }
 
-func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange) error {
+func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, config *pb.GramophileConfig) error {
 	// We only care about this change if it's a change record
 	if c.GetType() != pb.DBChange_CHANGE_RECORD {
 		return nil
@@ -90,11 +88,11 @@ func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange) error {
 		return nil
 	}
 
-	oldLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetOldRecord())
+	oldLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetOldRecord(), config)
 	if err != nil {
 		return err
 	}
-	newLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetNewRecord())
+	newLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetNewRecord(), config)
 	if err != nil {
 		return err
 	}
