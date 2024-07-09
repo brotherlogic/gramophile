@@ -77,7 +77,7 @@ func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Recor
 	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org", r.GetRelease().GetInstanceId())
 }
 
-func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, config *pb.GramophileConfig) error {
+func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, user *pb.StoredUser) error {
 	// We only care about this change if it's a change record
 	if c.GetType() != pb.DBChange_CHANGE_RECORD {
 		return nil
@@ -88,11 +88,11 @@ func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, config 
 		return nil
 	}
 
-	oldLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetOldRecord(), config)
+	oldLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetOldRecord(), user.GetConfig())
 	if err != nil {
 		return err
 	}
-	newLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetNewRecord(), config)
+	newLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetNewRecord(), user.GetConfig())
 	if err != nil {
 		return err
 	}

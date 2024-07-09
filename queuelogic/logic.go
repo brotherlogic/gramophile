@@ -436,11 +436,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		// If this is the final sync, let's run the alignment
 		if entry.GetSyncWants().GetPage() >= pages {
-			err = q.b.SyncWants(ctx, d, user, q.Enqueue)
-			if err != nil {
-				return err
-			}
-
 			err = q.b.AlignWants(ctx, d, user.GetConfig().GetWantsConfig())
 			if err != nil {
 				return err

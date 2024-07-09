@@ -41,7 +41,7 @@ var (
 )
 
 type ChangeProcessor interface {
-	ProcessChange(ctx context.Context, change *pb.DBChange, config *pb.GramophileConfig) error
+	ProcessChange(ctx context.Context, change *pb.DBChange, user *pb.StoredUser) error
 	Name() string
 }
 
@@ -393,6 +393,20 @@ func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, r
 		return err
 	}
 
+	user, err := d.GetUserById(ctx, userid)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range d.changers {
+		log.Printf("Processing want change for %v -> %v", want.GetId(), c.Name())
+		c.ProcessChange(ctx, &pb.DBChange{
+			Type:    pb.DBChange_CHANGE_WANT,
+			OldWant: old,
+			NewWant: want,
+		}, user)
+	}
+
 	updates := buildWantUpdates(old, want, reason)
 	if updates != nil {
 		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
@@ -637,7 +651,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		return err
 	}
 
-	err = d.saveUpdate(ctx, userid, oldRecord, record, user.GetConfig())
+	err = d.saveUpdate(ctx, userid, oldRecord, record, user)
 	if err != nil {
 		return err
 	}
@@ -661,7 +675,7 @@ func ResolveDiff(update *pb.RecordUpdate) []string {
 	return diff
 }
 
-func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, config *pb.GramophileConfig) error {
+func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, user *pb.StoredUser) error {
 	update := &pb.RecordUpdate{
 		Date:   time.Now().UnixNano(),
 		Before: old,
@@ -673,7 +687,7 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, 
 			Type:      pb.DBChange_CHANGE_RECORD,
 			OldRecord: old,
 			NewRecord: new,
-		}, config)
+		}, user)
 		log.Printf("Ran chnager %v -> %v", c.Name(), err)
 		if err != nil {
 			return err
