@@ -97,50 +97,6 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	return d.DeleteWant(ctx, want.GetId())
 }
 
-func (b *BackgroundRunner) SyncWants(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	wants, err := b.db.GetWants(ctx, d.GetUserId())
-	if err != nil {
-		return err
-	}
-
-	for _, w := range wants {
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano(),
-				Auth:    user.GetAuth().GetToken(),
-				Entry: &pb.QueueElement_RefreshWant{
-					RefreshWant: &pb.RefreshWant{
-						Want: w,
-					}}},
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	mwants, err := b.db.GetMasterWants(ctx, d.GetUserId())
-	if err != nil {
-		return err
-	}
-
-	for _, w := range mwants {
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano(),
-				Auth:    user.GetAuth().GetToken(),
-				Entry: &pb.QueueElement_RefreshWant{
-					RefreshWant: &pb.RefreshWant{
-						Want: w,
-					}}},
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) error {
 	// Look for any wants that have been purchased
 	recs, err := b.db.LoadAllRecords(ctx, d.GetUserId())
