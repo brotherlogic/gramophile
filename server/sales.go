@@ -33,6 +33,24 @@ func (s *Server) GetSale(ctx context.Context, req *pb.GetSaleRequest) (*pb.GetSa
 		return &pb.GetSaleResponse{Sales: ret}, nil
 	}
 
+	if req.GetMinMedian() < 0 {
+		var ret []*pb.SaleInfo
+		sales, err := s.d.GetSales(ctx, user.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, sid := range sales {
+			sale, err := s.d.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, sale)
+		}
+
+		return &pb.GetSaleResponse{Sales: ret}, nil
+	}
+
 	saleinfo, err := s.d.GetSale(ctx, user.GetUser().GetDiscogsUserId(), req.GetId())
 	if err != nil {
 		return nil, err
