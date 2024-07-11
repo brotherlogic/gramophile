@@ -74,7 +74,7 @@ func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Recor
 		}
 	}
 
-	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org", r.GetRelease().GetInstanceId())
+	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org (%v)", r.GetRelease().GetInstanceId(), r.GetRelease().GetFolderId())
 }
 
 func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, user *pb.StoredUser) error {
