@@ -3,9 +3,14 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
+	ghbclient "github.com/brotherlogic/githubridge/client"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -73,6 +78,18 @@ func (m *MoveChanger) getLocation(ctx context.Context, userId int32, r *pb.Recor
 			return m.buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext()), nil
 		}
 	}
+
+	gclient, err := ghbclient.GetClientInternal()
+	if err != nil {
+		return nil, err
+	}
+	_, err = gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+		User:  "brotherlogic",
+		Repo:  "gramophile",
+		Body:  fmt.Sprintf("Add %v to the org list", r.GetRelease().GetFolderId()),
+		Title: "Add organisation",
+	})
+	log.Printf("Created issue -> %v", err)
 
 	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org (%v)", r.GetRelease().GetInstanceId(), r.GetRelease().GetFolderId())
 }
