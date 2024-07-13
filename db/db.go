@@ -689,9 +689,6 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, 
 			NewRecord: new,
 		}, user)
 		log.Printf("Ran chnager %v -> %v", c.Name(), err)
-		if err != nil {
-			return err
-		}
 	}
 
 	return d.SaveUpdate(ctx, userid, new, update)
