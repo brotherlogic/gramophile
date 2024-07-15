@@ -13,12 +13,15 @@ message DBChange {
     enum Type {
         CHANGE_UNKNOWN = 0;
         CHANGE_RECORD = 1;
+        CHANGE_WANT = 2;
     }
 
     Type type = 1;
     Record old_record = 2;
     Record new_record = 3;
     int32 user_id = 4;
+    Want old_want = 5;
+    Want new_want = 6;
 }
 
 message PrintMove {
@@ -287,8 +290,6 @@ message RefreshWant {
    Want want = 1;
    WantState new_state = 2;
    bool delete = 3;
-
-
 }
 
 message SyncWants {

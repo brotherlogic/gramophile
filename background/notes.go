@@ -270,7 +270,7 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 		return status.Errorf(codes.FailedPrecondition, "Unable to locate arrived field (from %+v)", fields)
 	}
 
-	err := d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", i.GetArrived()))
+	err := d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%v", time.Unix(0, i.GetArrived()).Format("2006-01-02")))
 	if err != nil {
 		return err
 	}

@@ -51,7 +51,7 @@ func executeArrived(ctx context.Context, args []string) error {
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			Arrived: t.Unix(),
+			Arrived: t.UnixNano(),
 		},
 	})
 	return err
