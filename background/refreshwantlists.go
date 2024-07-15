@@ -91,6 +91,17 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 	})
 
 	for _, entry := range list.GetEntries() {
+		if list.GetActive() {
+			err := b.db.SaveWant(ctx, userid, &pb.Want{
+				Id:    entry.GetId(),
+				State: pb.WantState_PENDING,
+			}, "wantlist inactive")
+			if err != nil {
+				return false, err
+			}
+			continue
+		}
+
 		log.Printf("Refreshing entry: %v", entry)
 		switch entry.GetState() {
 		case pb.WantState_WANTED:

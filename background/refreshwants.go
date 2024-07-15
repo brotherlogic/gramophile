@@ -156,7 +156,10 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 	for _, want := range wants {
 		for _, rec := range recs {
 			if want.GetId() == rec.GetRelease().GetId() {
-				want.State = pb.WantState_PURCHASED
+				want.State = pb.WantState_IN_TRANSIT
+				if rec.GetArrived() > 0 {
+					want.State = pb.WantState_PURCHASED
+				}
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)
