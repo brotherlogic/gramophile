@@ -650,6 +650,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	if err != nil {
 		return err
 	}
+	log.Printf("Read user chn %v -> %v", user, err)
 
 	err = d.saveUpdate(ctx, userid, oldRecord, record, user)
 	if err != nil {
