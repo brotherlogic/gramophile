@@ -19,10 +19,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	ghb_client "github.com/brotherlogic/githubridge/client"
 	rstore_client "github.com/brotherlogic/rstore/client"
 	scraper_client "github.com/brotherlogic/scraper/client"
 
 	pbd "github.com/brotherlogic/discogs/proto"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/rstore/proto"
 )
@@ -331,6 +333,18 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWantlists" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
+
+		client, err := ghb_client.GetClientInternal()
+		if err != nil {
+			return err
+		}
+		client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+			Title: "Skipping Entry",
+			Body:  fmt.Sprintf("%v was skipped", entry),
+			User:  "brotherlogic",
+			Repo:  "gramophile",
+		})
+
 		return nil
 	}
 	switch entry.Entry.(type) {
