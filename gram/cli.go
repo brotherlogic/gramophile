@@ -8,9 +8,9 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
-	"github.com/golang/protobuf/proto"
 
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type CLIModule struct {
@@ -31,7 +31,7 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 	}
 
 	user := &pb.GramophileAuth{}
-	err = proto.UnmarshalText(string(text), user)
+	err = prototext.Unmarshal(text, user)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -66,6 +66,8 @@ message Wantlist {
     WantFilter global_filter = 7;
 
     int64 last_purchase_date = 8;
+
+    bool active = 9;
 }
 
 message WantlistEntry {
