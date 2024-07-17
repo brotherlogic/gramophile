@@ -8,6 +8,8 @@ github.com/brotherlogic/gramophile v0.804.0 h1:LD5hx5OmdoEoKohbZG3qD9kpLJ6eTU+tI
 github.com/brotherlogic/gramophile v0.804.0/go.mod h1:v06EQkR9XHLmWisJMW+alTz+DA24QbjPgcD7Y2tXy/s=
 github.com/brotherlogic/gramophile v0.806.0 h1:N/awmKEqvoMoPeMFulYatV8pkhMiRkknH3D5JiWpnIg=
 github.com/brotherlogic/gramophile v0.806.0/go.mod h1:1GmLmXtPplRNFSZLdMLXZdXe7SK064GTIjb0IFwT2cI=
+github.com/brotherlogic/gramophile v0.808.0 h1:fpJjrmdG5qFv+HKQjfW81GWOW8t4VMn6vq9jATZPIHY=
+github.com/brotherlogic/gramophile v0.808.0/go.mod h1:1GmLmXtPplRNFSZLdMLXZdXe7SK064GTIjb0IFwT2cI=
 github.com/brotherlogic/rstore v0.53.0 h1:4Kj7P+TvfdL+GiBohqorW4P0Ehw76uSPenp+0x4GvzI=
 github.com/brotherlogic/rstore v0.53.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
