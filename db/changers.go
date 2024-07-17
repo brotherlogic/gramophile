@@ -105,11 +105,11 @@ func (m *MoveChanger) ProcessChange(ctx context.Context, c *pb.DBChange, user *p
 		return nil
 	}
 
-	oldLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetOldRecord(), user.GetConfig())
+	oldLoc, err := m.getLocation(ctx, user.GetUser().GetDiscogsUserId(), c.GetOldRecord(), user.GetConfig())
 	if err != nil {
 		return err
 	}
-	newLoc, err := m.getLocation(ctx, c.GetUserId(), c.GetNewRecord(), user.GetConfig())
+	newLoc, err := m.getLocation(ctx, user.GetUser().GetDiscogsUserId(), c.GetNewRecord(), user.GetConfig())
 	if err != nil {
 		return err
 	}
