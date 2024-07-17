@@ -488,7 +488,7 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*
 	sort.Strings(keys.Keys)
 
 	if len(keys.Keys) == 0 {
-		return nil, status.Errorf(codes.NotFound, "no orgs for %v found", userid)
+		return nil, status.Errorf(codes.NotFound, "no orgs for %v found -> %v", userid, org)
 	}
 
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
