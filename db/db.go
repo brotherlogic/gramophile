@@ -647,13 +647,16 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	}
 
 	user, err := d.GetUserById(ctx, userid)
-	if err != nil {
-		return err
-	}
-	log.Printf("Read user chn %v -> %v", user, err)
+	if err == nil {
+		log.Printf("Read user chn %v -> %v", user, err)
 
-	err = d.saveUpdate(ctx, userid, oldRecord, record, user)
-	if err != nil {
+		err = d.saveUpdate(ctx, userid, oldRecord, record, user)
+		if err != nil {
+			return err
+		}
+	} else if status.Code(err) == codes.NotFound {
+		log.Printf("Unable to save changes, can't find user: %v", err)
+	} else {
 		return err
 	}
 

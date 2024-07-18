@@ -12,12 +12,17 @@ import (
 func TestSync_WithGramophile(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	// Seed a saved want
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 
-	_, err := b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_GRAMOPHILE})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_GRAMOPHILE})
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -39,11 +44,16 @@ func TestSync_WithGramophile(t *testing.T) {
 func TestSync_WithDiscogs(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	// Seed a saved want
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
-	_, err := d.AddWant(context.Background(), 12346)
+	_, err = d.AddWant(context.Background(), 12346)
 	if err != nil {
 		t.Fatalf("Unable to add want: %v", err)
 	}
@@ -82,11 +92,16 @@ func TestSync_WithDiscogs(t *testing.T) {
 func TestSync_WithHybrid(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	// Seed a saved want
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 12345}, "testing")
 
 	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
-	_, err := d.AddWant(context.Background(), 12346)
+	_, err = d.AddWant(context.Background(), 12346)
 	if err != nil {
 		t.Fatalf("Unable to add want: %v", err)
 	}
