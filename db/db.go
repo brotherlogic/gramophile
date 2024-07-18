@@ -668,9 +668,11 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 
 func buildUpdate(old, new *pb.Record) []*pb.RecordUpdate {
 	var updates []*pb.RecordUpdate
-	if old.GetRelease().GetFolderId() == new.GetRelease().GetFolderId() {
 
+	// Store folder changes
+	if old.GetRelease().GetFolderId() == new.GetRelease().GetFolderId() {
 		updates = append(updates, &pb.RecordUpdate{
+			Date: time.Now().UnixNano(),
 			Update: &pb.RecordUpdate_FolderUpdate{
 				OldFolder:   old.GetRelease().GetFolderId(),
 				NewFolder:   new.GetRelease().GetFolderId(),
@@ -683,20 +685,26 @@ func buildUpdate(old, new *pb.Record) []*pb.RecordUpdate {
 }
 
 func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, user *pb.StoredUser) error {
-	update := &pb.RecordUpdate{
-		Date: time.Now().UnixNano(),
+	// If the folder has changed, force a reorg
+	if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
+		// Run the reorg here
 	}
 
-	for _, c := range d.changers {
-		err := c.ProcessChange(ctx, &pb.DBChange{
-			Type:      pb.DBChange_CHANGE_RECORD,
-			OldRecord: old,
-			NewRecord: new,
-		}, user)
-		log.Printf("Ran chnager %v -> %v", c.Name(), err)
+	for _, update := range buildUpdate(old, new) {
+		for _, c := range d.changers {
+			err := c.ProcessChange(ctx, &pb.DBChange{
+				Type:      pb.DBChange_CHANGE_RECORD,
+				OldRecord: old,
+				NewRecord: new,
+			}, user)
+			log.Printf("Ran chnager %v -> %v", c.Name(), err)
+		}
+		err := d.SaveUpdate(ctx, userid, new, update)
+		if err != nil {
+			return err
+		}
 	}
-
-	return d.SaveUpdate(ctx, userid, new, update)
+	return nil
 }
 
 func (d *DB) SaveUpdate(ctx context.Context, userid int32, r *pb.Record, update *pb.RecordUpdate) error {
