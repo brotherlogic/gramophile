@@ -111,15 +111,19 @@ enum NoncomplianceIssue {
     NEEDS_CLEAN = 0;
 }
 
+
+message RecordUpdate_FolderUpdate {
+    int32 old_folder = 1;
+    int32 new_folder = 2;
+    string new_snapshot = 3;    
+}
+
 message RecordUpdate {
     int64 date = 1;
 
-    Record before = 2;
-    Record after = 3;
-
-    string metadata = 5;
-
-    repeated string explanation = 4;
+    oneof update {
+        RecordUpdate_FolderUpdate folder_update = 2;
+    }
 }
 
 message Update {
@@ -184,6 +188,8 @@ message Record {
    int64 earliest_release_date = 19;
    int64 last_earliest_release_update = 20;
    int64 last_stat_refresh = 22;
+
+   string current_snapshot = 23;
 }
 
 message SaleInfo {
