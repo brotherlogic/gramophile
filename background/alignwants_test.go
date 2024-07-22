@@ -24,8 +24,13 @@ func TestWantsDropped_Drop(t *testing.T) {
 
 	ctx := getTestContext(123)
 
+	err := b.db.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	d.AddWant(ctx, 12345)
-	_, err := b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -61,8 +66,13 @@ func TestWantsDropped_TransferToNew(t *testing.T) {
 
 	ctx := getTestContext(123)
 
+	err := b.db.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	d.AddWant(ctx, 12345)
-	_, err := b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -106,10 +116,15 @@ func TestWantsDropped_TransferToExisting(t *testing.T) {
 		Existing: pb.WantsExisting_EXISTING_LIST, TransferList: "testing"}
 	ctx := getTestContext(123)
 
+	err := b.db.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
 	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}}})
 
 	d.AddWant(ctx, 12345)
-	_, err := b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}

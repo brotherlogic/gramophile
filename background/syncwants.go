@@ -49,6 +49,7 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 				if err != nil {
 					return -1, fmt.Errorf("error on save in pull: %w", err)
 				}
+
 				continue
 			}
 		}
