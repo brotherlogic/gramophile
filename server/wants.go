@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -94,16 +95,30 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 		return nil, err
 	}
 
+	nw := &pb.Want{
+		State:        pb.WantState_WANTED,
+		Id:           req.GetWantId(),
+		MasterId:     req.GetMasterWantId(),
+		MasterFilter: req.GetFilter()}
+
 	err = s.d.SaveWant(
 		ctx,
 		user.GetUser().GetDiscogsUserId(),
-		&pb.Want{
-			State:        pb.WantState_WANTED,
-			Id:           req.GetWantId(),
-			MasterId:     req.GetMasterWantId(),
-			MasterFilter: req.GetFilter()},
+		nw,
 		"Added from API")
 	log.Printf("SAVED %v (%v)", err, user.GetUser().GetDiscogsUserId())
+
+	// Enqueue an updae
+	s.qc.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+		RunDate:          time.Now().UnixNano(),
+		Auth:             user.GetAuth().GetToken(),
+		BackoffInSeconds: 60,
+		Entry: &pb.QueueElement_RefreshWant{
+			RefreshWant: &pb.RefreshWant{
+				Want: nw,
+			},
+		},
+	}})
 
 	return &pb.AddWantResponse{}, err
 }
