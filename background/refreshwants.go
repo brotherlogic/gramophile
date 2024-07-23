@@ -83,6 +83,7 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 }
 
 func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	log.Printf("Refreshing: %v", want)
 	if want.GetState() == pb.WantState_WANTED {
 		if want.GetMasterId() > 0 && want.GetId() == 0 {
 			return b.handleMasterWant(ctx, d, want, authToken, enqueue)

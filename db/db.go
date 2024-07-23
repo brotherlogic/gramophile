@@ -36,8 +36,7 @@ var (
 		Help: "The time to load a record",
 	})
 
-	USER_PREFIX    = "gramophile/user/"
-	USER_ID_PREFIX = "gramophile/userid/"
+	USER_PREFIX = "gramophile/user/"
 )
 
 type ChangeProcessor interface {
@@ -46,8 +45,7 @@ type ChangeProcessor interface {
 }
 
 type DB struct {
-	client   rstore_client.RStoreClient
-	changers []ChangeProcessor
+	client rstore_client.RStoreClient
 }
 
 func NewTestDB(cl rstore_client.RStoreClient) Database {
@@ -111,8 +109,6 @@ func NewDatabase(ctx context.Context) Database {
 		log.Fatalf("Dial error on db -> rstore: %v", err)
 	}
 	db.client = client
-
-	db.changers = append(db.changers, &MoveChanger{d: db})
 
 	return db
 }
@@ -393,20 +389,6 @@ func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, r
 		return err
 	}
 
-	user, err := d.GetUserById(ctx, userid)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range d.changers {
-		log.Printf("Processing want change for %v -> %v", want.GetId(), c.Name())
-		c.ProcessChange(ctx, &pb.DBChange{
-			Type:    pb.DBChange_CHANGE_WANT,
-			OldWant: old,
-			NewWant: want,
-		}, user)
-	}
-
 	updates := buildWantUpdates(old, want, reason)
 	if updates != nil {
 		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
@@ -535,15 +517,6 @@ func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 		Value: &anypb.Any{Value: data},
 	})
 
-	if err != nil {
-		return err
-	}
-
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v%v", USER_ID_PREFIX, user.GetUser().GetDiscogsUserId()),
-		Value: &anypb.Any{Value: data},
-	})
-
 	return err
 }
 
@@ -559,19 +532,6 @@ func (d *DB) DeleteUser(ctx context.Context, id string) error {
 	})
 
 	return err
-}
-
-func (d *DB) GetUserById(ctx context.Context, userid int32) (*pb.StoredUser, error) {
-	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("%v%v", USER_ID_PREFIX, userid),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	su := &pb.StoredUser{}
-	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
-	return su, err
 }
 
 func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
@@ -646,13 +606,7 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		return err
 	}
 
-	user, err := d.GetUserById(ctx, userid)
-	if err != nil {
-		return err
-	}
-	log.Printf("Read user chn %v -> %v", user, err)
-
-	err = d.saveUpdate(ctx, userid, oldRecord, record, user)
+	err = d.saveUpdate(ctx, userid, oldRecord, record)
 	if err != nil {
 		return err
 	}
@@ -676,20 +630,11 @@ func ResolveDiff(update *pb.RecordUpdate) []string {
 	return diff
 }
 
-func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record, user *pb.StoredUser) error {
+func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
 	update := &pb.RecordUpdate{
 		Date:   time.Now().UnixNano(),
 		Before: old,
 		After:  new,
-	}
-
-	for _, c := range d.changers {
-		err := c.ProcessChange(ctx, &pb.DBChange{
-			Type:      pb.DBChange_CHANGE_RECORD,
-			OldRecord: old,
-			NewRecord: new,
-		}, user)
-		log.Printf("Ran chnager %v -> %v", c.Name(), err)
 	}
 
 	return d.SaveUpdate(ctx, userid, new, update)

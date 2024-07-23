@@ -333,6 +333,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWantlists" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecords" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUser" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddMasterWant" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddFolderUpdate" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecord" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUpdates" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
 
@@ -485,7 +492,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		return nil
 	case *pb.QueueElement_RefreshWantlists:
-		return q.b.RefreshWantlists(ctx, d, entry.GetAuth())
+		return q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_LinkSales:
 		err := q.b.LinkSales(ctx, u)
 		if err != nil {
