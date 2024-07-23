@@ -49,7 +49,8 @@ type DB struct {
 }
 
 func NewTestDB(cl rstore_client.RStoreClient) Database {
-	return &DB{client: cl}
+	db := &DB{client: cl}
+	return db
 }
 
 type Database interface {
@@ -372,11 +373,12 @@ func (d *DB) GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error {
+	err := d.saveWantUpdates(ctx, userid, want, reason)
+	if err != nil {
+		return err
+	}
+
 	if want.GetId() > 0 {
-		err := d.saveWantUpdates(ctx, userid, want, reason)
-		if err != nil {
-			return err
-		}
 		return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 	}
 

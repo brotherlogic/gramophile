@@ -831,7 +831,12 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
 	}}
-	err := d.SaveRecord(ctx, 123, &pb.Record{
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   50,
 		Sleeve:  "Madeup",
 		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB", Catno: "1"}}}})
@@ -845,10 +850,6 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 		Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB", Catno: "2"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
@@ -942,7 +943,13 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
 	}}
-	err := d.SaveRecord(ctx, 123, &pb.Record{
+
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   10,
 		Sleeve:  "Madeup",
 		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
@@ -970,10 +977,6 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 		Release: &pbd.Release{InstanceId: 1237, FolderId: 12, Labels: []*pbd.Label{{Name: "CC"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
 	}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
@@ -1747,7 +1750,12 @@ func TestSetSnapshotName(t *testing.T) {
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -1758,10 +1766,6 @@ func TestSetSnapshotName(t *testing.T) {
 	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
 	}
 
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
