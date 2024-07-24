@@ -367,10 +367,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get record: %w", err)
 		}
 
-		fNum := int64(-1)
+		fNum := int32(-1)
 		for _, folder := range u.GetFolders() {
 			if folder.GetName() == entry.GetMoveRecord().GetMoveFolder() {
-				fNum = int64(folder.GetId())
+				fNum = folder.GetId()
 			}
 		}
 
@@ -378,7 +378,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}
 
-		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), int64(rec.GetRelease().GetFolderId()), fNum)
+		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), rec.GetRelease().GetFolderId(), fNum)
 		if err != nil {
 			return fmt.Errorf("unable to move record: %w", err)
 		}
