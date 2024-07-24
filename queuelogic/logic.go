@@ -120,6 +120,7 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 }
 
 func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
+	log.Printf("Writing for %v", id)
 	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
 
@@ -739,7 +740,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		log.Printf("Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
-		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
 				log.Printf("NO DATEMARKER")
@@ -751,7 +752,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
-		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to write refresh date marker: %w", err)
 		}
