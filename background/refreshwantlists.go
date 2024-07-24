@@ -14,14 +14,14 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string) error {
+func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	lists, err := b.db.GetWantlists(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get wantlists: %w", err)
 	}
 
 	for _, list := range lists {
-		err = b.processWantlist(ctx, di, list)
+		err = b.processWantlist(ctx, di, list, auth, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -30,7 +30,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	return nil
 }
 
-func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist) error {
+func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing %v", list.GetName())
 
 	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
@@ -59,7 +59,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 	}
 
-	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list)
+	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
@@ -75,17 +75,17 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	return nil
 }
 
-func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist) (bool, error) {
+func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
 	switch list.GetType() {
 	case pb.WantlistType_ONE_BY_ONE:
-		return b.refreshOneByOneWantlist(ctx, userid, list)
+		return b.refreshOneByOneWantlist(ctx, userid, list, token, enqueue)
 	default:
 		log.Printf("Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
 	}
 }
 
-func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid int32, list *pb.Wantlist) (bool, error) {
+func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
 	sort.SliceStable(list.GetEntries(), func(i, j int) bool {
 		return list.GetEntries()[i].GetIndex() < list.GetEntries()[j].GetIndex()
 	})
@@ -102,15 +102,29 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			continue
 		}
 
-		log.Printf("Refreshing entry: %v", entry)
+		log.Printf("Refreshing Queue entry: %v", entry)
 		switch entry.GetState() {
 		case pb.WantState_WANTED:
 			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
-				return true, b.mergeWant(ctx, userid, &pb.Want{
+				err := b.mergeWant(ctx, userid, &pb.Want{
 					Id:    entry.GetId(),
 					State: pb.WantState_HIDDEN,
 				})
+				if err != nil {
+					return false, err
+				}
+				_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Auth:    token,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId()},
+						},
+					},
+				}})
+				return true, err
 			}
+
 			return false, nil
 		case pb.WantState_PURCHASED:
 			continue
@@ -120,11 +134,24 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 				state = pb.WantState_HIDDEN
 			}
 			entry.State = state
-			log.Printf("ENTRY: %v", entry)
-			return true, b.mergeWant(ctx, userid, &pb.Want{
+			log.Printf("ESETTING ENTRY: %v", entry)
+			err := b.mergeWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: state,
 			})
+			if err != nil {
+				return false, err
+			}
+			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				Auth:    token,
+				RunDate: time.Now().UnixNano(),
+				Entry: &pb.QueueElement_RefreshWant{
+					RefreshWant: &pb.RefreshWant{
+						Want: &pb.Want{Id: entry.GetId(), State: entry.GetState()},
+					},
+				},
+			}})
+			return true, err
 		}
 	}
 

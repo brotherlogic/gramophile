@@ -95,7 +95,7 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 		return nil, err
 	}
 
-	nw := &pb.Want{
+	want := &pb.Want{
 		State:        pb.WantState_WANTED,
 		Id:           req.GetWantId(),
 		MasterId:     req.GetMasterWantId(),
@@ -104,21 +104,21 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	err = s.d.SaveWant(
 		ctx,
 		user.GetUser().GetDiscogsUserId(),
-		nw,
+		want,
 		"Added from API")
 	log.Printf("SAVED %v (%v)", err, user.GetUser().GetDiscogsUserId())
 
-	// Enqueue an updae
-	s.qc.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-		RunDate:          time.Now().UnixNano(),
-		Auth:             user.GetAuth().GetToken(),
-		BackoffInSeconds: 60,
-		Entry: &pb.QueueElement_RefreshWant{
-			RefreshWant: &pb.RefreshWant{
-				Want: nw,
+	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: time.Now().UnixNano(),
+			Auth:    user.GetAuth().GetToken(),
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{
+					Want: want,
+				},
 			},
 		},
-	}})
+	})
 
 	return &pb.AddWantResponse{}, err
 }

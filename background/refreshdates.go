@@ -33,7 +33,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 		return err
 	}
 
-	log.Printf("FOUND MASTERS: %v", masters)
+	log.Printf("FOUND MASTERS: %v -> %v", iid, masters)
 	for _, m := range masters {
 		_, err = enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{

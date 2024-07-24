@@ -187,7 +187,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 	}
 }
 
-func TestWantlistUpdatedOnSync_InvsibleAndHiddenAndInvisible(t *testing.T) {
+func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()

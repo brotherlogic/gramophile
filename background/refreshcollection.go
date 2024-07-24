@@ -67,7 +67,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 				}
 			}
 		} else {
-			skipped++
+			log.Printf("SKIPPING DATE REFRESH %v", id)
+			//skipped++
 		}
 	}
 
