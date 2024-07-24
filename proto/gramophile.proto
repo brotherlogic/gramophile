@@ -225,6 +225,7 @@ message Intent {
     int64 arrived = 7;
     KeepStatus keep = 8;
     int32 new_score = 9;
+    int32 new_folder = 10;
 }
 
 message Queues {
