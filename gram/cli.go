@@ -61,6 +61,7 @@ func main() {
 		GetOrganisation(),
 		GetGoalFolder(),
 		GetWantlist(),
+		GetFolder(),
 		GetWeight()}
 
 	ctx, cancel, err := buildContext()
