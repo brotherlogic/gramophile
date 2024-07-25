@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -16,6 +17,7 @@ func (w *WantChanger) Name() string {
 }
 
 func (w *WantChanger) ProcessChange(ctx context.Context, c *pb.DBChange, user *pb.StoredUser) error {
+	log.Printf("CHANGE %v", c)
 	// We only care about this change if it's a change record
 	if c.GetType() != pb.DBChange_CHANGE_WANT {
 		return nil

@@ -107,7 +107,7 @@ func TestAddMasterWant(t *testing.T) {
 	}
 
 	if len(wants.GetWants()) != 2 {
-		t.Errorf("There should be 2 wants, there's only %v", len(wants.GetWants()))
+		t.Errorf("There should be 2 wants, there's only %v -> %v", len(wants.GetWants()), wants.GetWants())
 	}
 
 }

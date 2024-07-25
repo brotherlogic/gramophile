@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	RefreshReleasePeriod      = time.Hour * 24          // Once a week
+	RefreshReleasePeriod      = time.Hour * 24 * 7      // Once a week
 	RefreshReleaseDatesPeriod = time.Hour * 24 * 7 * 30 // Once a month
 )
 
@@ -67,7 +67,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 				}
 			}
 		} else {
-			skipped++
+			log.Printf("SKIPPING DATE REFRESH %v", id)
+			//skipped++
 		}
 	}
 

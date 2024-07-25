@@ -120,6 +120,7 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 }
 
 func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
+	log.Printf("Writing for %v", id)
 	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
 
@@ -331,7 +332,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshState" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_UpdateSale" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWantlists" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecords" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUser" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddMasterWant" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddFolderUpdate" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecord" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUpdates" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		log.Printf("Skipping '%T'", entry.Entry)
 
@@ -357,10 +367,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get record: %w", err)
 		}
 
-		fNum := int64(-1)
+		fNum := int32(-1)
 		for _, folder := range u.GetFolders() {
 			if folder.GetName() == entry.GetMoveRecord().GetMoveFolder() {
-				fNum = int64(folder.GetId())
+				fNum = folder.GetId()
 			}
 		}
 
@@ -368,7 +378,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}
 
-		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), int64(rec.GetRelease().GetFolderId()), fNum)
+		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), rec.GetRelease().GetFolderId(), fNum)
 		if err != nil {
 			return fmt.Errorf("unable to move record: %w", err)
 		}
@@ -484,7 +494,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		return nil
 	case *pb.QueueElement_RefreshWantlists:
-		return q.b.RefreshWantlists(ctx, d, entry.GetAuth())
+		return q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_LinkSales:
 		err := q.b.LinkSales(ctx, u)
 		if err != nil {
@@ -730,7 +740,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		log.Printf("Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
-		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
 				log.Printf("NO DATEMARKER")
@@ -742,7 +752,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
-		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to write refresh date marker: %w", err)
 		}

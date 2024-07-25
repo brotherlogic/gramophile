@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"log"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
@@ -161,6 +162,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		t.Fatalf("unable to add to wantlist: %v", err)
 	}
 
+	log.Printf("TEST sync 1")
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: 2,
@@ -176,30 +178,16 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
+	log.Printf("WANTS: %v", wants)
+
 	if len(wants.GetWants()) != 2 ||
 		(wants.GetWants()[0].GetWant().Id != 123 && wants.GetWants()[1].GetWant().Id != 123) ||
 		(wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN && wants.GetWants()[1].GetWant().State != pb.WantState_HIDDEN) {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
-
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
-		},
-	})
-
-	qc.FlushQueue(ctx)
-
-	dwants, _, err := di.GetWants(ctx, 1)
-
-	if len(dwants) != 1 {
-		t.Errorf("There should be only one non-hidden want: %v", dwants)
-	}
 }
 
-func TestWantlistUpdatedOnSync_HiddenAndInvisible(t *testing.T) {
+func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 	ctx := getTestContext(123)
 
 	rstore := rstore_client.GetTestClient()

@@ -6,10 +6,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
-	"github.com/brotherlogic/gramophile/config"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
+	ghbclient "github.com/brotherlogic/githubridge/client"
+
+	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/config"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -67,6 +71,119 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 	}
 
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
+}
+
+func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.OrganisationSnapshot, index int32, nc int32) *pb.Location {
+	var before []*pb.Context
+	var after []*pb.Context
+
+	for i := index - 1; i > max(0, index-nc); i-- {
+		before = append(before, &pb.Context{
+			Index: i,
+			Iid:   s.GetPlacements()[i].GetIid(),
+		})
+	}
+
+	for i := index + 1; i < min(int32(len(s.GetPlacements())), index+nc); i++ {
+		after = append(after, &pb.Context{
+			Index: i,
+			Iid:   s.GetPlacements()[i].GetIid(),
+		})
+	}
+
+	return &pb.Location{
+		LocationName: org.GetName(),
+		Before:       before,
+		After:        after,
+	}
+}
+
+func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.Record, config *pb.GramophileConfig) (*pb.Location, error) {
+	for _, org := range config.GetOrganisationConfig().GetOrganisations() {
+		found := false
+		for _, folder := range org.GetFoldersets() {
+			if folder.GetFolder() == r.GetRelease().GetFolderId() {
+				found = true
+			}
+		}
+
+		if found {
+			snapshot, err := b.db.GetLatestSnapshot(ctx, userId, org.GetName())
+			if err != nil {
+				return nil, err
+			}
+
+			index := -1
+			for i, val := range snapshot.GetPlacements() {
+				if val.GetIid() == r.GetRelease().GetInstanceId() {
+					index = i
+					break
+				}
+			}
+
+			if index < 0 {
+				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot", r.GetRelease().GetInstanceId(), org.GetName())
+			}
+
+			return buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext()), nil
+		}
+	}
+
+	gclient, err := ghbclient.GetClientInternal()
+	if err != nil {
+		return nil, err
+	}
+	_, err = gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+		User:  "brotherlogic",
+		Repo:  "gramophile",
+		Body:  fmt.Sprintf("Add %v to the org list", r.GetRelease().GetFolderId()),
+		Title: "Add organisation",
+	})
+	log.Printf("Created issue -> %v", err)
+
+	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org (%v)", r.GetRelease().GetInstanceId(), r.GetRelease().GetFolderId())
+}
+
+func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	// We don't zero out the clean time
+	if i.GetNewFolder() == 0 {
+		return nil
+	}
+
+	// Move the record
+	err := d.SetFolder(ctx,
+		r.GetRelease().GetInstanceId(),
+		r.GetRelease().GetId(),
+		r.GetRelease().GetFolderId(), i.GetNewFolder())
+	if err != nil {
+		return err
+	}
+
+	oldLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
+	if err != nil {
+		return err
+	}
+
+	// TODO: Reorg the new location
+
+	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
+	if err != nil {
+		return err
+	}
+
+	// Save the change for printing
+	err = b.db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), &pb.PrintMove{
+		Timestamp:   time.Now().UnixNano(),
+		Iid:         r.GetRelease().GetInstanceId(),
+		Origin:      oldLoc,
+		Destination: newLoc,
+		Record:      fmt.Sprintf("%v - %v", r.GetRelease().GetArtists()[0].GetName(), r.GetRelease().GetTitle()),
+	})
+	if err != nil {
+		return err
+	}
+
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
