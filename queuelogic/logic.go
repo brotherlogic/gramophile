@@ -748,7 +748,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			}
 		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
 			markerCount.Inc()
-			log.Printf("REJECTING because we have a refresh date in the queue")
+			log.Printf("REJECTING because we have a refresh date in the queue (%v)", time.Unix(0, marker))
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
