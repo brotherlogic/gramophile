@@ -35,18 +35,20 @@ func runValidationLoop(ctx context.Context) error {
 		if user.GetUserToken() == "" && time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
 			client.DeleteUser(ctx, &pb.DeleteUserRequest{Id: user.GetAuth().GetToken()})
 		} else {
-			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					RunDate:          time.Now().UnixNano(),
-					Auth:             user.GetAuth().GetToken(),
-					BackoffInSeconds: 10,
-					Entry: &pb.QueueElement_RefreshUser{
-						RefreshUser: &pb.RefreshUserEntry{Auth: user.GetAuth().GetToken()},
+			if time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
+				_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:          time.Now().UnixNano(),
+						Auth:             user.GetAuth().GetToken(),
+						BackoffInSeconds: 10,
+						Entry: &pb.QueueElement_RefreshUser{
+							RefreshUser: &pb.RefreshUserEntry{Auth: user.GetAuth().GetToken()},
+						},
 					},
-				},
-			})
-			if err != nil {
-				return err
+				})
+				if err != nil {
+					return err
+				}
 			}
 
 			log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastRefreshTime())))
