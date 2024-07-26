@@ -8,6 +8,7 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
+	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
 
 	ghbclient "github.com/brotherlogic/githubridge/client"
@@ -103,6 +104,17 @@ func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.Organisation
 	}
 }
 
+func getOrg(folderId int32, config *pb.GramophileConfig) *pb.Organisation {
+	for _, org := range config.GetOrganisationConfig().GetOrganisations() {
+		for _, folder := range org.GetFoldersets() {
+			if folder.GetFolder() == folderId {
+				return org
+			}
+		}
+	}
+	return nil
+}
+
 func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.Record, config *pb.GramophileConfig) (*pb.Location, error) {
 	for _, org := range config.GetOrganisationConfig().GetOrganisations() {
 		found := false
@@ -170,6 +182,11 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	}
 
 	// TODO: Reorg the new location
+	orglogic := org.GetOrg(b.db)
+	_, err = orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()))
+	if err != nil {
+		return err
+	}
 
 	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {

@@ -1,7 +1,10 @@
 package server
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"log"
+	"sort"
 	"testing"
 	"time"
 
@@ -1301,6 +1304,147 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	}
 }
 
+func TestSnapshotDiff(t *testing.T) {
+	type test struct {
+		start *pb.OrganisationSnapshot
+		end   *pb.OrganisationSnapshot
+	}
+
+	tests := []test{
+		{
+			start: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+			end: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		diff := getSnapshotDiff(test.start, test.end)
+
+		nsnap := applyMoves(test.start, diff)
+		if tgetHash(test.end.GetPlacements()) != tgetHash(nsnap.GetPlacements()) {
+			t.Errorf("Moves failed: \nstart    %v\nexpected %v\ngot      %v\nmoves: %v\n %v vs %v", test.start, test.end, nsnap, diff, tgetHash(test.end.GetPlacements()), tgetHash(nsnap.GetPlacements()))
+		}
+	}
+}
+
+func tgetHash(placements []*pb.Placement) string {
+	sort.SliceStable(placements, func(i, j int) bool {
+		return placements[i].GetIndex() < placements[j].GetIndex()
+	})
+
+	val := &pb.OrganisationSnapshot{Placements: placements}
+	bytes, _ := proto.Marshal(val)
+	log.Printf("HASH %v -> %x", val, (sha1.Sum(bytes)))
+	return fmt.Sprintf("%x", sha1.Sum(bytes))
+}
+
+func TestSetSnapshotName(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "testing",
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{OrgName: "testing", Name: "atestname", Date: org.GetSnapshot().GetDate()})
+	if err != nil {
+		t.Errorf("Unable to set org snapshot: %v", err)
+	}
+
+	org2, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing", Name: "atestname"})
+	if err != nil {
+		t.Errorf("Unable to get org from name: %v", err)
+	}
+
+	if org.GetSnapshot().GetHash() != org2.GetSnapshot().GetHash() {
+		t.Errorf("Expected was not received\n%v\n%v", org2, org)
+	}
+
+}
+
 func TestArtistOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -1689,134 +1833,4 @@ func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.Organis
 		nPlacements[i-1] = indexToRecord[i]
 	}
 	return &pb.OrganisationSnapshot{Placements: nPlacements}
-}
-
-func TestSnapshotDiff(t *testing.T) {
-	type test struct {
-		start *pb.OrganisationSnapshot
-		end   *pb.OrganisationSnapshot
-	}
-
-	tests := []test{
-		{
-			start: &pb.OrganisationSnapshot{
-				Placements: []*pb.Placement{
-					{
-						Iid:   1234,
-						Index: 1,
-						Space: "Shelves",
-						Unit:  1,
-					},
-					{
-						Iid:   1235,
-						Index: 2,
-						Space: "Shelves",
-						Unit:  1,
-					},
-				},
-			},
-			end: &pb.OrganisationSnapshot{
-				Placements: []*pb.Placement{
-					{
-						Iid:   1234,
-						Index: 2,
-						Space: "Shelves",
-						Unit:  1,
-					},
-					{
-						Iid:   1235,
-						Index: 1,
-						Space: "Shelves",
-						Unit:  1,
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		diff := getSnapshotDiff(test.start, test.end)
-
-		nsnap := applyMoves(test.start, diff)
-		if getHash(test.end.GetPlacements()) != getHash(nsnap.GetPlacements()) {
-			t.Errorf("Moves failed: \nstart    %v\nexpected %v\ngot      %v\nmoves: %v\n %v vs %v", test.start, test.end, nsnap, diff, getHash(test.end.GetPlacements()), getHash(nsnap.GetPlacements()))
-		}
-	}
-}
-
-func TestSetSnapshotName(t *testing.T) {
-	ctx := getTestContext(123)
-
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
-	di := &discogs.TestDiscogsClient{}
-	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	s := Server{d: d, di: di, qc: qc}
-
-	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
-		Config: &pb.GramophileConfig{
-			OrganisationConfig: &pb.OrganisationConfig{
-				Organisations: []*pb.Organisation{
-					{
-						Name: "testing",
-						Foldersets: []*pb.FolderSet{
-							{
-								Name:   "testing",
-								Folder: 12,
-								Index:  1,
-								Sort:   pb.Sort_LABEL_CATNO,
-							}},
-						Spaces: []*pb.Space{
-							{
-								Name:  "Main Shelves",
-								Units: 1,
-								Width: 100,
-							}},
-					},
-				},
-			},
-		},
-	})
-
-	if err != nil {
-		t.Fatalf("Unable to set config: %v", err)
-	}
-
-	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
-	if err != nil {
-		t.Fatalf("Unable to get org: %v", err)
-	}
-
-	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{OrgName: "testing", Name: "atestname", Date: org.GetSnapshot().GetDate()})
-	if err != nil {
-		t.Errorf("Unable to set org snapshot: %v", err)
-	}
-
-	org2, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing", Name: "atestname"})
-	if err != nil {
-		t.Errorf("Unable to get org from name: %v", err)
-	}
-
-	if getHash(org.GetSnapshot().GetPlacements()) != getHash(org2.GetSnapshot().GetPlacements()) {
-		t.Errorf("Expected was not received\n%v\n%v", org2, org)
-	}
-
 }
