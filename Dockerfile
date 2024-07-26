@@ -19,12 +19,14 @@ COPY db/*.go ./db/
 RUN mkdir queue_client
 COPY queue_client/*.go ./queue_client
 
-
 RUN mkdir background
 COPY background/*.go ./background/
 
 RUN mkdir config
 COPY config/*.go ./config/
+
+RUN mkdir org
+COPY org/*.go ./org/
 
 RUN go mod download
 
