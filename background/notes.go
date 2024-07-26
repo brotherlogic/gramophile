@@ -70,6 +70,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessSetFolder(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
