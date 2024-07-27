@@ -211,7 +211,7 @@ func (q *Queue) FlushQueue(ctx context.Context) error {
 func (q *Queue) Run() {
 	log.Printf("Running queue with %+v", q.d)
 	for {
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 		t1 := time.Now()
 		entry, err := q.getNextEntry(ctx)
 		if status.Code(err) != codes.NotFound {
@@ -267,6 +267,8 @@ func (q *Queue) Run() {
 				}
 			}
 		}
+
+		cancel()
 	}
 }
 
