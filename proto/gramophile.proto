@@ -464,6 +464,7 @@ message GetStateResponse {
     string config_hash = 5;
     int32 collection_misses = 6;
     int32 folder_count = 7;
+    int64 last_sale_refresh = 8;
 }
 
 message SetConfigRequest {
