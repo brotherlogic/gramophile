@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -60,7 +61,7 @@ func runValidationLoop(ctx context.Context) error {
 						BackoffInSeconds: 15,
 						Entry: &pb.QueueElement_RefreshCollection{
 							RefreshCollection: &pb.RefreshCollection{
-								Intention: "from-validator",
+								Intention: fmt.Sprintf("from-validator-%v", time.Since(time.Unix(0, user.GetLastCollectionRefresh()))),
 							},
 						},
 					},
