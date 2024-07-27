@@ -68,6 +68,10 @@ var (
 		Name: "gramophile_queue_adds",
 		Help: "The length of the working queue I think yes",
 	}, []string{"type"})
+	queueElements = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_elements",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
 )
 
 type Queue struct {
@@ -504,7 +508,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return nil
 	case *pb.QueueElement_RefreshSales:
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+
 		if entry.GetRefreshSales().GetPage() == 1 {
+			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 {
+				log.Printf("Skipping refresh sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+				return nil
+			}
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
 			log.Printf("Starting Updating run for 2836578592 -> %v", entry.GetRefreshSales().GetRefreshId())
 		}
@@ -514,10 +527,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 
-		user, err := q.db.GetUser(ctx, entry.GetAuth())
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
 		log.Printf("Got user: %v with %v", user, entry.GetRefreshSales())
 
 		if entry.GetRefreshSales().GetPage() == 1 {
