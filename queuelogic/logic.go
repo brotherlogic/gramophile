@@ -642,6 +642,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+			user, err := q.db.GetUser(ctx, entry.GetAuth())
+			if err != nil {
+				return fmt.Errorf("unable to get user: %w", err)
+			}
+
+			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
+				log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
+				return nil
+			}
+
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					RunDate:   time.Now().UnixNano() + int64(i),
@@ -656,11 +666,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				}
 			}
 
-			// If we've got here, update the user
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
-			if err != nil {
-				return fmt.Errorf("unable to get user: %w", err)
-			}
 			user.LastCollectionRefresh = time.Now().UnixNano()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
