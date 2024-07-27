@@ -269,6 +269,7 @@ message QueueElement {
     }
 
     int64 refresh_id = 7;
+    string intention = 27;
 }
 
 message RefreshState {

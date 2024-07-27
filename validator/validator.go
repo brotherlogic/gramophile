@@ -74,6 +74,7 @@ func runValidationLoop(ctx context.Context) error {
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
+						Intention:        fmt.Sprintf("refreshing collection - %v", time.Since(time.Unix(0, user.GetLastCollectionRefresh()))),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
 							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
