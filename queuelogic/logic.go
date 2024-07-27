@@ -601,7 +601,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if status.Code(err) == codes.NotFound {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
+						RunDate:   time.Now().UnixNano(),
+						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
 							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
@@ -643,7 +644,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano() + int64(i),
+					RunDate:   time.Now().UnixNano() + int64(i),
+					Intention: entry.GetIntention(),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
 						RefreshCollectionEntry: &pb.RefreshCollectionEntry{
 							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
