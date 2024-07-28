@@ -641,6 +641,16 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return status.Errorf(codes.InvalidArgument, "There is a release running: %v", q.b.ReleaseRefresh)
 		}
 
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+
+		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
+			log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
+			return nil
+		}
+
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
 		}
@@ -652,15 +662,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
-			if err != nil {
-				return fmt.Errorf("unable to get user: %w", err)
-			}
-
-			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
-				log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
-				return nil
-			}
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
@@ -676,24 +677,23 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				}
 			}
 
-			user.LastCollectionRefresh = time.Now().UnixNano()
-			err = q.db.SaveUser(ctx, user)
-			if err != nil {
-				return fmt.Errorf("unable to sell user: %w", err)
-			}
-			if err != nil {
+			if entry.GetRefreshCollectionEntry().GetPage() == rval {
+				user.LastCollectionRefresh = time.Now().UnixNano()
+				err = q.db.SaveUser(ctx, user)
+				if err != nil {
+					return fmt.Errorf("unable to sell user: %w", err)
+				}
+				//Move records
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano() + int64(rval) + 10,
+						Entry: &pb.QueueElement_MoveRecords{
+							MoveRecords: &pb.MoveRecords{}},
+						Auth: entry.GetAuth(),
+					}})
 				return err
 			}
 
-			//Move records
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano() + int64(rval) + 10,
-					Entry: &pb.QueueElement_MoveRecords{
-						MoveRecords: &pb.MoveRecords{}},
-					Auth: entry.GetAuth(),
-				}})
-			return err
 		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
 			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
