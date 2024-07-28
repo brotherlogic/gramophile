@@ -6,8 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	rstore_client "github.com/brotherlogic/rstore/client"
 )
 
 func TestUpdate(t *testing.T) {
@@ -122,5 +125,22 @@ func TestReduction(t *testing.T) {
 		if nPrice != test.expectedPrice {
 			t.Errorf("Price was %v, expected %v (%v)", nPrice, test.expectedPrice, test.name)
 		}
+	}
+}
+
+func TestSkipOnSame(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
+
+	d.SaveSale(context.Background(), 1234, &pb.SaleInfo{ReleaseId: 123, SaleId: 12345, CurrentPrice: &pbd.Price{Value: 123}})
+
+	b := GetBackgroundRunner(d, "", "", "")
+	err := b.UpdateSalePrice(context.Background(), di, 12345, 123, "Very Good Plus (VG+)", 123, "Testing")
+	if err == nil {
+		t.Errorf("Should have failed: %v", err)
 	}
 }
