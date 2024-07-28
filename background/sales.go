@@ -263,6 +263,11 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 		return fmt.Errorf("unable to load sale: %w", err)
 	}
 
+	if sale.GetCurrentPrice().GetValue() == newprice {
+		log.Printf("Skipping since current price == newprice")
+		return nil
+	}
+
 	log.Printf("Updating price %v -> %v", sale, newprice)
 	err = d.UpdateSale(ctx, sid, releaseid, condition, newprice)
 	if err != nil {
