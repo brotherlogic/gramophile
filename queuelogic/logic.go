@@ -513,7 +513,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 {
+		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
 			log.Printf("Skipping refresh sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			return nil
 		}

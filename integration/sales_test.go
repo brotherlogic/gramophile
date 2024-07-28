@@ -150,6 +150,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Auth:  "123",
+			Force: true, // Forcing a sale refresh here
 			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
 		},
 	})

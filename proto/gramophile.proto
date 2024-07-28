@@ -270,6 +270,7 @@ message QueueElement {
 
     int64 refresh_id = 7;
     string intention = 27;
+    bool force = 28;
 }
 
 message RefreshState {
