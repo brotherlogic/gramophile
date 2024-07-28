@@ -514,13 +514,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
-			log.Printf("Skipping refresh sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+			log.Printf("Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			return nil
 		}
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
-			log.Printf("Starting Updating run for 2836578592 -> %v", entry.GetRefreshSales().GetRefreshId())
 		}
 		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
 
