@@ -513,14 +513,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 {
-			log.Printf("Skipping refresh sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
+			log.Printf("Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			return nil
 		}
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
-			log.Printf("Starting Updating run for 2836578592 -> %v", entry.GetRefreshSales().GetRefreshId())
 		}
 		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
 
@@ -637,8 +636,14 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
-		if q.b.ReleaseRefresh != 0 {
-			return status.Errorf(codes.InvalidArgument, "There is a release running: %v", q.b.ReleaseRefresh)
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+
+		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
+			log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
+			return nil
 		}
 
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
@@ -652,15 +657,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
-			user, err := q.db.GetUser(ctx, entry.GetAuth())
-			if err != nil {
-				return fmt.Errorf("unable to get user: %w", err)
-			}
-
-			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
-				log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
-				return nil
-			}
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
@@ -676,24 +672,23 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				}
 			}
 
-			user.LastCollectionRefresh = time.Now().UnixNano()
-			err = q.db.SaveUser(ctx, user)
-			if err != nil {
-				return fmt.Errorf("unable to sell user: %w", err)
-			}
-			if err != nil {
+			if entry.GetRefreshCollectionEntry().GetPage() == rval {
+				user.LastCollectionRefresh = time.Now().UnixNano()
+				err = q.db.SaveUser(ctx, user)
+				if err != nil {
+					return fmt.Errorf("unable to sell user: %w", err)
+				}
+				//Move records
+				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano() + int64(rval) + 10,
+						Entry: &pb.QueueElement_MoveRecords{
+							MoveRecords: &pb.MoveRecords{}},
+						Auth: entry.GetAuth(),
+					}})
 				return err
 			}
 
-			//Move records
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano() + int64(rval) + 10,
-					Entry: &pb.QueueElement_MoveRecords{
-						MoveRecords: &pb.MoveRecords{}},
-					Auth: entry.GetAuth(),
-				}})
-			return err
 		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
 			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
