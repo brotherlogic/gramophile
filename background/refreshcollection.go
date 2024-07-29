@@ -3,7 +3,6 @@ package background
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -24,9 +23,9 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 	}
 
 	skipped := 0
-	log.Printf("Refreshing %v releases", len(ids))
+	qlog(ctx, "Refreshing %v releases", len(ids))
 	for _, id := range ids {
-		log.Printf("REFRESH: %v", id)
+		qlog(ctx, "REFRESH: %v", id)
 		rec, err := b.db.GetRecord(ctx, d.GetUserId(), id)
 		if err != nil {
 			return fmt.Errorf("unable to get record %v: %w", id, err)
@@ -44,7 +43,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 						}}},
 			})
 			if err == nil {
-				log.Printf("Refreshing %v", id)
+				qlog(ctx, "Refreshing %v", id)
 			}
 
 			// If the refresh is already in the queue, then that's fine
@@ -67,12 +66,12 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 				}
 			}
 		} else {
-			log.Printf("SKIPPING DATE REFRESH %v", id)
+			qlog(ctx, "SKIPPING DATE REFRESH %v", id)
 			//skipped++
 		}
 	}
 
-	log.Printf("Skipped %v releases", skipped)
+	qlog(ctx, "Skipped %v releases", skipped)
 
 	return nil
 }
