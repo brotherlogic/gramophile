@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -80,6 +81,36 @@ type Queue struct {
 	d      discogs.Discogs
 	db     db.Database
 	keys   []int64
+}
+
+func getRefKey(ctx context.Context) (string, error) {
+	md, found := metadata.FromIncomingContext(ctx)
+	if found {
+		if _, ok := md["queue-key"]; ok {
+			idt := md["queue-key"][0]
+
+			if idt != "" {
+				return idt, nil
+			}
+		}
+	}
+
+	md, found = metadata.FromOutgoingContext(ctx)
+	if found {
+		if _, ok := md["queue-key"]; ok {
+			idt := md["queue-key"][0]
+
+			if idt != "" {
+				return idt, nil
+			}
+		}
+	}
+
+	return "", status.Errorf(codes.NotFound, "Could not extract token from incoming or outgoing")
+}
+
+func qlog(ctx context.Context, str string, v ...any) {
+
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
