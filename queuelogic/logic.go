@@ -672,27 +672,25 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				}
 			}
 
-			if entry.GetRefreshCollectionEntry().GetPage() == rval {
-				user.LastCollectionRefresh = time.Now().UnixNano()
-				err = q.db.SaveUser(ctx, user)
-				if err != nil {
-					return fmt.Errorf("unable to sell user: %w", err)
-				}
-				//Move records
-				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano() + int64(rval) + 10,
-						Entry: &pb.QueueElement_MoveRecords{
-							MoveRecords: &pb.MoveRecords{}},
-						Auth: entry.GetAuth(),
-					}})
+		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
+			user.LastCollectionRefresh = time.Now().UnixNano()
+			err = q.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to sell user: %w", err)
+			}
+			//Move records
+			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate: time.Now().UnixNano() + int64(rval) + 10,
+					Entry: &pb.QueueElement_MoveRecords{
+						MoveRecords: &pb.MoveRecords{}},
+					Auth: entry.GetAuth(),
+				}})
+			if err != nil {
 				return err
 			}
-
-		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
 			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
-
 		return nil
 	}
 
