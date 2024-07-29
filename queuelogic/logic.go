@@ -720,6 +720,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 
 		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
+			qlog(ctx, "Writing collection refresh chip")
 			user.LastCollectionRefresh = time.Now().UnixNano()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
