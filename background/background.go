@@ -51,10 +51,10 @@ func qlog(ctx context.Context, str string, v ...any) {
 	key, err := getRefKey(ctx)
 	if err != nil {
 		log.Printf("Unable to get ref key: %v", err)
-		log.Printf(str, v)
+		log.Printf(str, v...)
 		return
 	}
 
 	prefix := fmt.Sprintf("%v: ", key)
-	log.Printf(prefix+str, v)
+	log.Printf(prefix+str, v...)
 }
