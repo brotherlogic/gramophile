@@ -121,6 +121,12 @@ func qlog(ctx context.Context, str string, v ...any) {
 	log.Printf(prefix+str, v)
 }
 
+func buildContext(rt int64, t time.Duration) (context.Context, context.CancelFunc) {
+	mContext := metadata.AppendToOutgoingContext(context.Background(), "queue-key", fmt.Sprintf("%v", rt))
+	ctx, cancel := context.WithTimeout(mContext, t)
+	return ctx, cancel
+}
+
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
 	log.Printf("GETTING QUEUE")
 	sc, err := scraper_client.GetClient()
@@ -262,7 +268,8 @@ func (q *Queue) Run() {
 		}
 		var erru error
 		if err == nil {
-			user, errv := q.db.GetUser(ctx, entry.GetAuth())
+			nctx, ncancel := buildContext(entry.GetRunDate(), time.Hour)
+			user, errv := q.db.GetUser(nctx, entry.GetAuth())
 			err = errv
 			erru = errv
 			if err == nil {
@@ -274,11 +281,12 @@ func (q *Queue) Run() {
 				}
 				d := q.d.ForUser(user.GetUser())
 				st := time.Now()
-				err = q.ExecuteInternal(ctx, d, user, entry)
-				qlog(ctx, "Queue entry end %v in %v -> %v ", entry, time.Since(st), err)
+				err = q.ExecuteInternal(nctx, d, user, entry)
+				qlog(nctx, "Queue entry end %v in %v -> %v ", entry, time.Since(st), err)
 				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry()), "code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
+			ncancel()
 		}
 
 		if status.Code(err) != codes.NotFound {
