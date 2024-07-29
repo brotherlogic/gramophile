@@ -110,7 +110,15 @@ func getRefKey(ctx context.Context) (string, error) {
 }
 
 func qlog(ctx context.Context, str string, v ...any) {
+	key, err := getRefKey(ctx)
+	if err != nil {
+		log.Printf("Unable to get ref key: %v", err)
+		log.Printf(str, v)
+		return
+	}
 
+	prefix := fmt.Sprintf("%v: ", key)
+	log.Printf(prefix+str, v)
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
@@ -155,7 +163,7 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 }
 
 func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
-	log.Printf("Writing for %v", id)
+	qlog(ctx, "Writing for %v", id)
 	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
 
@@ -173,7 +181,7 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 		Value: &anypb.Any{Value: b},
 	})
-	log.Printf("Setting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
+	qlog(ctx, "Setting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
 
 	if err != nil {
 		return err
@@ -201,7 +209,7 @@ func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) 
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 	})
-	log.Printf("Deleting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
+	qlog(ctx, "Deleting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
 
 	return err
 }
@@ -215,9 +223,9 @@ func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string, id int
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) error {
-	log.Printf("Flushing queue")
+	qlog(ctx, "Flushing queue")
 	elem, err := q.getNextEntry(ctx)
-	log.Printf("First Entry: %v", elem)
+	qlog(ctx, "First Entry: %v", elem)
 
 	for err == nil {
 		user, errv := q.db.GetUser(ctx, elem.GetAuth())
@@ -226,18 +234,18 @@ func (q *Queue) FlushQueue(ctx context.Context) error {
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
-		log.Printf("USER: %v", user)
+		qlog(ctx, "USER: %v", user)
 		d := q.d.ForUser(user.GetUser())
 		errp := q.ExecuteInternal(ctx, d, user, elem)
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
-			log.Printf("Failed to execute internal: %v -> %v", errp, elem)
+			qlog(ctx, "Failed to execute internal: %v -> %v", errp, elem)
 			return errp
 		}
 
 		elem, err = q.getNextEntry(ctx)
-		log.Printf("Post flush: %v", err)
+		qlog(ctx, "Post flush: %v", err)
 	}
 
 	return nil
@@ -250,7 +258,7 @@ func (q *Queue) Run() {
 		t1 := time.Now()
 		entry, err := q.getNextEntry(ctx)
 		if status.Code(err) != codes.NotFound {
-			log.Printf("Got Entry: %v and %v (%v)", entry, err, time.Since(t1))
+			qlog(ctx, "Got Entry: %v and %v (%v)", entry, err, time.Since(t1))
 		}
 		var erru error
 		if err == nil {
@@ -267,14 +275,14 @@ func (q *Queue) Run() {
 				d := q.d.ForUser(user.GetUser())
 				st := time.Now()
 				err = q.ExecuteInternal(ctx, d, user, entry)
-				log.Printf("Queue entry end %v in %v -> %v ", entry, time.Since(st), err)
+				qlog(ctx, "Queue entry end %v in %v -> %v ", entry, time.Since(st), err)
 				queueRunTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(st).Milliseconds()))
 				queueLast.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry()), "code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 		}
 
 		if status.Code(err) != codes.NotFound {
-			log.Printf("Ran Entry: (%v) %v - %v", entry, err, erru)
+			qlog(ctx, "Ran Entry: (%v) %v - %v", entry, err, erru)
 		}
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
@@ -284,7 +292,7 @@ func (q *Queue) Run() {
 		} else {
 			// This is discogs throttling us
 			if status.Code(err) == codes.ResourceExhausted {
-				log.Printf("Waiting for a minute to let our tokens regenerate")
+				qlog(ctx, "Waiting for a minute to let our tokens regenerate")
 				time.Sleep(time.Minute)
 			} else {
 				// Move this over to the DLQ
@@ -357,7 +365,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
-	log.Printf("Queue entry start: %v", entry)
+	qlog(ctx, "Queue entry start: %v", entry)
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 	if fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollectionEntry" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshIntents" &&
@@ -380,7 +388,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
-		log.Printf("Skipping '%T'", entry.Entry)
+		qlog(ctx, "Skipping '%T'", entry.Entry)
 
 		client, err := ghb_client.GetClientInternal()
 		if err != nil {
@@ -420,7 +428,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to move record: %w", err)
 		}
 
-		log.Printf("Setting folder: %v", fNum)
+		qlog(ctx, "Setting folder: %v", fNum)
 
 		//Update and save record
 		rec.GetRelease().FolderId = int32(fNum)
@@ -448,15 +456,15 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_UpdateSale:
 		//Short cut if sale data is not complete
 		if entry.GetUpdateSale().GetCondition() == "" {
-			log.Printf("Skipping %v", entry)
+			qlog(ctx, "Skipping %v", entry)
 			return nil
 		}
 		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice(), entry.GetUpdateSale().GetMotivation())
-		log.Printf("Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
+		qlog(ctx, "Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
 
 		// Not Found means the sale was deleted - if so remove from the db
 		if status.Code(err) == codes.NotFound {
-			log.Printf("Deleting sale for %v (%v) since we can't locate the sale", entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetSaleId())
+			qlog(ctx, "Deleting sale for %v (%v) since we can't locate the sale", entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetSaleId())
 			return q.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetUpdateSale().GetSaleId())
 		}
 		return err
@@ -545,7 +553,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
-			log.Printf("Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+			qlog(ctx, "Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
 			return nil
 		}
 
@@ -558,7 +566,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 
-		log.Printf("Got user: %v with %v", user, entry.GetRefreshSales())
+		qlog(ctx, "Got user: %v with %v", user, entry.GetRefreshSales())
 
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
@@ -593,7 +601,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 		}
 
-		log.Printf("Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
+		qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
 		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
 			err := q.b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
 			if err != nil {
@@ -620,7 +628,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get intent: %w", err)
 		}
 		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
-		log.Printf("Processed intent (%v) -> %v", i, v)
+		qlog(ctx, "Processed intent (%v) -> %v", i, v)
 
 		//Move records
 		q.Enqueue(ctx, &pb.EnqueueRequest{
@@ -636,7 +644,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshRelease:
 		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetRefreshRelease().GetIntention() == "Manual Update")
-		log.Printf("Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
+		qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 		if err != nil {
 			if status.Code(err) == codes.NotFound {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
@@ -656,7 +664,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return derr
 	case *pb.QueueElement_RefreshCollection:
-		log.Printf("RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
+		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		err := q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)
@@ -673,7 +681,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
-			log.Printf("Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
+			qlog(ctx, "Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
 			return nil
 		}
 
@@ -682,7 +690,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		rval, err := q.b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollectionEntry().GetPage(), entry.GetRefreshCollectionEntry().GetRefreshId())
-		log.Printf("Processed collection page: %v %v", rval, err)
+		qlog(ctx, "Processed collection page: %v %v", rval, err)
 
 		if err != nil {
 			return err
@@ -754,7 +762,7 @@ var (
 )
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-	log.Printf("Enqueue: %v", req)
+	qlog(ctx, "Enqueue: %v", req)
 
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
@@ -781,17 +789,17 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		log.Printf("Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
+		qlog(ctx, "Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
 		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
-				log.Printf("NO DATEMARKER")
+				qlog(ctx, "NO DATEMARKER")
 				return nil, fmt.Errorf("Unable to get refresh datemarker: %w", err)
 			}
 		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
 			markerCount.Inc()
-			log.Printf("REJECTING because we have a refresh date in the queue (%v)", time.Unix(0, marker))
+			qlog(ctx, "REJECTING because we have a refresh date in the queue (%v)", time.Unix(0, marker))
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
@@ -816,7 +824,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		queueLen.Inc()
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
-	log.Printf("Appended %v -> %v", req.GetElement(), len(q.keys))
+	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
 
 	return &pb.EnqueueResponse{}, err
 }
