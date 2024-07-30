@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/brotherlogic/gramophile/queuelogic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -53,7 +54,7 @@ func runValidationLoop(ctx context.Context) error {
 			}
 
 			log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastRefreshTime())))
-			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) > time.Hour*8 {
+			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) > queuelogic.CollectionRefresh {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().UnixNano(),
