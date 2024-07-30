@@ -83,6 +83,34 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 }
 
 func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	user, err := b.db.GetUser(ctx, authToken)
+	if err != nil {
+		return err
+	}
+
+	var storedWant *pb.Want
+	if want.GetMasterId() == 0 {
+		storedWant, err = b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+		if err != nil {
+			return err
+		}
+	} else {
+		storedWant, err = b.db.GetMasterWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetMasterId())
+		if err != nil {
+			return err
+		}
+	}
+
+	err = b.RefreshWantInternal(ctx, d, want, authToken, enqueue)
+	if err != nil {
+		return err
+	}
+
+	storedWant.Clean = true
+	return b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
+}
+
+func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing: %v", want)
 	if want.GetState() == pb.WantState_WANTED {
 		if want.GetMasterId() > 0 && want.GetId() == 0 {
@@ -117,6 +145,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 				if rec.GetArrived() > 0 {
 					want.State = pb.WantState_PURCHASED
 				}
+				want.Clean = false
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)

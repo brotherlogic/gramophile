@@ -105,6 +105,8 @@ message Want {
 
     int64 master_id = 5;
     WantFilter master_filter = 6;
+
+    bool clean = 7;
 }
 
 enum NoncomplianceIssue {

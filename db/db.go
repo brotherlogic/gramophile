@@ -80,6 +80,7 @@ type Database interface {
 	GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error)
 
 	GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error)
+	GetMasterWant(ctx context.Context, userid int32, mid int64) (*pb.Want, error)
 	GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error)
 	GetWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	GetMasterWants(ctx context.Context, userid int32) ([]*pb.Want, error)
@@ -284,6 +285,17 @@ func (d *DB) LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error) {
 
 func (d *DB) GetWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error) {
 	data, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, wid))
+	if err != nil {
+		return nil, err
+	}
+
+	want := &pb.Want{}
+	err = proto.Unmarshal(data, want)
+	return want, err
+}
+
+func (d *DB) GetMasterWant(ctx context.Context, userid int32, wid int64) (*pb.Want, error) {
+	data, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/masterwant/%v", userid, wid))
 	if err != nil {
 		return nil, err
 	}

@@ -112,7 +112,6 @@ func getRefKey(ctx context.Context) (string, error) {
 func qlog(ctx context.Context, str string, v ...any) {
 	key, err := getRefKey(ctx)
 	if err != nil {
-		log.Printf("Unable to get ref key: %v", err)
 		log.Printf(str, v...)
 		return
 	}
@@ -517,6 +516,28 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			err = q.b.AlignWants(ctx, d, user.GetConfig().GetWantsConfig())
 			if err != nil {
 				return err
+			}
+
+			// Save any dirty wants
+			wants, err := q.db.GetWants(ctx, user.GetUser().GetDiscogsUserId())
+			if err != nil {
+				return err
+			}
+			for _, want := range wants {
+				if !want.GetClean() {
+					_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+						Element: &pb.QueueElement{
+							RunDate:          time.Now().UnixNano(),
+							Auth:             user.GetAuth().GetToken(),
+							BackoffInSeconds: 60,
+							Entry: &pb.QueueElement_RefreshWant{
+								RefreshWant: &pb.RefreshWant{
+									Want: want,
+								},
+							},
+						},
+					})
+				}
 			}
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
