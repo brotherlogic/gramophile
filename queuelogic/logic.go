@@ -112,7 +112,6 @@ func getRefKey(ctx context.Context) (string, error) {
 func qlog(ctx context.Context, str string, v ...any) {
 	key, err := getRefKey(ctx)
 	if err != nil {
-		log.Printf("Unable to get ref key: %v", err)
 		log.Printf(str, v...)
 		return
 	}

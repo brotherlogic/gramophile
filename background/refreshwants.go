@@ -88,9 +88,17 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 		return err
 	}
 
-	storedWant, err := b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
-	if err != nil {
-		return err
+	var storedWant *pb.Want
+	if want.GetMasterId() == 0 {
+		storedWant, err = b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+		if err != nil {
+			return err
+		}
+	} else {
+		storedWant, err = b.db.GetMasterWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetMasterId())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = b.RefreshWantInternal(ctx, d, want, authToken, enqueue)
@@ -137,6 +145,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 				if rec.GetArrived() > 0 {
 					want.State = pb.WantState_PURCHASED
 				}
+				want.Clean = false
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)
