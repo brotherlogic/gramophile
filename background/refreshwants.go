@@ -83,6 +83,26 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 }
 
 func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	user, err := b.db.GetUser(ctx, authToken)
+	if err != nil {
+		return err
+	}
+
+	storedWant, err := b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+	if err != nil {
+		return err
+	}
+
+	err = b.RefreshWantInternal(ctx, d, want, authToken, enqueue)
+	if err != nil {
+		return err
+	}
+
+	storedWant.Clean = true
+	return b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
+}
+
+func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing: %v", want)
 	if want.GetState() == pb.WantState_WANTED {
 		if want.GetMasterId() > 0 && want.GetId() == 0 {

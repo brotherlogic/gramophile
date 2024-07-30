@@ -519,6 +519,28 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				return err
 			}
 
+			// Save any dirty wants
+			wants, err := q.db.GetWants(ctx, user.GetUser().GetDiscogsUserId())
+			if err != nil {
+				return err
+			}
+			for _, want := range wants {
+				if !want.GetClean() {
+					_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+						Element: &pb.QueueElement{
+							RunDate:          time.Now().UnixNano(),
+							Auth:             user.GetAuth().GetToken(),
+							BackoffInSeconds: 60,
+							Entry: &pb.QueueElement_RefreshWant{
+								RefreshWant: &pb.RefreshWant{
+									Want: want,
+								},
+							},
+						},
+					})
+				}
+			}
+
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate:          time.Now().UnixNano(),
