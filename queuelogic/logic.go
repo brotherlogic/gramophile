@@ -490,7 +490,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		// Only refresh every 24 hours
-		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 {
+		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 && !entry.GetForce() {
 			return nil
 		}
 
@@ -505,6 +505,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			for i := int32(2); i <= pages; i++ {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Force:   entry.GetForce(),
 						RunDate: time.Now().UnixNano() + int64(i),
 						Entry: &pb.QueueElement_SyncWants{
 							SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
@@ -531,6 +532,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				if !want.GetClean() {
 					_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 						Element: &pb.QueueElement{
+							Force:            entry.GetForce(),
 							RunDate:          time.Now().UnixNano(),
 							Auth:             user.GetAuth().GetToken(),
 							BackoffInSeconds: 60,
@@ -546,6 +548,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
+					Force:            entry.GetForce(),
 					RunDate:          time.Now().UnixNano(),
 					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 60,
@@ -557,6 +560,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
+					Force:            entry.GetForce(),
 					RunDate:          time.Now().UnixNano(),
 					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 60,
