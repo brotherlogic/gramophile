@@ -75,6 +75,10 @@ var (
 	}, []string{"type"})
 )
 
+const (
+	CollectionRefresh = time.Hour * 24 * 7 // Refresh the full collection once a week
+)
+
 type Queue struct {
 	rstore rstore_client.RStoreClient
 	b      *background.BackgroundRunner
@@ -716,7 +720,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < time.Hour*24 {
+		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
 			qlog(ctx, "Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
 			return nil
 		}
