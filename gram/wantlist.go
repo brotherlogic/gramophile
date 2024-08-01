@@ -82,6 +82,8 @@ func executeWantlist(ctx context.Context, args []string) error {
 		switch args[2] {
 		case "one":
 			ntype = pb.WantlistType_ONE_BY_ONE
+		case "masse":
+			ntype = pb.WantlistType_EN_MASSE
 		default:
 			return status.Errorf(codes.InvalidArgument, "%v is not a known type [one]", args[2])
 		}
