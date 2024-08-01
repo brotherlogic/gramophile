@@ -16,6 +16,218 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func TestUpgradeToEnMasse(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
+
+	// Create a want list
+	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
+		Name: "test-wantlist",
+		Type: pb.WantlistType_ONE_BY_ONE,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add wantlist")
+	}
+
+	// Update
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 123,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 124,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	qc.FlushQueue(ctx)
+
+	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wants: %v", err)
+	}
+
+	if len(wants.GetWants()) != 2 {
+		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
+	}
+
+	for _, want := range wants.GetWants() {
+		if want.GetWant().GetId() == 123 {
+			if want.GetWant().GetState() != pb.WantState_WANTED {
+				t.Errorf("First entry should be wanted: %v", want)
+			}
+		} else {
+			if want.GetWant().GetState() == pb.WantState_WANTED {
+				t.Errorf("Second entry should be wanted: %v", want)
+			}
+		}
+	}
+
+	s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:    "test-wantlist",
+		NewType: pb.WantlistType_EN_MASSE,
+	})
+
+	qc.FlushQueue(ctx)
+
+	wants, err = s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wants: %v", err)
+	}
+
+	if len(wants.GetWants()) != 2 {
+		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
+	}
+
+	for _, want := range wants.GetWants() {
+		if want.GetWant().GetState() != pb.WantState_WANTED {
+			t.Errorf("All entries should be wanted: %v", want)
+		}
+	}
+
+}
+
+func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
+
+	// Create a want list
+	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
+		Name: "test-wantlist",
+		Type: pb.WantlistType_EN_MASSE,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add wantlist")
+	}
+
+	// Update
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 123,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 124,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	qc.FlushQueue(ctx)
+
+	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wants: %v", err)
+	}
+
+	if len(wants.GetWants()) != 2 {
+		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
+	}
+
+	for _, want := range wants.GetWants() {
+		if want.GetWant().GetState() != pb.WantState_WANTED {
+			t.Fatalf("All wants should be WANTED: %v", want)
+		}
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: 1,
+			Auth:    "123",
+			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+		},
+	})
+
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: 2,
+			Auth:    "123",
+			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+		},
+	})
+	qc.FlushQueue(ctx)
+
+	wants, err = s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get all the wants: %v", err)
+	}
+
+	if len(wants.GetWants()) != 2 {
+		t.Fatalf("Should have 2 wants")
+	}
+
+	for _, want := range wants.GetWants() {
+		if want.GetWant().GetId() == 123 {
+			if want.GetWant().GetState() == pb.WantState_WANTED {
+				t.Errorf("123 should be marked PURCHASED: %v", want)
+			}
+		} else {
+			if want.GetWant().GetState() != pb.WantState_WANTED {
+				t.Errorf("Want should be WANTED: %v", want)
+			}
+		}
+	}
+
+	list, err := s.GetWantlist(ctx, &pb.GetWantlistRequest{
+		Name: "test-wantlist",
+	})
+
+	for _, entry := range list.GetList().GetEntries() {
+		if entry.GetId() == 123 {
+			if entry.GetState() == pb.WantState_WANTED {
+				t.Errorf("123 should be marked PURCHASED: %v", entry)
+			}
+		} else {
+			if entry.GetState() != pb.WantState_WANTED {
+				t.Errorf("Want should be WANTED: %v", entry)
+			}
+		}
+	}
+}
+
 func TestWantlistUpdatedOnSync(t *testing.T) {
 	ctx := getTestContext(123)
 

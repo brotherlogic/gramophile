@@ -293,7 +293,6 @@ message UpdateMasterWant {
 
 message RefreshWant {
    Want want = 1;
-   WantState new_state = 2;
    bool delete = 3;
 }
 

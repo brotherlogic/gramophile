@@ -31,31 +31,22 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	log.Printf("Processing %v", list.GetName())
-
-	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
-	if err != nil {
-		return fmt.Errorf("unable to load all records: %w", err)
-	}
+	log.Printf("Processing %v -> %v", list.GetName(), list.GetType())
 
 	changed := false
 	for _, entry := range list.GetEntries() {
+		log.Printf("REFRESH %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
 		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
 		if err != nil {
 			return err
 		}
-		entry.State = want.GetState()
 
-		if entry.GetState() == pb.WantState_WANTED {
-			log.Printf("STATE matches")
-			for _, r := range records {
-				if r.GetRelease().GetId() == entry.GetId() {
-					entry.State = pb.WantState_PURCHASED
-					changed = true
-					list.LastPurchaseDate = time.Now().UnixNano()
-				}
-			}
+		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
+			log.Printf("HERE %v and %v", want, entry)
+			entry.State = want.GetState()
+			changed = true
+			list.LastPurchaseDate = time.Now().UnixNano()
 		}
 	}
 
@@ -79,10 +70,46 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 	switch list.GetType() {
 	case pb.WantlistType_ONE_BY_ONE:
 		return b.refreshOneByOneWantlist(ctx, userid, list, token, enqueue)
+	case pb.WantlistType_EN_MASSE:
+		return b.refreshEnMasseWantlist(ctx, userid, list, token, enqueue)
 	default:
 		log.Printf("Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
 	}
+}
+
+func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
+	updated := false
+	for _, entry := range list.GetEntries() {
+		want, err := b.db.GetWant(ctx, userid, entry.GetId())
+		if err != nil {
+			return false, err
+		}
+
+		qlog(ctx, "Tracking: %v", want)
+		if want.GetState() != pb.WantState_WANTED &&
+			want.GetState() != pb.WantState_PURCHASED &&
+			want.GetState() != pb.WantState_IN_TRANSIT {
+			want.State = pb.WantState_WANTED
+			want.Clean = false
+			err = b.db.SaveWant(ctx, userid, want, "Saving from wantlist update")
+			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				Auth:    token,
+				RunDate: time.Now().Unix(),
+				Entry: &pb.QueueElement_RefreshWant{
+					RefreshWant: &pb.RefreshWant{
+						Want: &pb.Want{
+							Id: entry.GetId(),
+						},
+					},
+				},
+			}})
+			entry.State = pb.WantState_WANTED
+			updated = true
+		}
+	}
+
+	return updated, nil
 }
 
 func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
