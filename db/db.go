@@ -75,7 +75,8 @@ type Database interface {
 	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
 	GetUsers(ctx context.Context) ([]string, error)
 
-	LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, hash string) (*pb.OrganisationSnapshot, error)
+	LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, name string) (*pb.OrganisationSnapshot, error)
+	LoadSnapshotHash(ctx context.Context, user *pb.StoredUser, org string, hash string) (*pb.OrganisationSnapshot, error)
 	SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error
 	GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error)
 
@@ -455,12 +456,36 @@ func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, 
 		})
 	}
 
+	if snapshot.GetHash() != "" {
+		_, err = d.client.Write(ctx, &rspb.WriteRequest{
+			Key:   fmt.Sprintf("gramophile/%v/org/%v/hash/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetHash()),
+			Value: &anypb.Any{Value: data},
+		})
+	}
+
 	return err
 }
 
 func (d *DB) LoadSnapshot(ctx context.Context, user *pb.StoredUser, org string, name string) (*pb.OrganisationSnapshot, error) {
 	val, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), cleanOrgString(name)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	snapshot := &pb.OrganisationSnapshot{}
+	err = proto.Unmarshal(val.GetValue().GetValue(), snapshot)
+	if err != nil {
+		return nil, err
+	}
+
+	return snapshot, nil
+}
+
+func (d *DB) LoadSnapshotHash(ctx context.Context, user *pb.StoredUser, org string, hash string) (*pb.OrganisationSnapshot, error) {
+	val, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/%v/org/%v/hash/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), hash),
 	})
 	if err != nil {
 		return nil, err
