@@ -68,16 +68,20 @@ func executeOrg(ctx context.Context, args []string) error {
 		name := orgFlags.String("org", "", "The name of the organisation")
 		slot := orgFlags.Int("slot", 1, "The slot to print")
 		debug := orgFlags.Bool("debug", false, "Include debug info")
+		hash := orgFlags.String("hash", "", "The hash of org snapshot")
 		//space := orgFlags.String("space", "")
 
 		if err := orgFlags.Parse(args); err == nil {
 			client := pb.NewGramophileEServiceClient(conn)
 			r, err := client.GetOrg(ctx, &pb.GetOrgRequest{
 				OrgName: *name,
+				Name:    *hash,
 			})
 			if err != nil {
 				return fmt.Errorf("unable to get org: %w", err)
 			}
+
+			fmt.Printf("%v -> %v\n", r.GetSnapshot().GetName(), r.GetSnapshot().GetHash())
 
 			if len(r.GetSnapshot().GetPlacements()) == 0 {
 				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)

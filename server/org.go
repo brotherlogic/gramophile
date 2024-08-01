@@ -44,6 +44,15 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 		return nil, err
 	}
 
+	if req.GetHash() != "" {
+		snapshot, err := s.d.LoadSnapshotHash(ctx, user, req.GetOrgName(), req.GetHash())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to load snapshot: %w", err)
+		}
+
+		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+	}
+
 	if req.GetName() != "" {
 		snapshot, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), req.GetName())
 		if err != nil {
