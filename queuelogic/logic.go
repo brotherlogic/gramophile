@@ -753,6 +753,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Force:     entry.GetForce(),
 					RunDate:   time.Now().UnixNano() + int64(i),
 					Intention: entry.GetIntention(),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
@@ -775,6 +776,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
+					Force:   entry.GetForce(),
 					RunDate: time.Now().UnixNano() + int64(rval) + 10,
 					Entry: &pb.QueueElement_MoveRecords{
 						MoveRecords: &pb.MoveRecords{}},
