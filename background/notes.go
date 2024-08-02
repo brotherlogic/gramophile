@@ -205,6 +205,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
+	r.GetRelease().FolderId = i.GetNewFolder()
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
