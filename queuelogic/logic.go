@@ -416,7 +416,21 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	}
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshState:
-		return q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
+		err := q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate:   time.Now().UnixNano(),
+						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
+						Entry: &pb.QueueElement_RefreshCollectionEntry{
+							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+						},
+					},
+				})
+			}
+		}
+		return err
 	case *pb.QueueElement_MoveRecord:
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
 		if err != nil {
