@@ -75,10 +75,10 @@ func executeOrg(ctx context.Context, args []string) error {
 			client := pb.NewGramophileEServiceClient(conn)
 			r, err := client.GetOrg(ctx, &pb.GetOrgRequest{
 				OrgName: *name,
-				Name:    *hash,
+				Hash:    *hash,
 			})
 			if err != nil {
-				return fmt.Errorf("unable to get org: %w", err)
+				return fmt.Errorf("unable to get org: %w (from hash %v)", err, *hash)
 			}
 
 			fmt.Printf("%v -> %v\n", r.GetSnapshot().GetName(), r.GetSnapshot().GetHash())
