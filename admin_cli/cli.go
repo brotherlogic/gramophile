@@ -54,7 +54,7 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "collection":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}},
+			Element: &pb.QueueElement{Force: true, RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refreshcollection":
