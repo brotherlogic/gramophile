@@ -734,7 +734,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
+		if !entry.GetForce() && time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
 			qlog(ctx, "Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
 			return nil
 		}
