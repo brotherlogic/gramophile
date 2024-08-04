@@ -83,14 +83,14 @@ func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.Organisation
 	var before []*pb.Context
 	var after []*pb.Context
 
-	for i := index - 1; i > max(0, index-nc); i-- {
+	for i := index - 1; i >= max(0, index-nc); i-- {
 		before = append(before, &pb.Context{
 			Index: i,
 			Iid:   s.GetPlacements()[i].GetIid(),
 		})
 	}
 
-	for i := index + 1; i < min(int32(len(s.GetPlacements())), index+nc); i++ {
+	for i := index + 1; i <= min(int32(len(s.GetPlacements())), index+nc); i++ {
 		after = append(after, &pb.Context{
 			Index: i,
 			Iid:   s.GetPlacements()[i].GetIid(),
@@ -188,6 +188,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
+	r.GetRelease().FolderId = i.GetNewFolder()
 	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
 		return err
@@ -205,7 +206,6 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
-	r.GetRelease().FolderId = i.GetNewFolder()
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
