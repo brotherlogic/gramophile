@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -81,7 +82,7 @@ func executeOrg(ctx context.Context, args []string) error {
 				return fmt.Errorf("unable to get org: %w", err)
 			}
 
-			fmt.Printf("%v -> %v\n", r.GetSnapshot().GetName(), r.GetSnapshot().GetHash())
+			fmt.Printf("%v -> %v\n", time.Unix(0, r.GetSnapshot().GetDate()), r.GetSnapshot().GetHash())
 
 			if len(r.GetSnapshot().GetPlacements()) == 0 {
 				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)
