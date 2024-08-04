@@ -682,6 +682,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if status.Code(err) == codes.NotFound {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Force:     true,
 						RunDate:   time.Now().UnixNano(),
 						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
