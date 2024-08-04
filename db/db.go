@@ -513,7 +513,7 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*
 	}
 
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: keys.Keys[0],
+		Key: keys.Keys[len(keys.Keys)-1],
 	})
 	if err != nil {
 		return nil, err
