@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	orglogic "github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -84,6 +86,8 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, fmt.Errorf("unable to load previous snapshot: %w", err)
 	}
+
+	log.Printf("LATEST %v vs RECENT %v", time.Unix(0, latest.GetDate()), time.Unix(0, snapshot.GetDate()))
 
 	if latest == nil || latest.GetHash() != snapshot.GetHash() {
 		err = s.d.SaveSnapshot(ctx, user, req.GetOrgName(), snapshot)
