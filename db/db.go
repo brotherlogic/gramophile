@@ -508,8 +508,9 @@ func (d *DB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*
 
 	sort.Strings(keys.Keys)
 
-	log.Printf("KEYS: %v -> %v", keys.Keys[0], keys.Keys[len(keys.Keys)-1])
-
+	if len(keys.Keys) > 0 {
+		log.Printf("KEYS: %v -> %v", keys.Keys[0], keys.Keys[len(keys.Keys)-1])
+	}
 	if len(keys.Keys) == 0 {
 		return nil, status.Errorf(codes.NotFound, "no orgs for %v found -> %v", userid, org)
 	}
