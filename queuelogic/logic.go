@@ -292,9 +292,7 @@ func (q *Queue) Run() {
 			ncancel()
 		}
 
-		if status.Code(err) != codes.NotFound {
-			qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
-		}
+		qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
