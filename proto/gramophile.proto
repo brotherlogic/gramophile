@@ -41,6 +41,7 @@ message Location {
 message Context {
     int32 index = 1;
     int64 iid = 2;
+    string record = 3;
 }
 
 enum WantlistType {

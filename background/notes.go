@@ -79,21 +79,42 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
-func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.OrganisationSnapshot, index int32, nc int32) *pb.Location {
+func (b *BackgroundRunner) buildRecord(ctx context.Context, userid int32, iid int64) (string, error) {
+	rec, err := b.db.GetRecord(ctx, userid, iid)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%v - %v", rec.GetRelease().GetArtists()[0].GetName(), rec.GetRelease().GetTitle()), nil
+}
+
+func (b *BackgroundRunner) buildLocation(ctx context.Context, org *pb.Organisation, s *pb.OrganisationSnapshot, index int32, nc int32, userid int32) (*pb.Location, error) {
 	var before []*pb.Context
 	var after []*pb.Context
 
 	for i := index - 1; i >= max(0, index-nc); i-- {
+		rec, err := b.buildRecord(ctx, userid, s.GetPlacements()[i].GetIid())
+		if err != nil {
+			return nil, err
+		}
+
 		before = append(before, &pb.Context{
-			Index: i,
-			Iid:   s.GetPlacements()[i].GetIid(),
+			Index:  i,
+			Iid:    s.GetPlacements()[i].GetIid(),
+			Record: rec,
 		})
 	}
 
 	for i := index + 1; i <= min(int32(len(s.GetPlacements())), index+nc); i++ {
+		rec, err := b.buildRecord(ctx, userid, s.GetPlacements()[i].GetIid())
+		if err != nil {
+			return nil, err
+		}
+
 		after = append(after, &pb.Context{
-			Index: i,
-			Iid:   s.GetPlacements()[i].GetIid(),
+			Index:  i,
+			Iid:    s.GetPlacements()[i].GetIid(),
+			Record: rec,
 		})
 	}
 
@@ -101,7 +122,7 @@ func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.Organisation
 		LocationName: org.GetName(),
 		Before:       before,
 		After:        after,
-	}
+	}, nil
 }
 
 func getOrg(folderId int32, config *pb.GramophileConfig) *pb.Organisation {
@@ -142,7 +163,7 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot (%v -> %v)", r.GetRelease().GetInstanceId(), org.GetName(), snapshot.GetHash(), time.Unix(0, snapshot.GetDate()))
 			}
 
-			return buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext()), nil
+			return b.buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext(), userId)
 		}
 	}
 
