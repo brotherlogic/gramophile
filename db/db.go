@@ -501,19 +501,37 @@ func (d *DB) LoadSnapshotHash(ctx context.Context, user *pb.StoredUser, org stri
 }
 
 func (d *DB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error) {
-	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: fmt.Sprintf("gramophile/%v/org/%v/", userid, cleanOrgString(org))})
+	keys, err := d.client.GetKeys(ctx,
+		&rspb.GetKeysRequest{
+			Prefix: fmt.Sprintf("gramophile/%v/org/%v/",
+				userid, cleanOrgString(org))})
 	if err != nil {
 		return nil, fmt.Errorf("Cannot get keys to find latest snapshot: %w", err)
 	}
 
-	sort.Strings(keys.Keys)
+	var nkeys []int64
+	mapper := make(map[int64]string)
+	for _, key := range keys.GetKeys() {
+		if !strings.Contains(key, "hash") {
+			elems := strings.Split(key, "/")
+			num, err := strconv.ParseInt(elems[len(elems)-1], 10, 64)
+			if err != nil {
+				log.Printf("Parsing %v", key)
+				return nil, err
+			}
+			nkeys = append(nkeys, num)
+			mapper[num] = key
+		}
+	}
 
-	if len(keys.Keys) == 0 {
+	sort.Slice(nkeys, func(i, j int) bool { return nkeys[i] > nkeys[j] })
+
+	if len(nkeys) == 0 {
 		return nil, status.Errorf(codes.NotFound, "no orgs for %v found -> %v", userid, org)
 	}
 
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: keys.Keys[0],
+		Key: mapper[nkeys[0]],
 	})
 	if err != nil {
 		return nil, err
