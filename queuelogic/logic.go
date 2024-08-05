@@ -7,6 +7,7 @@ import (
 	"log"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -292,7 +293,9 @@ func (q *Queue) Run() {
 			ncancel()
 		}
 
-		qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
+		if status.Code(err) != codes.NotFound || !strings.Contains(fmt.Sprintf("%v", err), "No queue entries") {
+			qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
+		}
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
@@ -419,9 +422,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if status.Code(err) == codes.NotFound {
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						Force:     true,
+						Auth:      entry.GetAuth(),
 						RunDate:   time.Now().UnixNano(),
-						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshState().GetIid()),
+						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
 							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
