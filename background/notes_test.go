@@ -2,10 +2,12 @@ package background
 
 import (
 	"context"
+	"log"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -14,7 +16,7 @@ func TestMovePrint(t *testing.T) {
 
 	b := GetTestBackgroundRunner()
 
-	err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
 		OrganisationConfig: &pb.OrganisationConfig{
 			Organisations: []*pb.Organisation{
 				{
@@ -27,7 +29,8 @@ func TestMovePrint(t *testing.T) {
 				},
 			},
 		},
-	}})
+	}}
+	err := b.db.SaveUser(context.Background(), su)
 	if err != nil {
 		t.Errorf("Bad user save: %v", err)
 	}
@@ -41,7 +44,29 @@ func TestMovePrint(t *testing.T) {
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "d", Artists: []*pbd.Artist{{Name: "artd"}}, InstanceId: 4, FolderId: 2, Labels: []*pbd.Label{{Name: "aaa"}}}})
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "e", Artists: []*pbd.Artist{{Name: "arte"}}, InstanceId: 5, FolderId: 2, Labels: []*pbd.Label{{Name: "ccc"}}}})
 
-	b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
+	org1, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+		Name:       "First",
+		Foldersets: []*pb.FolderSet{{Folder: 1}},
+	})
+	if err != nil {
+		t.Fatalf("Bad org build: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "First", org1)
+
+	org2, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+		Name:       "Second",
+		Foldersets: []*pb.FolderSet{{Folder: 2}},
+	})
+	if err != nil {
+		t.Fatalf("Bad org build: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "Second", org2)
+	log.Printf("Saved snapshot: %v", org2)
+
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
+	if err != nil {
+		log.Fatalf("Bad intent processing: %v", err)
+	}
 
 	// That should have created one print entry
 	v, err := b.db.LoadPrintMoves(ctx, 123)
