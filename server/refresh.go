@@ -17,6 +17,7 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 	if !req.JustState {
 		_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
+				Force:   true,
 				RunDate: time.Now().UnixNano(),
 				Auth:    user.GetAuth().GetToken(),
 				Entry: &pb.QueueElement_RefreshRelease{
@@ -33,6 +34,7 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Force:   true,
 			RunDate: time.Now().UnixNano(),
 			Auth:    user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshState{

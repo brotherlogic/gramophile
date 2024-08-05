@@ -416,7 +416,22 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	}
 	switch entry.Entry.(type) {
 	case *pb.QueueElement_RefreshState:
-		return q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
+		err := q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				q.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						Force:     true,
+						RunDate:   time.Now().UnixNano(),
+						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshState().GetIid()),
+						Entry: &pb.QueueElement_RefreshCollectionEntry{
+							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+						},
+					},
+				})
+			}
+		}
+		return err
 	case *pb.QueueElement_MoveRecord:
 		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
 		if err != nil {
@@ -720,7 +735,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
+		if !entry.GetForce() && time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
 			qlog(ctx, "Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
 			return nil
 		}
@@ -739,6 +754,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Force:     entry.GetForce(),
 					RunDate:   time.Now().UnixNano() + int64(i),
 					Intention: entry.GetIntention(),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
@@ -761,6 +777,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
+					Force:   entry.GetForce(),
 					RunDate: time.Now().UnixNano() + int64(rval) + 10,
 					Entry: &pb.QueueElement_MoveRecords{
 						MoveRecords: &pb.MoveRecords{}},

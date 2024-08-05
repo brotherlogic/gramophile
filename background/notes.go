@@ -83,14 +83,14 @@ func buildLocation(ctx context.Context, org *pb.Organisation, s *pb.Organisation
 	var before []*pb.Context
 	var after []*pb.Context
 
-	for i := index - 1; i > max(0, index-nc); i-- {
+	for i := index - 1; i >= max(0, index-nc); i-- {
 		before = append(before, &pb.Context{
 			Index: i,
 			Iid:   s.GetPlacements()[i].GetIid(),
 		})
 	}
 
-	for i := index + 1; i < min(int32(len(s.GetPlacements())), index+nc); i++ {
+	for i := index + 1; i <= min(int32(len(s.GetPlacements())), index+nc); i++ {
 		after = append(after, &pb.Context{
 			Index: i,
 			Iid:   s.GetPlacements()[i].GetIid(),
@@ -139,7 +139,7 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 			}
 
 			if index < 0 {
-				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot (%v)", r.GetRelease().GetInstanceId(), org.GetName(), snapshot.GetHash())
+				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot (%v -> %v)", r.GetRelease().GetInstanceId(), org.GetName(), snapshot.GetHash(), time.Unix(0, snapshot.GetDate()))
 			}
 
 			return buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext()), nil
@@ -188,6 +188,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
+	r.GetRelease().FolderId = i.GetNewFolder()
 	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
 		return err
