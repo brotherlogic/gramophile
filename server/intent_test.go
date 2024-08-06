@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	ghb_client "github.com/brotherlogic/githubridge/client"
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	rstore_client "github.com/brotherlogic/rstore/client"
@@ -23,7 +24,7 @@ func TestAddIntent_FailOnBadUser(t *testing.T) {
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -47,7 +48,7 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -77,7 +78,7 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -118,7 +119,7 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	}
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{

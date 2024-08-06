@@ -81,11 +81,12 @@ const (
 )
 
 type Queue struct {
-	rstore rstore_client.RStoreClient
-	b      *background.BackgroundRunner
-	d      discogs.Discogs
-	db     db.Database
-	keys   []int64
+	rstore  rstore_client.RStoreClient
+	b       *background.BackgroundRunner
+	d       discogs.Discogs
+	db      db.Database
+	keys    []int64
+	gclient ghb_client.GithubridgeClient
 }
 
 func getRefKey(ctx context.Context) (string, error) {
@@ -132,6 +133,14 @@ func buildContext(rt int64, t time.Duration) (context.Context, context.CancelFun
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
+	gclient, err := ghb_client.GetClientInternal()
+	if err != nil {
+		return nil
+	}
+	return GetQueueWithGHClient(r, b, d, db, gclient)
+}
+
+func GetQueueWithGHClient(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database, ghc ghb_client.GithubridgeClient) *Queue {
 	log.Printf("GETTING QUEUE")
 	sc, err := scraper_client.GetClient()
 	if err != nil {
@@ -157,7 +166,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 
 	return &Queue{
-		b: b, d: d, rstore: r, db: db, keys: ckeys,
+		b: b, d: d, rstore: r, db: db, keys: ckeys, gclient: ghc,
 	}
 }
 
@@ -306,6 +315,16 @@ func (q *Queue) Run() {
 			if status.Code(err) == codes.ResourceExhausted {
 				qlog(ctx, "Waiting for a minute to let our tokens regenerate")
 				time.Sleep(time.Minute)
+			} else if status.Code(err) == codes.Internal {
+				_, err = q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+					User:  "brotherlogic",
+					Repo:  "gramophile",
+					Body:  fmt.Sprintf("Internal error on gramophile queue: %v -> %v", err, entry),
+					Title: "Queue Internal error",
+				})
+				log.Printf("Created issue -> %v", err)
+
+				entry.RunDate += (5 * time.Minute).Nanoseconds()
 			} else {
 				// Move this over to the DLQ
 				data, err := proto.Marshal(entry)
