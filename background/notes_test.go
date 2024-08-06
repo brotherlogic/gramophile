@@ -93,4 +93,10 @@ func TestMovePrint(t *testing.T) {
 	if move.GetDestination().GetBefore()[0].GetRecord() != "artd - d" {
 		t.Errorf("Bad after: %v", move.GetDestination().GetBefore())
 	}
+
+	// Also test that if we re-move it we get a nil return
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
+	if err != nil {
+		t.Fatalf("Bad intent processing: %v", err)
+	}
 }
