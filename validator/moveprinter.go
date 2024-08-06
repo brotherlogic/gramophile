@@ -79,7 +79,8 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 		})
 
 		if err == nil {
-			db.DeletePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move.GetIid())
+			err = db.DeletePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move.GetIid())
+			log.Printf("Deleted print move for %v -> %v", move.GetIid(), err)
 		}
 	}
 
