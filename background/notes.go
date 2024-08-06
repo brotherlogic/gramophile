@@ -230,6 +230,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		Destination: newLoc,
 		Record:      fmt.Sprintf("%v - %v", r.GetRelease().GetArtists()[0].GetName(), r.GetRelease().GetTitle()),
 	})
+	log.Printf("Savedthe print move for %v -> %v", r.GetRelease().GetInstanceId(), err)
 	if err != nil {
 		return err
 	}
