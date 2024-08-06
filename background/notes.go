@@ -188,6 +188,11 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return nil
 	}
 
+	// Quick exit if we're moving to where it already is
+	if r.GetRelease().GetFolderId() == i.GetNewFolder() {
+		return nil
+	}
+
 	// Move the record
 	err := d.SetFolder(ctx,
 		r.GetRelease().GetInstanceId(),
