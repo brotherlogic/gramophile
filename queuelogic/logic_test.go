@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/brotherlogic/discogs"
+	ghb_client "github.com/brotherlogic/githubridge/client"
 	rstore_client "github.com/brotherlogic/rstore/client"
 
 	"github.com/brotherlogic/gramophile/background"
@@ -43,7 +44,7 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
 	di.AddCollectionRelease(&pbd.Release{InstanceId: 1234})
-	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -115,7 +116,7 @@ func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
 	res, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -134,7 +135,7 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
 	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{

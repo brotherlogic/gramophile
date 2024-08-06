@@ -81,11 +81,12 @@ const (
 )
 
 type Queue struct {
-	rstore rstore_client.RStoreClient
-	b      *background.BackgroundRunner
-	d      discogs.Discogs
-	db     db.Database
-	keys   []int64
+	rstore  rstore_client.RStoreClient
+	b       *background.BackgroundRunner
+	d       discogs.Discogs
+	db      db.Database
+	keys    []int64
+	gclient ghb_client.GithubridgeClient
 }
 
 func getRefKey(ctx context.Context) (string, error) {
@@ -132,6 +133,14 @@ func buildContext(rt int64, t time.Duration) (context.Context, context.CancelFun
 }
 
 func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
+	gclient, err := ghb_client.GetClientInternal()
+	if err != nil {
+		return nil
+	}
+	return GetQueueWithGHClient(r, b, d, db, gclient)
+}
+
+func GetQueueWithGHClient(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database, ghc ghb_client.GithubridgeClient) *Queue {
 	log.Printf("GETTING QUEUE")
 	sc, err := scraper_client.GetClient()
 	if err != nil {
@@ -157,7 +166,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	}
 
 	return &Queue{
-		b: b, d: d, rstore: r, db: db, keys: ckeys,
+		b: b, d: d, rstore: r, db: db, keys: ckeys, gclient: ghc,
 	}
 }
 
@@ -299,7 +308,17 @@ func (q *Queue) Run() {
 
 		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
 		// Or because we've run an update on something that's not found
-		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
+		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound || status.Code(err) == codes.Internal {
+			if status.Code(err) == codes.Internal {
+				_, err = q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+					User:  "brotherlogic",
+					Repo:  "gramophile",
+					Body:  fmt.Sprintf("Internal error on gramophile queue: %v -> %v", err, entry),
+					Title: "Queue Internal error",
+				})
+				log.Printf("Created issue -> %v", err)
+
+			}
 			q.delete(ctx, entry)
 		} else {
 			// This is discogs throttling us
