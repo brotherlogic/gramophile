@@ -202,14 +202,16 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
-	// TODO: Reorg the new location
+	r.GetRelease().FolderId = i.GetNewFolder()
+	b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
 	orglogic := org.GetOrg(b.db)
-	_, err = orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()))
+	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()))
 	if err != nil {
 		return err
 	}
+	log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
+	b.db.SaveSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()).GetName(), snap)
 
-	r.GetRelease().FolderId = i.GetNewFolder()
 	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
 		return err

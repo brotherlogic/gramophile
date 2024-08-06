@@ -17,15 +17,18 @@ func TestMovePrint(t *testing.T) {
 	b := GetTestBackgroundRunner()
 
 	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+		PrintMoveConfig: &pb.PrintMoveConfig{
+			Context: 1,
+		},
 		OrganisationConfig: &pb.OrganisationConfig{
 			Organisations: []*pb.Organisation{
 				{
 					Name:       "First",
-					Foldersets: []*pb.FolderSet{{Folder: 1}},
+					Foldersets: []*pb.FolderSet{{Folder: 1, Sort: pb.Sort_LABEL_CATNO}},
 				},
 				{
 					Name:       "Second",
-					Foldersets: []*pb.FolderSet{{Folder: 2}},
+					Foldersets: []*pb.FolderSet{{Folder: 2, Sort: pb.Sort_LABEL_CATNO}},
 				},
 			},
 		},
@@ -65,7 +68,7 @@ func TestMovePrint(t *testing.T) {
 
 	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
 	if err != nil {
-		log.Fatalf("Bad intent processing: %v", err)
+		t.Fatalf("Bad intent processing: %v", err)
 	}
 
 	// That should have created one print entry
@@ -76,5 +79,18 @@ func TestMovePrint(t *testing.T) {
 
 	if len(v) != 1 {
 		t.Fatalf("Wrong number of printed moves: %v", v)
+	}
+
+	move := v[0]
+
+	if move.GetOrigin().GetBefore()[0].GetRecord() != "arta - a" {
+		t.Errorf("Bad before: %v", move.GetOrigin().GetBefore())
+	}
+
+	if len(move.GetDestination().GetBefore()) == 0 {
+		t.Fatalf("Missing destination: %v", move.GetDestination())
+	}
+	if move.GetDestination().GetBefore()[0].GetRecord() != "artd - d" {
+		t.Errorf("Bad after: %v", move.GetDestination().GetBefore())
 	}
 }
