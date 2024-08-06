@@ -30,22 +30,22 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 
 	lines = append(lines, fmt.Sprintf("%v", move.GetOrigin().GetLocationName()))
 	for _, c := range move.GetOrigin().GetBefore() {
-		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
 	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
 	for _, c := range move.GetOrigin().GetAfter() {
-		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
 
 	lines = append(lines, "")
 
 	lines = append(lines, fmt.Sprintf("%v", move.GetDestination().GetLocationName()))
 	for _, c := range move.GetDestination().GetBefore() {
-		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
 	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
 	for _, c := range move.GetDestination().GetAfter() {
-		lines = append(lines, fmt.Sprintf("%v", c.GetIid()))
+		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
 
 	return lines
