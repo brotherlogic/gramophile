@@ -34,6 +34,7 @@ message PrintMove {
 
 message Location {
     string location_name = 1;
+    int32 slot = 4;
     repeated Context before = 2;
     repeated Context after = 3;
 }
