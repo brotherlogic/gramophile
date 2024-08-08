@@ -102,7 +102,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 
 		printRecord := func(r *pb.RecordResponse, debug bool) {
 			fmt.Printf("%v [%v]\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId())
-			fmt.Printf("In folder %v\n", r.GetRecord().GetRelease().GetFolderId())
+			fmt.Printf("In folder %v [FR %v / R %v]\n", r.GetRecord().GetRelease().GetFolderId(), time.Unix(r.GetRecord().GetEarliestReleaseDate(), 0), time.Unix(r.GetRecord().GetRelease().GetReleaseDate(), 0))
 			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
 			fmt.Printf("Sale: %v -> %v [%v / %v]\n", r.GetRecord().GetSaleId(),
 				time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()),
@@ -120,6 +120,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
 			fmt.Printf("Stats Updated on %v\n", time.Unix(0, r.GetRecord().GetLastStatRefresh()))
 			fmt.Printf("Sale Updated on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeRefreshed()))
+			fmt.Printf("ERD Updated on %v\n", time.Unix(0, r.GetRecord().GetLastEarliestReleaseUpdate()))
 
 			if debug {
 				fmt.Printf("%v\n", r.GetRecord())
