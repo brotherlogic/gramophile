@@ -50,7 +50,7 @@ func TestMovePrint(t *testing.T) {
 	org1, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
 		Name:       "First",
 		Foldersets: []*pb.FolderSet{{Folder: 1}},
-	})
+	}, su.GetConfig().GetOrganisationConfig())
 	if err != nil {
 		t.Fatalf("Bad org build: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestMovePrint(t *testing.T) {
 	org2, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
 		Name:       "Second",
 		Foldersets: []*pb.FolderSet{{Folder: 2}},
-	})
+	}, su.GetConfig().GetOrganisationConfig())
 	if err != nil {
 		t.Fatalf("Bad org build: %v", err)
 	}

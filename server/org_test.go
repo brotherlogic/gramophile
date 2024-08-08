@@ -1239,17 +1239,17 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			OrganisationConfig: &pb.OrganisationConfig{
+				LabelRanking: []*pb.LabelWeight{
+					{
+						Weight:  0.8,
+						LabelId: 2,
+					},
+				},
 				Organisations: []*pb.Organisation{
 					{
 						Name: "testing",
 						Grouping: &pb.Grouping{
 							Type: pb.GroupingType_GROUPING_NO_GROUPING,
-							LabelWeights: []*pb.LabelWeight{
-								{
-									Weight:  0.8,
-									LabelId: 2,
-								},
-							},
 						},
 						Foldersets: []*pb.FolderSet{
 							{
@@ -1473,17 +1473,17 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			OrganisationConfig: &pb.OrganisationConfig{
+				LabelRanking: []*pb.LabelWeight{
+					{
+						Weight:  0.8,
+						LabelId: 2,
+					},
+				},
 				Organisations: []*pb.Organisation{
 					{
 						Name: "testing",
 						Grouping: &pb.Grouping{
 							Type: pb.GroupingType_GROUPING_NO_GROUPING,
-							LabelWeights: []*pb.LabelWeight{
-								{
-									Weight:  0.8,
-									LabelId: 2,
-								},
-							},
 						},
 						Foldersets: []*pb.FolderSet{
 							{

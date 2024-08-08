@@ -23,11 +23,11 @@ func TestLabelRanking(t *testing.T) {
 
 	rstore := rstore_client.GetTestClient()
 	d := db.NewTestDB(rstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}, {Name: "ZZZ"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Id: 1}, {Name: "ZZZ", Id: 2}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC", Id: 3}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -50,6 +50,8 @@ func TestLabelRanking(t *testing.T) {
 				Units: 1,
 				Width: 100,
 			}},
+	}, &pb.OrganisationConfig{
+		LabelRanking: []*pb.LabelWeight{{LabelId: 2, Weight: 2.0}},
 	})
 
 	// First record should come after the second

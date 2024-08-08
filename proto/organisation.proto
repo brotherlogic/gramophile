@@ -12,7 +12,7 @@ enum MissingWidthHandling {
 message OrganisationConfig {
     repeated ArtistTranslation artist_translation = 1;
     repeated Organisation organisations = 2;
-    repeated LabelRanking label_ranking = 3;
+    repeated LabelWeight label_ranking = 3;
 }
 
 message OrganisationSnapshot {
@@ -90,10 +90,6 @@ enum GroupSpill {
     SPILL_BREAK_ORDERING = 1;
 }
 
-message LabelRanking {
-    string label_name = 1;
-    float weighting = 2;
-}
 
 message ArtistMapping {
     string leader_artist = 1;
@@ -103,7 +99,6 @@ message ArtistMapping {
 message Grouping {
     GroupingType type = 1;
     repeated ArtistWeight artist_weights = 2;
-    repeated LabelWeight label_weights = 3;
 }
 
 message LabelWeight {
