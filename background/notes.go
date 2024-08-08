@@ -213,7 +213,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 
 	oldLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to get prior location: %w", err)
 	}
 
 	r.GetRelease().FolderId = i.GetNewFolder()
@@ -227,7 +227,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 
 	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to get subsequent location: %w", err)
 	}
 
 	// Save the change for printing
