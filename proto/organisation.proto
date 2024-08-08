@@ -12,6 +12,7 @@ enum MissingWidthHandling {
 message OrganisationConfig {
     repeated ArtistTranslation artist_translation = 1;
     repeated Organisation organisations = 2;
+    repeated LabelRanking label_ranking = 3;
 }
 
 message OrganisationSnapshot {
