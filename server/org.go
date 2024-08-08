@@ -77,7 +77,7 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 
 	org := orglogic.GetOrg(s.d)
 
-	snapshot, err := org.BuildSnapshot(ctx, user, o)
+	snapshot, err := org.BuildSnapshot(ctx, user, o, user.Config.GetOrganisationConfig())
 	if err != nil {
 		return nil, fmt.Errorf("unable to build snapshot: %w", err)
 	}

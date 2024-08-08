@@ -33,7 +33,7 @@ type sortingElement struct {
 	sort   pb.Sort
 }
 
-func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation, ws []*pb.LabelWeight) string {
 	// Release has no labels
 	if len(r.GetRelease().GetLabels()) == 0 {
 		return ""
@@ -43,7 +43,7 @@ func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation) st
 	bestLabel := r.GetRelease().GetLabels()[0]
 
 	for _, label := range r.GetRelease().GetLabels()[1:] {
-		for _, weight := range c.GetGrouping().GetLabelWeights() {
+		for _, weight := range ws {
 			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
 				bestLabel = label
 				bestWeight = weight.GetWeight()
@@ -58,7 +58,7 @@ func (o *Org) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
 }
 
-func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation) string {
+func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation, ws []*pb.LabelWeight) string {
 	// Release has no labels
 	if len(r.GetRelease().GetLabels()) == 0 {
 		return ""
@@ -74,7 +74,7 @@ func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisatio
 	bestLabel := r.GetRelease().GetLabels()[0]
 
 	for _, label := range r.GetRelease().GetLabels()[1:] {
-		for _, weight := range c.GetGrouping().GetLabelWeights() {
+		for _, weight := range ws {
 			if weight.GetLabelId() == label.GetId() && (weight.GetWeight()) > bestWeight {
 				bestLabel = label
 				bestWeight = weight.GetWeight()
@@ -144,7 +144,7 @@ func getHash(placements []*pb.Placement) string {
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
-func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation) (*pb.OrganisationSnapshot, error) {
+func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation, c *pb.OrganisationConfig) (*pb.OrganisationSnapshot, error) {
 	allRecords, err := o.getRecords(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load records: %w", err)
@@ -167,7 +167,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return o.getLabelCatno(ctx, recs[i].record, org) < o.getLabelCatno(ctx, recs[j].record, org)
+				return o.getLabelCatno(ctx, recs[i].record, org, c.GetLabelRanking()) < o.getLabelCatno(ctx, recs[j].record, org, c.GetLabelRanking())
 			})
 		case pb.Sort_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
@@ -219,13 +219,13 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		currElement := &groupingElement{records: make([]*pb.Record, 0)}
 		for _, r := range records {
 			if r.sort == pb.Sort_LABEL_CATNO {
-				if o.getLabel(ctx, r.record, org) == currLabel {
+				if o.getLabel(ctx, r.record, org, c.GetLabelRanking()) == currLabel {
 					currElement.records = append(currElement.records, r.record)
 				} else {
 					if len(currElement.records) > 0 {
 						ordList = append(ordList, currElement)
 					}
-					currLabel = o.getLabel(ctx, r.record, org)
+					currLabel = o.getLabel(ctx, r.record, org, c.GetLabelRanking())
 					currElement = &groupingElement{records: []*pb.Record{r.record}, id: time.Now().UnixNano()}
 				}
 			} else {
