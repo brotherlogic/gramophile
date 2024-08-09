@@ -876,7 +876,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 				qlog(ctx, "NO DATEMARKER")
 				return nil, fmt.Errorf("Unable to get refresh datemarker: %w", err)
 			}
-		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 {
+		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Minute {
 			markerCount.Inc()
 			qlog(ctx, "REJECTING because we have a refresh date in the queue (%v)", time.Unix(0, marker))
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
