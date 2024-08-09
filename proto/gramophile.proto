@@ -275,6 +275,15 @@ message QueueElement {
     int64 refresh_id = 7;
     string intention = 27;
     bool force = 28;
+
+    enum Priority {
+        PRIORITY_UNKNOWN = 0;
+        PRIORITY_LOW = 1;
+        PRIORITY_HIGH = 2;
+    }
+    Priority priority = 29;
+
+    int64 addition_date = 30;
 }
 
 message RefreshState {
