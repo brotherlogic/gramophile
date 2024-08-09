@@ -712,7 +712,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshRelease:
-		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetRefreshRelease().GetIntention() == "Manual Update")
+		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
 		qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 		if err != nil {
 			if status.Code(err) == codes.NotFound {
