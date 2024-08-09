@@ -32,11 +32,11 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	}
 
 	if !force && time.Since(time.Unix(0, record.GetLastUpdateTime())) < minRefreshFreq {
-		log.Printf("Not refreshing %v as %v", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
+		qlog(ctx, "Not refreshing %v as %v", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
 		return nil
 	}
 
-	log.Printf("Refreshing %v (%v)", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
+	qlog(ctx, "Refreshing %v (%v)", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
 
 	//if time.Since(time.Unix(0, record.GetLastUpdateTime())) < RefreshReleasePeriod {
 	//	return nil
