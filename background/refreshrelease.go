@@ -46,15 +46,15 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if err != nil {
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
 	}
+	qlog(ctx, "Read release: %v", release)
 
-	log.Printf("Checking stats")
 	if time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
 		stats, err := d.GetReleaseStats(ctx, release.GetId())
 		if err != nil {
 			return err
 		}
-		log.Printf("Stats for %v == %v (%v)", iid, stats, err)
+		qlog(ctx, "Stats for %v == %v (%v)", iid, stats, err)
 		record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
 		record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
 
@@ -82,7 +82,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	err = b.refreshWantlists(ctx, d, record)
 
 	err = b.db.SaveRecord(ctx, d.GetUserId(), record)
-	log.Printf("Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
+	qlog(ctx, "Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
 	return err
 }
 
