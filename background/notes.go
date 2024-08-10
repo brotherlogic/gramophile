@@ -105,7 +105,7 @@ func (b *BackgroundRunner) buildLocation(ctx context.Context, org *pb.Organisati
 		})
 	}
 
-	for i := index + 1; i < min(int32(len(s.GetPlacements())), index+nc); i++ {
+	for i := index + 1; i <= min(int32(len(s.GetPlacements())-1), index+nc); i++ {
 		rec, err := b.buildRecord(ctx, userid, s.GetPlacements()[i].GetIid())
 		if err != nil {
 			return nil, err
