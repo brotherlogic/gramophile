@@ -87,11 +87,18 @@ func TestMovePrint(t *testing.T) {
 		t.Errorf("Bad before: %v", move.GetOrigin().GetBefore())
 	}
 
+	if move.GetOrigin().GetAfter()[0].GetRecord() != "artc - c" {
+		t.Errorf("Bad after: %v", move.GetOrigin().GetAfter())
+	}
+
 	if len(move.GetDestination().GetBefore()) == 0 {
 		t.Fatalf("Missing destination: %v", move.GetDestination())
 	}
 	if move.GetDestination().GetBefore()[0].GetRecord() != "artd - d" {
-		t.Errorf("Bad after: %v", move.GetDestination().GetBefore())
+		t.Errorf("Bad dest before: %v", move.GetDestination().GetBefore())
+	}
+	if move.GetDestination().GetAfter()[0].GetRecord() != "arte - e" {
+		t.Errorf("Bad dest before: %v", move.GetDestination().GetAfter())
 	}
 
 	// Also test that if we re-move it we get a nil return
