@@ -938,6 +938,9 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, keys[0])})
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			q.keys = keys[1:]
+		}
 		return nil, err
 	}
 
