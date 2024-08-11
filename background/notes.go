@@ -122,6 +122,7 @@ func (b *BackgroundRunner) buildLocation(ctx context.Context, org *pb.Organisati
 		LocationName: org.GetName(),
 		Before:       before,
 		After:        after,
+		Slot:         s.GetPlacements()[index].GetUnit(),
 	}, nil
 }
 
