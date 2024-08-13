@@ -78,7 +78,7 @@ var (
 		Name:    "gramophile_queue_backlog_time",
 		Help:    "The time taken for an element to get to the front of the queue",
 		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
-	}, []string{"type"})
+	}, []string{"type", "priority"})
 )
 
 const (
@@ -402,8 +402,13 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
-	queueBacklogTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Observe(float64(time.Since(time.Unix(0, entry.GetAdditionDate())).Milliseconds()))
+
+	queueBacklogTime.With(prometheus.Labels{
+		"type":     fmt.Sprintf("%T", entry.Entry),
+		"priority": fmt.Sprintf("%v", entry.GetPriority())}).Observe(float64(time.Since(time.Unix(0, entry.GetAdditionDate())).Milliseconds()))
+
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
+
 	if fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollectionEntry" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshIntents" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWants" &&
