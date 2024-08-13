@@ -116,7 +116,7 @@ data:
           },
           "gridPos": {
             "h": 12,
-            "w": 11,
+            "w": 8,
             "x": 0,
             "y": 0
           },
@@ -210,8 +210,8 @@ data:
           },
           "gridPos": {
             "h": 12,
-            "w": 13,
-            "x": 11,
+            "w": 8,
+            "x": 8,
             "y": 0
           },
           "id": 2,
@@ -240,7 +240,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Processing",
+          "title": "Queue Response",
           "type": "timeseries"
         },
         {
@@ -298,7 +298,103 @@ data:
                     "value": 80
                   }
                 ]
-              }
+              },
+              "unit": "dtdurationms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 8,
+            "x": 16,
+            "y": 0
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum(rate(gramophile_queue_backlog_time_bucket[$__rate_interval])) by (le, priority))",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Priority Queue Time",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "dtdurationms"
             },
             "overrides": []
           },
@@ -334,7 +430,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Panel Title",
+          "title": "Queue Execute Time",
           "type": "timeseries"
         },
         {
@@ -440,13 +536,13 @@ data:
         "list": []
       },
       "time": {
-        "from": "now-1h",
+        "from": "now-3h",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
       "title": "Queue Details",
       "uid": "e0ee35e9-9c3e-40d1-a03d-50ac8f45b085",
-      "version": 6,
+      "version": 1,
       "weekStart": ""
     }
