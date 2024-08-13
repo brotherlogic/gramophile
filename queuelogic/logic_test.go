@@ -150,3 +150,47 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 		t.Errorf("Unable to add refresh with intention: %v", err)
 	}
 }
+
+func TestEnqueuePriority(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  200,
+			Priority: pb.QueueElement_PRIORITY_LOW,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       1234,
+					Intention: "Just Testing LOW",
+				},
+			}}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue: %v", err)
+	}
+
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  400,
+			Priority: pb.QueueElement_PRIORITY_HIGH,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       12345,
+					Intention: "Just Testing HIGH",
+				},
+			}}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue: %v", err)
+	}
+
+	entry, err := q.getNextEntry(context.Background())
+	if err != nil {
+		t.Fatalf("Unable to get next entry: %v", err)
+	}
+
+	if entry.GetPriority() != pb.QueueElement_PRIORITY_HIGH || entry.GetRefreshRelease().GetIntention() != "Just Testing HIGH" {
+		t.Errorf("Bad element returned: %v", entry)
+	}
+}

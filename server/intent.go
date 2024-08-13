@@ -81,7 +81,8 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:          time.Now().Add(-time.Hour * 24 * 7).UnixNano(), // We want intents to run before anything else
+			RunDate:          time.Now().UnixNano(), // We want intents to run before anything else
+			Priority:         pb.QueueElement_PRIORITY_HIGH,
 			Auth:             user.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_RefreshIntents{
