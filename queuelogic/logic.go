@@ -91,6 +91,7 @@ type Queue struct {
 	d       discogs.Discogs
 	db      db.Database
 	keys    []int64
+	pMap    map[int64]pb.QueueElement_Priority
 	gclient ghb_client.GithubridgeClient
 }
 
@@ -172,6 +173,7 @@ func GetQueueWithGHClient(r rstore_client.RStoreClient, b *background.Background
 
 	return &Queue{
 		b: b, d: d, rstore: r, db: db, keys: ckeys, gclient: ghc,
+		pMap: make(map[int64]pb.QueueElement_Priority),
 	}
 }
 
@@ -834,6 +836,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 		}
 	}
 	q.keys = nkeys
+	delete(q.pMap, entry.GetRunDate())
 
 	// Also delete the stored key
 	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
@@ -916,6 +919,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		queueLen.Inc()
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
+	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
 
 	return &pb.EnqueueResponse{}, err
@@ -949,7 +953,19 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return keys[i] < keys[j]
 	})
 
-	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, keys[0])})
+	foundKey := keys[0]
+
+	if val, ok := q.pMap[foundKey]; ok && val != pb.QueueElement_PRIORITY_HIGH {
+		// Find a better one
+		for _, key := range keys {
+			if val, ok := q.pMap[key]; ok && val == pb.QueueElement_PRIORITY_HIGH {
+				foundKey = key
+				break
+			}
+		}
+	}
+
+	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			q.keys = keys[1:]
