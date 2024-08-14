@@ -25,9 +25,19 @@ import (
 )
 
 type Server struct {
-	d  db.Database
-	di discogs.Discogs
-	qc queue_client.QueueClient
+	d         db.Database
+	di        discogs.Discogs
+	qc        queue_client.QueueClient
+	trackings map[string]*tracking
+}
+
+type tracking struct {
+	timings []*timing
+}
+
+type timing struct {
+	timestamp time.Time
+	desc      string
 }
 
 func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server {
@@ -79,6 +89,25 @@ func GetContextKey(ctx context.Context) (string, error) {
 	return "", status.Errorf(codes.NotFound, "Could not extract token from incoming or outgoing")
 }
 
+func (s *Server) getKey(ctx context.Context) string {
+	uuid := ""
+	md, found := metadata.FromIncomingContext(ctx)
+	if found {
+		if _, ok := md["tracking-uuid"]; ok {
+			idt := md["tracking-uuid"][0]
+			uuid = idt
+		}
+	}
+	return uuid
+}
+
+func (s *Server) Observe(ctx context.Context, desc string) {
+	tracking := s.trackings[s.getKey(ctx)]
+	if tracking != nil {
+		tracking.timings = append(tracking.timings, &timing{timestamp: time.Now(), desc: desc})
+	}
+}
+
 func (s *Server) getUser(ctx context.Context) (*pb.StoredUser, error) {
 	key, err := GetContextKey(ctx)
 	if err != nil {
@@ -105,6 +134,19 @@ func generateContext(ctx context.Context, origin string) context.Context {
 	tracev := fmt.Sprintf("%v-%v-%v-%v", origin, time.Now().UnixNano(), r.Int63(), hostname)
 	mContext := metadata.AppendToOutgoingContext(ctx, "trace-id", tracev)
 	return mContext
+}
+
+func (s *Server) serverTiming(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	uuid := fmt.Sprintf("%v", time.Now().UnixNano())
+	stime := time.Now()
+	s.trackings[uuid] = &tracking{
+		timings: []*timing{{timestamp: time.Now(), desc: "RPCStart"}},
+	}
+	handler(ctx, req)
+	log.Printf("Processing Time: %v", time.Since(stime))
+	delete(s.trackings, uuid)
+
+	return resp, err
 }
 
 func (s *Server) updateRecord(ctx context.Context, id int32) error {
