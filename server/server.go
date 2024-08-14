@@ -136,7 +136,7 @@ func generateContext(ctx context.Context, origin string) context.Context {
 	return mContext
 }
 
-func (s *Server) serverTiming(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	uuid := fmt.Sprintf("%v", time.Now().UnixNano())
 	stime := time.Now()
 	s.trackings[uuid] = &tracking{

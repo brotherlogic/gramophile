@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("gramophile is unable to listen on the grpc port %v: %v", *port, err)
 	}
-	gs := grpc.NewServer()
+	gs := grpc.NewServer(grpc.UnaryInterceptor(s.ServerTiming))
 	pb.RegisterGramophileEServiceServer(gs, s)
 	go func() {
 		if err := gs.Serve(lis); err != nil {
