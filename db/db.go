@@ -710,6 +710,7 @@ func (d *DB) SaveUpdate(ctx context.Context, userid int32, r *pb.Record, update 
 }
 
 func (d *DB) DeleteRecord(ctx context.Context, userid int32, iid int64) error {
+	log.Printf("Deleting %v for %v", iid, userid)
 	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, iid),
 	})
