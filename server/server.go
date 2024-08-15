@@ -42,9 +42,10 @@ type timing struct {
 
 func BuildServer(d db.Database, di discogs.Discogs, qc queue_client.QueueClient) *Server {
 	return &Server{
-		d:  d,
-		di: di,
-		qc: qc,
+		d:         d,
+		di:        di,
+		qc:        qc,
+		trackings: make(map[string]*tracking),
 	}
 }
 
@@ -56,11 +57,7 @@ func NewServer(ctx context.Context, token, secret, callback string) *Server {
 		log.Fatalf("unable to reach queue: %v", err)
 	}
 
-	return &Server{
-		d:  d,
-		di: di,
-		qc: qc,
-	}
+	return BuildServer(d, di, qc)
 }
 
 func GetContextKey(ctx context.Context) (string, error) {
