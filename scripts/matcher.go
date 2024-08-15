@@ -60,14 +60,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Bad client: %v", err)
 	}
-	_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
-		User:  "brotherlogic",
-		Repo:  "gramophile",
-		Title: "Sorting mismtach",
-		Body:  result,
-	})
-	if err != nil {
-		log.Fatalf("Bad create: %v", err)
+	if result != "All Clear" {
+		_, err = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+			User:  "brotherlogic",
+			Repo:  "gramophile",
+			Title: "Sorting mismtach",
+			Body:  result,
+		})
+		if err != nil {
+			log.Fatalf("Bad create: %v", err)
+		}
 	}
 }
 
