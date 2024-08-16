@@ -252,6 +252,12 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
+	// Clear the score if we've moved into the listening pile
+	if i.GetNewFolder() == 812802 {
+		d.SetRating(ctx, r.GetRelease().GetId(), 0)
+		r.GetRelease().Rating = 0
+	}
+
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
@@ -320,8 +326,7 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 		i.NewScore = 0
 	}
 
-	// err := d.SetRating(ctx, r.GetRelease(), i.GetNewScore())
-	var err error
+	err := d.SetRating(ctx, r.GetRelease().GetId(), i.GetNewScore())
 	if err != nil {
 		return err
 	}
