@@ -326,6 +326,7 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 		i.NewScore = 0
 	}
 
+	qlog(ctx, "New score for %v (%v)", r.GetRelease().GetId(), i.GetNewScore)
 	err := d.SetRating(ctx, r.GetRelease().GetId(), i.GetNewScore())
 	if err != nil {
 		return err
