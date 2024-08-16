@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"sort"
 
 	"github.com/brotherlogic/gramophile/config"
@@ -77,6 +78,7 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
 	if req.GetGetRecordWithId() != nil && req.GetGetRecordWithId().GetInstanceId() > 0 {
 		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), req.GetGetRecordWithId().GetInstanceId())
+		log.Printf("DB RETURN %v, %v", r, err)
 		if err != nil {
 			return nil, err
 		}
