@@ -139,7 +139,7 @@ func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.U
 	s.trackings[uuid] = &tracking{
 		timings: []*timing{{timestamp: time.Now(), desc: "RPCStart"}},
 	}
-	handler(ctx, req)
+	resp, err = handler(ctx, req)
 	log.Printf("Processing Time: %v", time.Since(stime))
 	delete(s.trackings, uuid)
 
