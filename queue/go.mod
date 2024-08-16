@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240809161857-054c55d12847
-	github.com/brotherlogic/gramophile v0.935.0
+	github.com/brotherlogic/gramophile v0.937.0
 	github.com/brotherlogic/rstore v0.57.0
 	github.com/prometheus/client_golang v1.20.0
 	google.golang.org/grpc v1.65.0
