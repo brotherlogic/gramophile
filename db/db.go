@@ -595,6 +595,7 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("%v%v", USER_PREFIX, user),
 	})
+	log.Printf("HERE: %v, %v", resp, err)
 	if err != nil {
 		return nil, err
 	}
