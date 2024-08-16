@@ -30,7 +30,7 @@ func TestSetListen_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "LastListenDate"}}}
+	di := &discogs.TestDiscogsClient{Rating: make(map[int64]int32), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "LastListenDate"}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
@@ -90,7 +90,7 @@ func TestSetListen_ResetScore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "LastListenDate"}}}
+	di := &discogs.TestDiscogsClient{Rating: make(map[int64]int32), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "LastListenDate"}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
