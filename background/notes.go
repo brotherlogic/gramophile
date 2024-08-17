@@ -254,6 +254,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 
 	// Clear the score if we've moved into the listening pile
 	if i.GetNewFolder() == 812802 {
+		qlog(ctx, "Setting rating for %v to zero", r.GetRelease().GetInstanceId())
 		d.SetRating(ctx, r.GetRelease().GetId(), 0)
 		r.GetRelease().Rating = 0
 	}
