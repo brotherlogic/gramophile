@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
             - name: gramophile-validator
-              image: registry.brotherlogic-backend.com/brotherlogic/gramophile-validator:0.945.0 # {"$imagepolicy": "flux-system:gramophile-validator"}
+              image: registry.brotherlogic-backend.com/brotherlogic/gramophile-validator:0.946.0 # {"$imagepolicy": "flux-system:gramophile-validator"}
           restartPolicy: OnFailure
           imagePullSecrets:
             - name: regcred
