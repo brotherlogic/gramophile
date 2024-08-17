@@ -256,7 +256,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	if i.GetNewFolder() == 812802 {
 		err := d.SetRating(ctx, r.GetRelease().GetId(), 0)
 		r.GetRelease().Rating = 0
-		qlog(ctx, "Setting rating for %v to zero", r.GetRelease().GetInstanceId(), err)
+		qlog(ctx, "Setting rating for %v to zero -> %v", r.GetRelease().GetInstanceId(), err)
 
 	}
 
