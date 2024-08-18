@@ -1,4 +1,4 @@
-		package main
+package main
 
 import (
 	"context"
@@ -76,7 +76,7 @@ func executeOrg(ctx context.Context, args []string) error {
 			client := pb.NewGramophileEServiceClient(conn)
 			r, err := client.GetOrg(ctx, &pb.GetOrgRequest{
 				OrgName: *name,
-				Name:    *hash,
+				Hash:    *hash,
 			})
 			if err != nil {
 				return fmt.Errorf("unable to get org: %w", err)
