@@ -218,7 +218,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 
 	oldLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
-		return fmt.Errorf("Unable to get prior location (with %v): %w", snap.GetHash(), err)
+		return fmt.Errorf("Unable to get prior location (with %v): %w @ %v", snap.GetHash(), time.Unix(0, snap.GetDate()), err)
 	}
 
 	r.GetRelease().FolderId = i.GetNewFolder()
