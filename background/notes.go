@@ -161,7 +161,7 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 			}
 
 			if index < 0 {
-				return nil, status.Errorf(codes.Internal, "Record %v is listed to be in %v but does not appear in latest snapshot (%v -> %v)", r.GetRelease().GetInstanceId(), org.GetName(), snapshot.GetHash(), time.Unix(0, snapshot.GetDate()))
+				return nil, status.Errorf(codes.Internal, "Record %v in %v is listed to be in %v but does not appear in latest snapshot (%v -> %v)", r.GetRelease().GetInstanceId(), r.GetRelease().GetFolderId(), org.GetName(), snapshot.GetHash(), time.Unix(0, snapshot.GetDate()))
 			}
 
 			return b.buildLocation(ctx, org, snapshot, int32(index), config.GetPrintMoveConfig().GetContext(), userId)
