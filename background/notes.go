@@ -209,12 +209,12 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	if norg == nil {
 		return status.Errorf(codes.Internal, "Unable to locate organisation for %v", i.GetNewFolder())
 	}
-	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
+	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
 	if err != nil {
 		return err
 	}
 	log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
-	b.db.SaveSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()).GetName(), snap)
+	b.db.SaveSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()).GetName(), snap)
 
 	oldLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
 	if err != nil {
