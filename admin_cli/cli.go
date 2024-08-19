@@ -59,7 +59,7 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "refreshcollection":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
+			Element: &pb.QueueElement{RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "clean":
@@ -87,16 +87,17 @@ func main() {
 			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshRelease{RefreshRelease: &pb.RefreshRelease{Iid: iid, Intention: "from-cli"}}},
+			Element: &pb.QueueElement{Force: true, RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshRelease{RefreshRelease: &pb.RefreshRelease{Iid: iid, Intention: "from-cli"}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_release_date":
 		iid, err := strconv.ParseInt(os.Args[4], 10, 64)
+				mid, err := strconv.ParseInt(os.Args[5], 10, 64)
 		if err != nil {
 			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDate{RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{Iid: iid}}},
+			Element: &pb.QueueElement{RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDates{RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{Iid: iid, MasterId: mid}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_master":

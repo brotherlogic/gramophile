@@ -65,6 +65,7 @@ type Database interface {
 
 	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
 	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error
+	DeleteIntent(ctx context.Context, userid int32, iid int64) error
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
 	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
@@ -775,6 +776,10 @@ func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent
 	in := &pb.Intent{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), in)
 	return in, err
+}
+
+func (d *DB) DeleteIntent(ctx context.Context, userid int32, iid int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid))
 }
 
 func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error {

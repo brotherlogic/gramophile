@@ -720,8 +720,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					MoveRecords: &pb.MoveRecords{}},
 				Auth: entry.GetAuth(),
 			}})
-
+		if v != nil {
 		return v
+		}
+		return q.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshRelease:
