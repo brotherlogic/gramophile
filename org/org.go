@@ -161,6 +161,10 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		}
 
 		switch folderset.GetSort() {
+		case pb.Sort_ADDITION_DATE:
+			sort.SliceStable(recs, func(i, j int) bool {
+				return recs[i].record.GetRelease().GetDateAdded() < recs[j].record.GetRelease().GetDateAdded()
+			})
 		case pb.Sort_ARTIST_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
 				return o.getArtistYear(ctx, recs[i].record) < o.getArtistYear(ctx, recs[j].record)

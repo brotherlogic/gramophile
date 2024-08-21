@@ -5,16 +5,16 @@ go 1.22.3
 toolchain go1.22.5
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20240809161857-054c55d12847
+	github.com/brotherlogic/discogs v0.0.0-20240821034852-6ef140789d61
 	github.com/brotherlogic/githubridge v0.2802.0
-	github.com/brotherlogic/godiscogs v0.0.0-20240807044848-c3505d426aae
-	github.com/brotherlogic/recordcollection v0.0.0-20240815133121-2559c0212211
+	github.com/brotherlogic/godiscogs v0.0.0-20240818210034-6e072f0f7a47
+	github.com/brotherlogic/recordcollection v0.0.0-20240820211755-1e4ee0b03bfc
 	github.com/brotherlogic/rstore v0.57.0
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	github.com/prometheus/client_golang v1.20.0
+	github.com/prometheus/client_golang v1.20.1
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )
@@ -33,5 +33,5 @@ require (
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240820151423-278611b39280 // indirect
 )
