@@ -81,6 +81,7 @@ message WantlistEntry {
     int64 date_enabled = 6;
     int64 master_id = 7;
     bool digital_only = 8;
+    int32 score = 9;
 }
 
 enum WantState {
@@ -109,6 +110,8 @@ message Want {
     WantFilter master_filter = 6;
 
     bool clean = 7;
+
+    int32 score = 8;
 }
 
 enum NoncomplianceIssue {
@@ -230,6 +233,8 @@ message Intent {
     KeepStatus keep = 8;
     int32 new_score = 9;
     int32 new_folder = 10;
+
+    int64 intent_time = 11;
 }
 
 message Queues {

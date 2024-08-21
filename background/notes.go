@@ -336,7 +336,28 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 
 	r.GetRelease().Rating = i.GetNewScore()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	err =  b.db.SaveRecord(ctx, d.GetUserId(), r)
+	if err != nil {
+		return err
+	}
+
+	if i.GetNewScore() > 0 {
+	// Update a want with the given score
+	want, err := b.db.GetWant(ctx, d.GetUserId(), r.GetRelease().GetId())
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+		return nil
+	}
+
+	want.Score = i.GetNewScore()
+	return b.db.SaveWant(ctx, d.GetUserId(), want, "Saving with new score")
+}
+
+return nil
+
+
 }
 
 func (b *BackgroundRunner) ProcessGoalFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {

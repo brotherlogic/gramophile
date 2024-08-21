@@ -48,6 +48,11 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 			changed = true
 			list.LastPurchaseDate = time.Now().UnixNano()
 		}
+
+		if want.GetId() == entry.GetId() && want.GetScore() != entry.GetScore() {
+			entry.Score = want.GetScore()
+			changed = true
+		}
 	}
 
 	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
