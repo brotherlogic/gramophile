@@ -145,6 +145,7 @@ func getHash(placements []*pb.Placement) string {
 }
 
 func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation, c *pb.OrganisationConfig) (*pb.OrganisationSnapshot, error) {
+	log.Printf("Building Snapshot for %v", org)
 	allRecords, err := o.getRecords(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load records: %w", err)
