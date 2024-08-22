@@ -184,6 +184,8 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 }
 
 func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	log.Printf("Setting folder %v -> %v", r.GetRelease(), i.GetNewFolder())
+
 	// We don't zero out the clean time
 	if i.GetNewFolder() == 0 {
 		return nil
