@@ -327,6 +327,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 				edge = max(edge, len(ordList))
 				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
+					if tr != nil {
 					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
 					log.Printf("Trying %v", width)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
@@ -345,6 +346,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 						currSlotWidth += width
 					}
 				}
+			}
 			}
 
 			tripped = true
