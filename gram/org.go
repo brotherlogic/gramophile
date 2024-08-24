@@ -115,6 +115,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					totalWidth += placement.GetWidth()
 				}
 			}
+			fmt.Printf("Total Width = %v\n", totalWidth)
 			return nil
 		}
 	}

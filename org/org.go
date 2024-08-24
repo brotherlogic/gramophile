@@ -324,6 +324,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 				if org.GetSpill().GetLookAhead() < 0 {
 					edge = len(ordList)
 				}
+				edge = max(edge, len(ordList))
 				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
 					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
