@@ -106,7 +106,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					currSlot++
 				}
 
-				if (placement.GetUnit() == int32(*slot) || *slot == -1) && currShelf != "Spill" {
+				if placement.GetUnit() == int32(*slot) || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
 						return err
