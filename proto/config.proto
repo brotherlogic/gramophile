@@ -246,4 +246,6 @@ message WantsConfig {
     DigitalWants digital_wants = 4;
 
     int32 max_active_want_lists = 5;
+
+    bool auto_want_lists = 7;
 }

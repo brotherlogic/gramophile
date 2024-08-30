@@ -58,10 +58,12 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	log.Printf("STORED %v -> %v", iid, rid)
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
+		log.Printf("Error in get record: %v", err)
 		return err
 	}
 
 	release, err := d.GetRelease(ctx, rid)
+	log.Printf("Release: %v", err)
 	if err != nil {
 		// We should be able to find any release here
 		if status.Code(err) == codes.NotFound {
@@ -80,9 +82,41 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
 	}
 
+	needsSave = needsSave || b.addDigitalList(ctx, storedRelease, release)
+
 	if needsSave {
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
 	}
 
 	return nil
+}
+
+func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb.Record, childRelease *pbd.Release) bool {
+	// Is this release already in the list?
+	for _, dig := range storedRelease.GetDigitalIds() {
+		if dig == childRelease.GetId() {
+			return false
+		}
+	}
+
+	// Is this a digital release
+	isDigital := false
+	for _, format := range storedRelease.GetRelease().GetFormats() {
+		if format.GetName() == "CD" || format.GetName() == "CDr" || format.GetName() == "File" {
+			isDigital = true
+		}
+
+		for _, desc := range format.GetDescriptions() {
+			if desc == "CD" || desc == "CDr" || desc == "File" {
+				isDigital = true
+			}
+		}
+	}
+
+	log.Printf("%v is %v", storedRelease, isDigital)
+
+	if isDigital {
+		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())
+	}
+	return isDigital
 }
