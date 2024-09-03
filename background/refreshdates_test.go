@@ -18,7 +18,7 @@ func TestDigitalListExtended(t *testing.T) {
 		t.Errorf("Bad user save: %v", err)
 	}
 
-	d := &discogs.TestDiscogsClient{}
+	d := &discogs.TestDiscogsClient{UserId: 123}
 	b.db.SaveRecord(context.Background(), 123, &pb.Record{
 		Release: &pbd.Release{
 			InstanceId: 100, MasterId: 200,

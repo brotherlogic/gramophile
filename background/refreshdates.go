@@ -77,7 +77,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 
 	log.Printf("GOT %v vs %v", release, storedRelease)
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
-		//log.Printf("Updating ERD: %v", release)
+		qlog(ctx, "Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
 	}
@@ -92,6 +92,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 }
 
 func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb.Record, childRelease *pbd.Release) bool {
+	qlog(ctx, "Adding to digital")
 	// Is this release already in the list?
 	for _, dig := range storedRelease.GetDigitalIds() {
 		if dig == childRelease.GetId() {
@@ -101,7 +102,7 @@ func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb
 
 	// Is this a digital release
 	isDigital := false
-	for _, format := range storedRelease.GetRelease().GetFormats() {
+	for _, format := range childRelease.GetFormats() {
 		if format.GetName() == "CD" || format.GetName() == "CDr" || format.GetName() == "File" {
 			isDigital = true
 		}
