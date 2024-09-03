@@ -248,4 +248,5 @@ message WantsConfig {
     int32 max_active_want_lists = 5;
 
     bool auto_want_lists = 7;
+    bool mint_up_want_list = 8;
 }
