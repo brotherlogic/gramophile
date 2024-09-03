@@ -51,13 +51,22 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	log.Printf("Updated user: %v", u)
 
-	if req.GetConfig().GetWantsConfig().GetAutoWantLists() && req.GetConfig().GetWantsConfig().GetMintUpWantList() {
+	if req.GetConfig().GetWantsConfig().GetMintUpWantList() {
 		s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(),
 			&pb.Wantlist{
 				Name: "mint_up_wantlist",
 			})
 	} else {
 		s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), "mint_up_wantlist")
+	}
+
+	if req.GetConfig().GetWantsConfig().GetDigitalWantsList() {
+		s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(),
+			&pb.Wantlist{
+				Name: "digital_wantlist",
+			})
+	} else {
+		s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), "digital_wantlist")
 	}
 
 	// Apply the config
