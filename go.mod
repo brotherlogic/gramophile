@@ -5,7 +5,7 @@ go 1.22.3
 toolchain go1.22.5
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20240903133050-b41e72944a90
+	github.com/brotherlogic/discogs v0.0.0-20240903221022-c2065c359b44
 	github.com/brotherlogic/githubridge v0.2802.0
 	github.com/brotherlogic/godiscogs v0.0.0-20240823195726-9a8d322e6898
 	github.com/brotherlogic/recordcollection v0.0.0-20240830204116-1797a369f404
@@ -33,6 +33,6 @@ require (
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1 // indirect
 )

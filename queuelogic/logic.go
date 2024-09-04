@@ -756,13 +756,18 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		err := q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), q.Enqueue)
+		user, err := q.db.GetUser(ctx, entry.GetAuth())
+		if err != nil {
+			return err
+		}
+		digWants := user.GetConfig().GetWantsConfig().GetDigitalWantsList()
+		err = q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), digWants, q.Enqueue)
 		if err != nil {
 			return err
 		}
 		return q.deleteRefreshDateMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
-		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
+		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {

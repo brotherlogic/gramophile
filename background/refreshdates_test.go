@@ -29,8 +29,8 @@ func TestDigitalListExtended(t *testing.T) {
 	d.AddCNonollectionRelease(&dpb.Release{MasterId: 200, Id: 2, Rating: 2})
 	d.AddCNonollectionRelease(&dpb.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
-	b.RefreshReleaseDate(context.Background(), d, 100, 2)
-	b.RefreshReleaseDate(context.Background(), d, 100, 3)
+	b.RefreshReleaseDate(context.Background(), d, false, 100, 2)
+	b.RefreshReleaseDate(context.Background(), d, false, 100, 3)
 
 	rec, err := b.db.GetRecord(context.Background(), 123, 100)
 	if err != nil {
