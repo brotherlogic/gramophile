@@ -23,7 +23,7 @@ jobs:
       run: go build ./...
 
     - name: Run test
-      run: go test ./... -coverprofile=profile.cov
+      run: go test ./... -coverpkg=./... -coverprofile=profile.cov
     
     - name: Coveralls
       uses: shogo82148/actions-goveralls@v1
