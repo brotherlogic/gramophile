@@ -100,3 +100,44 @@ func TestConfigUpdate_FailsOnBadUser(t *testing.T) {
 		t.Errorf("Set config should have failed on missing field")
 	}
 }
+
+func TestConfigUpdate_CreateWantlists(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: qc}
+
+	nconfig := &pb.GramophileConfig{
+		Basis:       pb.Basis_GRAMOPHILE,
+		WantsConfig: &pb.WantsConfig{MintUpWantList: true, DigitalWantsList: true}}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err != nil {
+		t.Fatalf("Bad initial config set: %v", err)
+	}
+
+	_, err = s.GetWantlist(ctx, &pb.GetWantlistRequest{
+		Name: "digital_wantlist",
+	})
+	if err != nil {
+		t.Errorf("Unable to get digital wnatlist")
+	}
+
+	_, err = s.GetWantlist(ctx, &pb.GetWantlistRequest{
+		Name: "mint_up_wantlist",
+	})
+	if err != nil {
+		t.Errorf("Unable to get digital wnatlist")
+	}
+
+}

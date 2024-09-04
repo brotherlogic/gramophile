@@ -324,6 +324,7 @@ message RefreshEarliestReleaseDates {
 message RefreshEarliestReleaseDate {
     int64 iid = 1;
     int64 other_release = 2;
+    bool update_digital_wantlist = 3;
 }
 
 message RefreshCollection {
