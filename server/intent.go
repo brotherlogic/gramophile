@@ -54,6 +54,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		return nil, fmt.Errorf("error getting record: %w", err)
 	}
 
+	if req.GetIntent().GetKeep() == pb.KeepStatus_MINT_UP_KEEP && len(req.GetIntent().GetMintIds()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "You need to specify mint ids for this keep")
+	}
+
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {

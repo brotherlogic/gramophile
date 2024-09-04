@@ -191,6 +191,8 @@ message Record {
    
    repeated int64 og_ids = 23;
    repeated int64 digital_ids = 24;
+
+   repeated int64 mint_versions = 25;
 }
 
 message SaleInfo {
@@ -233,6 +235,7 @@ message Intent {
     KeepStatus keep = 8;
     int32 new_score = 9;
     int32 new_folder = 10;
+    repeated int64 mint_ids = 11;
 }
 
 message Queues {
