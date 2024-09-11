@@ -123,6 +123,7 @@ func (b *BackgroundRunner) buildLocation(ctx context.Context, org *pb.Organisati
 		Before:       before,
 		After:        after,
 		Slot:         s.GetPlacements()[index].GetUnit(),
+		Shelf:        s.GetPlacements()[index].GetSpace(),
 	}, nil
 }
 

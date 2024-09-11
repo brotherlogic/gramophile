@@ -28,7 +28,7 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 	lines = append(lines, "Gramophile Move: ")
 	lines = append(lines, fmt.Sprintf("%v", move.GetRecord()))
 
-	lines = append(lines, fmt.Sprintf("%v [%v]", move.GetOrigin().GetLocationName(), move.GetOrigin().GetSlot()))
+	lines = append(lines, fmt.Sprintf("%v [%v-%v]", move.GetOrigin().GetLocationName(), move.GetOrigin().GetShelf(), move.GetOrigin().GetSlot()))
 	for _, c := range move.GetOrigin().GetBefore() {
 		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
@@ -39,7 +39,7 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 
 	lines = append(lines, "")
 
-	lines = append(lines, fmt.Sprintf("%v [%v]", move.GetDestination().GetLocationName(), move.GetDestination().GetSlot()))
+	lines = append(lines, fmt.Sprintf("%v [%v-%v]", move.GetDestination().GetLocationName(), move.GetDestination().GetShelf(), move.GetDestination().GetSlot()))
 	for _, c := range move.GetDestination().GetBefore() {
 		lines = append(lines, fmt.Sprintf("%v", c.GetRecord()))
 	}
