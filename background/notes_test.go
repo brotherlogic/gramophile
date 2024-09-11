@@ -107,3 +107,15 @@ func TestMovePrint(t *testing.T) {
 		t.Fatalf("Bad intent processing: %v", err)
 	}
 }
+
+func TestMintUpKeep_Success(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Unable to process keep: %v", err)
+	}
+}
