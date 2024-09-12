@@ -121,7 +121,10 @@ func TestMintUpKeep_Success(t *testing.T) {
 	}}
 	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "mint_up_wantlist"})
 
-	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
+		Keep:    pb.KeepStatus_MINT_UP_KEEP,
+		MintIds: []int64{124},
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
 	if err != nil {
 		t.Errorf("Unable to process keep: %v", err)
 	}
