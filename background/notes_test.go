@@ -183,3 +183,23 @@ func TestMintUpKeep_NoField(t *testing.T) {
 		t.Errorf("Should have failed with :Failed Precondition %v", err)
 	}
 }
+
+func TestMintUpKeep_Reset(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 12345}, KeepStatus: pb.KeepStatus_DIGITAL_KEEP}, &pb.Intent{Keep: pb.KeepStatus_RESET}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Should not have failed: %v", err)
+	}
+
+	r, err := b.db.GetRecord(ctx, 123, 12345)
+	if err != nil {
+		t.Errorf("Bad records read: %v", err)
+	}
+	if r.GetKeepStatus() != pb.KeepStatus_KEEP_UNKNOWN {
+		t.Errorf("Keep state was not updated")
+	}
+}
