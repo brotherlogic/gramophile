@@ -233,7 +233,7 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
-	log.Printf("Saving wantlist: %v", wantlist)
+	log.Printf("Saving wantlist: %v (%v)", wantlist, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()))
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
