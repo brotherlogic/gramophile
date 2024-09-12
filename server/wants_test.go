@@ -59,3 +59,36 @@ func TestAddWant_Failure(t *testing.T) {
 		t.Fatalf("Should have failed: %v", val)
 	}
 }
+
+func TestRefreshWant_Success(t *testing.T) {
+	s, ctx := getTestServer(t)
+
+	_, err := s.AddWant(ctx, &pb.AddWantRequest{WantId: 45})
+	if err != nil {
+		t.Fatalf("Unable to add wantlist: %v", err)
+	}
+
+	val, err := s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wantlsit: %v", err)
+	}
+
+	if len(val.GetWants()) != 1 || val.GetWants()[0].GetWant().Id != 45 {
+		t.Errorf("Error in returned wants for set: %v", val)
+	}
+
+	_, err = s.RefreshWant(ctx, &pb.RefreshWantRequest{WantId: 45})
+	if err != nil {
+		t.Fatalf("Unable to refresh want: %v", err)
+	}
+
+	val, err = s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wantlsit: %v", err)
+	}
+
+	if len(val.GetWants()) != 1 || val.GetWants()[0].GetWant().Id != 45 || val.GetWants()[0].GetWant().GetState() != pb.WantState_WANT_UNKNOWN {
+		t.Errorf("Error in returned wants for set: %v", val)
+	}
+
+}

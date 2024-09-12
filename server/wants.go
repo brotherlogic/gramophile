@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -121,4 +122,35 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	})
 
 	return &pb.AddWantResponse{}, err
+}
+
+func (s *Server) RefreshWant(ctx context.Context, req *pb.RefreshWantRequest) (*pb.RefreshWantResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	want, err := s.d.GetWant(ctx, user.GetUser().GetDiscogsUserId(), req.GetWantId())
+	if err != nil {
+		return nil, fmt.Errorf("Unable to load want: %w", err)
+	}
+	want.State = pb.WantState_WANT_UNKNOWN
+	err = s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), want, "saving from refresh")
+	if err != nil {
+		return nil, err
+	}
+
+	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: time.Now().UnixNano(),
+			Auth:    user.GetAuth().GetToken(),
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{
+					Want: want,
+				},
+			},
+		},
+	})
+
+	return &pb.RefreshWantResponse{}, err
 }
