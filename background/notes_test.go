@@ -136,6 +136,24 @@ func TestMintUpKeep_Success(t *testing.T) {
 	if len(wl.GetEntries()) != 1 {
 		t.Errorf("Want was not added: %v", wl)
 	}
+
+	// Add the same want
+	err = b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
+		Keep:    pb.KeepStatus_MINT_UP_KEEP,
+		MintIds: []int64{124},
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Unable to process keep: %v", err)
+	}
+
+	wl, err = b.db.LoadWantlist(ctx, 123, "mint_up_wantlist")
+	if err != nil {
+		t.Errorf("Unable to load wnatlist: %v", err)
+	}
+	if len(wl.GetEntries()) != 1 {
+		t.Errorf("Want was not added: %v", wl)
+	}
+
 }
 
 func TestMintUpKeep_NoField(t *testing.T) {
