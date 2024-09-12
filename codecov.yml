@@ -15,6 +15,7 @@ flag_management:
     - name: queue
       paths:
         - background/
+        - integration/
         - queuelogic/
       statuses:
         - type: project
