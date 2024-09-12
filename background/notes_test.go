@@ -203,3 +203,17 @@ func TestMintUpKeep_Reset(t *testing.T) {
 		t.Errorf("Keep state was not updated")
 	}
 }
+
+func TestScoreRecord_Wantlist(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 123}}})
+
+	err := b.ProcessScore(ctx, di, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234}}, &pb.Intent{NewScore: 3}, su, []*pbd.Field{})
+	if err != nil {
+		t.Fatalf("Unable to process score: %v", err)
+	}
+}
