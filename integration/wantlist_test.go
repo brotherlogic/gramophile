@@ -558,3 +558,66 @@ func TestBuildDigitalWantlist(t *testing.T) {
 		t.Errorf("Wanlist has not been populated: %v", wl)
 	}
 }
+
+func TestBuildMintUplWantlist(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
+
+	// Queue up a collection refresh
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:    "123",
+			RunDate: time.Now().UnixNano(),
+			Entry: &pb.QueueElement_RefreshCollectionEntry{
+				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
+		},
+	})
+	qc.FlushQueue(ctx)
+
+	s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			WantsConfig: &pb.WantsConfig{
+				MintUpWantList: true,
+			},
+		},
+	})
+
+	// Set the record to keep_mint
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		InstanceId: 100,
+		Intent: &pb.Intent{
+			Keep:    pb.KeepStatus_MINT_UP_KEEP,
+			MintIds: []int64{12},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to set intent: %v", err)
+	}
+
+	qc.FlushQueue(ctx)
+
+	// We should have a digital wantslist
+	wl, err := s.GetWantlist(ctx, &pb.GetWantlistRequest{Name: "mint_up_wantlist"})
+	if err != nil {
+		t.Fatalf("Error getting wantlist: %v", err)
+	}
+
+	// It should have one entry
+	if len(wl.GetList().GetEntries()) != 1 {
+		t.Errorf("Wanlist has not been populated: %v", wl)
+	}
+}

@@ -478,6 +478,8 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 }
 
 func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	log.Printf("Processing Keep")
+
 	// We don't zero out the clean time
 	if i.GetKeep() == pb.KeepStatus_KEEP_UNKNOWN {
 		return nil
@@ -508,5 +510,56 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		r.KeepStatus = pb.KeepStatus_KEEP_UNKNOWN
 	}
 	config.Apply(user.GetConfig(), r)
+
+	log.Printf("Trying to set: %v", r)
+	if r.KeepStatus == pb.KeepStatus_MINT_UP_KEEP && user.GetConfig().GetWantsConfig().GetMintUpWantList() {
+		for _, mid := range i.GetMintIds() {
+			found := false
+			for _, emid := range r.GetMintVersions() {
+				if mid == emid {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				r.MintVersions = append(r.MintVersions, mid)
+			}
+		}
+
+		// Now ensure that the mint up wantlist is up to date
+		wl, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), "mint_up_wantlist")
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Working with %v", r.GetMintVersions())
+
+		adjust := false
+		for _, mid := range r.GetMintVersions() {
+			found := false
+			for _, entry := range wl.GetEntries() {
+				if entry.GetId() == mid {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				wl.Entries = append(wl.Entries, &pb.WantlistEntry{
+					Id: mid,
+				})
+				adjust = true
+			}
+		}
+
+		if adjust {
+			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), wl)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }

@@ -9,6 +9,8 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestMovePrint(t *testing.T) {
@@ -105,5 +107,99 @@ func TestMovePrint(t *testing.T) {
 	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
 	if err != nil {
 		t.Fatalf("Bad intent processing: %v", err)
+	}
+}
+
+func TestMintUpKeep_Success(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{
+			MintUpWantList: true,
+		},
+	}}
+	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "mint_up_wantlist"})
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
+		Keep:    pb.KeepStatus_MINT_UP_KEEP,
+		MintIds: []int64{124},
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Unable to process keep: %v", err)
+	}
+
+	wl, err := b.db.LoadWantlist(ctx, 123, "mint_up_wantlist")
+	if err != nil {
+		t.Errorf("Unable to load wnatlist: %v", err)
+	}
+	if len(wl.GetEntries()) != 1 {
+		t.Errorf("Want was not added: %v", wl)
+	}
+
+	// Add the same want
+	err = b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
+		Keep:    pb.KeepStatus_MINT_UP_KEEP,
+		MintIds: []int64{124},
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Unable to process keep: %v", err)
+	}
+
+	wl, err = b.db.LoadWantlist(ctx, 123, "mint_up_wantlist")
+	if err != nil {
+		t.Errorf("Unable to load wnatlist: %v", err)
+	}
+	if len(wl.GetEntries()) != 1 {
+		t.Errorf("Want was not added: %v", wl)
+	}
+
+	// Prepend an existing want
+	err = b.ProcessKeep(ctx, di, &pb.Record{MintVersions: []int64{125}}, &pb.Intent{
+		Keep:    pb.KeepStatus_MINT_UP_KEEP,
+		MintIds: []int64{125},
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Unable to process keep: %v", err)
+	}
+
+	wl, err = b.db.LoadWantlist(ctx, 123, "mint_up_wantlist")
+	if err != nil {
+		t.Errorf("Unable to load wnatlist: %v", err)
+	}
+	if len(wl.GetEntries()) != 2 {
+		t.Errorf("Want was not added: %v", wl)
+	}
+}
+
+func TestMintUpKeep_NoField(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Should have failed with :Failed Precondition %v", err)
+	}
+}
+
+func TestMintUpKeep_Reset(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 12345}, KeepStatus: pb.KeepStatus_DIGITAL_KEEP}, &pb.Intent{Keep: pb.KeepStatus_RESET}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	if err != nil {
+		t.Errorf("Should not have failed: %v", err)
+	}
+
+	r, err := b.db.GetRecord(ctx, 123, 12345)
+	if err != nil {
+		t.Errorf("Bad records read: %v", err)
+	}
+	if r.GetKeepStatus() != pb.KeepStatus_KEEP_UNKNOWN {
+		t.Errorf("Keep state was not updated")
 	}
 }
