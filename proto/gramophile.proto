@@ -71,6 +71,8 @@ message Wantlist {
     int64 last_purchase_date = 8;
 
     bool active = 9;
+
+    int64 last_updated_timestamp = 10;
 }
 
 message WantlistEntry {
