@@ -145,6 +145,9 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 				if rec.GetArrived() > 0 {
 					want.State = pb.WantState_PURCHASED
 				}
+				if rec.GetRelease().GetRating() > 0 {
+					want.Score = rec.GetRelease().GetRating()
+				}
 				want.Clean = false
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
 				if err != nil {
