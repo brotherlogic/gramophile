@@ -369,6 +369,7 @@ message AddWant {
     WantFilter filter = 3;
 }
 
+
 message RefreshWantlists {
 
 }
@@ -591,6 +592,7 @@ service GramophileEService {
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
+    rpc RefreshWant(RefreshWantRequest) returns (RefreshWantResponse) {};
   
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
@@ -636,6 +638,10 @@ message WantResponse {
     repeated Update updates = 2;
 }
 
+message RefreshWantRequest {
+    int64 want_id = 1;
+}
+message RefreshWantResponse {}
 
 message AddWantRequest {
     int64 want_id = 1;
