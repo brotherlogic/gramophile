@@ -145,6 +145,7 @@ func getHash(placements []*pb.Placement) string {
 }
 
 func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation, c *pb.OrganisationConfig) (*pb.OrganisationSnapshot, error) {
+	log.Printf("Building Snapshot for %v", org)
 	allRecords, err := o.getRecords(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load records: %w", err)
@@ -161,6 +162,10 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		}
 
 		switch folderset.GetSort() {
+		case pb.Sort_ADDITION_DATE:
+			sort.SliceStable(recs, func(i, j int) bool {
+				return recs[i].record.GetRelease().GetDateAdded() < recs[j].record.GetRelease().GetDateAdded()
+			})
 		case pb.Sort_ARTIST_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
 				return o.getArtistYear(ctx, recs[i].record) < o.getArtistYear(ctx, recs[j].record)
@@ -319,8 +324,10 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 				if org.GetSpill().GetLookAhead() < 0 {
 					edge = len(ordList)
 				}
+				edge = min(edge, len(ordList))
 				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
+					if tr != nil {
 					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
 					log.Printf("Trying %v", width)
 					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
@@ -339,6 +346,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 						currSlotWidth += width
 					}
 				}
+			}
 			}
 
 			tripped = true

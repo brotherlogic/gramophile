@@ -46,10 +46,10 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 
 	str := ""
 	for _, record := range r.GetRecords() {
-		str += fmt.Sprintf("%v - %v [%v]",
+		str += fmt.Sprintf("%v - %v [%v / %v]",
 			getArtist(record.GetRecord().GetRelease()),
 			record.GetRecord().GetRelease().GetTitle(),
-			p.GetWidth())
+			p.GetWidth(), record.GetRecord().GetWidth())
 		if debug {
 			str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
 		}
@@ -106,7 +106,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					currSlot++
 				}
 
-				if (placement.GetUnit() == int32(*slot) || *slot == -1) && currShelf != "Spill" {
+				if placement.GetUnit() == int32(*slot) || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
 						return err
@@ -115,6 +115,7 @@ func executeOrg(ctx context.Context, args []string) error {
 					totalWidth += placement.GetWidth()
 				}
 			}
+			fmt.Printf("Total Width = %v\n", totalWidth)
 			return nil
 		}
 	}

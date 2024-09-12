@@ -195,3 +195,32 @@ func TestGoalFolderAddsIntent_SuccessOnSleeve(t *testing.T) {
 		t.Errorf("Intent was not set: %v", err)
 	}
 }
+
+func TestKeepIntent_FailWithNoMint(t *testing.T) {
+	ctx := getTestContext(123)
+
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		User:   &pbd.User{DiscogsUserId: 123},
+		Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_REQUIRED}},
+		Auth:   &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP},
+		InstanceId: 1234,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("Wrong error in returning: %v", err)
+	}
+}

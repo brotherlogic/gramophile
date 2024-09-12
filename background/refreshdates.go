@@ -19,7 +19,7 @@ const (
 	refreshRelaseDateFrequency = time.Hour * 24 * 7 * 4 * 6
 )
 
-func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, digWants bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing the MID %v", mid)
 
 	// Don't refresh if record has no masters
@@ -41,8 +41,9 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 				Auth:    token,
 				Entry: &pb.QueueElement_RefreshEarliestReleaseDate{
 					RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{
-						Iid:          iid,
-						OtherRelease: m.GetId(),
+						Iid:                   iid,
+						OtherRelease:          m.GetId(),
+						UpdateDigitalWantlist: digWants,
 					}}},
 		})
 		log.Printf("ENQUEED %v", iid)
@@ -54,14 +55,16 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 	return nil
 }
 
-func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, iid, rid int64) error {
+func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, digWants bool, iid, rid int64) error {
 	log.Printf("STORED %v -> %v", iid, rid)
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
+		log.Printf("Error in get record: %v", err)
 		return err
 	}
 
 	release, err := d.GetRelease(ctx, rid)
+	log.Printf("Release: %v", err)
 	if err != nil {
 		// We should be able to find any release here
 		if status.Code(err) == codes.NotFound {
@@ -75,9 +78,39 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 
 	log.Printf("GOT %v vs %v", release, storedRelease)
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
-		//log.Printf("Updating ERD: %v", release)
+		qlog(ctx, "Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
 		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
+	}
+
+	addDigital := b.addDigitalList(ctx, storedRelease, release)
+	needsSave = needsSave || addDigital
+
+	if addDigital && digWants {
+		updated := false
+		// Update any wantlist if needed
+		wantlist, err := b.db.LoadWantlist(ctx, d.GetUserId(), "digital_wantlist")
+		if err != nil {
+			return err
+		}
+
+		for _, dig := range storedRelease.GetDigitalIds() {
+			found := false
+			for _, ex := range wantlist.GetEntries() {
+				if ex.GetId() == dig {
+					found = true
+				}
+			}
+
+			if !found {
+				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{Id: dig})
+				updated = true
+			}
+		}
+
+		if updated {
+			b.db.SaveWantlist(ctx, d.GetUserId(), wantlist)
+		}
 	}
 
 	if needsSave {
@@ -85,4 +118,35 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	}
 
 	return nil
+}
+
+func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb.Record, childRelease *pbd.Release) bool {
+	qlog(ctx, "Adding to digital")
+	// Is this release already in the list?
+	for _, dig := range storedRelease.GetDigitalIds() {
+		if dig == childRelease.GetId() {
+			return false
+		}
+	}
+
+	// Is this a digital release
+	isDigital := false
+	for _, format := range childRelease.GetFormats() {
+		if format.GetName() == "CD" || format.GetName() == "CDr" || format.GetName() == "File" {
+			isDigital = true
+		}
+
+		for _, desc := range format.GetDescriptions() {
+			if desc == "CD" || desc == "CDr" || desc == "File" {
+				isDigital = true
+			}
+		}
+	}
+
+	log.Printf("%v is %v", storedRelease, isDigital)
+
+	if isDigital {
+		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())
+	}
+	return isDigital
 }

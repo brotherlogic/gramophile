@@ -51,6 +51,7 @@ enum Sort {
     LABEL_CATNO = 1;
     RELEASE_YEAR = 2;
     EARLIEST_RELEASE_YEAR = 3;
+    ADDITION_DATE = 4;
 }
 
 enum Layout {

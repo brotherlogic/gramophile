@@ -90,6 +90,7 @@ type Database interface {
 	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, userid int32, name string) (*pb.Wantlist, error)
 	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
+	DeleteWantlist(ctx context.Context, userid int32, name string) error
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
 	DeleteSale(ctx context.Context, userId int32, saleid int64) error
@@ -232,8 +233,12 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
-	log.Printf("Saving wantlist: %v", wantlist)
+	log.Printf("Saving wantlist: %v (%v)", wantlist, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()))
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
+}
+
+func (d *DB) DeleteWantlist(ctx context.Context, userid int32, name string) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, name))
 }
 
 func (d *DB) LoadWantlist(ctx context.Context, userId int32, wantlist string) (*pb.Wantlist, error) {

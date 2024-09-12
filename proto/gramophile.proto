@@ -35,6 +35,7 @@ message PrintMove {
 message Location {
     string location_name = 1;
     int32 slot = 4;
+    string shelf = 5;
     repeated Context before = 2;
     repeated Context after = 3;
 }
@@ -191,6 +192,11 @@ message Record {
    int64 earliest_release_date = 19;
    int64 last_earliest_release_update = 20;
    int64 last_stat_refresh = 22;
+   
+   repeated int64 og_ids = 23;
+   repeated int64 digital_ids = 24;
+
+   repeated int64 mint_versions = 25;
 }
 
 message SaleInfo {
@@ -235,6 +241,7 @@ message Intent {
     int32 new_folder = 10;
 
     int64 intent_time = 11;
+    repeated int64 mint_ids = 12;
 }
 
 message Queues {
@@ -326,6 +333,7 @@ message RefreshEarliestReleaseDates {
 message RefreshEarliestReleaseDate {
     int64 iid = 1;
     int64 other_release = 2;
+    bool update_digital_wantlist = 3;
 }
 
 message RefreshCollection {

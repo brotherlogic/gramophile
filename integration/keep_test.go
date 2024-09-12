@@ -34,7 +34,7 @@ func TestSetKeep_Success(t *testing.T) {
 	s := server.BuildServer(d, di, qc)
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
-		Intent:     &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP},
+		Intent:     &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP, MintIds: []int64{12}},
 		InstanceId: 1234,
 	})
 	if err != nil {

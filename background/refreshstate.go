@@ -31,6 +31,7 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 		if rel.GetInstanceId() == iid {
 			//Update the elements that are pulled in the get collection retlease
 			record.GetRelease().FolderId = rel.GetFolderId()
+			record.GetRelease().DateAdded = rel.GetDateAdded()
 
 			log.Printf("Found and updated %v -> %v from %v", iid, record.GetRelease().FolderId, rel)
 
