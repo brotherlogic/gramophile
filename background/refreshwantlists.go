@@ -33,7 +33,6 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing %v -> %v", list.GetName(), list.GetType())
 
-	changed := false
 	for _, entry := range list.GetEntries() {
 		log.Printf("REFRESH %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
@@ -45,30 +44,22 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
 			log.Printf("HERE %v and %v", want, entry)
 			entry.State = want.GetState()
-			changed = true
 			list.LastPurchaseDate = time.Now().UnixNano()
 		}
 
 		if want.GetId() == entry.GetId() && want.GetScore() != entry.GetScore() {
 			entry.Score = want.GetScore()
-			changed = true
 		}
 	}
 
-	rchanged, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
+	_, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
 
-	if changed || rchanged {
-		log.Printf("List has changed: %v", list)
-		err := b.db.SaveWantlist(ctx, di.GetUserId(), list)
-		if err != nil {
-			return fmt.Errorf("unable to save wantlist: %w", err)
-		}
-	}
+	list.LastUpdatedTimestamp = time.Now().UnixNano()
 
-	return nil
+	return b.db.SaveWantlist(ctx, di.GetUserId(), list)
 }
 
 func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
