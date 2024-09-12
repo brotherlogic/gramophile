@@ -9,6 +9,8 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestMovePrint(t *testing.T) {
@@ -112,10 +114,27 @@ func TestMintUpKeep_Success(t *testing.T) {
 	ctx := getTestContext(123)
 	b := GetTestBackgroundRunner()
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
-	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{
+			MintUpWantList: true,
+		},
+	}}
+	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "mint_up_wantlist"})
 
 	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
 	if err != nil {
 		t.Errorf("Unable to process keep: %v", err)
+	}
+}
+
+func TestMintUpKeep_NoField(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
+
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Should have failed with :Failed Precondition %v", err)
 	}
 }
