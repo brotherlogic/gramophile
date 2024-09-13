@@ -33,12 +33,33 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing %v -> %v", list.GetName(), list.GetType())
 
+	// Clear any wants that have an id of zero
+	nentries := []*pb.WantlistEntry{}
+	for _, entry := range list.GetEntries() {
+		if entry.GetId() > 0 || entry.GetMasterId() > 0 {
+			nentries = append(nentries, entry)
+		}
+	}
+	list.Entries = nentries
+
 	for _, entry := range list.GetEntries() {
 		log.Printf("REFRESH %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
 		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
 		if err != nil {
-			return err
+			if status.Code(err) == codes.NotFound {
+				// We need to save this want
+				want = &pb.Want{
+					Id:    entry.GetId(),
+					State: pb.WantState_WANT_UNKNOWN,
+				}
+				err = b.db.SaveWant(ctx, di.GetUserId(), want, "Creating from wantlist update")
+				if err != nil {
+					return nil
+				}
+			} else {
+				return err
+			}
 		}
 
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
