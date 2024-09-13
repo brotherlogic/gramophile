@@ -31,4 +31,8 @@ func TestZeroEntriesInWantlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to process wantlist: %v", err)
 	}
+
+	if len(wl.GetEntries()) != 1 {
+		t.Errorf("Bad want was not cleared: %v", wl)
+	}
 }
