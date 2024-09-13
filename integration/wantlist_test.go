@@ -341,7 +341,6 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 
 }
 
-
 func TestWantlistUpdatedOnSync(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -669,6 +668,10 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	// It should have one entry
 	if len(wl.GetList().GetEntries()) != 1 {
 		t.Errorf("Wanlist has not been populated: %v", wl)
+	}
+
+	if wl.GetList().GetEntries()[0].GetId() != r.GetRecords()[0].GetRecord().GetDigitalIds()[0] {
+		t.Errorf("Mismatch in wants")
 	}
 }
 
