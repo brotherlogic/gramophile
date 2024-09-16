@@ -96,7 +96,7 @@ func main() {
 			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDate{RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{Iid: iid}}},
+			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDate{RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{Iid: iid}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_master":
