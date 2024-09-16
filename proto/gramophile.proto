@@ -531,7 +531,9 @@ message GetRecordWithId {
     int64 release_id = 2;
 }
 
-message GetRecordWithIssue {}
+message GetRecordWithIssue {
+   
+}
 
 message GetRecordToListenTo {
     string filter = 1;

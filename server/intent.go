@@ -58,6 +58,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		return nil, status.Errorf(codes.InvalidArgument, "You need to specify mint ids for this keep")
 	}
 
+	if req.GetIntent().GetKeep() == pb.KeepStatus_MINT_UP_KEEP && !user.GetConfig().GetWantsConfig().GetMintUpWantList() {
+		return nil, status.Errorf(codes.FailedPrecondition, "You need to set mint_up_wantlist in the config for this")
+	}
+
 	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {

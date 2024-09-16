@@ -50,7 +50,9 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 
 			for _, r := range resp.GetRecords() {
-				fmt.Printf("%v [%v]\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId())
+				if len(r.GetRecord().GetMintVersions()) == 0 {
+					fmt.Printf("%v [%v] {%v}\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId(), r.GetRecord().GetMintVersions())
+				}
 			}
 
 			return nil

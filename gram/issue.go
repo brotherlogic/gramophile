@@ -26,8 +26,11 @@ func executeGetIssue(ctx context.Context, args []string) error {
 	}
 
 	client := pb.NewGramophileEServiceClient(conn)
-	records, err := client.GetRecord(ctx, &pb.GetRecordRequest{
-		Request: &pb.GetRecordRequest_GetRecordWithIssue{},
+	var records *pb.GetRecordResponse
+	records, err = client.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithIssue{
+			GetRecordWithIssue: &pb.GetRecordWithIssue{Issue: pb.GetRecordWithIssue_GRAMOPHILE_ISSUE_MISSING_MINTUP},
+		},
 	})
 	if err != nil {
 		return err
