@@ -152,12 +152,16 @@ github.com/brotherlogic/gramophile v0.981.0 h1:dncL+MUxx2h6rgGn4uqrutnoNQF98OkfQ
 github.com/brotherlogic/gramophile v0.981.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
 github.com/brotherlogic/gramophile v0.982.0 h1:z2/iEcCIbYIH4ch6Ik2M6Sb+ARxhYtwLktutNVSBDjs=
 github.com/brotherlogic/gramophile v0.982.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
+github.com/brotherlogic/gramophile v0.984.0 h1:ezVHDWQnkEDNRppZlden5CB6UEOJPmGrNVg1gG7mfFM=
+github.com/brotherlogic/gramophile v0.984.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
 github.com/brotherlogic/rstore v0.55.0 h1:c7mxE2IBBGiiOk0KtdpIXXEhhgkD/xOejnYFgUhLrx8=
 github.com/brotherlogic/rstore v0.55.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/rstore v0.56.0 h1:4YHqJbY2ahirX9ziT7qREYMgWlJoELKLmKBqcNL6vIg=
 github.com/brotherlogic/rstore v0.56.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/rstore v0.57.0 h1:1zY7B8mKMw5DoqqaoKTxo84NFs5nGFuAhBVg87EAUAs=
 github.com/brotherlogic/rstore v0.57.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
+github.com/brotherlogic/rstore v0.58.0 h1:Wy6gDS8vRK81pGma1Hc3HtRFaelUugupD8PeDMQYBuU=
+github.com/brotherlogic/rstore v0.58.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
 github.com/brotherlogic/scraper v0.79.0/go.mod h1:Rjt2YnovVuwftew+ffVKP7NWI/68QGC34BBeuL0UKOc=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
