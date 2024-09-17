@@ -110,6 +110,54 @@ func TestMovePrint(t *testing.T) {
 	}
 }
 
+func TestMovePrint_MissingOrgorigin(t *testing.T) {
+	ctx := getTestContext(123)
+
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+		PrintMoveConfig: &pb.PrintMoveConfig{
+			Context: 1,
+		},
+		OrganisationConfig: &pb.OrganisationConfig{
+			Organisations: []*pb.Organisation{
+				{
+					Name:       "First",
+					Foldersets: []*pb.FolderSet{{Folder: 1, Sort: pb.Sort_LABEL_CATNO}},
+				},
+			},
+		},
+	}}
+	err := b.db.SaveUser(context.Background(), su)
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
+	mr := &pb.Record{Release: &pbd.Release{Title: "b", Artists: []*pbd.Artist{{Name: "artb"}}, InstanceId: 2, FolderId: 2, Labels: []*pbd.Label{{Name: "bbb"}}}}
+
+	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "a", Artists: []*pbd.Artist{{Name: "arta"}}, InstanceId: 1, FolderId: 1, Labels: []*pbd.Label{{Name: "aaa"}}}})
+	b.db.SaveRecord(ctx, 123, mr)
+	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "c", Artists: []*pbd.Artist{{Name: "artc"}}, InstanceId: 3, FolderId: 1, Labels: []*pbd.Label{{Name: "ccc"}}}})
+
+	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "d", Artists: []*pbd.Artist{{Name: "artd"}}, InstanceId: 4, FolderId: 2, Labels: []*pbd.Label{{Name: "aaa"}}}})
+	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "e", Artists: []*pbd.Artist{{Name: "arte"}}, InstanceId: 5, FolderId: 2, Labels: []*pbd.Label{{Name: "ccc"}}}})
+
+	org1, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+		Name:       "First",
+		Foldersets: []*pb.FolderSet{{Folder: 1}},
+	}, su.GetConfig().GetOrganisationConfig())
+	if err != nil {
+		t.Fatalf("Bad org build: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "First", org1)
+
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 1}, "123")
+	if err == nil {
+		t.Fatalf("Intent was processed: %v", err)
+	}
+
+}
+
 func TestMintUpKeep_Success(t *testing.T) {
 	ctx := getTestContext(123)
 	b := GetTestBackgroundRunner()
