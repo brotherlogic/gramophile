@@ -79,7 +79,7 @@ func TestUpgradeToEnMasse(t *testing.T) {
 			}
 		} else {
 			if want.GetWant().GetState() == pb.WantState_WANTED {
-				t.Errorf("Second entry should be wanted: %v", want)
+				t.Errorf("Second entry should not be wanted: %v", want)
 			}
 		}
 	}

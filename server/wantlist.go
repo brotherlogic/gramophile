@@ -38,6 +38,7 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 			Name:       req.GetName(),
 			Type:       req.GetType(),
 			Visibility: req.GetVisibility(),
+			Active:     true,
 		})
 }
 
