@@ -141,8 +141,10 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 	log.Printf("Found %v wants and %v records", len(wants), len(recs))
 
 	for _, want := range wants {
+		found := false
 		for _, rec := range recs {
 			if want.GetId() == rec.GetRelease().GetId() {
+				found = true
 				log.Printf("Refreshing Want %v -> %v", want, rec)
 				want.State = pb.WantState_IN_TRANSIT
 				if rec.GetArrived() > 0 {
@@ -158,14 +160,14 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 				}
 				continue
 			}
+		}
 
-			// This is wrong - reset this
-			if want.State == pb.WantState_IN_TRANSIT || want.State == pb.WantState_PURCHASED {
-				want.State = pb.WantState_WANT_UNKNOWN
-				err = b.db.SaveWant(ctx, d.GetUserId(), want, "Mislabelled purchase")
-				if err != nil {
-					return fmt.Errorf("unable to save want: %v", err)
-				}
+		// This is wrong - reset this
+		if !found && (want.State == pb.WantState_IN_TRANSIT || want.State == pb.WantState_PURCHASED) {
+			want.State = pb.WantState_WANT_UNKNOWN
+			err = b.db.SaveWant(ctx, d.GetUserId(), want, "Mislabelled purchase")
+			if err != nil {
+				return fmt.Errorf("unable to save want: %v", err)
 			}
 		}
 	}
