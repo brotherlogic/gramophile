@@ -10,6 +10,7 @@ import (
 
 	dpb "github.com/brotherlogic/discogs/proto"
 	pbd "github.com/brotherlogic/discogs/proto"
+	pb "github.com/brotherlogic/gramophile/proto"
 
 	rstore_client "github.com/brotherlogic/rstore/client"
 )
@@ -37,6 +38,27 @@ func TestGetCollectionPage_WithNewRecord(t *testing.T) {
 
 	if record.GetRelease().GetRating() != 2 {
 		t.Errorf("Stored record is not quite right: %v", record)
+	}
+}
+
+func TestGetCollectionPage_PreservesRelease(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	d := &discogs.TestDiscogsClient{}
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
+	b.db.SaveRecord(context.Background(), 123, &pb.Record{Release: &dpb.Release{InstanceId: 100, DateAdded: 1234}})
+
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	if err != nil {
+		t.Errorf("Bad collection pull: %v", err)
+	}
+
+	record, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err != nil {
+		t.Errorf("Bad get: %v", err)
+	}
+
+	if record.GetRelease().GetDateAdded() != 1234 {
+		t.Errorf("Date Added has been lost: %v", record)
 	}
 }
 
