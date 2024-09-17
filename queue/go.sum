@@ -150,6 +150,8 @@ github.com/brotherlogic/gramophile v0.977.0 h1:uIPigCFXUB0Newl9X8rCzm7XPgwF6GkIK
 github.com/brotherlogic/gramophile v0.977.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
 github.com/brotherlogic/gramophile v0.981.0 h1:dncL+MUxx2h6rgGn4uqrutnoNQF98OkfQ/W+298P968=
 github.com/brotherlogic/gramophile v0.981.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
+github.com/brotherlogic/gramophile v0.982.0 h1:z2/iEcCIbYIH4ch6Ik2M6Sb+ARxhYtwLktutNVSBDjs=
+github.com/brotherlogic/gramophile v0.982.0/go.mod h1:5y431G27oKPFQO19/j2SWCdJhIA2+T8eGSkNCrKsB8E=
 github.com/brotherlogic/rstore v0.55.0 h1:c7mxE2IBBGiiOk0KtdpIXXEhhgkD/xOejnYFgUhLrx8=
 github.com/brotherlogic/rstore v0.55.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/rstore v0.56.0 h1:4YHqJbY2ahirX9ziT7qREYMgWlJoELKLmKBqcNL6vIg=
@@ -182,6 +184,8 @@ github.com/prometheus/client_golang v1.20.2 h1:5ctymQzZlyOON1666svgwn3s6IKWgfbjs
 github.com/prometheus/client_golang v1.20.2/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
 github.com/prometheus/client_golang v1.20.3 h1:oPksm4K8B+Vt35tUhw6GbSNSgVlVSBH0qELP/7u83l4=
 github.com/prometheus/client_golang v1.20.3/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
+github.com/prometheus/client_golang v1.20.4 h1:Tgh3Yr67PaOv/uTqloMsCEdeuFTatm5zIq5+qNN23vI=
+github.com/prometheus/client_golang v1.20.4/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
 github.com/prometheus/client_model v0.6.1 h1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=
 github.com/prometheus/client_model v0.6.1/go.mod h1:OrxVMOVHjw3lKMa8+x6HeMGkHMQyHDk9E3jmP2AmGiY=
 github.com/prometheus/common v0.55.0 h1:KEi6DK7lXW/m7Ig5i47x0vRzuBsHuvJdi5ee6Y3G1dc=
