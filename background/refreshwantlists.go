@@ -147,7 +147,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			continue
 		}
 
-		if foundFirst {
+		if foundFirst && entry.GetState() != pb.WantState_PENDING {
 			b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING})
 			_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Auth:    token,
@@ -161,6 +161,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			if err != nil {
 				return false, err
 			}
+			continue
 		}
 
 		log.Printf("Refreshing Queue entry: %v", entry)
