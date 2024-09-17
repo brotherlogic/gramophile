@@ -189,10 +189,11 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 						},
 					},
 				}})
-				return true, err
+				if err != nil {
+					return false, err
+				}
+				continue
 			}
-
-			return false, nil
 		case pb.WantState_PURCHASED:
 			continue
 		case pb.WantState_PENDING, pb.WantState_RETIRED, pb.WantState_WANT_UNKNOWN:
