@@ -138,9 +138,12 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 		return fmt.Errorf("unable to load all wants: %w", err)
 	}
 
+	log.Printf("Found %v wants and %v records", len(wants), len(recs))
+
 	for _, want := range wants {
 		for _, rec := range recs {
 			if want.GetId() == rec.GetRelease().GetId() {
+				log.Printf("Refreshing Want %v -> %v", want, rec)
 				want.State = pb.WantState_IN_TRANSIT
 				if rec.GetArrived() > 0 {
 					want.State = pb.WantState_PURCHASED
@@ -154,6 +157,15 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 					return fmt.Errorf("unable to save want: %w", err)
 				}
 				continue
+			}
+
+			// This is wrong - reset this
+			if want.State == pb.WantState_IN_TRANSIT || want.State == pb.WantState_PURCHASED {
+				want.State = pb.WantState_WANT_UNKNOWN
+				err = b.db.SaveWant(ctx, d.GetUserId(), want, "Mislabelled purchase")
+				if err != nil {
+					return fmt.Errorf("unable to save want: %v", err)
+				}
 			}
 		}
 	}
