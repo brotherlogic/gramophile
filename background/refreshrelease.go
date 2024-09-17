@@ -20,7 +20,7 @@ const (
 	refreshStatsFrequency = time.Hour * 24 * 7
 
 	// Min refresh frequency
-	minRefreshFreq = time.Hour * 24 * 7
+	minRefreshFreq = time.Hour * 24 * 7 * 4
 
 	digitalWantlistName = "digital"
 )
