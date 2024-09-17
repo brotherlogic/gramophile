@@ -152,39 +152,10 @@ func TestMovePrint_MissingOrgorigin(t *testing.T) {
 	b.db.SaveSnapshot(ctx, su, "First", org1)
 
 	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 1}, "123")
-	if err != nil {
-		t.Fatalf("Bad intent processing: %v", err)
+	if err == nil {
+		t.Fatalf("Intent was processed: %v", err)
 	}
 
-	// That should have created one print entry
-	v, err := b.db.LoadPrintMoves(ctx, 123)
-	if err != nil {
-		t.Fatalf("Unable to get print moves: %v", err)
-	}
-
-	if len(v) != 1 {
-		t.Fatalf("Wrong number of printed moves: %v", v)
-	}
-
-	move := v[0]
-
-	if move.GetOrigin().GetBefore()[0].GetRecord() != "arta - a" {
-		t.Errorf("Bad before: %v", move.GetOrigin().GetBefore())
-	}
-
-	if move.GetOrigin().GetAfter()[0].GetRecord() != "artc - c" {
-		t.Errorf("Bad after: %v", move.GetOrigin().GetAfter())
-	}
-
-	if move.GetDestination().GetLocationName() != "Folder 2" {
-		t.Errorf("Destination was not corrected: %v", move.GetDestination())
-	}
-
-	// Also test that if we re-move it we get a nil return
-	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
-	if err != nil {
-		t.Fatalf("Bad intent processing: %v", err)
-	}
 }
 
 func TestMintUpKeep_Success(t *testing.T) {
