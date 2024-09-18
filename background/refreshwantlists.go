@@ -137,7 +137,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 	foundFirst := false
 	for _, entry := range list.GetEntries() {
 		qlog(ctx, "Assessing %v in %v [%v]", entry, list.GetName(), foundFirst)
-		if !list.GetActive() {
+		/*if list.GetActive() {
 			err := b.db.SaveWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: pb.WantState_PENDING,
@@ -146,7 +146,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 				return false, err
 			}
 			continue
-		}
+		}*/
 
 		if foundFirst {
 			if entry.GetState() != pb.WantState_PENDING {
