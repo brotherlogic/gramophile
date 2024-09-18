@@ -134,8 +134,10 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		return list.GetEntries()[i].GetIndex() < list.GetEntries()[j].GetIndex()
 	})
 
+	foundFirst := false
 	for _, entry := range list.GetEntries() {
-		if list.GetActive() {
+		qlog(ctx, "Assessing %v in %v [%v]", entry, list.GetName(), foundFirst)
+		if !list.GetActive() {
 			err := b.db.SaveWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: pb.WantState_PENDING,
@@ -146,9 +148,32 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			continue
 		}
 
+		if foundFirst {
+			if entry.GetState() != pb.WantState_PENDING {
+				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING})
+				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Auth:    token,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING},
+						},
+					},
+				}})
+				if err != nil {
+					return false, err
+				}
+			}
+			continue
+		}
+
 		log.Printf("Refreshing Queue entry: %v", entry)
+
 		switch entry.GetState() {
+		case pb.WantState_IN_TRANSIT:
+			foundFirst = true
 		case pb.WantState_WANTED:
+			foundFirst = true
 			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
 				err := b.mergeWant(ctx, userid, &pb.Want{
 					Id:    entry.GetId(),
@@ -166,13 +191,15 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 						},
 					},
 				}})
-				return true, err
+				if err != nil {
+					return false, err
+				}
+				continue
 			}
-
-			return false, nil
 		case pb.WantState_PURCHASED:
 			continue
 		case pb.WantState_PENDING, pb.WantState_RETIRED, pb.WantState_WANT_UNKNOWN:
+			foundFirst = true
 			state := pb.WantState_WANTED
 			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
 				state = pb.WantState_HIDDEN
