@@ -19,9 +19,13 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	if err != nil {
 		return fmt.Errorf("unable to get wantlists: %w", err)
 	}
+	user, err := b.db.GetUser(ctx, auth)
+	if err != nil {
+		return err
+	}
 
 	for _, list := range lists {
-		err = b.processWantlist(ctx, di, list, auth, enqueue)
+		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -30,7 +34,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	return nil
 }
 
-func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing %v -> %v", list.GetName(), list.GetType())
 
 	// Clear any wants that have an id of zero
@@ -73,6 +77,25 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 	}
 
+	// Should we deactivate this list
+	score := float32(0)
+	count := float32(0)
+	if config.GetMinCount() > 0 || config.GetMinScore() > 0 {
+		for _, entry := range list.GetEntries() {
+			log.Printf("Entry: %v", entry)
+			if entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT {
+				score += float32(entry.GetScore())
+				count++
+			}
+		}
+
+		log.Printf("Found Score %v / %v", score, count)
+		if count > float32(config.GetMinCount()) {
+			list.Active = score/count >= config.GetMinScore()
+			log.Printf("Set active: %v (%v vs %v)", list.Active, score/count, config.GetMinScore())
+		}
+	}
+
 	_, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
@@ -84,6 +107,36 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 }
 
 func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
+	// If the list is inactive - just set everything to PENDING
+	if !list.GetActive() {
+		qlog(ctx, "List is inactive")
+		for _, entry := range list.GetEntries() {
+			if entry.GetState() != pb.WantState_RETIRED {
+				entry.State = pb.WantState_RETIRED
+				err := b.mergeWant(ctx, userid, &pb.Want{
+					Id:    entry.GetId(),
+					State: pb.WantState_RETIRED,
+				})
+				if err != nil {
+					return false, err
+				}
+				_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Auth:    token,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId()},
+						},
+					},
+				}})
+				if err != nil {
+					return false, err
+				}
+			}
+		}
+		return true, nil
+	}
+
 	switch list.GetType() {
 	case pb.WantlistType_ONE_BY_ONE:
 		return b.refreshOneByOneWantlist(ctx, userid, list, token, enqueue)
