@@ -138,6 +138,7 @@ message GramophileConfig {
     WantsConfig wants_config = 16;
     PrintMoveConfig print_move_config = 17;
     MintUpConfig mint_up_config = 18;
+    WantslistConfig wants_list_config = 19;
 
     Create create_folders = 12;
     Create create_moves = 13;
@@ -249,4 +250,9 @@ message WantsConfig {
 
     bool mint_up_want_list = 7;
     bool digital_wants_list = 8;
+}
+
+message WantslistConfig {
+    float min_score = 1;
+    int32 min_count = 2;
 }
