@@ -148,19 +148,21 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			continue
 		}
 
-		if foundFirst && entry.GetState() != pb.WantState_PENDING {
-			b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING})
-			_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				Auth:    token,
-				RunDate: time.Now().UnixNano(),
-				Entry: &pb.QueueElement_RefreshWant{
-					RefreshWant: &pb.RefreshWant{
-						Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING},
+		if foundFirst {
+			if entry.GetState() != pb.WantState_PENDING {
+				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING})
+				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Auth:    token,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING},
+						},
 					},
-				},
-			}})
-			if err != nil {
-				return false, err
+				}})
+				if err != nil {
+					return false, err
+				}
 			}
 			continue
 		}
