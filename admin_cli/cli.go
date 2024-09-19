@@ -59,7 +59,7 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "refreshcollection":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
+			Element: &pb.QueueElement{Force:true, RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "clean":
@@ -88,6 +88,16 @@ func main() {
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
 			Element: &pb.QueueElement{RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshRelease{RefreshRelease: &pb.RefreshRelease{Iid: iid, Intention: "from-cli"}}},
+		})
+		fmt.Printf("%v and %v\n", a, b)
+	case "refresh_wantlists":
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
+		})
+		fmt.Printf("%v and %v\n", a, b)
+			case "refresh_wants":
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWants{}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_release_date":

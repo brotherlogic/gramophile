@@ -3,7 +3,6 @@ package background
 import (
 	"context"
 	"fmt"
-	"log"
 	"sort"
 	"time"
 
@@ -35,7 +34,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	log.Printf("Processing %v -> %v", list.GetName(), list.GetType())
+	qlog(ctx, "Processing %v -> %v", list.GetName(), list.GetType())
 
 	// Clear any wants that have an id of zero
 	nentries := []*pb.WantlistEntry{}
@@ -47,7 +46,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	list.Entries = nentries
 
 	for _, entry := range list.GetEntries() {
-		log.Printf("REFRESH %v -> %v", list.GetName(), entry)
+		qlog(ctx, "REFRESH %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
 		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
 		if err != nil {
@@ -67,7 +66,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
-			log.Printf("HERE %v and %v", want, entry)
+			qlog(ctx, "HERE %v and %v", want, entry)
 			entry.State = want.GetState()
 			list.LastPurchaseDate = time.Now().UnixNano()
 		}
@@ -82,17 +81,17 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	count := float32(0)
 	if config.GetMinCount() > 0 || config.GetMinScore() > 0 {
 		for _, entry := range list.GetEntries() {
-			log.Printf("Entry: %v", entry)
+			qlog(ctx, "Entry: %v", entry)
 			if entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT {
 				score += float32(entry.GetScore())
 				count++
 			}
 		}
 
-		log.Printf("Found Score %v / %v", score, count)
+		qlog(ctx, "Found Score %v / %v", score, count)
 		if count > float32(config.GetMinCount()) {
 			list.Active = score/count >= config.GetMinScore()
-			log.Printf("Set active: %v (%v vs %v)", list.Active, score/count, config.GetMinScore())
+			qlog(ctx, "Set active: %v (%v vs %v)", list.Active, score/count, config.GetMinScore())
 		}
 	}
 
@@ -143,7 +142,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 	case pb.WantlistType_EN_MASSE:
 		return b.refreshEnMasseWantlist(ctx, userid, list, token, enqueue)
 	default:
-		log.Printf("Failure to process want list because %v", list.GetType())
+		qlog(ctx, "Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
 	}
 }
@@ -220,7 +219,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			continue
 		}
 
-		log.Printf("Refreshing Queue entry: %v", entry)
+		qlog(ctx, "Refreshing Queue entry: %v", entry)
 
 		switch entry.GetState() {
 		case pb.WantState_IN_TRANSIT:
@@ -258,7 +257,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 				state = pb.WantState_HIDDEN
 			}
 			entry.State = state
-			log.Printf("ESETTING ENTRY: %v", entry)
+			qlog(ctx, "ESETTING ENTRY: %v", entry)
 			err := b.mergeWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: state,

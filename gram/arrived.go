@@ -43,7 +43,7 @@ func executeArrived(ctx context.Context, args []string) error {
 			if err != nil {
 				return err
 			}
-			t = time.Unix(0, tu)
+			t = time.Unix(tu, 0)
 		}
 	}
 
