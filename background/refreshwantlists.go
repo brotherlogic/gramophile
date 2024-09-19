@@ -45,6 +45,15 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	}
 	list.Entries = nentries
 
+	idMap := make(map[int64]int32)
+	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
+	if err != nil {
+		return err
+	}
+	for _, record := range records {
+		idMap[record.GetRelease().GetId()] = record.GetRelease().GetRating()
+	}
+
 	for _, entry := range list.GetEntries() {
 		qlog(ctx, "REFRESH %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
@@ -85,6 +94,12 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 			if entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT {
 				score += float32(entry.GetScore())
 				count++
+			} else if entry.GetState() == pb.WantState_RETIRED {
+				// If the records retired, we've de-activated the list. So read from the Direct Map
+				if val, ok := idMap[entry.GetId()]; ok {
+					score += float32(val)
+					count++
+				}
 			}
 		}
 
