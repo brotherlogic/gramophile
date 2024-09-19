@@ -110,7 +110,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 	}
 
-	_, err := b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
+	_, err = b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
