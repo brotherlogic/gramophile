@@ -76,7 +76,15 @@ func executeWantlist(ctx context.Context, args []string) error {
 		}
 
 		for i, list := range lists.GetLists() {
-			fmt.Printf("%v. %v [%v]\n", i, list.GetName(), list.GetType())
+			score := float64(0)
+			count := float64(0)
+			for _, entry := range list.GetEntries() {
+				if entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT {
+					score += float64(entry.GetScore())
+					count++
+				}
+			}
+			fmt.Printf("%v. %v [%v] {%v}\n", i, list.GetName(), list.GetActive(), score/count)
 		}
 	} else if args[0] == "type" {
 		ntype := pb.WantlistType_TYPE_UNKNOWN
@@ -105,12 +113,12 @@ func executeWantlist(ctx context.Context, args []string) error {
 		total := float64(0)
 		count := float64(0)
 		for _, entry := range wantlist.GetList().GetEntries() {
-		    if entry.GetScore() > 0 {
-		    total += float64(entry.GetScore())
-		    count++
-		    }
-		    }
-		    
+			if entry.GetScore() > 0 {
+				total += float64(entry.GetScore())
+				count++
+			}
+		}
+
 		fmt.Printf("List: %v (%v) [%v]\n", wantlist.GetList().GetName(), wantlist.GetList().GetType(), total/count)
 		fmt.Printf("Updated: %v\n", time.Unix(0, wantlist.GetList().GetLastUpdatedTimestamp()))
 		for _, entry := range wantlist.GetList().GetEntries() {
