@@ -104,7 +104,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 
 		qlog(ctx, "Found Score %v / %v", score, count)
-		if count > float32(config.GetMinCount()) {
+		if count >= float32(config.GetMinCount()) {
 			list.Active = score/count >= config.GetMinScore()
 			qlog(ctx, "Set active: %v (%v vs %v)", list.Active, score/count, config.GetMinScore())
 		} else {
