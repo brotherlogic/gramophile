@@ -78,6 +78,11 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	log.Printf("Saving intent: %v -> %v", exint, user)
 
+	// Clear the score if we've moved into the listening pile
+	if exint.GetNewFolder() == 812802 || exint.GetNewFolder() == 7651472 || exint.GetNewFolder() == 7664293 || exint.GetNewFolder() == 7665013 {
+		exint.NewScore = -1
+	}
+
 	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
 	if err != nil {
 		return nil, fmt.Errorf("error saving intent: %w", err)
