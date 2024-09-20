@@ -4,10 +4,10 @@ go 1.22.3
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20240912135932-1aee3893ab4d
-	github.com/brotherlogic/gramophile v0.998.0
+	github.com/brotherlogic/gramophile v0.1000.0
 	github.com/brotherlogic/rstore v0.58.0
 	github.com/prometheus/client_golang v1.20.4
-	google.golang.org/grpc v1.66.2
+	google.golang.org/grpc v1.67.0
 )
 
 require (
