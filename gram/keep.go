@@ -30,9 +30,19 @@ func executeKeep(ctx context.Context, args []string) error {
 		return err
 	}
 
+	var ids []int64
+	for _, arg := range args[2:] {
+		id, err := strconv.ParseInt(arg, 10, 64)
+		if err != nil {
+			return err
+		}
+		ids = append(ids, id)
+	}
+
 	var keepState pb.KeepStatus
 	switch args[1] {
 	case "none":
+
 		keepState = pb.KeepStatus_NO_KEEP
 	case "digital":
 		keepState = pb.KeepStatus_DIGITAL_KEEP
@@ -50,7 +60,8 @@ func executeKeep(ctx context.Context, args []string) error {
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			Keep: keepState,
+			Keep:    keepState,
+			MintIds: ids,
 		},
 	})
 	return err

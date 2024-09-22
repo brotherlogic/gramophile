@@ -55,6 +55,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(),
 			&pb.Wantlist{
 				Name: "mint_up_wantlist",
+				Type: pb.WantlistType_EN_MASSE,
 			})
 	} else {
 		s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), "mint_up_wantlist")
