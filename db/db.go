@@ -63,8 +63,9 @@ type Database interface {
 	GetUpdates(ctx context.Context, userid int32, record *pb.Record) ([]*pb.RecordUpdate, error)
 	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 
-	GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error)
-	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error
+	GetIntent(ctx context.Context, userid int32, iid int64, ts int64) (*pb.Intent, error)
+	SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent, ts int64) error
+	DeleteIntent(ctx context.Context, userid int32, iid int64, ts int64) error
 
 	LoadLogins(ctx context.Context) (*pb.UserLoginAttempts, error)
 	SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error
@@ -769,9 +770,9 @@ func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.
 	return updates, nil
 }
 
-func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent, error) {
+func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64, ts int64) (*pb.Intent, error) {
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid),
+		Key: fmt.Sprintf("gramophile/user/%v/release/intent-%v-%v", userid, iid, ts),
 	})
 	if err != nil {
 		return nil, err
@@ -782,18 +783,22 @@ func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64) (*pb.Intent
 	return in, err
 }
 
-func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent) error {
+func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent, ts int64) error {
 	data, err := proto.Marshal(i)
 	if err != nil {
 		return err
 	}
 
 	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/release/intent-%v", userid, iid),
+		Key:   fmt.Sprintf("gramophile/user/%v/release/intent-%v-%v", userid, iid, ts),
 		Value: &anypb.Any{Value: data},
 	})
 
 	return err
+}
+
+func (d *DB) DeleteIntent(ctx context.Context, userid int32, iid int64, ts int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/user/%v/release/intent-%v-%v", userid, iid, ts))
 }
 
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
