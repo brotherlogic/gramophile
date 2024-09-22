@@ -84,7 +84,10 @@ func executeWantlist(ctx context.Context, args []string) error {
 					count++
 				}
 			}
-			fmt.Printf("%v. %v [%v] {%v}\n", i, list.GetName(), list.GetActive(), score/count)
+			if count == 0 {
+				count = 1
+			}
+			fmt.Printf("%v. %v [%v] {%v}\n", i, list.GetName(), list.GetType(), score/count)
 		}
 	} else if args[0] == "type" {
 		ntype := pb.WantlistType_TYPE_UNKNOWN

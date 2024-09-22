@@ -16,6 +16,7 @@ import (
 	"github.com/brotherlogic/discogs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field, r *pb.Record) (*pb.Record, error) {
@@ -83,7 +84,11 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 
 		if err == nil && stored != nil {
 			log.Printf("Huh: %v and %v", stored, release)
-			stored.Release = release
+
+			stored.Release.Artists = []*pbd.Artist{}
+			stored.Release.Formats = []*pbd.Format{}
+			stored.Release.Labels = []*pbd.Label{}
+			proto.Merge(stored.Release, release)
 			stored.RefreshId = refreshId
 
 			// Process the notes
