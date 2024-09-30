@@ -654,7 +654,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			for i := int32(2); i <= pages.GetPages(); i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					RunDate: time.Now().UnixNano() + int64(i),
+					Force:   entry.GetForce(),
 					Entry: &pb.QueueElement_RefreshSales{
+
 						RefreshSales: &pb.RefreshSales{
 							Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 					Auth: entry.GetAuth(),
