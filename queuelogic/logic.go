@@ -676,17 +676,15 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return fmt.Errorf("dunable to enqueue link job: %v", err)
 			}
+		}
 
-			// If we've got here, update the user
+		qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
+		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
 			user.LastSaleRefresh = time.Now().UnixNano()
 			err = q.db.SaveUser(ctx, user)
 			if err != nil {
 				return fmt.Errorf("unable to sell user: %w", err)
 			}
-		}
-
-		qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
-		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
 			err := q.b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
 			if err != nil {
 				return err
