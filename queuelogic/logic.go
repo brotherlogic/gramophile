@@ -707,11 +707,14 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to get record from %v: %w", d.GetUserId(), err)
 		}
-		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
+		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
 		if err != nil {
 			return fmt.Errorf("unable to get intent: %w", err)
 		}
 		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
+		if v != nil {
+			return v
+		}
 		qlog(ctx, "Processed intent (%v) -> %v", i, v)
 
 		//Move records
@@ -723,7 +726,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				Auth: entry.GetAuth(),
 			}})
 
-		return v
+		return q.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
 	case *pb.QueueElement_RefreshRelease:

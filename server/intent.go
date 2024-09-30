@@ -9,7 +9,6 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.Intent) error {
@@ -58,32 +57,21 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		return nil, status.Errorf(codes.InvalidArgument, "You need to specify mint ids for this keep")
 	}
 
-	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			exint = &pb.Intent{}
-		} else {
-			return nil, fmt.Errorf("error getting intents: %w", err)
-		}
-	}
-
-	// Merge in the proto def
-	proto.Merge(exint, req.GetIntent())
-
 	// Validate that the intent is legit
-	err = s.validateIntent(ctx, user, exint)
+	err = s.validateIntent(ctx, user, req.GetIntent())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Saving intent: %v -> %v", exint, user)
+	log.Printf("Saving intent: %v -> %v", req.GetIntent(), user)
 
 	// Clear the score if we've moved into the listening pile
 	if req.GetIntent().GetNewFolder() == 812802 || req.GetIntent().GetNewFolder() == 7651472 || req.GetIntent().GetNewFolder() == 7664293 || req.GetIntent().GetNewFolder() == 7665013 {
-		exint.NewScore = -1
+		req.GetIntent().NewScore = -1
 	}
 
-	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
+	ts := time.Now().UnixNano()
+	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), req.GetIntent(), ts)
 	if err != nil {
 		return nil, fmt.Errorf("error saving intent: %w", err)
 	}
@@ -95,7 +83,9 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 			Auth:             user.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_RefreshIntents{
-				RefreshIntents: &pb.RefreshIntents{InstanceId: req.GetInstanceId()},
+				RefreshIntents: &pb.RefreshIntents{
+					InstanceId: req.GetInstanceId(),
+					Timestamp:  ts},
 			},
 		},
 	})
