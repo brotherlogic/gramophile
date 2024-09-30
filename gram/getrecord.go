@@ -73,7 +73,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 				}
 				if time.Unix(0, lowdate).Before(time.Now()) {
 					if sale.GetSaleState() == pbgd.SaleStatus_FOR_SALE {
-						fmt.Printf("%v - %v\n", time.Since(time.Unix(0, lowdate)), sale.GetReleaseId())
+						fmt.Printf("%v - %v\n", sale.GetSaleId(), sale.GetReleaseId())
 					}
 				}
 			}

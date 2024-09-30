@@ -44,7 +44,9 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 func main() {
 	t := time.Now()
 	defer func() {
-		fmt.Printf("\nComplete in %v\n", time.Since(t))
+		if time.Since(t) > time.Second*20 {
+			fmt.Printf("\nComplete in %v\n", time.Since(t))
+		}
 	}()
 	modules := []*CLIModule{GetLogin(),
 		GetGetUser(), GetGetSate(),
