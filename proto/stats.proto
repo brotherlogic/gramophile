@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message CollectionStats {
+    map<int32, int32> folder_to_count = 1;
+}
+
+message SaleStats {
+    map<int32, int32> year_totals = 1;
+}

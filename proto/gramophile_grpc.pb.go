@@ -251,6 +251,7 @@ const (
 	GramophileEService_UpdateWantlist_FullMethodName = "/gramophile.GramophileEService/UpdateWantlist"
 	GramophileEService_ListWantlists_FullMethodName  = "/gramophile.GramophileEService/ListWantlists"
 	GramophileEService_GetSale_FullMethodName        = "/gramophile.GramophileEService/GetSale"
+	GramophileEService_GetStats_FullMethodName       = "/gramophile.GramophileEService/GetStats"
 )
 
 // GramophileEServiceClient is the client API for GramophileEService service.
@@ -277,6 +278,7 @@ type GramophileEServiceClient interface {
 	UpdateWantlist(ctx context.Context, in *UpdateWantlistRequest, opts ...grpc.CallOption) (*UpdateWantlistResponse, error)
 	ListWantlists(ctx context.Context, in *ListWantlistsRequest, opts ...grpc.CallOption) (*ListWantlistsResponse, error)
 	GetSale(ctx context.Context, in *GetSaleRequest, opts ...grpc.CallOption) (*GetSaleResponse, error)
+	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -467,6 +469,16 @@ func (c *gramophileEServiceClient) GetSale(ctx context.Context, in *GetSaleReque
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStatsResponse)
+	err := c.cc.Invoke(ctx, GramophileEService_GetStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility.
@@ -491,6 +503,7 @@ type GramophileEServiceServer interface {
 	UpdateWantlist(context.Context, *UpdateWantlistRequest) (*UpdateWantlistResponse, error)
 	ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error)
 	GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error)
+	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have
@@ -553,6 +566,9 @@ func (UnimplementedGramophileEServiceServer) ListWantlists(context.Context, *Lis
 }
 func (UnimplementedGramophileEServiceServer) GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSale not implemented")
+}
+func (UnimplementedGramophileEServiceServer) GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
 }
 func (UnimplementedGramophileEServiceServer) testEmbeddedByValue() {}
 
@@ -898,6 +914,24 @@ func _GramophileEService_GetSale_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).GetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GramophileEService_GetStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).GetStats(ctx, req.(*GetStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -976,6 +1010,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSale",
 			Handler:    _GramophileEService_GetSale_Handler,
+		},
+		{
+			MethodName: "GetStats",
+			Handler:    _GramophileEService_GetStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
