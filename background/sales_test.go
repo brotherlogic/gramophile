@@ -144,3 +144,31 @@ func TestSkipOnSame(t *testing.T) {
 		t.Errorf("Should have failed: %v", err)
 	}
 }
+
+func TestSold(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}, Status: pbd.SaleStatus_SOLD}}}
+
+	d.SaveSale(context.Background(), 123, &pb.SaleInfo{ReleaseId: 123, SaleId: 12345, CurrentPrice: &pbd.Price{Value: 123}, SaleState: pbd.SaleStatus_FOR_SALE})
+
+	b := GetBackgroundRunner(d, "", "", "")
+
+	_, err := b.SyncSales(context.Background(), di, 1, time.Now().UnixNano())
+	if err != nil {
+		t.Fatalf("Bad sync: %v", err)
+	}
+
+	sale, err := d.GetSale(context.Background(), 123, 12345)
+	if err != nil {
+		t.Fatalf("Unable to get sale: %v", err)
+	}
+
+	if sale.GetSoldDate() == 0 {
+		t.Errorf("Sold date was not changed: %v", sale)
+	}
+}
