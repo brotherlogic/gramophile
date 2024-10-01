@@ -85,6 +85,8 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		} else if status.Code(err) == codes.OK {
 			log.Printf("Updating sale: %v, %v -> %v (%v)", d.GetUserId(), sale.GetSaleId(), err, id)
 
+			priorState := csale.GetSaleState()
+
 			before := len(csale.GetUpdates())
 			csale.SaleState = sale.GetStatus()
 			csale.RefreshId = id
@@ -96,6 +98,11 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			csale.CurrentPrice = &pbd.Price{
 				Value:    sale.GetPrice().GetValue(),
 				Currency: sale.GetPrice().GetCurrency(),
+			}
+
+			if priorState == pbd.SaleStatus_FOR_SALE && csale.SaleState == pbd.SaleStatus_SOLD {
+				// Record has been sold
+				csale.SoldDate = time.Now().UnixNano()
 			}
 
 			tidyUpdates(csale)
