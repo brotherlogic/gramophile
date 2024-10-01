@@ -6,6 +6,8 @@ package gramophile;
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
 import "config.proto";
 import "organisation.proto";
+import "stats.proto";
+
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
@@ -220,6 +222,8 @@ message SaleInfo {
     int64 time_at_median = 12;
     int64 time_created = 14;
     int64 time_refreshed = 15;
+
+    int64 sold_date = 16;
 }
 
 message PriceUpdate {
@@ -575,6 +579,11 @@ message RefreshRecordRequest {
 
 message RefreshRecordResponse {}
 
+message GetStatsRequest {}
+message GetStatsResponse {
+    CollectionStats collection_stats = 1;
+    SaleStats sale_stats = 2;
+}
 
 // Externally accessible service
 service GramophileEService {
@@ -603,6 +612,8 @@ service GramophileEService {
     rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
 
     rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
+
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
 }
 
 message GetSaleRequest {
