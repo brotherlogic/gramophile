@@ -64,7 +64,7 @@ func runLoop(ctx context.Context) error {
 func main() {
 	//Run a loop every minute
 	go func() {
-		mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Args[1])
+		mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Getenv("token"))
 		ctx, cancel := context.WithTimeout(mContext, time.Minute)
 		err := runLoop(ctx)
 		log.Printf("Ran loop: %v", err)

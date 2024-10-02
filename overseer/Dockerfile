@@ -18,7 +18,7 @@ FROM gcr.io/distroless/base-debian11
 
 WORKDIR /
 
-COPY --from=build /gramophile-queue /overseer
+COPY --from=build /overseer /overseer
 
 USER nonroot:nonroot
 
