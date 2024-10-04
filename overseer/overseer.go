@@ -24,6 +24,10 @@ var (
 		Name: "gramophile_overseer_result",
 		Help: "The length of the working queue I think yes",
 	}, []string{"result"})
+	loopTime = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_loop_time",
+		Help: "The length of the working queue I think yes",
+	}, []string{"result"})
 
 	collectionSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_overseer_collection",
@@ -65,12 +69,14 @@ func main() {
 	//Run a loop every minute
 	go func() {
 		for {
+			t1 := time.Now()
 			mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Getenv("token"))
 			ctx, cancel := context.WithTimeout(mContext, time.Minute)
 			err := runLoop(ctx)
 			log.Printf("Ran loop: %v", err)
 			cancel()
 			runResult.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))}).Set(float64(time.Now().Unix()))
+			loopTime.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))}).Set(float64(time.Since(t1).Milliseconds()))
 			time.Sleep(time.Minute)
 		}
 	}()
