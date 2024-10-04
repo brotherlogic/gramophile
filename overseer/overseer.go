@@ -70,7 +70,7 @@ func main() {
 			err := runLoop(ctx)
 			log.Printf("Ran loop: %v", err)
 			cancel()
-			runResult.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))})
+			runResult.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))}).Set(float64(time.Now().Unix()))
 			time.Sleep(time.Minute)
 		}
 	}()
