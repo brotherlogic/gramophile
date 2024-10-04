@@ -64,13 +64,15 @@ func runLoop(ctx context.Context) error {
 func main() {
 	//Run a loop every minute
 	go func() {
-		mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Getenv("token"))
-		ctx, cancel := context.WithTimeout(mContext, time.Minute)
-		err := runLoop(ctx)
-		log.Printf("Ran loop: %v", err)
-		cancel()
-		runResult.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))})
-		time.Sleep(time.Minute)
+		for {
+			mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Getenv("token"))
+			ctx, cancel := context.WithTimeout(mContext, time.Minute)
+			err := runLoop(ctx)
+			log.Printf("Ran loop: %v", err)
+			cancel()
+			runResult.With(prometheus.Labels{"result": fmt.Sprintf("%v", status.Code(err))})
+			time.Sleep(time.Minute)
+		}
 	}()
 
 	http.Handle("/metrics", promhttp.Handler())
