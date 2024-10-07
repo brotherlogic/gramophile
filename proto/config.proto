@@ -187,6 +187,8 @@ enum SaleUpdateType {
 
     // Reduce to the Median over the course of 1 month, then hold at median price
     REDUCE_TO_MEDIAN = 2;
+    REDUCE_TO_MEDIAN_AND_THEN_LOW = 3;
+    REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE = 4;
 }
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
@@ -205,6 +207,12 @@ message SaleConfig {
     int64 post_median_reduction_frequency = 8;
     LowerBoundStrategy lower_bound_strategy = 9;
     int32 lower_bound = 10;
+
+    // Supports reduce to stale level post reaching low
+    int64 post_low_time = 14;
+    int32 post_low_reduction = 15;
+    int32 post_low_reduction_frequency_seconds = 16;
+    int32 stale_bound = 17;
 
     // Time based sales
     int32 time_to_median_days = 11;

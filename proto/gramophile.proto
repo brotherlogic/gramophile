@@ -220,8 +220,11 @@ message SaleInfo {
     repeated PriceUpdate updates = 11;
 
     int64 time_at_median = 12;
+    int64 time_at_low = 17;
+    int64 time_at_stale = 18;
     int64 time_created = 14;
     int64 time_refreshed = 15;
+
 
     int64 sold_date = 16;
 }
