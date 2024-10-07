@@ -225,8 +225,9 @@ message SaleInfo {
     int64 time_created = 14;
     int64 time_refreshed = 15;
 
-
     int64 sold_date = 16;
+
+    SaleUpdateType sale_update_override = 19;
 }
 
 message PriceUpdate {
