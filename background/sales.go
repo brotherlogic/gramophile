@@ -157,9 +157,9 @@ func timeReduce(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, s
 	}
 }
 
-func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, string, error) {
-	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
-	switch c.GetUpdateType() {
+func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.SaleUpdateType) (int32, string, error) {
+	log.Printf("Adjusting %v with config: %v (%v)", s.GetSaleId(), c, ut)
+	switch ut {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, "no adjustment", nil
 	case pb.SaleUpdateType_NO_SALE_UPDATE:
@@ -176,7 +176,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 			return timeReduce(ctx, s, c)
 		}
 
-		if c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
+		if ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
 			log.Printf("Checking for staleness: %v", time.Since(time.Unix(0, s.GetTimeAtLow())))
 			// Are we ready to reduce to stale
 			if time.Since(time.Unix(0, s.GetTimeAtLow())).Hours()/24 > float64(c.GetTimeToStaleDays()) {
@@ -186,7 +186,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, 
 			}
 		}
 
-		if c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW || c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
+		if ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW || ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
 			// Are we in post reduction time?
 			if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
 				log.Printf("For %v in post reduction", s.GetSaleId())
@@ -230,17 +230,22 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+			updateType := c.GetUpdateType()
+			if sale.GetSaleUpdateOverride() != pb.SaleUpdateType_SALE_UPDATE_UNKNOWN {
+				updateType = sale.GetSaleUpdateOverride()
+			}
+
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
-				log.Printf("Working off of: %v", sale)
-				nsp, motivation, err := adjustPrice(ctx, sale, c)
+				log.Printf("Working off of: %v and %v", sale, updateType)
+				nsp, motivation, err := adjustPrice(ctx, sale, c, updateType)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
 
 				// If we've reached the median price, then explicitly set this
-				if (c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN ||
-					c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
-					c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
 					nsp == sale.GetMedianPrice().GetValue() && sale.TimeAtMedian == 0 {
 					sale.TimeAtMedian = time.Now().UnixNano()
 
@@ -250,8 +255,8 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 					}
 				}
 				// If we've reached the low price, then explicitly set this
-				if (c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
-					c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
 					nsp == sale.GetLowPrice().GetValue() && sale.TimeAtLow == 0 {
 					sale.TimeAtLow = time.Now().UnixNano()
 
@@ -262,7 +267,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				}
 
 				// If we've reached the low price, then explicitly set this
-				if (c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
 					nsp == user.GetConfig().GetSaleConfig().GetStaleBound() && sale.TimeAtStale == 0 {
 					sale.TimeAtStale = time.Now().UnixNano()
 
