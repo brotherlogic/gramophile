@@ -62,6 +62,12 @@ func TestGetSaleStats(t *testing.T) {
 		CurrentPrice: &pbd.Price{Value: 123},
 	})
 
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		SoldDate:     time.Now().UnixNano(),
+		CurrentPrice: &pbd.Price{Value: 123},
+	})
+
 	stats, err := s.GetStats(ctx, &pb.GetStatsRequest{})
 	if err != nil {
 		t.Fatalf("Unable to get stats: %v", err)
@@ -69,5 +75,9 @@ func TestGetSaleStats(t *testing.T) {
 
 	if stats.GetSaleStats().GetYearTotals()[int32(time.Now().Year())] != 123 {
 		t.Errorf("Bad collection stats: %v", stats)
+	}
+
+	if stats.GetSaleStats().GetStateCount()["TO_MEDIAN"] != 1 {
+		t.Errorf("Bad state count: %v", stats)
 	}
 }
