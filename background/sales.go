@@ -157,44 +157,57 @@ func timeReduce(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, s
 	}
 }
 
-func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig) (int32, string, error) {
-	log.Printf("Adjusting %v with config: %v", s.GetSaleId(), c)
-	switch c.GetUpdateType() {
+func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.SaleUpdateType) (int32, string, error) {
+	log.Printf("Adjusting %v with config: %v (%v)", s.GetSaleId(), c, ut)
+	switch ut {
 	case pb.SaleUpdateType_MINIMAL_REDUCE:
 		return s.GetCurrentPrice().Value - 1, "no adjustment", nil
 	case pb.SaleUpdateType_NO_SALE_UPDATE:
 		return s.GetCurrentPrice().GetValue(), "no adjustment", nil
-	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
+	case pb.SaleUpdateType_REDUCE_TO_MEDIAN, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE:
 		// Bail if there is not current median price
 		if s.GetMedianPrice().GetValue() == 0 {
+			log.Printf("Cannot find median")
 			return s.GetCurrentPrice().GetValue(), "no median available", nil
 		}
 
 		if c.GetTimeToMedianDays() > 0 {
+			log.Printf("Running timed reductions")
 			return timeReduce(ctx, s, c)
 		}
 
-		// Are we in post reduction time?
-		if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
-			log.Printf("For %v in post reduction", s.GetSaleId())
-			if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
-				postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
-				log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds()-float64(c.GetPostMedianTime()), c.GetPostMedianReductionFrequency())
-
-				lowerBound := c.GetLowerBound()
-				if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
-					lowerBound = s.GetLowPrice().GetValue()
+		if ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
+			log.Printf("Checking for staleness: %v", time.Since(time.Unix(0, s.GetTimeAtLow())))
+			// Are we ready to reduce to stale
+			if time.Since(time.Unix(0, s.GetTimeAtLow())).Hours()/24 > float64(c.GetTimeToStaleDays()) {
+				if time.Since(time.Unix(0, s.GetLastPriceUpdate())).Seconds() > float64(c.GetPostLowReductionFrequencySeconds()) {
+					return max(s.GetCurrentPrice().GetValue()-c.GetPostLowReduction(), c.GetStaleBound()), "reducing to stale", nil
 				}
-				log.Printf("Found lower bound %v", lowerBound)
-				if lowerBound > 0 {
-					return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
-				}
-				log.Printf("Bottomed out on the post median reductions")
-				return 0, "no adjustment", fmt.Errorf("Already reached low price for %v", s.GetSaleId())
-			} else {
-				log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 			}
+		}
 
+		if ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW || ut == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE {
+			// Are we in post reduction time?
+			if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
+				log.Printf("For %v in post reduction", s.GetSaleId())
+				if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
+					postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
+					log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds()-float64(c.GetPostMedianTime()), c.GetPostMedianReductionFrequency())
+
+					lowerBound := c.GetLowerBound()
+					if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+						lowerBound = s.GetLowPrice().GetValue()
+					}
+					log.Printf("Found lower bound %v", lowerBound)
+					if lowerBound > 0 {
+						return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
+					}
+					log.Printf("Bottomed out on the post median reductions")
+					return 0, "no adjustment", fmt.Errorf("Already reached low price for %v", s.GetSaleId())
+				} else {
+					log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
+				}
+			}
 		}
 
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), "reducing to median", nil
@@ -217,17 +230,46 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+			updateType := c.GetUpdateType()
+			if sale.GetSaleUpdateOverride() != pb.SaleUpdateType_SALE_UPDATE_UNKNOWN {
+				updateType = sale.GetSaleUpdateOverride()
+			}
+
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
-				log.Printf("Working off of: %v", sale)
-				nsp, motivation, err := adjustPrice(ctx, sale, c)
+				log.Printf("Working off of: %v and %v", sale, updateType)
+				nsp, motivation, err := adjustPrice(ctx, sale, c, updateType)
 				if err != nil {
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
 
 				// If we've reached the median price, then explicitly set this
-				if c.GetUpdateType() == pb.SaleUpdateType_REDUCE_TO_MEDIAN &&
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
 					nsp == sale.GetMedianPrice().GetValue() && sale.TimeAtMedian == 0 {
 					sale.TimeAtMedian = time.Now().UnixNano()
+
+					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
+					if err != nil {
+						return err
+					}
+				}
+				// If we've reached the low price, then explicitly set this
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
+					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
+					nsp == sale.GetLowPrice().GetValue() && sale.TimeAtLow == 0 {
+					sale.TimeAtLow = time.Now().UnixNano()
+
+					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
+					if err != nil {
+						return err
+					}
+				}
+
+				// If we've reached the low price, then explicitly set this
+				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
+					nsp == user.GetConfig().GetSaleConfig().GetStaleBound() && sale.TimeAtStale == 0 {
+					sale.TimeAtStale = time.Now().UnixNano()
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
 					if err != nil {

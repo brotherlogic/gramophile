@@ -118,7 +118,7 @@ func TestReduction(t *testing.T) {
 			LowPrice:     &pbd.Price{Value: test.lowPrice},
 		}
 
-		nPrice, _, err := adjustPrice(context.Background(), sale, config)
+		nPrice, _, err := adjustPrice(context.Background(), sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN)
 		if err != nil {
 			t.Errorf("Bad price reduction: %v", err)
 		}
@@ -171,4 +171,94 @@ func TestSold(t *testing.T) {
 	if sale.GetSoldDate() == 0 {
 		t.Errorf("Sold date was not changed: %v", sale)
 	}
+}
+
+func TestTypeOverride_NoOverride(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+
+	recordedPrice := int32(0)
+
+	/*di := &discogs.TestDiscogsClient{
+	UserId: 123,
+	Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+	Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}, Status: pbd.SaleStatus_SOLD}}}
+	*/
+	d.SaveSale(context.Background(), 123,
+		&pb.SaleInfo{
+			ReleaseId:    123,
+			SaleId:       12345,
+			TimeAtMedian: time.Now().Add(-time.Hour * 48).UnixNano(),
+			CurrentPrice: &pbd.Price{Value: 200},
+			MedianPrice:  &pbd.Price{Value: 200},
+			LowPrice:     &pbd.Price{Value: 50},
+			SaleState:    pbd.SaleStatus_FOR_SALE})
+
+	b := GetBackgroundRunner(d, "", "", "")
+
+	b.AdjustSales(context.Background(), &pb.SaleConfig{
+		PostLowTime:                  1,
+		PostMedianReduction:          50,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		PostMedianReductionFrequency: 10,
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		//pass
+		recordedPrice = req.GetElement().GetUpdateSale().GetNewPrice()
+		return &pb.EnqueueResponse{}, nil
+	})
+
+	sale, err := d.GetSale(context.Background(), 123, 12345)
+	if err != nil {
+		t.Fatalf("Bad sale load: %v", err)
+	}
+	if recordedPrice != 200 {
+		t.Errorf("Price was  adjusted: %v (%v)", sale, recordedPrice)
+	}
+
+}
+func TestTypeOverride_Override(t *testing.T) {
+	rstore := rstore_client.GetTestClient()
+	d := db.NewTestDB(rstore)
+
+	recordedPrice := int32(0)
+
+	/*di := &discogs.TestDiscogsClient{
+	UserId: 123,
+	Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+	Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}, Status: pbd.SaleStatus_SOLD}}}
+	*/
+	d.SaveSale(context.Background(), 123,
+		&pb.SaleInfo{
+			ReleaseId:          123,
+			SaleId:             12345,
+			TimeAtMedian:       time.Now().Add(-time.Hour * 48).UnixNano(),
+			CurrentPrice:       &pbd.Price{Value: 200},
+			MedianPrice:        &pbd.Price{Value: 200},
+			LowPrice:           &pbd.Price{Value: 50},
+			SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			SaleState:          pbd.SaleStatus_FOR_SALE})
+
+	b := GetBackgroundRunner(d, "", "", "")
+
+	b.AdjustSales(context.Background(), &pb.SaleConfig{
+		PostLowTime:                  1,
+		PostMedianReduction:          50,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		PostMedianReductionFrequency: 10,
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		//pass
+		recordedPrice = req.GetElement().GetUpdateSale().GetNewPrice()
+		return &pb.EnqueueResponse{}, nil
+	})
+
+	sale, err := d.GetSale(context.Background(), 123, 12345)
+	if err != nil {
+		t.Fatalf("Bad sale load: %v", err)
+	}
+	if recordedPrice != 50 {
+		t.Errorf("Price was not adjusted: %v", sale)
+	}
+
 }
