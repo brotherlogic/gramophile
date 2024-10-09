@@ -28,7 +28,7 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 		return nil, err
 	}
 
-	ss := &pb.SaleStats{YearTotals: make(map[int32]int32)}
+	ss := &pb.SaleStats{YearTotals: make(map[int32]int32), StateCount: make(map[string]int32)}
 	for _, sl := range sales {
 		sale, err := s.d.GetSale(ctx, userid, sl)
 		if err != nil {
@@ -37,6 +37,18 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 
 		if sale.GetSaleState() == dpb.SaleStatus_SOLD {
 			ss.YearTotals[int32(time.Unix(0, sale.GetSoldDate()).Year())] += sale.GetCurrentPrice().GetValue()
+		}
+
+		if sale.GetSaleState() == dpb.SaleStatus_FOR_SALE {
+			if sale.GetTimeAtStale() > 0 {
+				ss.StateCount["STALE"]++
+			} else if sale.GetTimeAtLow() > 0 {
+				ss.StateCount["TO_STALE"]++
+			} else if sale.GetTimeAtMedian() > 0 {
+				ss.StateCount["TO_LOW"]++
+			} else {
+				ss.StateCount["TO_MEDIAN"]++
+			}
 		}
 	}
 
