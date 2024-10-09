@@ -36,7 +36,7 @@ var (
 		Name: "gramophile_overseer_sales",
 	}, []string{"year"})
 	salesByState = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "gramophile_overseer_sales",
+		Name: "gramophile_overseer_sales_by_state",
 	}, []string{"state"})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
