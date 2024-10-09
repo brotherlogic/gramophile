@@ -36,7 +36,7 @@ var (
 		Name: "gramophile_overseer_sales",
 	}, []string{"year"})
 	salesByState = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "gramophile_overseer_sales",
+		Name: "gramophile_overseer_sales_by_state",
 	}, []string{"state"})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
@@ -66,9 +66,9 @@ func runLoop(ctx context.Context) error {
 	}
 
 	salesByState.Reset()
-	/*for cat, total := range stats.GetSaleStats().GetStateCount() {
+	for cat, total := range stats.GetSaleStats().GetStateCount() {
 		salesByState.With(prometheus.Labels{"state": cat}).Set(float64(total))
-	}*/
+	}
 
 	return nil
 }
