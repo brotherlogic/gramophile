@@ -45,7 +45,7 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 			} else if sale.GetTimeAtLow() > 0 {
 				ss.StateCount["TO_STALE"]++
 			} else if sale.GetTimeAtMedian() > 0 {
-				ss.StateCount["TO LOW"]++
+				ss.StateCount["TO_LOW"]++
 			} else {
 				ss.StateCount["TO_MEDIAN"]++
 			}
