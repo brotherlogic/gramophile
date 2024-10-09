@@ -34,7 +34,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
           },
           "fieldConfig": {
             "defaults": {
@@ -60,7 +60,7 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 9,
+            "h": 6,
             "w": 3,
             "x": 0,
             "y": 0
@@ -86,7 +86,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
               },
               "editorMode": "code",
               "expr": "max(gramophile_overseer_result*1000)",
@@ -98,74 +98,6 @@ data:
           ],
           "title": "Last scrape",
           "type": "gauge"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "ms"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 3,
-            "x": 3,
-            "y": 0
-          },
-          "id": 4,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "10.2.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "max by (result)(gramophile_overseer_loop_time)",
-              "instant": false,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Scrape Time",
-          "type": "stat"
         },
         {
           "datasource": {
@@ -253,8 +185,8 @@ data:
           },
           "gridPos": {
             "h": 9,
-            "w": 15,
-            "x": 6,
+            "w": 18,
+            "x": 3,
             "y": 0
           },
           "id": 2,
@@ -381,6 +313,74 @@ data:
           ],
           "title": "2024 Sales",
           "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 3,
+            "x": 0,
+            "y": 6
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max by (result)(gramophile_overseer_loop_time{result=\"OK\"})",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Scrape Time",
+          "type": "stat"
         },
         {
           "datasource": {
@@ -559,6 +559,6 @@ data:
       "timezone": "",
       "title": "Record Collection",
       "uid": "d567efe0-e8f3-423f-9f38-6bd286360c2c",
-      "version": 4,
+      "version": 5,
       "weekStart": ""
     }
