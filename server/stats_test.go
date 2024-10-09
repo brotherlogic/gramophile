@@ -57,12 +57,14 @@ func TestGetSaleStats(t *testing.T) {
 	s := Server{d: d, di: di, qc: qc}
 
 	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:       12,
 		SaleState:    pbd.SaleStatus_SOLD,
 		SoldDate:     time.Now().UnixNano(),
 		CurrentPrice: &pbd.Price{Value: 123},
 	})
 
 	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:       13,
 		SaleState:    pbd.SaleStatus_FOR_SALE,
 		SoldDate:     time.Now().UnixNano(),
 		CurrentPrice: &pbd.Price{Value: 123},
