@@ -7,7 +7,7 @@ metadata:
   namespace: gramophile
 data:
   gramophile-dash.json: |
-      {
+    {
       "annotations": {
         "list": [
           {
@@ -34,7 +34,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -86,7 +86,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "max(gramophile_overseer_result*1000)",
@@ -102,7 +102,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
           },
           "fieldConfig": {
             "defaults": {
@@ -206,7 +206,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
               },
               "editorMode": "code",
               "expr": "sum(avg by (folder)(gramophile_overseer_collection{folder!=\"1613206\"}))",
@@ -222,7 +222,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
           },
           "fieldConfig": {
             "defaults": {
@@ -301,7 +301,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
               },
               "editorMode": "code",
               "expr": "gramophile_overseer_sales{year=\"2024\"}",
@@ -317,7 +317,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
           },
           "fieldConfig": {
             "defaults": {
@@ -369,7 +369,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
               },
               "editorMode": "code",
               "expr": "max by (result)(gramophile_overseer_loop_time{result=\"OK\"})",
@@ -385,7 +385,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
           },
           "fieldConfig": {
             "defaults": {
@@ -436,7 +436,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "d834e87c-9b41-4bfa-b9b3-17a25c967553"
               },
               "editorMode": "code",
               "expr": "sum by (state)(gramophile_overseer_sales_by_state)",
@@ -559,6 +559,6 @@ data:
       "timezone": "",
       "title": "Record Collection",
       "uid": "d567efe0-e8f3-423f-9f38-6bd286360c2c",
-      "version": 5,
+      "version": 6,
       "weekStart": ""
     }
