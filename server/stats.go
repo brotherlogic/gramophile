@@ -28,9 +28,10 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 		return nil, err
 	}
 
-	ss := &pb.SaleStats{YearTotals: make(map[int32]int32), StateCount: make(map[string]int32)}
+	ss := &pb.SaleStats{YearTotals: make(map[int32]int32), StateCount: make(map[string]int32), LastUpdate: map[int64]int64{}}
 	for _, sl := range sales {
 		sale, err := s.d.GetSale(ctx, userid, sl)
+		ss.LastUpdate[sale.GetSaleId()] = int64(time.Since(time.Unix(0, sale.GetLastPriceUpdate())).Seconds())
 		if err != nil {
 			return nil, err
 		}

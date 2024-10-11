@@ -13,4 +13,6 @@ message SaleStats {
 
     // This tracks state "TO_MEDIAN, TO_LOW, TO_STALE" counts
     map<string, int32> state_count = 2;
+
+    map<int64, int64> last_update = 3;
 }
