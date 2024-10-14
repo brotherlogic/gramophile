@@ -32,6 +32,7 @@ message PrintMove {
     Location origin = 3;
     Location destination = 4;
     string record = 5;
+    int64 index = 6;
 }
 
 message Location {
