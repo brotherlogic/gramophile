@@ -235,7 +235,7 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 		if err != nil {
 			return err
 		}
-		m.Index = count
+		m.Index = count.GetCount()
 	}
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v", userId, m.GetIid()), m)
 }
