@@ -231,7 +231,7 @@ func (d *DB) LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove,
 
 func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error {
 	if m.GetIndex() == 0 {
-		count, err := d.client.Count(ctx, &rspb.CountRequest{Key: "grampphile/save/print/move"})
+		count, err := d.client.Count(ctx, &rspb.CountRequest{Counter: "grampphile/save/print/move"})
 		if err != nil {
 			return err
 		}
