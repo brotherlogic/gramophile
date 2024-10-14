@@ -39,6 +39,10 @@ var (
 		Name: "gramophile_overseer_sales_by_state",
 		Help: "The name by the given state",
 	}, []string{"state"})
+	saleUpdates = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "gramophile_overseer_sale_updates",
+		Help: "The name by the given state",
+	})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
 )
@@ -70,6 +74,7 @@ func runLoop(ctx context.Context) error {
 	for cat, total := range stats.GetSaleStats().GetStateCount() {
 		salesByState.With(prometheus.Labels{"state": cat}).Set(float64(total))
 	}
+	saleUpdates.
 
 	return nil
 }
