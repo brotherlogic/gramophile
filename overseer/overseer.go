@@ -74,7 +74,6 @@ func runLoop(ctx context.Context) error {
 	for cat, total := range stats.GetSaleStats().GetStateCount() {
 		salesByState.With(prometheus.Labels{"state": cat}).Set(float64(total))
 	}
-	saleUpdates.
 
 	return nil
 }
