@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"log"
+	"math"
 	"time"
 
 	dpb "github.com/brotherlogic/discogs/proto"
@@ -30,11 +32,17 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 
 	ss := &pb.SaleStats{YearTotals: make(map[int32]int32), StateCount: make(map[string]int32), LastUpdate: map[int64]int64{}}
 	totals := int32(0)
+	ss.OldestLastUpdate = math.MaxInt64
 	for _, sl := range sales {
 		sale, err := s.d.GetSale(ctx, userid, sl)
 		ss.LastUpdate[sale.GetSaleId()] = int64(time.Since(time.Unix(0, sale.GetLastPriceUpdate())).Seconds())
 		if err != nil {
 			return nil, err
+		}
+
+		if sale.GetLastPriceUpdate() < ss.GetOldestLastUpdate() {
+			ss.OldestLastUpdate = sale.GetLastPriceUpdate()
+			log.Printf("Oldest update: %v", sale)
 		}
 
 		if sale.GetSaleState() == dpb.SaleStatus_SOLD {

@@ -17,4 +17,6 @@ message SaleStats {
     map<int64, int64> last_update = 3;
 
     int32 total_sales = 4;
+
+    int64 oldest_last_update = 5;
 }
