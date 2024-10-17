@@ -104,7 +104,9 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("%v [%v / %v] %v\n", r.GetRecord().GetRelease().GetTitle(), r.GetRecord().GetRelease().GetInstanceId(), r.GetRecord().GetRelease().GetMasterId(), time.Unix(0, r.GetRecord().GetRelease().GetDateAdded()))
 			fmt.Printf("In folder %v [FR %v / R %v]\n", r.GetRecord().GetRelease().GetFolderId(), time.Unix(r.GetRecord().GetEarliestReleaseDate(), 0), time.Unix(r.GetRecord().GetRelease().GetReleaseDate(), 0))
 			fmt.Printf("%v / %v\n", r.GetRecord().GetWidth(), r.GetRecord().GetWeight())
-			fmt.Printf("Sale: %v -> %v [%v / %v]\n", r.GetRecord().GetSaleId(),
+			fmt.Printf("Sale: %v - (%v) > %v [%v / %v]\n",
+				r.GetRecord().GetSaleId(),
+				r.GetSaleInfo().GetSaleState(),
 				time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()),
 				r.GetSaleInfo().GetCurrentPrice().GetValue(),
 				r.GetSaleInfo().GetRefreshId())
@@ -119,7 +121,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("Median Reached on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeAtMedian()))
 			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
 			fmt.Printf("Stats Updated on %v\n", time.Unix(0, r.GetRecord().GetLastStatRefresh()))
-			fmt.Printf("Sale Updated on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeRefreshed()))
+			fmt.Printf("Sale Updated on %v\n", time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()))
 			fmt.Printf("ERD Updated on %v\n", time.Unix(0, r.GetRecord().GetLastEarliestReleaseUpdate()))
 
 			if debug {

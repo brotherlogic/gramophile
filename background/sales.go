@@ -378,7 +378,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		for _, record := range records {
 			changed := false
 			sale_changed := false
-			if record.GetRelease().GetId() == sale.GetReleaseId() {
+			if record.GetRelease().GetId() == sale.GetReleaseId() && sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
 				log.Printf("LINK %v or %v ($%v)", record.GetRelease().GetInstanceId(), record.GetSaleId(), sale)
 
 				// Ensure we copy over any changes to the median price
