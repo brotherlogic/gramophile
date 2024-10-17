@@ -109,7 +109,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 				r.GetSaleInfo().GetCurrentPrice().GetValue(),
 				r.GetSaleInfo().GetRefreshId())
 			for _, update := range r.GetSaleInfo().GetUpdates() {
-				fmt.Printf("  %v -> %v\n", time.Unix(0, update.GetDate()), update.GetSetPrice().GetValue())
+				fmt.Printf("  %v -> %v %v\n", time.Unix(0, update.GetDate()), update.GetSetPrice().GetValue(), update.GetMotivation())
 			}
 			fmt.Printf("Width: %v\n", r.GetRecord().GetWidth())
 

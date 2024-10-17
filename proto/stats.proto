@@ -15,4 +15,6 @@ message SaleStats {
     map<string, int32> state_count = 2;
 
     map<int64, int64> last_update = 3;
+
+    int32 total_sales = 4;
 }
