@@ -49,6 +49,7 @@ func TestSyncSales_Success(t *testing.T) {
 	err = d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
+		Config:  &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE}},
 		Auth:    &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
@@ -56,7 +57,7 @@ func TestSyncSales_Success(t *testing.T) {
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
-		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
+		Sales:  []*pbd.SaleItem{{Status: pbd.SaleStatus_FOR_SALE, ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
@@ -101,6 +102,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 	err = d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
+		Config:  &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE}},
 		Auth:    &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
@@ -108,7 +110,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
-		Sales:  []*pbd.SaleItem{{ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
+		Sales:  []*pbd.SaleItem{{Status: pbd.SaleStatus_FOR_SALE, ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
 	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
