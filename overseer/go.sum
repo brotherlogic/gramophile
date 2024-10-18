@@ -10,6 +10,8 @@ github.com/brotherlogic/gramophile v0.1019.0 h1:MrMDS9R9DygBDphHe0rP4cSW6UkWkx5g
 github.com/brotherlogic/gramophile v0.1019.0/go.mod h1:zGaCPSAxN9ydMlEqwyiSmYZ1BgPQysNGPF/OWCws+LI=
 github.com/brotherlogic/gramophile v0.1033.0 h1:67S93tkoMYDU9aTyUES1obL5oEhdITch3ZGVwhNzLfo=
 github.com/brotherlogic/gramophile v0.1033.0/go.mod h1:ypRuS4WYs4+5ROdlxxY32AUzMuFsa8xHMWIQZbMRnAU=
+github.com/brotherlogic/gramophile v0.1036.0 h1:SpfZsbsz5rlukTNXJEb9pUMGqTVN8O4SD5qWnIN5KlE=
+github.com/brotherlogic/gramophile v0.1036.0/go.mod h1:ypRuS4WYs4+5ROdlxxY32AUzMuFsa8xHMWIQZbMRnAU=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

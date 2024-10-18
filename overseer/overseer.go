@@ -46,6 +46,9 @@ var (
 	oldestSale = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gramophile_overseer_oldest_sale",
 	})
+	oldestSaleId = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_oldest_sale_id",
+	})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
 )
@@ -79,6 +82,7 @@ func runLoop(ctx context.Context) error {
 	}
 
 	oldestSale.Set(float64(stats.GetSaleStats().GetOldestLastUpdate()))
+	oldestSaleId.Set(float64(stats.SaleStats.GetOldestId()))
 
 	return nil
 }
