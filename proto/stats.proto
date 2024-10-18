@@ -19,4 +19,5 @@ message SaleStats {
     int32 total_sales = 4;
 
     int64 oldest_last_update = 5;
+    int64 oldest_id = 6;
 }
