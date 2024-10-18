@@ -34,6 +34,9 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 	totals := int32(0)
 	ss.OldestLastUpdate = math.MaxInt64
 	ss.OldestId = 0
+
+	oldestLowDate := int64(math.MaxInt64)
+	ss.OldestLow = 0
 	for _, sl := range sales {
 		sale, err := s.d.GetSale(ctx, userid, sl)
 		ss.LastUpdate[sale.GetSaleId()] = int64(time.Since(time.Unix(0, sale.GetLastPriceUpdate())).Seconds())
@@ -50,6 +53,11 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 				ss.OldestLastUpdate = sale.GetLastPriceUpdate()
 				ss.OldestId = sale.GetSaleId()
 				log.Printf("Oldest update: %v", sale)
+			}
+
+			if sale.GetTimeAtLow() > 0 && sale.GetTimeAtLow() < oldestLowDate {
+				oldestLowDate = sale.GetTimeAtLow()
+				ss.OldestLow = sale.GetSaleId()
 			}
 
 			totals += sale.GetCurrentPrice().GetValue()
