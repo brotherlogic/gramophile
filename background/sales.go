@@ -314,6 +314,8 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 
 	if sale.GetCurrentPrice().GetValue() == newprice {
 		log.Printf("Skipping since current price == newprice")
+		sale.LastPriceUpdate = time.Now().UnixNano()
+		b.db.SaveSale(ctx, d.GetUserId(), sale)
 		return nil
 	}
 

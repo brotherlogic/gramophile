@@ -29,6 +29,6 @@ func executeGetStats(ctx context.Context, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Stats %v\n", stats.GetSaleStats().GetOldestLastUpdate())
+	fmt.Printf("Stats %v\n", stats.GetSaleStats().GetOldestId())
 	return nil
 }
