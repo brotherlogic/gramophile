@@ -40,16 +40,16 @@ func (s *Server) getSalesStats(ctx context.Context, userid int32) (*pb.SaleStats
 			return nil, err
 		}
 
-		if sale.GetLastPriceUpdate() < ss.GetOldestLastUpdate() {
-			ss.OldestLastUpdate = sale.GetLastPriceUpdate()
-			log.Printf("Oldest update: %v", sale)
-		}
-
 		if sale.GetSaleState() == dpb.SaleStatus_SOLD {
 			ss.YearTotals[int32(time.Unix(0, sale.GetSoldDate()).Year())] += sale.GetCurrentPrice().GetValue()
 		}
 
 		if sale.GetSaleState() == dpb.SaleStatus_FOR_SALE {
+			if sale.GetLastPriceUpdate() < ss.GetOldestLastUpdate() {
+				ss.OldestLastUpdate = sale.GetLastPriceUpdate()
+				log.Printf("Oldest update: %v", sale)
+			}
+
 			totals += sale.GetCurrentPrice().GetValue()
 			if sale.GetTimeAtStale() > 0 {
 				ss.StateCount["STALE"]++
