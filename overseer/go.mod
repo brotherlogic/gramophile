@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile/overseer
 go 1.23.1
 
 require (
-	github.com/brotherlogic/gramophile v0.1033.0
+	github.com/brotherlogic/gramophile v0.1036.0
 	github.com/prometheus/client_golang v1.20.5
 	google.golang.org/grpc v1.67.1
 )
