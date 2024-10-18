@@ -43,6 +43,9 @@ var (
 		Name: "gramophile_overseer_sale_updates",
 		Help: "The name by the given state",
 	})
+	oldestSale = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_oldest_sale",
+	})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
 )
@@ -74,6 +77,8 @@ func runLoop(ctx context.Context) error {
 	for cat, total := range stats.GetSaleStats().GetStateCount() {
 		salesByState.With(prometheus.Labels{"state": cat}).Set(float64(total))
 	}
+
+	oldestSale.Set(float64(stats.GetSaleStats().GetOldestLastUpdate()))
 
 	return nil
 }
