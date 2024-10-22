@@ -8,6 +8,7 @@ spec:
     spec:
       template:
         spec:
+          nodeName: klust1
           containers:
             - name: gramophile-validator
               image: registry.brotherlogic-backend.com/brotherlogic/gramophile-validator:0.1035.0 # {"$imagepolicy": "flux-system:gramophile-validator"}

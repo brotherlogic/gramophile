@@ -54,6 +54,7 @@ spec:
       labels:
         app: gramophile-queue
     spec:
+      nodeName: klust1
       containers:
         - name: gramophile-queue
           image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.1035.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
