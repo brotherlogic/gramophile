@@ -11,7 +11,7 @@ import (
 	"github.com/brotherlogic/gramophile/server"
 
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -20,8 +20,8 @@ import (
 func TestDowngradeToOneByOne(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -30,7 +30,7 @@ func TestDowngradeToOneByOne(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -117,8 +117,8 @@ func TestDowngradeToOneByOne(t *testing.T) {
 func TestUpgradeToEnMasse(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -127,7 +127,7 @@ func TestUpgradeToEnMasse(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -209,8 +209,8 @@ func TestWantlistLifecycle(t *testing.T) {
 
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -219,7 +219,7 @@ func TestWantlistLifecycle(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -326,8 +326,8 @@ func TestWantlistLifecycle(t *testing.T) {
 func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -336,7 +336,7 @@ func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -447,8 +447,8 @@ func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -457,7 +457,7 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -559,8 +559,8 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 func TestWantlistUpdatedOnSync(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -569,7 +569,7 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -655,8 +655,8 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -665,7 +665,7 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -730,8 +730,8 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -740,7 +740,7 @@ func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
@@ -818,8 +818,8 @@ func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 func TestBuildDigitalWantlist(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -828,7 +828,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
@@ -893,8 +893,8 @@ func TestBuildDigitalWantlist(t *testing.T) {
 func TestBuildMintUplWantlist(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -903,7 +903,7 @@ func TestBuildMintUplWantlist(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})

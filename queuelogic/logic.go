@@ -22,13 +22,13 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	ghb_client "github.com/brotherlogic/githubridge/client"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	scraper_client "github.com/brotherlogic/scraper/client"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
-	rspb "github.com/brotherlogic/rstore/proto"
+	rspb "github.com/brotherlogic/pstore/proto"
 )
 
 var (
@@ -86,7 +86,7 @@ const (
 )
 
 type Queue struct {
-	rstore  rstore_client.RStoreClient
+	pstore  pstore_client.PStoreClient
 	b       *background.BackgroundRunner
 	d       discogs.Discogs
 	db      db.Database
@@ -138,7 +138,7 @@ func buildContext(rt int64, t time.Duration) (context.Context, context.CancelFun
 	return ctx, cancel
 }
 
-func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
+func GetQueue(r pstore_client.PStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database) *Queue {
 	gclient, err := ghb_client.GetClientInternal()
 	if err != nil {
 		return nil
@@ -146,7 +146,7 @@ func GetQueue(r rstore_client.RStoreClient, b *background.BackgroundRunner, d di
 	return GetQueueWithGHClient(r, b, d, db, gclient)
 }
 
-func GetQueueWithGHClient(r rstore_client.RStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database, ghc ghb_client.GithubridgeClient) *Queue {
+func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.BackgroundRunner, d discogs.Discogs, db db.Database, ghc ghb_client.GithubridgeClient) *Queue {
 	log.Printf("GETTING QUEUE")
 	sc, err := scraper_client.GetClient()
 	if err != nil {
@@ -172,13 +172,13 @@ func GetQueueWithGHClient(r rstore_client.RStoreClient, b *background.Background
 	}
 
 	return &Queue{
-		b: b, d: d, rstore: r, db: db, keys: ckeys, gclient: ghc,
+		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
 		pMap: make(map[int64]pb.QueueElement_Priority),
 	}
 }
 
 func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
-	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id)})
 
 	if err != nil {
@@ -190,7 +190,7 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 
 func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
 	qlog(ctx, "Writing for %v", id)
-	entry, err := q.rstore.Read(ctx, &rspb.ReadRequest{
+	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
 
 	if err != nil {
@@ -203,7 +203,7 @@ func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64)
 func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) error {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
-	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 		Value: &anypb.Any{Value: b},
 	})
@@ -219,7 +219,7 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 func (q *Queue) setRefreshDateMarker(ctx context.Context, user string, id int64) error {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
-	_, err := q.rstore.Write(ctx, &rspb.WriteRequest{
+	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
 		Value: &anypb.Any{Value: b},
 	})
@@ -232,7 +232,7 @@ func (q *Queue) setRefreshDateMarker(ctx context.Context, user string, id int64)
 }
 
 func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
 	})
 	qlog(ctx, "Deleting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
@@ -241,7 +241,7 @@ func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) 
 }
 
 func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string, id int64) error {
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{
+	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
 	})
 
@@ -336,7 +336,7 @@ func (q *Queue) Run() {
 				// Move this over to the DLQ
 				data, err := proto.Marshal(entry)
 				if err == nil {
-					_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
+					_, err = q.pstore.Write(ctx, &rspb.WriteRequest{
 						Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
 						Value: &anypb.Any{Value: data},
 					})
@@ -354,13 +354,13 @@ func (q *Queue) Run() {
 }
 
 func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainResponse, error) {
-	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	keys, err := q.pstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, key := range keys.GetKeys() {
-		_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
+		_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
 		if err != nil {
 			return nil, err
 		}
@@ -370,14 +370,14 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 }
 
 func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
-	keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	keys, err := q.pstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
 	}
 
 	var elems []*pb.QueueElement
 	for _, key := range keys.GetKeys() {
-		data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: key})
+		data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: key})
 		if err != nil {
 			return nil, err
 		}
@@ -847,7 +847,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	delete(q.pMap, entry.GetRunDate())
 
 	// Also delete the stored key
-	_, err := q.rstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
+	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
 }
 
@@ -918,7 +918,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	if err != nil {
 		return nil, err
 	}
-	_, err = q.rstore.Write(ctx, &rspb.WriteRequest{
+	_, err = q.pstore.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("%v%v", QUEUE_PREFIX, req.GetElement().GetRunDate()),
 		Value: &anypb.Any{Value: data},
 	})
@@ -935,7 +935,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	t := time.Now()
-	/*keys, err := q.rstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
+	/*keys, err := q.pstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
 	if err != nil {
 		return nil, err
 	}
@@ -973,7 +973,7 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		}
 	}
 
-	data, err := q.rstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
+	data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			q.keys = keys[1:]

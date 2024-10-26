@@ -10,7 +10,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestUpdate(t *testing.T) {
@@ -129,8 +129,8 @@ func TestReduction(t *testing.T) {
 }
 
 func TestSkipOnSame(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
@@ -146,8 +146,8 @@ func TestSkipOnSame(t *testing.T) {
 }
 
 func TestSold(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 
 	di := &discogs.TestDiscogsClient{
 		UserId: 123,
@@ -174,8 +174,8 @@ func TestSold(t *testing.T) {
 }
 
 func TestTypeOverride_NoOverride(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 
 	recordedPrice := int32(0)
 
@@ -218,8 +218,8 @@ func TestTypeOverride_NoOverride(t *testing.T) {
 
 }
 func TestTypeOverride_Override(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 
 	recordedPrice := int32(0)
 

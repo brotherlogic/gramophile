@@ -17,7 +17,7 @@ import (
 	"github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -28,13 +28,13 @@ var (
 )
 
 func main() {
-	rstorec, err := rstore_client.GetClient()
+	pstorec, err := pstore_client.GetClient()
 	if err != nil {
-		log.Fatalf("unable to connect to rstore: %v", err)
+		log.Fatalf("unable to connect to pstore: %v", err)
 	}
 	db := db.NewDatabase(context.Background())
 	queue := queuelogic.GetQueue(
-		rstorec,
+		pstorec,
 		background.GetBackgroundRunner(db, os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")),
 		discogs.DiscogsWithAuth(os.Getenv("DISCOGS_KEY"), os.Getenv("DISCOGS_SECRET"), os.Getenv("DISCOGS_CALLBACK")), db)
 	lis, err2 := net.Listen("tcp", fmt.Sprintf(":%d", *internalPort))

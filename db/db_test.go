@@ -7,7 +7,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestUpdateDiff(t *testing.T) {
@@ -44,8 +44,8 @@ func TestUpdateDiff(t *testing.T) {
 }
 
 func TestSnapshotOrdering(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	tdb := NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	tdb := NewTestDB(pstore)
 
 	tdb.SaveSnapshot(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, "madeup", &pb.OrganisationSnapshot{
 		Date: 123,

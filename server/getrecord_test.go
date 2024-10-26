@@ -7,7 +7,7 @@ import (
 
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc/metadata"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -37,7 +37,7 @@ func TestReverse(t *testing.T) {
 func TestRetrieveUpdates(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	d := db.NewTestDB(pstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -99,7 +99,7 @@ func TestRetrieveUpdates(t *testing.T) {
 func TestGetSale(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	d := db.NewTestDB(pstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)

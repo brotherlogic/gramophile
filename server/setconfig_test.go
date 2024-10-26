@@ -9,7 +9,7 @@ import (
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -17,10 +17,10 @@ import (
 func TestConfigUpdate_UpdatesTime(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -55,10 +55,10 @@ func TestConfigUpdate_UpdatesTime(t *testing.T) {
 func TestConfigUpdate_FailsOnMissingField(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -79,10 +79,10 @@ func TestConfigUpdate_FailsOnMissingField(t *testing.T) {
 func TestConfigUpdate_FailsOnBadUser(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Name: "Goal Folder", Id: 12}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -104,10 +104,10 @@ func TestConfigUpdate_FailsOnBadUser(t *testing.T) {
 func TestConfigUpdate_CreateWantlists(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},

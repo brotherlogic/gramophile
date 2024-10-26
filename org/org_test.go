@@ -11,7 +11,7 @@ import (
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func getTestContext(userid int) context.Context {
@@ -21,8 +21,8 @@ func getTestContext(userid int) context.Context {
 func TestLabelRanking(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Id: 1}, {Name: "ZZZ", Id: 2}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)

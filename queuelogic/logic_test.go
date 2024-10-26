@@ -13,17 +13,17 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	ghb_client "github.com/brotherlogic/githubridge/client"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 )
 
 func TestRunWithEmptyQueue(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	q := GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 
 	elem, err := q.getNextEntry(context.Background())
 	if err == nil {
@@ -40,11 +40,11 @@ func getTestContext(userid int) context.Context {
 func TestMarkerCreationAndRemoval(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	di.AddCollectionRelease(&pbd.Release{InstanceId: 1234})
-	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -113,10 +113,10 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 }
 
 func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
 	res, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -132,10 +132,10 @@ func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
 }
 
 func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
 	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -152,10 +152,10 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 }
 
 func TestEnqueuePriority(t *testing.T) {
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
-	q := GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
 	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{

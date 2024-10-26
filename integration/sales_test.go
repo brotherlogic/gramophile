@@ -12,14 +12,14 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/brotherlogic/gramophile/server"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database, *queuelogic.Queue) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -31,7 +31,7 @@ func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Databa
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
 		Sales:  []*pbd.SaleItem{}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	return ctx, s, d, qc
@@ -40,8 +40,8 @@ func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Databa
 func TestSyncSales_Success(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -58,7 +58,7 @@ func TestSyncSales_Success(t *testing.T) {
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
 		Sales:  []*pbd.SaleItem{{Status: pbd.SaleStatus_FOR_SALE, ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -93,8 +93,8 @@ func TestSyncSales_Success(t *testing.T) {
 func TestSyncSales_DeleteSuccess(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -111,7 +111,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
 		Sales:  []*pbd.SaleItem{{Status: pbd.SaleStatus_FOR_SALE, ReleaseId: 123, SaleId: 12345, Price: &pbd.Price{Value: 1234, Currency: "USD"}}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -146,7 +146,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
 		Sales:  []*pbd.SaleItem{}}
-	qc = queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc = queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s = server.BuildServer(d, di, qc)
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
