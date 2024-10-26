@@ -14,7 +14,7 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -28,8 +28,8 @@ func abs(a float32) float32 {
 func TestLabelOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
@@ -47,7 +47,7 @@ func TestLabelOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -112,8 +112,8 @@ func TestLabelOrdering(t *testing.T) {
 func TestReleaseDateOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, ReleaseDate: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
 	if err != nil {
@@ -131,7 +131,7 @@ func TestReleaseDateOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -196,8 +196,8 @@ func TestReleaseDateOrdering(t *testing.T) {
 func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 	}}
@@ -217,7 +217,7 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -303,8 +303,8 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -342,7 +342,7 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -433,8 +433,8 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -472,7 +472,7 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -563,8 +563,8 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -606,7 +606,7 @@ func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -698,8 +698,8 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 	log.Printf("RUNNING")
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -737,7 +737,7 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -828,8 +828,8 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 func TestLabelOrdering_GroupingFail(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -854,7 +854,7 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -940,8 +940,8 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -981,7 +981,7 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1078,8 +1078,8 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -1117,7 +1117,7 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1214,8 +1214,8 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 func TestLabelOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
 	if err != nil {
@@ -1233,7 +1233,7 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1371,8 +1371,8 @@ func tgetHash(placements []*pb.Placement) string {
 func TestSetSnapshotName(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
@@ -1392,7 +1392,7 @@ func TestSetSnapshotName(t *testing.T) {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1448,8 +1448,8 @@ func TestSetSnapshotName(t *testing.T) {
 func TestArtistOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
 	if err != nil {
@@ -1467,7 +1467,7 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1541,8 +1541,8 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 func TestWidths(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   2.4,
@@ -1564,7 +1564,7 @@ func TestWidths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1625,8 +1625,8 @@ func TestWidths(t *testing.T) {
 func TestWidths_MissingWidth(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   2.5,
@@ -1647,7 +1647,7 @@ func TestWidths_MissingWidth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1707,8 +1707,8 @@ func TestWidths_MissingWidth(t *testing.T) {
 func TestGetSnapshotHash(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
@@ -1726,7 +1726,7 @@ func TestGetSnapshotHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{

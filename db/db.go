@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	pb "github.com/brotherlogic/gramophile/proto"
-	rspb "github.com/brotherlogic/rstore/proto"
+	rspb "github.com/brotherlogic/pstore/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -45,10 +45,10 @@ type ChangeProcessor interface {
 }
 
 type DB struct {
-	client rstore_client.RStoreClient
+	client pstore_client.PStoreClient
 }
 
-func NewTestDB(cl rstore_client.RStoreClient) Database {
+func NewTestDB(cl pstore_client.PStoreClient) Database {
 	db := &DB{client: cl}
 	return db
 }
@@ -109,9 +109,9 @@ type Database interface {
 
 func NewDatabase(ctx context.Context) Database {
 	db := &DB{} //rcache: make(map[int32]map[int64]*pb.Record)}
-	client, err := rstore_client.GetClient()
+	client, err := pstore_client.GetClient()
 	if err != nil {
-		log.Fatalf("Dial error on db -> rstore: %v", err)
+		log.Fatalf("Dial error on db -> pstore: %v", err)
 	}
 	db.client = client
 
@@ -591,12 +591,12 @@ func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 }
 
 func (d *DB) DeleteUser(ctx context.Context, id string) error {
-	conn, err := grpc.Dial("rstore.rstore:8080", grpc.WithInsecure())
+	conn, err := grpc.Dial("pstore.pstore:8080", grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 
-	client := rspb.NewRStoreServiceClient(conn)
+	client := rspb.NewPStoreServiceClient(conn)
 	_, err = client.Delete(ctx, &rspb.DeleteRequest{
 		Key: fmt.Sprintf("%v%v", USER_PREFIX, id),
 	})

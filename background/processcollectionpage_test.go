@@ -12,12 +12,12 @@ import (
 	dpb "github.com/brotherlogic/discogs/proto"
 	pbd "github.com/brotherlogic/discogs/proto"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func GetTestBackgroundRunner() *BackgroundRunner {
 	return &BackgroundRunner{
-		db: db.NewTestDB(rstore_client.GetTestClient()),
+		db: db.NewTestDB(pstore_client.GetTestClient()),
 	}
 }
 

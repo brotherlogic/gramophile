@@ -15,16 +15,16 @@ import (
 	ghb_client "github.com/brotherlogic/githubridge/client"
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestAddIntent_FailOnBadUser(t *testing.T) {
 	ctx := getTestContext(12345)
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
-	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -39,8 +39,8 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 	ctx := getTestContext(123)
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -48,7 +48,7 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -63,8 +63,8 @@ func TestAddIntent_FailOnBadRecord(t *testing.T) {
 func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -78,7 +78,7 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 
-	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -105,8 +105,8 @@ func TestGoalFolderAddsIntent_Success(t *testing.T) {
 func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 
 	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
@@ -119,7 +119,7 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 	}
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueueWithGHClient(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -134,8 +134,8 @@ func TestGoalFolderAddsIntent_FailMissingFolder(t *testing.T) {
 func TestGoalFolderAddsIntent_FailNoSleeve(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		User: &pbd.User{DiscogsUserId: 123},
@@ -153,7 +153,7 @@ func TestGoalFolderAddsIntent_FailNoSleeve(t *testing.T) {
 	}
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -168,8 +168,8 @@ func TestGoalFolderAddsIntent_FailNoSleeve(t *testing.T) {
 func TestGoalFolderAddsIntent_SuccessOnSleeve(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -184,7 +184,7 @@ func TestGoalFolderAddsIntent_SuccessOnSleeve(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -199,8 +199,8 @@ func TestGoalFolderAddsIntent_SuccessOnSleeve(t *testing.T) {
 func TestKeepIntent_FailWithNoMint(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -213,7 +213,7 @@ func TestKeepIntent_FailWithNoMint(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{

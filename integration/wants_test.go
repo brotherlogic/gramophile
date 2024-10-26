@@ -10,14 +10,14 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/brotherlogic/gramophile/server"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestAddMasterWant_WithFilteringt(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -29,7 +29,7 @@ func TestAddMasterWant_WithFilteringt(t *testing.T) {
 	di.AddCollectionRelease(&pbd.Release{Id: 12, MasterId: 123, Formats: []*pbd.Format{{Name: "12 Inch"}}})
 	di.AddCollectionRelease(&pbd.Release{Id: 13, MasterId: 123})
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	_, err = s.AddWant(ctx, &pb.AddWantRequest{
@@ -67,8 +67,8 @@ func TestAddMasterWant_WithFilteringt(t *testing.T) {
 func TestAddMasterWant(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
 		User:    &pbd.User{DiscogsUserId: 123},
@@ -80,7 +80,7 @@ func TestAddMasterWant(t *testing.T) {
 	di.AddCollectionRelease(&pbd.Release{Id: 12, MasterId: 123})
 	di.AddCollectionRelease(&pbd.Release{Id: 13, MasterId: 123})
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	_, err = s.AddWant(ctx, &pb.AddWantRequest{
