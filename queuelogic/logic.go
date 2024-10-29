@@ -837,6 +837,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 }
 
 func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
+	if entry.GetRunDate() == 0 {
+		qlog(ctx, "Found zero run date: %v", entry)
+	}
+
 	var nkeys []int64
 	for _, key := range q.keys {
 		if key != entry.GetRunDate() {
