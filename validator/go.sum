@@ -8,10 +8,14 @@ github.com/brotherlogic/gramophile v0.1040.0 h1:9E2dw5udqGa6a8HvdCgWgdSDzQIu//eh
 github.com/brotherlogic/gramophile v0.1040.0/go.mod h1:ypRuS4WYs4+5ROdlxxY32AUzMuFsa8xHMWIQZbMRnAU=
 github.com/brotherlogic/gramophile v0.1041.0 h1:zzd50gDmyEv7taXvR4xOF4vGh9mHoPSyMTrDhysdAZ8=
 github.com/brotherlogic/gramophile v0.1041.0/go.mod h1:x2pAiMV9kqbGUzWvmlAHtblmfr1pird+QRHP/2+u6C0=
+github.com/brotherlogic/gramophile v0.1044.0 h1:5z/x8fZiohQO3PqtH9pvBk8Tpz8KWKeALG71UzS0U6I=
+github.com/brotherlogic/gramophile v0.1044.0/go.mod h1:x2pAiMV9kqbGUzWvmlAHtblmfr1pird+QRHP/2+u6C0=
 github.com/brotherlogic/printqueue v0.42.0 h1:jfHSZgG4r2RCFRzGNqpbxactwKJpehbIShmZOT3TVdQ=
 github.com/brotherlogic/printqueue v0.42.0/go.mod h1:axLSRNex+YFQ3ocddeIlCyPMvHv5UbcptQHSksFYRNc=
 github.com/brotherlogic/pstore v0.18.0 h1:6ZBG2/kZajLV2JazKbc3hA1XTts80A9Gslocz14SDBE=
 github.com/brotherlogic/pstore v0.18.0/go.mod h1:stga41yC3MG/dwIMYXHFvVfSglffMUAipgajP+gQ1hs=
+github.com/brotherlogic/pstore v0.20.0 h1:17trAjrcuutuM52n+L3jF0yceA9NAT6j67aNNtuOJPk=
+github.com/brotherlogic/pstore v0.20.0/go.mod h1:stga41yC3MG/dwIMYXHFvVfSglffMUAipgajP+gQ1hs=
 github.com/brotherlogic/rstore v0.59.0 h1:80cTCBGWR3rokF88q2HBAUNyx1f8mUfIHMfz9TBu5GM=
 github.com/brotherlogic/rstore v0.59.0/go.mod h1:WgpJkDgr6tysiQVu5XSSAegTKTIJ9+NLYK129ZetNs8=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
