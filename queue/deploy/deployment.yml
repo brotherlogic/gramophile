@@ -57,7 +57,7 @@ spec:
       nodeName: klust1
       containers:
         - name: gramophile-queue
-          image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.1043.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
+          image: registry.brotherlogic-backend.com/brotherlogic/gramophile-queue:0.1044.0 # {"$imagepolicy": "flux-system:gramophile-queue"}
           ports:
             - containerPort: 8080
           env:
