@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile/validator
 go 1.23.2
 
 require (
-	github.com/brotherlogic/gramophile v0.1041.0
+	github.com/brotherlogic/gramophile v0.1044.0
 	github.com/brotherlogic/printqueue v0.42.0
 	github.com/prometheus/client_golang v1.20.5
 	google.golang.org/grpc v1.67.1
@@ -13,7 +13,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/brotherlogic/discogs v0.0.0-20240922073124-42a4e71123b0 // indirect
 	github.com/brotherlogic/githubridge v0.2802.0 // indirect
-	github.com/brotherlogic/pstore v0.18.0 // indirect
+	github.com/brotherlogic/pstore v0.20.0 // indirect
 	github.com/brotherlogic/rstore v0.59.0 // indirect
 	github.com/brotherlogic/scraper v0.79.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

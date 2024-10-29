@@ -69,19 +69,22 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 		return err
 	}
 	for _, move := range moves {
-		lines := buildRepresentation(move)
+		if !move.Printed {
+			lines := buildRepresentation(move)
 
-		_, err = pClient.Print(ctx, &pqpb.PrintRequest{
-			Lines:       lines,
-			Origin:      "gram-move-loop",
-			Urgency:     pqpb.Urgency_URGENCY_REGULAR,
-			Destination: pqpb.Destination_DESTINATION_RECEIPT,
-			Fanout:      pqpb.Fanout_FANOUT_ONE,
-		})
+			_, err = pClient.Print(ctx, &pqpb.PrintRequest{
+				Lines:       lines,
+				Origin:      "gram-move-loop",
+				Urgency:     pqpb.Urgency_URGENCY_REGULAR,
+				Destination: pqpb.Destination_DESTINATION_RECEIPT,
+				Fanout:      pqpb.Fanout_FANOUT_ONE,
+			})
 
-		if err == nil {
-			err = db.DeletePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move.GetIid())
-			log.Printf("Deleted print move for %v -> %v", move.GetIid(), err)
+			if err == nil {
+				move.Printed = true
+				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
+				log.Printf("Deleted print move for %v -> %v", move.GetIid(), err)
+			}
 		}
 	}
 

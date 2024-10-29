@@ -103,7 +103,7 @@ type Database interface {
 	SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error
 
 	SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error
-	DeletePrintMove(ctx context.Context, userId int32, iid int64) error
+	DeletePrintMove(ctx context.Context, userId int32, iid int64, index int64) error
 	LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error)
 }
 
@@ -202,8 +202,8 @@ func (d *DB) SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) 
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/movehistory", userId), mh)
 }
 
-func (d *DB) DeletePrintMove(ctx context.Context, userId int32, iid int64) error {
-	return d.delete(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v", userId, iid))
+func (d *DB) DeletePrintMove(ctx context.Context, userId int32, iid int64, index int64) error {
+	return d.delete(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v-%v", userId, iid, index))
 }
 
 func (d *DB) LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error) {
@@ -237,7 +237,7 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 		}
 		m.Index = count.GetCount()
 	}
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v", userId, m.GetIid()), m)
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v-%v", userId, m.GetIid(), m.GetIndex()), m)
 }
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
