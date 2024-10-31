@@ -72,7 +72,7 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 		if !move.Printed {
 			lines := buildRepresentation(move)
 
-			_, err = pClient.Print(ctx, &pqpb.PrintRequest{
+			resp, err := pClient.Print(ctx, &pqpb.PrintRequest{
 				Lines:       lines,
 				Origin:      "gram-move-loop",
 				Urgency:     pqpb.Urgency_URGENCY_REGULAR,
@@ -82,6 +82,7 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 
 			if err == nil {
 				move.Printed = true
+				//move.PrintId = resp.GetId()
 				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
 				log.Printf("Deleted print move for %v -> %v (%v)", move.GetIid(), err, move)
 			}

@@ -34,6 +34,7 @@ message PrintMove {
     string record = 5;
     int64 index = 6;
     bool printed = 7;
+    string print_id = 8;
 }
 
 message Location {
