@@ -81,6 +81,7 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 			})
 
 			if err == nil {
+
 				move.Printed = true
 				move.PrintId = resp.GetId()
 				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
