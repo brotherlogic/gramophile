@@ -66,8 +66,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	log.Printf("Saving intent: %v -> %v", req.GetIntent(), user)
 
 	// Clear the score if we've moved into the listening pile
+	//TODO: Turn this into a config setting on the folder
 	if req.GetIntent().GetNewFolder() == 812802 || req.GetIntent().GetNewFolder() == 7651472 || req.GetIntent().GetNewFolder() == 7664293 || req.GetIntent().GetNewFolder() == 7665013 {
 		req.GetIntent().NewScore = -1
+		req.GetIntent().Keep = pb.KeepStatus_RESET
 	}
 
 	ts := time.Now().UnixNano()
