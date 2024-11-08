@@ -23,6 +23,15 @@ func (s *Server) ListWantlists(ctx context.Context, _ *pb.ListWantlistsRequest) 
 	return &pb.ListWantlistsResponse{Lists: lists}, nil
 }
 
+func (s *Server) DeleteWantlist(ctx context.Context, req *pb.DeleteWantlistRequest) (*pb.DeleteWantlistResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.DeleteWantlistResponse{}, s.d.DeleteWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
+}
+
 func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*pb.AddWantlistResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {

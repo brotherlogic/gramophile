@@ -258,3 +258,47 @@ func TestUpdateWantlist_NewType(t *testing.T) {
 		t.Errorf("Bad list returned: %v", val)
 	}
 }
+
+func TestDeleteWantlist(t *testing.T) {
+	ctx := getTestContext(123)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Cannot save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Existing: pb.WantsExisting_EXISTING_LIST, Origin: pb.WantsBasis_WANTS_HYBRID}}})
+
+	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{Name: "testing"})
+	if err != nil {
+		t.Fatalf("unable to add wantlist: %v", err)
+	}
+
+	lists, err := s.ListWantlists(ctx, &pb.ListWantlistsRequest{})
+	if err != nil {
+		t.Fatalf("unable to get wantlists: %v", err)
+	}
+	if len(lists.GetLists()) != 1 {
+		t.Fatalf("Unable to get the list we just added: %v", lists)
+	}
+
+	_, err = s.DeleteWantlist(ctx, &pb.DeleteWantlistRequest{Name: "testing"})
+	if err != nil {
+		t.Fatalf("unable to delete wantlist: %v", err)
+	}
+
+	lists, err = s.ListWantlists(ctx, &pb.ListWantlistsRequest{})
+	if err != nil {
+		t.Fatalf("unable to get wantlists: %v", err)
+	}
+	if len(lists.GetLists()) != 0 {
+		t.Fatalf("Unable to get the list we just added: %v", lists)
+	}
+
+}
