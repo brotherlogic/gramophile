@@ -69,6 +69,13 @@ func executeWantlist(ctx context.Context, args []string) error {
 				return fmt.Errorf("unable to delete want: %w", err)
 			}
 		}
+	} else if args[0] == "deletelist" {
+		_, err = client.DeleteWantlist(ctx, &pb.DeleteWantlistRequest{
+			Name: args[1],
+		})
+		if err != nil {
+			return fmt.Errorf("unable to delete want: %w", err)
+		}
 	} else if args[0] == "list" {
 		lists, err := client.ListWantlists(ctx, &pb.ListWantlistsRequest{})
 		if err != nil {
