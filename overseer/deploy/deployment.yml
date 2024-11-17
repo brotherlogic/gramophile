@@ -51,7 +51,6 @@ spec:
       labels:
         app: overseer
     spec:
-      nodeName: klust1
       containers:
         - name: overseer
           image: registry.brotherlogic-backend.com/brotherlogic/overseer:0.1057.0 # {"$imagepolicy": "flux-system:overseer"}

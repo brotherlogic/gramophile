@@ -65,7 +65,6 @@ spec:
       labels:
         app: gramophile
     spec:
-      nodeName: klust1
       containers:
         - name: gramophile
           image: registry.brotherlogic-backend.com/brotherlogic/gramophile:0.1057.0 # {"$imagepolicy": "flux-system:gramophile"}
