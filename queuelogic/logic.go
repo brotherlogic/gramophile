@@ -967,6 +967,8 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	foundKey := keys[0]
 
+	log.Printf("%v keys and %v pMaps", len(keys), len(q.pMap))
+
 	if val, ok := q.pMap[foundKey]; ok && val != pb.QueueElement_PRIORITY_HIGH {
 		// Find a better one
 		for _, key := range keys {
