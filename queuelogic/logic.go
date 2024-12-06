@@ -971,12 +971,15 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		// Find a better one
 		for _, key := range keys {
 			if val, ok := q.pMap[key]; ok && val == pb.QueueElement_PRIORITY_HIGH {
+				log.Printf("Found a P_H entry: %v", key)
 				foundKey = key
 				break
 			}
 		}
 
 		log.Printf("Unable to locate P_H entry from %v entries", len(q.pMap))
+	} else {
+		log.Printf("pMasp error: %v", len(q.pMap))
 	}
 
 	data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
