@@ -163,6 +163,8 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		log.Fatalf("Unable to get keys: %v", err)
 	}
 	var ckeys []int64
+	pMap := make(map[int64]pb.QueueElement_Priority)
+	t := time.Now()
 	for _, key := range keys.GetKeys() {
 		value, err := strconv.ParseInt(key[len(QUEUE_PREFIX):], 10, 64)
 		if err != nil {
@@ -170,10 +172,24 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		}
 		ckeys = append(ckeys, value)
 	}
+	log.Printf("Loaded keys in %v", time.Since(t))
+
+	for _, key := range ckeys {
+		data, err := r.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
+		if err != nil {
+			if status.Code(err) != codes.NotFound {
+				panic(err)
+			}
+		}
+		entry := &pb.QueueElement{}
+		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+		pMap[key] = entry.GetPriority()
+	}
+	log.Printf("Loaded pmap in %v", time.Since(t))
 
 	return &Queue{
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
-		pMap: make(map[int64]pb.QueueElement_Priority),
+		pMap: pMap,
 	}
 }
 
