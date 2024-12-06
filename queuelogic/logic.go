@@ -975,6 +975,8 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 				break
 			}
 		}
+
+		log.Printf("Unable to locate P_H entry from %v entries", len(q.pMap))
 	}
 
 	data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
