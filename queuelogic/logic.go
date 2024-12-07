@@ -155,7 +155,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 	d.SetDownloader(&DownloaderBridge{scraper: sc})
 
 	log.Printf("Loading cache")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 	defer cancel()
 
 	keys, err := r.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
