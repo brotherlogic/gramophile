@@ -155,7 +155,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 	d.SetDownloader(&DownloaderBridge{scraper: sc})
 
 	log.Printf("Loading cache")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 	defer cancel()
 
 	keys, err := r.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
@@ -178,7 +178,8 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		data, err := r.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
-				panic(err)
+				log.Printf("Failed to load pmap: %v", err)
+				break
 			}
 		}
 		entry := &pb.QueueElement{}
