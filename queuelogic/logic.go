@@ -178,7 +178,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		data, err := r.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
-				log.Printf("Failed to load pmap: %v", err)
+				log.Printf("Failed to load the pmap: %v", err)
 				break
 			}
 		}
