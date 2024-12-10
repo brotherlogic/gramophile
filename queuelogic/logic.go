@@ -35,10 +35,10 @@ var (
 	QUEUE_PREFIX    = "gramophile/taskqueue/"
 	DL_QUEUE_PREFIX = "gramophile/dlq/"
 
-	queueLen = promauto.NewGauge(prometheus.GaugeOpts{
+	queueLen = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
-	})
+	}, []string{"type"})
 	dlQeueLen = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gramophile_dlqlen",
 		Help: "The length of the working queue I think yes",
@@ -886,7 +886,7 @@ var (
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	qlog(ctx, "Enqueue: %v", req)
 
-	if len(q.keys) > 10000 {
+	if len(q.keys) > 10000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
 		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full (%v)", len(q.keys))
 	}
 
@@ -949,9 +949,10 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	})
 
 	if err == nil {
-		queueLen.Inc()
+		queueLen.With(prometheus.Labels{"type": fmt.Sprintf("%v", req.GetElement().GetPriority())}).Inc()
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
+	qlog(ctx, "Adding %v", req)
 	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
 
@@ -974,9 +975,13 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	sort.SliceStable(keys.Keys, func(i, j int) bool {
 		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
 	})*/
-
-	queueLen.Set(float64(len(q.keys)))
-
+	counts := make(map[string]float64)
+	for _, val := range q.pMap {
+		counts[fmt.Sprintf("%v", val)]++
+	}
+	for str, val := range counts {
+		queueLen.With(prometheus.Labels{"type": str}).Set(float64(val))
+	}
 	if len(q.keys) == 0 {
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
 	}
@@ -1013,7 +1018,6 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return nil, err
 	}
 
-	queueLen.Set(float64(len(keys)))
 	entry := &pb.QueueElement{}
 	err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 	queueLoadTime.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Observe(float64(time.Since(t).Milliseconds()))
