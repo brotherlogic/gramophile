@@ -886,6 +886,10 @@ var (
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	qlog(ctx, "Enqueue: %v", req)
 
+	if len(q.keys) > 10000 {
+		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full (%v)", len(q.keys))
+	}
+
 	req.GetElement().AdditionDate = time.Now().UnixNano()
 
 	// Validate entries
