@@ -6,12 +6,18 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest) (*pb.RefreshRecordResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting user: %w", err)
+	}
+
+	if req.GetInstanceId() == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "Cannot refresh zeroth element")
 	}
 
 	if !req.JustState {
