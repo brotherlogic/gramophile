@@ -952,6 +952,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		queueLen.Inc()
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
+	qlog(ctx, "Adding %v", req)
 	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
 
