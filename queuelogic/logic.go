@@ -980,7 +980,7 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		counts[fmt.Sprintf("%v", val)]++
 	}
 	for str, val := range counts {
-		queueLen.With(prometheus.Labels{"type": str}.Set(float64(len(val))))
+		queueLen.With(prometheus.Labels{"type": str}).Set(float64(val))
 	}
 	if len(q.keys) == 0 {
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
