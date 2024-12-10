@@ -474,7 +474,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 						Auth:      entry.GetAuth(),
 						Force:     true,
 						RunDate:   time.Now().UnixNano(),
-						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
+						Intention: fmt.Sprintf("Refreshing collection from release state %v", entry.GetRefreshRelease().GetIid()),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
 							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
@@ -752,7 +752,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				q.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:   time.Now().UnixNano(),
-						Intention: fmt.Sprintf("Refreshing collection from release %v", entry.GetRefreshRelease().GetIid()),
+						Intention: fmt.Sprintf("Refreshing collection from release release %v", entry.GetRefreshRelease().GetIid()),
 						Entry: &pb.QueueElement_RefreshCollectionEntry{
 							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 						},
