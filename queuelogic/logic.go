@@ -79,6 +79,10 @@ var (
 		Help:    "The time taken for an element to get to the front of the queue",
 		Buckets: []float64{1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000, 4096000},
 	}, []string{"type", "priority"})
+	queueState = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_queue_state",
+		Help: "The length of the working queue I think yes",
+	}, []string{"type"})
 )
 
 const (
@@ -185,6 +189,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		entry := &pb.QueueElement{}
 		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 		pMap[key] = entry.GetPriority()
+		queueElements.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
 
@@ -334,6 +339,7 @@ func (q *Queue) Run() {
 		// Or because we've run an update on something that's not found
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
+			queueElements.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Add(-1)
 		} else {
 			// This is discogs throttling us
 			if status.Code(err) == codes.ResourceExhausted {
@@ -950,6 +956,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 	if err == nil {
 		queueLen.With(prometheus.Labels{"type": fmt.Sprintf("%v", req.GetElement().GetPriority())}).Inc()
+		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
 	qlog(ctx, "Adding %v", req)
