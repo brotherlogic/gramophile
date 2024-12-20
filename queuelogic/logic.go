@@ -945,6 +945,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
+		return &pb.EnqueueResponse{}, nil
 		qlog(ctx, "Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
 		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
