@@ -383,9 +383,31 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 	}
 
 	for _, key := range keys.GetKeys() {
-		_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
-		if err != nil {
-			return nil, err
+		delete := true
+		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
+			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
+			if err != nil {
+				return nil, err
+			}
+
+			entry := &pb.QueueElement{}
+			err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+			if err != nil {
+				return nil, err
+			}
+			switch entry.Entry.(type) {
+			case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
+				delete = true
+			default:
+				delete = false
+			}
+		}
+
+		if delete {
+			_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

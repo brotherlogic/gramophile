@@ -32,6 +32,14 @@ func main() {
 	sclient := pb.NewGramophileServiceClient(sconn)
 
 	switch os.Args[2] {
+	case "tdrain":
+		resp, err := client.Drain(ctx, &pb.DrainRequest{
+			DrainType: pb.DrainRequest_JUST_RELEASE_DATES,
+		})
+		if err != nil {
+			log.Fatalf("Unable to drain queue: %v", err)
+		}
+		fmt.Printf("Drained %v items\n", resp.GetCount())
 	case "drain":
 		resp, err := client.Drain(ctx, &pb.DrainRequest{})
 		if err != nil {
@@ -59,7 +67,7 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "refreshcollection":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force:true, RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
+			Element: &pb.QueueElement{Force: true, RunDate: time.Now().UnixNano(), Auth: os.Args[3], Entry: &pb.QueueElement_RefreshCollection{RefreshCollection: &pb.RefreshCollection{}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "clean":
@@ -95,7 +103,7 @@ func main() {
 			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
-			case "refresh_wants":
+	case "refresh_wants":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
 			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWants{}},
 		})
