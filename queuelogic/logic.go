@@ -386,20 +386,19 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 		delete := true
 		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
 			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
-			if err != nil {
-				return nil, err
-			}
+			if err == nil {
 
-			entry := &pb.QueueElement{}
-			err = proto.Unmarshal(data.GetValue().GetValue(), entry)
-			if err != nil {
-				return nil, err
-			}
-			switch entry.Entry.(type) {
-			case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
-				delete = true
-			default:
-				delete = false
+				entry := &pb.QueueElement{}
+				err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+				if err != nil {
+					return nil, err
+				}
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
+					delete = true
+				default:
+					delete = false
+				}
 			}
 		}
 
