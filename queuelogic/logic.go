@@ -189,7 +189,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		entry := &pb.QueueElement{}
 		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 		pMap[key] = entry.GetPriority()
-		queueElements.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
+		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
 
