@@ -435,7 +435,13 @@ message ListResponse {
     repeated QueueElement elements = 2;
 }
 
-message DrainRequest{}
+message DrainRequest{
+    enum DrainType {
+        UNKNOWN = 0;
+        JUST_RELEASE_DATES = 1;
+    }
+    DrainType drain_type = 1;
+}
 message DrainResponse{
     int32 count = 1;
 }
