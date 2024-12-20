@@ -385,7 +385,7 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 	for _, key := range keys.GetKeys() {
 		delete := true
 		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
-			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
+			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
 			if err != nil {
 				return nil, err
 			}
