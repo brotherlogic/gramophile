@@ -405,9 +405,7 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 
 		if delete {
 			_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
-			if err != nil {
-				return nil, err
-			}
+			log.Printf("Delete: %v", err)
 		}
 	}
 
