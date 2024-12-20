@@ -339,7 +339,7 @@ func (q *Queue) Run() {
 		// Or because we've run an update on something that's not found
 		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
 			q.delete(ctx, entry)
-			queueElements.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Add(-1)
+			queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
 		} else {
 			// This is discogs throttling us
 			if status.Code(err) == codes.ResourceExhausted {
