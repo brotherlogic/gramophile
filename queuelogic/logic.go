@@ -474,8 +474,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecord" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUpdates" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
+		//	fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
+		//		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		qlog(ctx, "Skipping '%T'", entry.Entry)
 
