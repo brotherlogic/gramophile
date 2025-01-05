@@ -146,6 +146,10 @@ func getHash(placements []*pb.Placement) string {
 
 func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation, c *pb.OrganisationConfig) (*pb.OrganisationSnapshot, error) {
 	log.Printf("Building Snapshot for %v", org)
+	t1 := time.Now()
+	defer func() {
+		log.Printf("Ran build_snapshot in %v", time.Since(t1))
+	}()
 	allRecords, err := o.getRecords(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load records: %w", err)
@@ -328,25 +332,25 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 				log.Printf("Looking ahead: %v -> %v", i+1, edge)
 				for _, tr := range ordList[i+1 : edge] {
 					if tr != nil {
-					width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
-					log.Printf("Trying %v", width)
-					if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
-						str := fmt.Sprintf("Placing %v -> %v + %v / %v", tr.id, currSlotWidth, width, org.GetSpaces()[currSlot].GetWidth())
-						placed[tr.id] = true
-						placements = append(placements, &pb.Placement{
-							Iid:           tr.id,
-							Space:         org.GetSpaces()[currSlot].GetName(),
-							Unit:          currUnit,
-							Index:         index + 1,
-							Width:         width,
-							OriginalIndex: int32(ogMap[tr.id]),
-							Observations:  str,
-						})
-						index += int32(len(tr.records))
-						currSlotWidth += width
+						width := getWidth(tr, org.GetDensity(), sleeveMap, defaultWidth)
+						log.Printf("Trying %v", width)
+						if currSlotWidth+width <= org.GetSpaces()[currSlot].GetWidth() {
+							str := fmt.Sprintf("Placing %v -> %v + %v / %v", tr.id, currSlotWidth, width, org.GetSpaces()[currSlot].GetWidth())
+							placed[tr.id] = true
+							placements = append(placements, &pb.Placement{
+								Iid:           tr.id,
+								Space:         org.GetSpaces()[currSlot].GetName(),
+								Unit:          currUnit,
+								Index:         index + 1,
+								Width:         width,
+								OriginalIndex: int32(ogMap[tr.id]),
+								Observations:  str,
+							})
+							index += int32(len(tr.records))
+							currSlotWidth += width
+						}
 					}
 				}
-			}
 			}
 
 			tripped = true
