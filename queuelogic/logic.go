@@ -210,10 +210,9 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
 }
 
-func (q *Queue) getRefreshDateMarker(ctx context.Context, user string, id int64) (int64, error) {
-	qlog(ctx, "Writing for %v", id)
+func (q *Queue) getRefreshDateMarker(ctx context.Context, user string) (int64, error) {
 	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id)})
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user)})
 
 	if err != nil {
 		return -1, err
@@ -238,11 +237,11 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 	return nil
 }
 
-func (q *Queue) setRefreshDateMarker(ctx context.Context, user string, id int64) error {
+func (q *Queue) setRefreshDateMarker(ctx context.Context, user string) error {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
 	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
+		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user),
 		Value: &anypb.Any{Value: b},
 	})
 
@@ -262,9 +261,9 @@ func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) 
 	return err
 }
 
-func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string, id int64) error {
+func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string) error {
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v-%v", user, id),
+		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user),
 	})
 
 	return err
@@ -471,8 +470,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecord" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUpdates" &&
-		//	fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
-		//		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
+		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
 		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
 		qlog(ctx, "Skipping '%T'", entry.Entry)
 
@@ -810,7 +809,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
-		return q.deleteRefreshDateMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+		return q.deleteRefreshDateMarker(ctx, entry.GetAuth())
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
@@ -942,10 +941,9 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		return &pb.EnqueueResponse{}, nil
 		qlog(ctx, "Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
 		// Check for a marker
-		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
+		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
 				qlog(ctx, "NO DATEMARKER")
@@ -957,7 +955,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
-		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshEarliestReleaseDates().GetIid())
+		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to write refresh date marker: %w", err)
 		}
