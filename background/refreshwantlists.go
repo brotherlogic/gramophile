@@ -158,6 +158,8 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 		return b.refreshOneByOneWantlist(ctx, userid, list, token, enqueue)
 	case pb.WantlistType_EN_MASSE:
 		return b.refreshEnMasseWantlist(ctx, userid, list, token, enqueue)
+	case pb.WantlistType_DATE_BOUNDED:
+		return b.refreshTimedWantlist(ctx, userid, list, token, enqueue)
 	default:
 		qlog(ctx, "Failure to process want list because %v", list.GetType())
 		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
@@ -192,6 +194,39 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 			}})
 			entry.State = pb.WantState_WANTED
 			updated = true
+		}
+	}
+
+	return updated, nil
+}
+
+func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
+	updated := false
+	countWanted := 0
+	daysLong := time.Unix(0, list.GetEndDate()).Sub(time.Unix(0, list.GetStartDate())).Hours() / 24
+	daysIn := time.Now().Sub(time.Unix(0, list.GetStartDate())).Hours() / 24
+	intendedWants := int(float64(len(list.GetEntries())+1) * daysIn / daysLong)
+
+	for _, entry := range list.GetEntries() {
+		switch entry.GetState() {
+		case pb.WantState_IN_TRANSIT, pb.WantState_WANTED, pb.WantState_PURCHASED:
+			countWanted++
+		case pb.WantState_PENDING:
+			if countWanted < intendedWants {
+				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Auth:    token,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_WANTED},
+						},
+					},
+				}})
+				if err != nil {
+					return false, err
+				}
+				updated = true
+			}
 		}
 	}
 
