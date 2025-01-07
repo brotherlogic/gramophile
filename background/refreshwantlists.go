@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
@@ -205,14 +206,17 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 	countWanted := 0
 	daysLong := time.Unix(0, list.GetEndDate()).Sub(time.Unix(0, list.GetStartDate())).Hours() / 24
 	daysIn := time.Now().Sub(time.Unix(0, list.GetStartDate())).Hours() / 24
-	intendedWants := int(float64(len(list.GetEntries())+1) * daysIn / daysLong)
+	intendedWants := int(math.Ceil(float64(len(list.GetEntries())+1) * daysIn / daysLong))
+
+	qlog(ctx, "TIMED %v %v %v", daysLong, daysIn, intendedWants)
 
 	for _, entry := range list.GetEntries() {
 		switch entry.GetState() {
 		case pb.WantState_IN_TRANSIT, pb.WantState_WANTED, pb.WantState_PURCHASED:
 			countWanted++
-		case pb.WantState_PENDING:
+		case pb.WantState_PENDING, pb.WantState_WANT_UNKNOWN:
 			if countWanted < intendedWants {
+				qlog(ctx, "ENQUEUE %v", entry.GetId())
 				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Auth:    token,
 					RunDate: time.Now().UnixNano(),
@@ -226,6 +230,7 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 					return false, err
 				}
 				updated = true
+				countWanted++
 			}
 		}
 	}

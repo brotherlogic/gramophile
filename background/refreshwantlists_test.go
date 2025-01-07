@@ -97,6 +97,51 @@ func TestTimedWantlist(t *testing.T) {
 				}},
 			0,
 		},
+		{
+			"Day 1",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().UnixNano(),
+				EndDate:   time.Now().Add(time.Hour * 24 * 3).UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			1,
+		},
+		{
+			"Day 2",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().Add(-time.Hour * 24).UnixNano(),
+				EndDate:   time.Now().Add(time.Hour * 24 * 2).UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			2,
+		},
+		{
+			"Day 3",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().Add(-time.Hour * 24 * 2).UnixNano(),
+				EndDate:   time.Now().UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			3,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -110,6 +155,10 @@ func TestTimedWantlist(t *testing.T) {
 
 		counted := 0
 		err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+			return &pb.EnqueueResponse{}, nil
+		})
+
+		_, err = b.refreshWantlist(context.Background(), 123, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 			counted++
 			return &pb.EnqueueResponse{}, nil
 		})
