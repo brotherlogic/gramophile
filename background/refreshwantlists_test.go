@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -73,4 +74,100 @@ func TestInactiveWantlist(t *testing.T) {
 		}
 	}
 
+}
+
+func TestTimedWantlist(t *testing.T) {
+
+	var testCases = []struct {
+		name          string
+		wantlist      *pb.Wantlist
+		expectedCount int
+	}{
+		{
+			"Not Started",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().Add(time.Hour * 24).UnixNano(),
+				EndDate:   time.Now().Add(time.Hour * 24 * 2).UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			0,
+		},
+		{
+			"Day 1",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().UnixNano(),
+				EndDate:   time.Now().Add(time.Hour * 24 * 3).UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			1,
+		},
+		{
+			"Day 2",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().Add(-time.Hour * 24).UnixNano(),
+				EndDate:   time.Now().Add(time.Hour * 24 * 2).UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			2,
+		},
+		{
+			"Day 3",
+			&pb.Wantlist{
+				Name:      "timed_wantlist",
+				Active:    true,
+				Type:      pb.WantlistType_DATE_BOUNDED,
+				StartDate: time.Now().Add(-time.Hour * 24 * 2).UnixNano(),
+				EndDate:   time.Now().UnixNano(),
+				Entries: []*pb.WantlistEntry{
+					{Id: 1},
+					{Id: 2},
+					{Id: 3},
+				}},
+			3,
+		},
+	}
+
+	for _, tc := range testCases {
+		b := GetTestBackgroundRunner()
+		di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+
+		err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+		if err != nil {
+			t.Errorf("Bad user save: %v", err)
+		}
+
+		counted := 0
+		err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+			return &pb.EnqueueResponse{}, nil
+		})
+
+		_, err = b.refreshWantlist(context.Background(), 123, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+			counted++
+			return &pb.EnqueueResponse{}, nil
+		})
+		if err != nil {
+			t.Fatalf("Unable to process wantlist: %v", err)
+		}
+
+		if counted != tc.expectedCount {
+			t.Errorf("Wrong number of additions to the wantlist: %v  -> %v (for %v)", counted, tc.expectedCount, tc.name)
+		}
+	}
 }
