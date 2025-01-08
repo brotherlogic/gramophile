@@ -31,10 +31,36 @@ func executeWantlist(ctx context.Context, args []string) error {
 
 	if args[0] == "add" {
 
+		wtype := pb.WantlistType_ONE_BY_ONE
+		dStart := int64(0)
+		dEnd := int64(0)
+		switch args[1] {
+		case "one":
+			wtype = pb.WantlistType_ONE_BY_ONE
+		case "date":
+			wtype = pb.WantlistType_DATE_BOUNDED
+			dStartT, err := time.Parse("%y-%M-%d", args[2])
+			if err != nil {
+				return err
+			}
+			dStartE, err := time.Parse("%y-%M-%d", args[2])
+			if err != nil {
+				return err
+			}
+			dStart = dStartT.UnixNano()
+			dEnd = dStartE.UnixNano()
+		case "mass":
+			wtype = pb.WantlistType_EN_MASSE
+		default:
+			return status.Errorf(codes.InvalidArgument, "Unknown wantlist type %v", args[1])
+		}
+
 		_, err = client.AddWantlist(ctx, &pb.AddWantlistRequest{
 			Name:       args[1],
-			Type:       pb.WantlistType_ONE_BY_ONE,
+			Type:       wtype,
 			Visibility: pb.WantlistVisibility_VISIBLE,
+			DateStart:  dStart,
+			DateEnd:    dEnd,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to add wantlist: %w", err)

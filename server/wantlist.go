@@ -48,6 +48,8 @@ func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*
 			Type:       req.GetType(),
 			Visibility: req.GetVisibility(),
 			Active:     true,
+			StartDate:  req.GetDateStart(),
+			EndDate:    req.GetDateEnd(),
 		})
 }
 

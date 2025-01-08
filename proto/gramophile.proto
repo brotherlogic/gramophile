@@ -581,6 +581,8 @@ message AddWantlistRequest {
     string name = 1;
     WantlistType type = 2;
     WantlistVisibility visibility = 3;
+    int64 date_start = 4;
+    int64 date_end = 5;
 }
 
 message AddWantlistResponse {}
