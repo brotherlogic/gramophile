@@ -876,7 +876,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot get record: %v", err)
 	}
-	if len(r.GetRecords()[0].GetRecord().GetDigitalIds()) != 1 {
+	if len(r.GetRecords()[0].GetRecord().GetDigitalIds()) != 10 {
 		t.Fatalf("Record has no digital versions: %v", r)
 	}
 
