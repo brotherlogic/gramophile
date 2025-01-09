@@ -204,6 +204,20 @@ message Record {
    repeated int64 digital_ids = 24;
 
    repeated int64 mint_versions = 25;
+
+   repeated Score score_history = 26;
+}
+
+message Score {
+    int32 score_value = 1;
+    int32 score_mapped_to = 2;
+
+    enum ListenStatus {
+        LISTEN_STATUS_UNKNOWN = 0;
+        LISTEN_STATUS_LISTEN = 1;
+        LISTEN_STATUS_NO_LISTEN = 2;
+    }
+    ListenStatus listen_status = 3;
 }
 
 message SaleInfo {

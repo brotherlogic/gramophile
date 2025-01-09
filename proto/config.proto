@@ -139,12 +139,18 @@ message GramophileConfig {
     PrintMoveConfig print_move_config = 17;
     MintUpConfig mint_up_config = 18;
     WantslistConfig wants_list_config = 19;
+    ScoreConfig score_config = 20;
 
     Create create_folders = 12;
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
     repeated ValidationRule validations = 15;
+}
+
+message ScoreConfig {
+    int32 bottom_range = 1;
+    int32 top_range = 2;
 }
 
 message MintUpConfig {
