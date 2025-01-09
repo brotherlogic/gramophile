@@ -43,6 +43,9 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 }
 
 func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
+	if config.GetBottomRange() >= config.GetTopRange() {
+		return score
+	}
 	rangeWidth := config.GetTopRange() - config.GetBottomRange()
 	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
 }
@@ -71,6 +74,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	// If this is for a backdated score, process it and exit without saving the intent
 	if req.GetIntent().GetNewScoreTime() > 0 {
+		log.Printf("Fast write of new score")
 		discogsScore := mapDiscogsScore(req.GetIntent().GetNewScore(), user.GetConfig().GetScoreConfig())
 		r.ScoreHistory = append(r.ScoreHistory, &pb.Score{
 			ScoreValue:                req.GetIntent().GetNewScore(),

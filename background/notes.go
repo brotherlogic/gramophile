@@ -314,6 +314,9 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 }
 
 func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
+	if config.GetBottomRange() >= config.GetTopRange() {
+		return score
+	}
 	rangeWidth := config.GetTopRange() - config.GetBottomRange()
 	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
 }
