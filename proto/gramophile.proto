@@ -218,6 +218,8 @@ message Score {
         LISTEN_STATUS_NO_LISTEN = 2;
     }
     ListenStatus listen_status = 3;
+
+    int64 applied_to_discogs_timestamp = 4;
 }
 
 message SaleInfo {
