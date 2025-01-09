@@ -832,8 +832,8 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	s := server.BuildServer(d, di, qc)
 
 	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
-	di.AddCNonollectionRelease(&pbd.Release{MasterId: 200, Id: 2, Rating: 2})
-	di.AddCNonollectionRelease(&pbd.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
+	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 2, Rating: 2})
+	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -876,7 +876,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot get record: %v", err)
 	}
-	if len(r.GetRecords()[0].GetRecord().GetDigitalIds()) != 10 {
+	if len(r.GetRecords()[0].GetRecord().GetDigitalIds()) != 1 {
 		t.Fatalf("Record has no digital versions: %v", r)
 	}
 
