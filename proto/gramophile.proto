@@ -208,15 +208,16 @@ message Record {
    repeated Score score_history = 26;
 }
 
+enum ListenStatus {
+    LISTEN_STATUS_UNKNOWN = 0;
+    LISTEN_STATUS_LISTEN = 1;
+    LISTEN_STATUS_NO_LISTEN = 2;
+}
+
 message Score {
     int32 score_value = 1;
     int32 score_mapped_to = 2;
 
-    enum ListenStatus {
-        LISTEN_STATUS_UNKNOWN = 0;
-        LISTEN_STATUS_LISTEN = 1;
-        LISTEN_STATUS_NO_LISTEN = 2;
-    }
     ListenStatus listen_status = 3;
 
     int64 applied_to_discogs_timestamp = 4;
@@ -268,6 +269,10 @@ message Intent {
     KeepStatus keep = 8;
     int32 new_score = 9;
     int32 new_folder = 10;
+    
+    int64 new_score_time = 13;
+    ListenStatus new_score_listen = 14;
+
 
     int64 intent_time = 11;
     repeated int64 mint_ids = 12;
