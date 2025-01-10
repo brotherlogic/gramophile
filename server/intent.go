@@ -76,9 +76,14 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	if req.GetIntent().GetNewScoreTime() > 0 {
 		log.Printf("Fast write of new score")
 		discogsScore := mapDiscogsScore(req.GetIntent().GetNewScore(), user.GetConfig().GetScoreConfig())
+		enumVal := req.GetIntent().GetNewScoreListen()
+		if enumVal == pb.ListenStatus_LISTEN_STATUS_UNKNOWN {
+			enumVal = pb.ListenStatus_LISTEN_STATUS_NO_LISTEN // We default to no listen
+		}
 		r.ScoreHistory = append(r.ScoreHistory, &pb.Score{
 			ScoreValue:                req.GetIntent().GetNewScore(),
 			ScoreMappedTo:             discogsScore,
+			ListenStatus:              enumVal,
 			AppliedToDiscogsTimestamp: req.GetIntent().GetNewScoreTime(),
 		})
 		return &pb.SetIntentResponse{}, s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
