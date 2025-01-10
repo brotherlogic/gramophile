@@ -265,3 +265,29 @@ func TestScoreRecord_Wantlist(t *testing.T) {
 		t.Fatalf("Unable to process score: %v", err)
 	}
 }
+
+func TestScoreRecord_ValidateMapping(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
+		ScoreConfig: &pb.ScoreConfig{
+			TopRange:    100,
+			BottomRange: 1,
+		},
+	}}
+
+	err := b.ProcessScore(ctx, di, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234}}, &pb.Intent{NewScore: 67}, su, []*pbd.Field{})
+	if err != nil {
+		t.Fatalf("Unable to process score: %v", err)
+	}
+
+	r, err := b.db.GetRecord(ctx, 123, 1234)
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if r.GetRelease().GetRating() != 4 {
+		t.Errorf("Rating was not set correctly: %v", r.GetRelease().GetRating())
+	}
+}
