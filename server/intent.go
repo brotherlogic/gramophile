@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -41,6 +42,14 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 	return nil
 }
 
+func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
+	if config.GetBottomRange() >= config.GetTopRange() {
+		return score
+	}
+	rangeWidth := config.GetTopRange() - config.GetBottomRange()
+	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
+}
+
 func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.SetIntentResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
@@ -48,7 +57,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	}
 
 	// Check that this record at least exists
-	_, err = s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
+	r, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
 		return nil, fmt.Errorf("error getting record: %w", err)
 	}
@@ -61,6 +70,23 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	err = s.validateIntent(ctx, user, req.GetIntent())
 	if err != nil {
 		return nil, err
+	}
+
+	// If this is for a backdated score, process it and exit without saving the intent
+	if req.GetIntent().GetNewScoreTime() > 0 {
+		log.Printf("Fast write of new score")
+		discogsScore := mapDiscogsScore(req.GetIntent().GetNewScore(), user.GetConfig().GetScoreConfig())
+		enumVal := req.GetIntent().GetNewScoreListen()
+		if enumVal == pb.ListenStatus_LISTEN_STATUS_UNKNOWN {
+			enumVal = pb.ListenStatus_LISTEN_STATUS_NO_LISTEN // We default to no listen
+		}
+		r.ScoreHistory = append(r.ScoreHistory, &pb.Score{
+			ScoreValue:                req.GetIntent().GetNewScore(),
+			ScoreMappedTo:             discogsScore,
+			ListenStatus:              enumVal,
+			AppliedToDiscogsTimestamp: req.GetIntent().GetNewScoreTime(),
+		})
+		return &pb.SetIntentResponse{}, s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
 	}
 
 	log.Printf("Saving intent: %v -> %v", req.GetIntent(), user)

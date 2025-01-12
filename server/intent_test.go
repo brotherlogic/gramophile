@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -222,5 +223,48 @@ func TestKeepIntent_FailWithNoMint(t *testing.T) {
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("Wrong error in returning: %v", err)
+	}
+}
+
+func TestScoreIntent_FastBackfill(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Config: &pb.GramophileConfig{
+			KeepConfig:  &pb.KeepConfig{Mandate: pb.Mandate_REQUIRED},
+			ScoreConfig: &pb.ScoreConfig{TopRange: 100, BottomRange: 1}},
+		Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent: &pb.Intent{
+			NewScore:       50,
+			NewScoreTime:   time.Now().UnixNano(),
+			NewScoreListen: pb.ListenStatus_LISTEN_STATUS_NO_LISTEN},
+		InstanceId: 1234,
+	})
+	if err != nil {
+		t.Fatalf("Wrong error in returning: %v", err)
+	}
+
+	r, err := d.GetRecord(ctx, 123, 1234)
+	if err != nil {
+		t.Fatalf("Unable to retrieve record: %v", err)
+	}
+
+	if len(r.GetScoreHistory()) != 1 || r.GetScoreHistory()[0].ListenStatus != pb.ListenStatus_LISTEN_STATUS_NO_LISTEN {
+		t.Errorf("Score history was not saved: %v", r.GetScoreHistory())
 	}
 }
