@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -312,6 +313,14 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
 }
 
+func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
+	if config.GetBottomRange() >= config.GetTopRange() {
+		return score
+	}
+	rangeWidth := config.GetTopRange() - config.GetBottomRange()
+	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
+}
+
 func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
 	// We don't zero out the listen time
 	if i.GetNewScore() == 0 {
@@ -323,13 +332,21 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 		i.NewScore = 0
 	}
 
+	discogsScore := mapDiscogsScore(i.GetNewScore(), user.GetConfig().GetScoreConfig())
+
 	qlog(ctx, "New score for %v (%v)", r.GetRelease().GetId(), i.GetNewScore())
-	err := d.SetRating(ctx, r.GetRelease().GetId(), i.GetNewScore())
+	err := d.SetRating(ctx, r.GetRelease().GetId(), discogsScore)
 	if err != nil {
 		return err
 	}
 
-	r.GetRelease().Rating = i.GetNewScore()
+	r.GetRelease().Rating = discogsScore
+	r.ScoreHistory = append(r.GetScoreHistory(), &pb.Score{
+		ScoreValue:                i.GetNewScore(),
+		ScoreMappedTo:             discogsScore,
+		AppliedToDiscogsTimestamp: time.Now().UnixNano(),
+	})
+
 	config.Apply(user.GetConfig(), r)
 	err = b.db.SaveRecord(ctx, d.GetUserId(), r)
 	if err != nil {

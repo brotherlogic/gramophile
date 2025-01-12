@@ -7,7 +7,7 @@ require (
 	github.com/brotherlogic/githubridge v0.2830.0
 	github.com/brotherlogic/godiscogs v0.0.0-20250104170211-890486df49c0
 	github.com/brotherlogic/pstore v0.31.0
-	github.com/brotherlogic/recordcollection v0.0.0-20250104170733-b8c24c6ae588
+	github.com/brotherlogic/recordcollection v0.0.0-20250111174604-7bb61ae8d21c
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
