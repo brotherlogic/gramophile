@@ -86,6 +86,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	addDigital := b.addDigitalList(ctx, storedRelease, release)
 	needsSave = needsSave || addDigital
 
+	log.Printf("DIG %v and %v", addDigital, digWants)
 	if addDigital && digWants {
 		updated := false
 		// Update any wantlist if needed
@@ -121,7 +122,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 }
 
 func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb.Record, childRelease *pbd.Release) bool {
-	qlog(ctx, "Adding to digital for %v", storedRelease.GetRelease().GetInstanceId())
+	qlog(ctx, "Adding to digital for %v (%v)", storedRelease.GetRelease().GetInstanceId(), childRelease.GetId())
 	// Is this release already in the list?
 	for _, dig := range storedRelease.GetDigitalIds() {
 		if dig == childRelease.GetId() {
@@ -143,7 +144,7 @@ func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb
 		}
 	}
 
-	qlog(ctx, "%v is %v", storedRelease, isDigital)
+	qlog(ctx, "DIGITAL %v is %v", childRelease, isDigital)
 
 	if isDigital {
 		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())

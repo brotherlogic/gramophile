@@ -69,6 +69,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 	if err != nil {
 		return -1, err
 	}
+	log.Printf("Found %v releases in collection", len(releases))
 
 	fields, err := d.GetFields(ctx)
 	if err != nil {
