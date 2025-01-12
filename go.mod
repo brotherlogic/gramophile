@@ -3,18 +3,18 @@ module github.com/brotherlogic/gramophile
 go 1.23.2
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20240922073124-42a4e71123b0
-	github.com/brotherlogic/githubridge v0.2802.0
-	github.com/brotherlogic/godiscogs v0.0.0-20240823195726-9a8d322e6898
-	github.com/brotherlogic/pstore v0.18.0
-	github.com/brotherlogic/recordcollection v0.0.0-20241020224324-f20000227b28
+	github.com/brotherlogic/discogs v0.0.0-20250108144950-fc78f5083d93
+	github.com/brotherlogic/githubridge v0.2830.0
+	github.com/brotherlogic/godiscogs v0.0.0-20250104170211-890486df49c0
+	github.com/brotherlogic/pstore v0.31.0
+	github.com/brotherlogic/recordcollection v0.0.0-20250111174604-7bb61ae8d21c
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.20.5
-	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/grpc v1.69.2
+	google.golang.org/protobuf v1.36.2
 )
 
 require (
@@ -23,11 +23,11 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.60.1 // indirect
+	github.com/prometheus/common v0.61.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
-	golang.org/x/net v0.30.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241021214115-324edc3d5d38 // indirect
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
+	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250106144421-5f5ef82da422 // indirect
 )

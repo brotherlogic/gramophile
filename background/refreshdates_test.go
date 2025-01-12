@@ -31,8 +31,8 @@ func TestDigitalListExtended(t *testing.T) {
 
 	d.AddCollectionRelease(&dpb.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
 
-	d.AddCNonollectionRelease(&dpb.Release{MasterId: 200, Id: 2, Rating: 2})
-	d.AddCNonollectionRelease(&dpb.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
+	d.AddNonCollectionRelease(&dpb.Release{MasterId: 200, Id: 2, Rating: 2})
+	d.AddNonCollectionRelease(&dpb.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
 	err = b.RefreshReleaseDate(context.Background(), d, true, 100, 2)
 	if err != nil {

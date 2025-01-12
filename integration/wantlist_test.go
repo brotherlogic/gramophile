@@ -832,8 +832,8 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	s := server.BuildServer(d, di, qc)
 
 	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
-	di.AddCNonollectionRelease(&pbd.Release{MasterId: 200, Id: 2, Rating: 2})
-	di.AddCNonollectionRelease(&pbd.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
+	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 2, Rating: 2})
+	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
