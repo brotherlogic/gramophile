@@ -5,10 +5,11 @@ The items that need to be in place in order to make a release.
 ## V1 Release Support
 
 1. Organisation
-   1. gram org returns the named organisation
+   1. ~~gram org returns the named organisation~~
    1. Each combination of flags are covered in tests
+   1. Speed up organisation
 1. Onboarding
-   1. gram login works
+   1. ~~gram login works~~
    1. gram login is covered in E2E tests
 1. Infrastructure
    1. Support for per-user feature enabling - config rejection
@@ -18,3 +19,4 @@ The items that need to be in place in order to make a release.
    1. Request tracing enabled
    1. Production alerts if server request is out of bounds
    1. Gramophile server dashboard to complement queue dashboard
+   1. Overall monitoring dashboard to cover basic server dynamics
