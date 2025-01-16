@@ -16,7 +16,8 @@ The items that need to be in place in order to make a release.
    1. Support for user priveleges and escalation
    1. Prober / E2E testing in place
    1. Dashboard supports server debugging
-   1. Request tracing enabled
+   1. Request tracing enabled for queue
+   1. Request tracing for server requests
    1. Production alerts if server request is out of bounds
    1. Gramophile server dashboard to complement queue dashboard
    1. Overall monitoring dashboard to cover basic server dynamics
