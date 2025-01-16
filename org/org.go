@@ -86,6 +86,10 @@ func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisatio
 }
 
 func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record, error) {
+	t1 := time.Now()
+	defer func() {
+		log.Printf("Ran get_records in %v", time.Since(t1))
+	}()
 	ids, err := o.d.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load record ids: %w", err)

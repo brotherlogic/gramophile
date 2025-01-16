@@ -39,11 +39,11 @@ func executeWantlist(ctx context.Context, args []string) error {
 			wtype = pb.WantlistType_ONE_BY_ONE
 		case "date":
 			wtype = pb.WantlistType_DATE_BOUNDED
-			dStartT, err := time.Parse("%y-%M-%d", args[3])
+			dStartT, err := time.Parse("2006-01-02", args[3])
 			if err != nil {
 				return err
 			}
-			dStartE, err := time.Parse("%y-%M-%d", args[4])
+			dStartE, err := time.Parse("2006-01-02", args[4])
 			if err != nil {
 				return err
 			}
@@ -66,14 +66,18 @@ func executeWantlist(ctx context.Context, args []string) error {
 			return fmt.Errorf("unable to add wantlist: %w", err)
 		}
 
-		for _, id := range args[5:] {
+		start := 3
+		if args[1] == "date" {
+			start = 5
+		}
+		for _, id := range args[start:] {
 			wid, err := strconv.ParseInt(id, 10, 64)
 			if err != nil {
 				return err
 			}
 
 			_, err = client.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-				Name:  args[1],
+				Name:  args[2],
 				AddId: wid,
 			})
 			if err != nil {
