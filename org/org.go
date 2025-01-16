@@ -104,8 +104,8 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10)
 
-	var records []*pb.Record
 	fchan := make(chan error, len(ids))
+	rchan := make(chan *pb.Record, len(ids))
 	for _, id := range ids {
 		// Acquire a semaphore slot
 		semaphore <- struct{}{}
@@ -119,12 +119,13 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 			if err != nil {
 				fchan <- fmt.Errorf("unable to load record %v -> %w", id, err)
 			}
-			records = append(records, rec)
+			rchan <- rec
 		}(id)
 	}
 	log.Printf("Waiting for wg: %v", wg)
 	wg.Wait()
 	close(fchan)
+	close(rchan)
 
 	log.Printf("Looking for errors")
 	// Look for errors
@@ -136,6 +137,10 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 
 	log.Printf("Ran read_records (%v) in %v", len(ids), time.Since(t2))
 
+	var records []*pb.Record
+	for r := range rchan {
+		records = append(records, r)
+	}
 	return records, nil
 }
 
