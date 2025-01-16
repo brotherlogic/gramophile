@@ -90,11 +90,14 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	defer func() {
 		log.Printf("Ran get_records in %v", time.Since(t1))
 	}()
+
 	ids, err := o.d.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load record ids: %w", err)
 	}
+	log.Printf("Ran db_read_records in %v", time.Since(t1))
 
+	t2 := time.Now()
 	var records []*pb.Record
 	for _, id := range ids {
 		rec, err := o.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), id)
@@ -103,6 +106,7 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 		}
 		records = append(records, rec)
 	}
+	log.Printf("Ran read_records (%v) in %v", len(ids), time.Since(t2))
 
 	return records, nil
 }
