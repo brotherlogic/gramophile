@@ -66,7 +66,7 @@ func executeWantlist(ctx context.Context, args []string) error {
 			return fmt.Errorf("unable to add wantlist: %w", err)
 		}
 
-		for _, id := range args[2:] {
+		for _, id := range args[5:] {
 			wid, err := strconv.ParseInt(id, 10, 64)
 			if err != nil {
 				return err
