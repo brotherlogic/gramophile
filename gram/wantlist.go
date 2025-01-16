@@ -39,11 +39,11 @@ func executeWantlist(ctx context.Context, args []string) error {
 			wtype = pb.WantlistType_ONE_BY_ONE
 		case "date":
 			wtype = pb.WantlistType_DATE_BOUNDED
-			dStartT, err := time.Parse("%y-%M-%d", args[2])
+			dStartT, err := time.Parse("%y-%M-%d", args[3])
 			if err != nil {
 				return err
 			}
-			dStartE, err := time.Parse("%y-%M-%d", args[2])
+			dStartE, err := time.Parse("%y-%M-%d", args[4])
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ func executeWantlist(ctx context.Context, args []string) error {
 		}
 
 		_, err = client.AddWantlist(ctx, &pb.AddWantlistRequest{
-			Name:       args[1],
+			Name:       args[2],
 			Type:       wtype,
 			Visibility: pb.WantlistVisibility_VISIBLE,
 			DateStart:  dStart,
