@@ -809,6 +809,7 @@ func (d *DB) DeleteIntent(ctx context.Context, userid int32, iid int64, ts int64
 }
 
 func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
+	t := time.Now()
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
 		Prefix:      fmt.Sprintf("gramophile/user/%v/release/", userid),
 		AvoidSuffix: []string{"update"},
@@ -816,6 +817,8 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting keys: %w", err)
 	}
+	log.Printf("Ran get_records keys (%v) in %v", len(resp.GetKeys()), time.Since(t))
+	t1 := time.Now()
 
 	var ret []int64
 	for _, key := range resp.GetKeys() {
@@ -825,6 +828,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 			ret = append(ret, val)
 		}
 	}
+	log.Printf("Ran get_records_filter (%v) in %v", len(ret), time.Since(t1))
 
 	return ret, nil
 }
