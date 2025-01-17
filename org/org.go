@@ -8,7 +8,6 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/brotherlogic/gramophile/db"
@@ -99,48 +98,16 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	log.Printf("Ran db_read_records in %v", time.Since(t1))
 
 	t2 := time.Now()
-
-	// Load 10 records at a time
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 10)
-
-	fchan := make(chan error, len(ids))
-	rchan := make(chan *pb.Record, len(ids))
+	var records []*pb.Record
 	for _, id := range ids {
-		// Acquire a semaphore slot
-		semaphore <- struct{}{}
-		wg.Add(1)
-		go func(id int64) {
-			defer func() {
-				<-semaphore
-				wg.Done()
-			}()
-			rec, err := o.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), id)
-			if err != nil {
-				fchan <- fmt.Errorf("unable to load record %v -> %w", id, err)
-			}
-			rchan <- rec
-		}(id)
-	}
-	log.Printf("Waiting for wg: %v", wg)
-	wg.Wait()
-	close(fchan)
-	close(rchan)
-
-	log.Printf("Looking for errors")
-	// Look for errors
-	for err := range fchan {
+		rec, err := o.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), id)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to load record %v -> %w", id, err)
 		}
+		records = append(records, rec)
 	}
-
 	log.Printf("Ran read_records (%v) in %v", len(ids), time.Since(t2))
 
-	var records []*pb.Record
-	for r := range rchan {
-		records = append(records, r)
-	}
 	return records, nil
 }
 
