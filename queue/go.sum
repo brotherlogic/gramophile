@@ -14,6 +14,8 @@ github.com/brotherlogic/githubridge v0.2824.0 h1:LJqWgAgM4lWQwwZft/Aqq33sDXUPHq2
 github.com/brotherlogic/githubridge v0.2824.0/go.mod h1:SRsJ/bqK7bGMI4Fe3MCJqFwga1ZoSVbrjZMJIaoRUUA=
 github.com/brotherlogic/githubridge v0.2830.0 h1:LowW28eY1KyVouSfEM8pOFKhx88ejbm2pslrzagcyJY=
 github.com/brotherlogic/githubridge v0.2830.0/go.mod h1:CcY6P3N92LjEFDNPY0G/54zJpSmsLpNgo71QjiK9NnA=
+github.com/brotherlogic/githubridge v0.2832.0 h1:7vVRrx8cxT/t4ner5HzYxUm5QTbX8X5+ZSXIjRBEqS0=
+github.com/brotherlogic/githubridge v0.2832.0/go.mod h1:CcY6P3N92LjEFDNPY0G/54zJpSmsLpNgo71QjiK9NnA=
 github.com/brotherlogic/gramophile v0.1040.0 h1:9E2dw5udqGa6a8HvdCgWgdSDzQIu//ehPZ+A5XYOGVY=
 github.com/brotherlogic/gramophile v0.1040.0/go.mod h1:ypRuS4WYs4+5ROdlxxY32AUzMuFsa8xHMWIQZbMRnAU=
 github.com/brotherlogic/gramophile v0.1041.0 h1:zzd50gDmyEv7taXvR4xOF4vGh9mHoPSyMTrDhysdAZ8=
@@ -58,6 +60,8 @@ github.com/brotherlogic/gramophile v0.1101.0 h1:SoQACV6blCCR9Q0V4s8e0trj4QVoNwsb
 github.com/brotherlogic/gramophile v0.1101.0/go.mod h1:/rY62r98WQezSH46T7oXzEw4ranAc4l85nqfr9nMp7U=
 github.com/brotherlogic/gramophile v0.1103.0 h1:5LunLJ3Od/CKkj70fQ2NiErNe5iv+frYnLxggfaUvGQ=
 github.com/brotherlogic/gramophile v0.1103.0/go.mod h1:/rY62r98WQezSH46T7oXzEw4ranAc4l85nqfr9nMp7U=
+github.com/brotherlogic/gramophile v0.1105.0 h1:usmCXm+9GGPD1hcHCx9wgsQ1I8qIy3amP6OBwRIF/2w=
+github.com/brotherlogic/gramophile v0.1105.0/go.mod h1:/rY62r98WQezSH46T7oXzEw4ranAc4l85nqfr9nMp7U=
 github.com/brotherlogic/pstore v0.18.0 h1:6ZBG2/kZajLV2JazKbc3hA1XTts80A9Gslocz14SDBE=
 github.com/brotherlogic/pstore v0.18.0/go.mod h1:stga41yC3MG/dwIMYXHFvVfSglffMUAipgajP+gQ1hs=
 github.com/brotherlogic/pstore v0.20.0 h1:17trAjrcuutuM52n+L3jF0yceA9NAT6j67aNNtuOJPk=
