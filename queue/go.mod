@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20250108144950-fc78f5083d93
-	github.com/brotherlogic/gramophile v0.1103.0
+	github.com/brotherlogic/gramophile v0.1105.0
 	github.com/brotherlogic/pstore v0.31.0
 	github.com/prometheus/client_golang v1.20.5
 	google.golang.org/grpc v1.69.4
@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brotherlogic/githubridge v0.2830.0 // indirect
+	github.com/brotherlogic/githubridge v0.2832.0 // indirect
 	github.com/brotherlogic/rstore v0.59.0 // indirect
 	github.com/brotherlogic/scraper v0.79.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
