@@ -383,7 +383,7 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 
 	for _, key := range keys.GetKeys() {
 		delete := true
-		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
+		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES || req.GetDrainType() == pb.DrainRequest_JUST_WANTS {
 			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
 			if err == nil {
 
@@ -394,7 +394,13 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 				}
 				switch entry.Entry.(type) {
 				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
-					delete = true
+					if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
+						delete = true
+					}
+				case *pb.QueueElement_RefreshWant:
+					if req.GetDrainType() == pb.DrainRequest_JUST_WANTS {
+						delete = true
+					}
 				default:
 					delete = false
 				}

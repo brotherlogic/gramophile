@@ -460,6 +460,7 @@ message DrainRequest{
     enum DrainType {
         UNKNOWN = 0;
         JUST_RELEASE_DATES = 1;
+        JUST_WANTS = 2;
     }
     DrainType drain_type = 1;
 }
