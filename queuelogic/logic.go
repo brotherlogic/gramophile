@@ -446,7 +446,25 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		return nil, err
 	}
 	d := q.d.ForUser(user.GetUser())
-	return &pb.EnqueueResponse{}, q.ExecuteInternal(ctx, d, user, req.GetElement())
+	t := time.Now()
+	err = q.ExecuteInternal(ctx, d, user, req.GetElement())
+	if err == nil && time.Since(t) > time.Minute {
+		resp, err := q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+			User:  "brotherlogic",
+			Repo:  "gramophile",
+			Title: "Long running queue entry",
+			Body:  fmt.Sprintf("%v took %v to run", req.GetElement().GetRunDate(), time.Since(t)),
+		})
+		if err == nil {
+			q.gclient.AddLabel(ctx, &ghbpb.AddLabelRequest{
+				User:  "brotherlogic",
+				Repo:  "gramophile",
+				Id:    int32(resp.GetIssueId()),
+				Label: "investigate",
+			})
+		}
+	}
+	return &pb.EnqueueResponse{}, err
 }
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
