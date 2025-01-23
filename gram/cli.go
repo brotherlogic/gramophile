@@ -42,9 +42,17 @@ func buildContext() (context.Context, context.CancelFunc, error) {
 }
 
 func main() {
+	ctx, cancel, err := buildContext()
+	if err != nil {
+		fmt.Printf("Failure to read gramophile settings (they may not exist), falling back to no auth (%v)\n", err)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	}
+	defer cancel()
+
 	t := time.Now()
 	defer func() {
-		fmt.Printf("\nComplete in %v\n", time.Since(t))
+		val, _ := metadata.FromIncomingContext(ctx)
+		fmt.Printf("\nComplete in %v (%v)\n", time.Since(t), val["backend-time"])
 	}()
 	modules := []*CLIModule{GetLogin(),
 		GetGetUser(), GetGetSate(),
@@ -65,13 +73,6 @@ func main() {
 		GetScore(),
 		GetGetSats(),
 		GetWeight()}
-
-	ctx, cancel, err := buildContext()
-	if err != nil {
-		fmt.Printf("Failure to read gramophile settings (they may not exist), falling back to no auth (%v)\n", err)
-		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
-	}
-	defer cancel()
 
 	var commands []string
 	for _, module := range modules {

@@ -8,6 +8,8 @@ flag_management:
     - name: backend
       paths:
         - server/
+      ignore:
+        - server/server.go
       statuses:
         - type: project
           target: auto
