@@ -141,6 +141,10 @@ func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.U
 	}
 	resp, err = handler(ctx, req)
 	log.Printf("Processing Time: %v", time.Since(stime))
+
+	// Place the processing time into the context
+	metadata.AppendToOutgoingContext(ctx, "backend-time", fmt.Sprintf("%v", time.Since(stime).Milliseconds()))
+
 	delete(s.trackings, uuid)
 
 	return resp, err
