@@ -56,6 +56,19 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		t.Fatalf("Bad flush: %v", err)
 	}
 
+	// Run a notherfull update in order to update the other record
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:  "123",
+			Entry: &pb.QueueElement_RefreshCollection{},
+		},
+	})
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Bad flush: %v", err)
+	}
+
 	// Get the record
 	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
