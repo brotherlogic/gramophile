@@ -30,10 +30,10 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 124, InstanceId: 555, MasterId: 12345, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	/*err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 124, InstanceId: 555, MasterId: 12345, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
-	}
+	}*/
 
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 	di.AddCollectionRelease(&pbd.Release{Id: 123, InstanceId: 1234, MasterId: 12345, FolderId: 12, ReleaseDate: 12345678, Labels: []*pbd.Label{{Name: "AAA"}}})
@@ -69,8 +69,16 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		t.Fatalf("Bad flush: %v", err)
 	}
 
-	// Get the record
+	// Check that the colleciton is just one record
 	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 555}}})
+	if err == nil {
+		t.Fatalf("Returned non-collection record: %v", rec)
+	}
+
+	// Get the record
+	rec, err = s.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
 
