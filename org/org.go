@@ -12,6 +12,8 @@ import (
 
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -152,6 +154,12 @@ func getHash(placements []*pb.Placement) string {
 	return fmt.Sprintf("%x", sha1.Sum(bytes))
 }
 
+var (
+	recordCount = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_org_record_count",
+	}, []string{"org"})
+)
+
 func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Organisation, c *pb.OrganisationConfig) (*pb.OrganisationSnapshot, error) {
 	log.Printf("Building Snapshot for %v", org)
 	t1 := time.Now()
@@ -162,6 +170,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 	if err != nil {
 		return nil, fmt.Errorf("unable to load records: %w", err)
 	}
+	recordCount.With(prometheus.Labels{"org": org.GetName()}).Set(float64(len(allRecords)))
 
 	// First sort the records into order
 	var records []*sortingElement
