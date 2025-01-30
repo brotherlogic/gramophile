@@ -11,7 +11,7 @@ The items that need to be in place in order to make a release.
 1. Onboarding
    1. ~~gram login works~~
    1. gram login is covered in E2E tests
-1. Infrastructure
+1. Infrastructure (Blocked on brotherlogic/prod#)
    1. Support for per-user feature enabling - config rejection
    1. Support for user priveleges and escalation
    1. Prober / E2E testing in place
