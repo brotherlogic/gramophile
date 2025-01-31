@@ -108,7 +108,7 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_wantlists":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
+			Element: &pb.QueueElement{Priority: pb.QueueElement_PRIORITY_HIGH, Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_wants":
