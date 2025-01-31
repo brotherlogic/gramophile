@@ -214,7 +214,7 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 		switch entry.GetState() {
 		case pb.WantState_IN_TRANSIT, pb.WantState_WANTED, pb.WantState_PURCHASED:
 			countWanted++
-		case pb.WantState_PENDING, pb.WantState_WANT_UNKNOWN:
+		case pb.WantState_PENDING, pb.WantState_WANT_UNKNOWN, pb.WantState_RETIRED:
 			if countWanted < intendedWants {
 				qlog(ctx, "ENQUEUE %v", entry.GetId())
 				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
