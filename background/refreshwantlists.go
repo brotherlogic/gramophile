@@ -230,6 +230,7 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 					return false, err
 				}
 				updated = true
+				entry.State = pb.WantState_WANTED
 				countWanted++
 			}
 		}
