@@ -55,10 +55,9 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 	for _, r := range resp.GetRecords() {
 		if r.GetRecord().GetSaleId() > 0 {
 			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetRecord().GetSaleId())
-			if err != nil {
-				return nil, err
+			if err == nil {
+				r.SaleInfo = sale
 			}
-			r.SaleInfo = sale
 		}
 	}
 
