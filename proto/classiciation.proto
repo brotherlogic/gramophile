@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
