@@ -109,7 +109,7 @@ func executeOrg(ctx context.Context, args []string) error {
 				if placement.GetUnit() == int32(*slot) || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
-						return err
+						return fmt.Errorf("unable to place %v -> %w", placement.GetIid(), err)
 					}
 					fmt.Printf("%v. [%v-%v] %v\n", i, placement.GetSpace(), placement.GetUnit(), pstr)
 					totalWidth += placement.GetWidth()
