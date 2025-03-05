@@ -22,6 +22,9 @@ COPY queue_client/*.go ./queue_client
 RUN mkdir background
 COPY background/*.go ./background/
 
+RUN mkdir classification
+COPY classification/*.go ./classification/
+
 RUN mkdir config
 COPY config/*.go ./config/
 
