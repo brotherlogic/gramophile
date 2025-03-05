@@ -32,3 +32,23 @@ func ValidateBooleanSelector(s *pb.BooleanSelector) error {
 
 	return status.Errorf(codes.NotFound, "Boolean field %v not found in record proto", s.GetName())
 }
+
+func ApplyRule(rule *pb.ClassificationRule, record *pb.Record) bool {
+	switch rule.GetSelector().(type) {
+	case *pb.ClassificationRule_BooleanSelector:
+		return ApplyBooleanSelector(rule.GetBooleanSelector(), record)
+	}
+	return false
+}
+
+func ApplyBooleanSelector(b *pb.BooleanSelector, r *pb.Record) bool {
+	fields := r.ProtoReflect().Descriptor().Fields()
+	for i := 0; i < fields.Len(); i++ {
+		field := fields.Get(i)
+		if field.TextName() == b.GetName() {
+			return r.ProtoReflect().Get(field).Bool()
+		}
+	}
+
+	return false
+}
