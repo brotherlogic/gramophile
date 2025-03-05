@@ -7,11 +7,27 @@ option go_package = "github.com/brotherlogic/gramophile/proto";
 message BooleanSelector {
     string name = 1;
 }
+
+enum Comparator {
+    COMPARATOR_UNKNOWN = 0;
+    COMPARATOR_GREATER_THAN = 1;
+    COMPARATOR_GREATER_THAN_OR_EQUALS = 2;
+    COMPARATOR_LESS_THAN = 3;
+    COMPARATOR_LESS_THAN_OR_EQUALS = 4;
+}
+
+message IntSelector {
+    string name = 1;
+    int64 threshold = 2;
+    Comparator comp = 3;
+}
+
 message ClassificationRule {
     string rule_name = 1;
     int32 priority = 2;
     oneof selector {
         BooleanSelector boolean_selector = 3;
+        IntSelector int_selector = 4;
     }
 }
 
