@@ -2,6 +2,7 @@ package classification
 
 import (
 	"log"
+	"sort"
 	"strconv"
 	"time"
 
@@ -10,6 +11,27 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func Classify(r *pb.Record, config *pb.ClassificationConfig) string {
+	rules := config.GetClassifiers()
+	sort.SliceStable(rules, func(i, j int) bool {
+		return rules[i].GetPriority() < rules[j].GetPriority()
+	})
+	for _, ruleSet := range rules {
+		pass := true
+		for _, rule := range ruleSet.GetRules() {
+			if !ApplyRule(rule, r) {
+				pass = false
+				continue
+			}
+		}
+		if pass {
+			return ruleSet.GetClassification()
+		}
+	}
+
+	return ""
+}
 
 func validateDuration(d string) error {
 	_, err := time.ParseDuration(d)
@@ -108,7 +130,7 @@ func ApplyDateSinceSelector(d *pb.DateSinceSelector, r *pb.Record) bool {
 					}
 				}
 			}
-			log.Printf("HERE %v and %v", time.Now(), dt)
+			log.Printf("HERE %v and %v -> %v but %v", time.Now(), dt, du, time.Since(dt))
 			return time.Since(dt) > du
 		}
 	}
