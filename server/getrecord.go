@@ -5,6 +5,7 @@ import (
 	"log"
 	"sort"
 
+	"github.com/brotherlogic/gramophile/classification"
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
@@ -69,6 +70,11 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 			}
 			r.Updates = up
 		}
+	}
+
+	// Classifiy out the records
+	for _, r := range resp.GetRecords() {
+		r.Category = classification.Classify(r.GetRecord(), u.GetConfig().GetClassificationConfig())
 	}
 
 	return resp, err

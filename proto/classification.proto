@@ -30,7 +30,6 @@ message DateSinceSelector {
 
 message ClassificationRule {
     string rule_name = 1;
-    int32 priority = 2;
     oneof selector {
         BooleanSelector boolean_selector = 3;
         IntSelector int_selector = 4;
@@ -40,8 +39,9 @@ message ClassificationRule {
 
 message Classifier {
     string classifier_name = 1;
-    repeated ClassificationRule rule = 2;
+    repeated ClassificationRule rules = 2;
     string classification = 3;
+    int32 priority = 4;
 }
 
 message ClassificationConfig {

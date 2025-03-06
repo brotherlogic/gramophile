@@ -564,6 +564,7 @@ message RecordResponse {
     Record record = 1;
     repeated RecordUpdate updates = 2;
     SaleInfo sale_info = 3;
+    string category = 4;
 }
 
 message GetRecordWithId {
