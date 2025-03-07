@@ -1,10 +1,13 @@
 package classification
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -53,7 +56,7 @@ var validationTestCases = []struct {
 
 func TestClassificationValidation(t *testing.T) {
 	for _, tc := range validationTestCases {
-		err := ValidateRule(tc.rule)
+		err := ValidateRule(tc.rule, &pb.OrganisationConfig{})
 		if status.Code(err) != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v (%v)", tc.name, tc.result, status.Code(err), err)
 		}
@@ -102,7 +105,7 @@ var applicationTestCases = []struct {
 
 func TestClassificationApplication(t *testing.T) {
 	for _, tc := range applicationTestCases {
-		res := ApplyRule(tc.rule, tc.record)
+		res := ApplyRule(context.Background(), tc.rule, tc.record, db.NewTestDB(pstore_client.GetTestClient()), 12)
 		if res != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v", tc.name, tc.result, res)
 		}
