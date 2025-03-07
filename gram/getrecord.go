@@ -119,11 +119,12 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("Median Price:  $%.2f\n", float32(r.GetRecord().GetMedianPrice().GetValue())/100.0)
 			fmt.Printf("Low Price:     $%.2f\n", float32(r.GetRecord().GetLowPrice().GetValue())/100.0)
 			fmt.Printf("Median Reached on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeAtMedian()))
-						fmt.Printf("Low Reached on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeAtLow()))
+			fmt.Printf("Low Reached on %v\n", time.Unix(0, r.GetSaleInfo().GetTimeAtLow()))
 			fmt.Printf("Last Updated on %v\n", time.Unix(0, r.GetRecord().GetLastUpdateTime()))
 			fmt.Printf("Stats Updated on %v\n", time.Unix(0, r.GetRecord().GetLastStatRefresh()))
 			fmt.Printf("Sale Updated on %v\n", time.Unix(0, r.GetSaleInfo().GetLastPriceUpdate()))
 			fmt.Printf("ERD Updated on %v\n", time.Unix(0, r.GetRecord().GetLastEarliestReleaseUpdate()))
+			fmt.Printf("Classified to %v\n", r.GetCategory())
 
 			if debug {
 				fmt.Printf("%v\n", r.GetRecord())
