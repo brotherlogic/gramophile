@@ -1,10 +1,13 @@
 package classification
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 var classificationConfig = &pb.ClassificationConfig{
@@ -43,7 +46,7 @@ var classificationTestCases = []struct {
 
 func TestClassification(t *testing.T) {
 	for _, tc := range classificationTestCases {
-		classification := Classify(tc.record, classificationConfig)
+		classification := Classify(context.Background(), tc.record, classificationConfig, &pb.OrganisationConfig{}, db.NewTestDB(pstore_client.GetTestClient()), 12)
 		if classification != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v", tc.name, tc.result, classification)
 		}

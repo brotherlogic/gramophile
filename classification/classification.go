@@ -1,18 +1,20 @@
 package classification
 
 import (
+	"context"
 	"log"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Classify(r *pb.Record, config *pb.ClassificationConfig) string {
+func Classify(ctx context.Context, r *pb.Record, config *pb.ClassificationConfig, org *pb.OrganisationConfig, db db.Database, uid int32) string {
 	rules := config.GetClassifiers()
 	sort.SliceStable(rules, func(i, j int) bool {
 		return rules[i].GetPriority() < rules[j].GetPriority()
@@ -20,7 +22,7 @@ func Classify(r *pb.Record, config *pb.ClassificationConfig) string {
 	for _, ruleSet := range rules {
 		pass := true
 		for _, rule := range ruleSet.GetRules() {
-			if !ApplyRule(rule, r) {
+			if !ApplyRule(ctx, rule, r, db, uid) {
 				pass = false
 				continue
 			}
@@ -50,7 +52,17 @@ func validateDuration(d string) error {
 	return nil
 }
 
-func ValidateRule(r *pb.ClassificationRule) error {
+func validateLocation(l string, org *pb.OrganisationConfig) error {
+	for _, o := range org.GetOrganisations() {
+		if o.GetName() == l {
+			return nil
+		}
+	}
+
+	return status.Errorf(codes.NotFound, "Unable to find location called %v", l)
+}
+
+func ValidateRule(r *pb.ClassificationRule, org *pb.OrganisationConfig) error {
 
 	switch r.GetSelector().(type) {
 	case *pb.ClassificationRule_BooleanSelector:
@@ -63,6 +75,8 @@ func ValidateRule(r *pb.ClassificationRule) error {
 		} else {
 			return err
 		}
+	case *pb.ClassificationRule_LocationSelector:
+		return validateLocation(r.GetLocationSelector().GetLocation(), org)
 	}
 
 	return status.Errorf(codes.NotFound, "Validator for %T not found", r.GetSelector())
@@ -84,7 +98,7 @@ func ValidateSelector(s string, ty protoreflect.Kind) error {
 	return status.Errorf(codes.NotFound, "Boolean field %v not found in record proto", s)
 }
 
-func ApplyRule(rule *pb.ClassificationRule, record *pb.Record) bool {
+func ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Record, db db.Database, uid int32) bool {
 	switch rule.GetSelector().(type) {
 	case *pb.ClassificationRule_BooleanSelector:
 		return ApplyBooleanSelector(rule.GetBooleanSelector(), record)
@@ -92,7 +106,24 @@ func ApplyRule(rule *pb.ClassificationRule, record *pb.Record) bool {
 		return ApplyIntSelector(rule.GetIntSelector(), record)
 	case *pb.ClassificationRule_DateSinceSelector:
 		return ApplyDateSinceSelector(rule.GetDateSinceSelector(), record)
+	case *pb.ClassificationRule_LocationSelector:
+		return ApplyLocationSelector(ctx, rule.GetLocationSelector().GetLocation(), record, db, uid)
 	}
+	return false
+}
+
+func ApplyLocationSelector(ctx context.Context, l string, record *pb.Record, db db.Database, userid int32) bool {
+	org, err := db.GetLatestSnapshot(ctx, userid, l)
+	if err != nil {
+		log.Printf("Unable to get latest snapshot for %v -> %v", l, err)
+	}
+
+	for _, placement := range org.GetPlacements() {
+		if placement.GetIid() == record.GetRelease().GetInstanceId() {
+			return true
+		}
+	}
+
 	return false
 }
 
