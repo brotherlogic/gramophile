@@ -6,9 +6,25 @@ import (
 	"time"
 
 	"github.com/brotherlogic/gramophile/db"
+
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
 	pstore_client "github.com/brotherlogic/pstore/client"
 )
+
+var orgConfig = &pb.OrganisationConfig{
+	Organisations: []*pb.Organisation{
+		{
+			Name: "Listening Pile",
+			Foldersets: []*pb.FolderSet{
+				{
+					Folder: 123,
+				},
+			},
+		},
+	},
+}
 
 var classificationConfig = &pb.ClassificationConfig{
 	Classifiers: []*pb.Classifier{
@@ -61,7 +77,7 @@ var classificationTestCases = []struct {
 	},
 	{
 		name:   "Needs Clean and Ready To Clean",
-		record: &pb.Record{LastCleanTime: time.Now().Add(-time.Hour * 24 * 365 * 5).UnixNano()},
+		record: &pb.Record{LastCleanTime: time.Now().Add(-time.Hour * 24 * 365 * 5).UnixNano(), Release: &pbd.Release{FolderId: 123}},
 		result: "deep_cleaning_pile",
 	},
 }
