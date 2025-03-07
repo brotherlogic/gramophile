@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/gramophile/db"
+	"github.com/brotherlogic/gramophile/org"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -84,7 +85,31 @@ var classificationTestCases = []struct {
 
 func TestClassification(t *testing.T) {
 	for _, tc := range classificationTestCases {
-		classification := Classify(context.Background(), tc.record, classificationConfig, &pb.OrganisationConfig{}, db.NewTestDB(pstore_client.GetTestClient()), 12)
+		db := db.NewTestDB(pstore_client.GetTestClient())
+		lpOrg := &pb.Organisation{
+			Name: "Listening Pile",
+			Foldersets: []*pb.FolderSet{
+				{
+					Folder: 123,
+				},
+			},
+		}
+		orgConfig := &pb.OrganisationConfig{
+			Organisations: []*pb.Organisation{
+				lpOrg,
+			},
+		}
+		user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 12}}
+		db.SaveRecord(context.Background(), 12, tc.record)
+
+		o := org.GetOrg(db)
+		snap, err := o.BuildSnapshot(context.Background(), user, lpOrg, orgConfig)
+		if err != nil {
+			t.Fatalf("Bad org: %v", err)
+		}
+		db.SaveSnapshot(context.Background(), user, "Listening Pile", snap)
+
+		classification := Classify(context.Background(), tc.record, classificationConfig, orgConfig, db, 12)
 		if classification != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v", tc.name, tc.result, classification)
 		}

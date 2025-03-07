@@ -118,6 +118,7 @@ func ApplyLocationSelector(ctx context.Context, l string, record *pb.Record, db 
 		log.Printf("Unable to get latest snapshot for %v -> %v", l, err)
 	}
 
+	log.Printf("Placements: %v", org.GetPlacements())
 	for _, placement := range org.GetPlacements() {
 		if placement.GetIid() == record.GetRelease().GetInstanceId() {
 			return true
