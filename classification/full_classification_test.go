@@ -15,11 +15,28 @@ var classificationConfig = &pb.ClassificationConfig{
 		{
 			ClassifierName: "cleaning pile",
 			Classification: "cleaning_pile",
+			Priority:       2,
+			Rules: []*pb.ClassificationRule{
+				{
+					Selector: &pb.ClassificationRule_DateSinceSelector{
+						DateSinceSelector: &pb.DateSinceSelector{Name: "last_clean_time", Duration: "3y"},
+					},
+				},
+			},
+		},
+		{
+			ClassifierName: "deep_cleaning pile",
+			Classification: "deep_cleaning_pile",
 			Priority:       1,
 			Rules: []*pb.ClassificationRule{
 				{
 					Selector: &pb.ClassificationRule_DateSinceSelector{
 						DateSinceSelector: &pb.DateSinceSelector{Name: "last_clean_time", Duration: "3y"},
+					},
+				},
+				{
+					Selector: &pb.ClassificationRule_LocationSelector{
+						LocationSelector: &pb.LocationSelector{Location: "Listening Pile"},
 					},
 				},
 			},
@@ -41,6 +58,11 @@ var classificationTestCases = []struct {
 		name:   "Does not need Clean",
 		record: &pb.Record{LastCleanTime: time.Now().UnixNano()},
 		result: "",
+	},
+	{
+		name:   "Needs Clean and Ready To Clean",
+		record: &pb.Record{LastCleanTime: time.Now().Add(-time.Hour * 24 * 365 * 5).UnixNano()},
+		result: "deep_cleaning_pile",
 	},
 }
 
