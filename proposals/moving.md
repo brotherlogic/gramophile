@@ -34,7 +34,7 @@ the move.
 We move based on format. We can keep formats limited, but we would like to
 name them. We have a basic set:
 
-```
+```text
 contains 12 || contains LP -> 12 Inch
 contains 7 -> 7 Inch
 contains CD -> CD
@@ -56,7 +56,7 @@ fits for your collection.
 For simplicity size is set on a record and assumed to be regular from the outset. Thus
 size is expressed as an enum:
 
-```
+```text
 SIZE_REGULAR
 SIZE_OVERSISED
 ```
@@ -72,7 +72,7 @@ same manner as classification rules.
 
 The movement rules say where a record should be moved given the classification, e.g.:
 
-```
+```text
 to_be_cleaned && 12_Inch -> 12 Inch Cleaning Pile
 ```
 
@@ -85,6 +85,7 @@ rules are applied. We move solely on the basic of classification changes.
 
 ## Tasks
 
+1. Add oversize proto and logic to record
 1. Write format logic proto
 1. Write logic to postpend internal movement rules on config update
 1. Write logic proto to capture overall movement
