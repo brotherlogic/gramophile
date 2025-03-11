@@ -77,6 +77,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessSetOversize(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
@@ -504,6 +509,20 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 	r.Arrived = i.GetArrived()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+}
+
+func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	log.Printf("Processing Set Oversize")
+
+	switch i.GetSetOversize() {
+	case pb.Intent_SET:
+		r.IsOversized = true
+	case pb.Intent_UNSET:
+		r.IsOversized = false
+	}
+
+	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+
 }
 
 func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {

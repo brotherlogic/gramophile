@@ -206,6 +206,8 @@ message Record {
    repeated int64 mint_versions = 25;
 
    repeated Score score_history = 26;
+
+   bool is_oversized = 27;
 }
 
 enum ListenStatus {
@@ -276,6 +278,13 @@ message Intent {
 
     int64 intent_time = 11;
     repeated int64 mint_ids = 12;
+
+    enum SetOversize {
+        UNKNOWN = 0;
+        SET = 1;
+        UNSET = 2;
+    }
+    SetOversize set_oversize = 15;
 }
 
 message Queues {
