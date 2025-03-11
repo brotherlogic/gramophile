@@ -5,6 +5,7 @@ package gramophile;
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
 import "classification.proto";
+import "moving.proto";
 import "organisation.proto";
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
@@ -142,6 +143,7 @@ message GramophileConfig {
     WantslistConfig wants_list_config = 19;
     ScoreConfig score_config = 20;
     ClassificationConfig classification_config = 21;
+    MovingConfig moving_config = 22;
 
     Create create_folders = 12;
     Create create_moves = 13;
