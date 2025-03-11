@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message FormatSelector {
+    string format = 1;
+    string description = 2;
+    string contains = 3;
+}
+
+message FormatClassifier {
+    repeated FormatSelector formats = 1;
+    string default_format = 2;
+}
+
+message MovingConfig {
+    FormatClassifier format_classifier = 1;
+}
