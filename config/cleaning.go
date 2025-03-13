@@ -16,6 +16,10 @@ var (
 
 type cleaning struct{}
 
+func (*cleaning) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*cleaning) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		return []*pb.FolderMove{

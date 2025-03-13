@@ -16,6 +16,10 @@ var (
 
 type weight struct{}
 
+func (*weight) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*weight) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }

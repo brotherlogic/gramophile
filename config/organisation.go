@@ -12,6 +12,10 @@ import (
 
 type org struct{}
 
+func (*org) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*org) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }

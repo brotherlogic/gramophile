@@ -16,6 +16,10 @@ var (
 
 type arrived struct{}
 
+func (*arrived) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*arrived) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	if c.GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
 		return []*pb.FolderMove{
