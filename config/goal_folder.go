@@ -16,6 +16,10 @@ var (
 
 type goalFolder struct{}
 
+func (*goalFolder) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*goalFolder) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }

@@ -16,6 +16,10 @@ var (
 
 type sales struct{}
 
+func (*sales) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	if c.GetSaleConfig().GetMandate() != pb.Mandate_NONE {
 		return []*pb.FolderMove{

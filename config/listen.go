@@ -16,6 +16,10 @@ var (
 
 type listen struct{}
 
+func (*listen) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
+	return c
+}
+
 func (*listen) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
