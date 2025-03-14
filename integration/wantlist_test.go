@@ -953,7 +953,7 @@ func TestBuildMintUplWantlist(t *testing.T) {
 	}
 }
 
-func TestWantlistDisabledOnListning(t *testing.T) {
+func TestWantlistDisabledOnListening(t *testing.T) {
 	ctx := getTestContext(123)
 
 	pstore := pstore_client.GetTestClient()
@@ -980,6 +980,7 @@ func TestWantlistDisabledOnListning(t *testing.T) {
 				Organisations: []*pb.Organisation{
 					{
 						Name:       "Test",
+						Use:        pb.OrganisationUse_ORG_USE_LISTENING,
 						Foldersets: []*pb.FolderSet{{Name: "Listening Pile", Folder: 12}},
 					},
 				},
@@ -988,9 +989,12 @@ func TestWantlistDisabledOnListning(t *testing.T) {
 			WantsConfig:     &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	// Validate that the org has records in it
-	_, err = s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "Test"})
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "Test"})
 	if err != nil {
 		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(org.GetOrg().GetPlacements()) != 3 {
+		t.Fatalf("Records were not placed in the org: %v", org)
 	}
 
 	// Create a want list
