@@ -7,16 +7,17 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
+	pb "github.com/brotherlogic/gramophile/proto"
 
 	dpb "github.com/brotherlogic/discogs/proto"
 	pbd "github.com/brotherlogic/discogs/proto"
 
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func GetTestBackgroundRunner() *BackgroundRunner {
 	return &BackgroundRunner{
-		db: db.NewTestDB(rstore_client.GetTestClient()),
+		db: db.NewTestDB(pstore_client.GetTestClient()),
 	}
 }
 
@@ -95,10 +96,39 @@ func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 	}
 
 	if record.GetLastCleanTime() != ti.Unix() {
-		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(record.GetLastCleanTime(), 0), ti)
+		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(0, record.GetLastCleanTime()), ti)
 	}
 
 	if len(record.GetRelease().GetNotes()) > 0 {
 		t.Errorf("Effective hanging notes here: %v", record.GetRelease())
+	}
+}
+
+func TestGetCollectionPage_NotClobberingDateAdded(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	d := &discogs.TestDiscogsClient{UserId: 123}
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Labels: []*pbd.Label{{Name: "testing"}}})
+	b.db.SaveRecord(context.Background(), 123, &pb.Record{Release: &pbd.Release{Id: 1, DateAdded: 1234, Labels: []*pbd.Label{{Name: "testing"}}, InstanceId: 100}})
+
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	if err != nil {
+		t.Errorf("Bad collection pull: %v", err)
+	}
+
+	record, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err != nil {
+		t.Errorf("Bad get: %v", err)
+	}
+
+	if record.GetRelease().GetRating() != 2 {
+		t.Errorf("Stored record is not quite right: %v", record)
+	}
+
+	if record.GetRelease().GetDateAdded() != 1234 {
+		t.Errorf("Date has been clobbered: %v", record)
+	}
+
+	if len(record.GetRelease().GetLabels()) != 1 {
+		t.Errorf("Overadded the labels: %v", record)
 	}
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
+	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
@@ -27,11 +29,6 @@ func executeWant(ctx context.Context, args []string) error {
 	}
 	client := pb.NewGramophileEServiceClient(conn)
 
-	wid, err := strconv.ParseInt(args[1], 10, 64)
-	if err != nil {
-		return err
-	}
-
 	// This is just a list
 	if len(args) == 0 {
 		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{})
@@ -40,8 +37,23 @@ func executeWant(ctx context.Context, args []string) error {
 		}
 
 		for i, want := range wants.GetWants() {
-			fmt.Printf("%v. %v\n", i, want.GetId())
+			fmt.Printf("%v. %v [%v]\n", i, want.GetWant().GetId(), want.GetWant().GetState())
+
+			sort.SliceStable(want.Updates, func(i, j int) bool {
+				return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
+			})
+
+			for _, update := range want.GetUpdates() {
+				fmt.Printf("  %v - %v\n", time.Unix(0, update.GetDate()), update)
+			}
 		}
+
+		return nil
+	}
+
+	wid, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		return err
 	}
 
 	switch args[0] {
@@ -50,11 +62,26 @@ func executeWant(ctx context.Context, args []string) error {
 			WantId: wid,
 		})
 		return err
-	case "delete":
-		_, err = client.DeleteWant(ctx, &pb.DeleteWantRequest{
-			WantId: wid,
+	case "get":
+		id, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return err
+		}
+		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{ReleaseId: id, IncludeUpdates: true})
+		if err != nil {
+			return err
+		}
+		want := wants.GetWants()[0]
+		fmt.Printf("%v [%v]\n", want.GetWant().GetId(), want.GetWant().GetState())
+
+		sort.SliceStable(want.Updates, func(i, j int) bool {
+			return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
 		})
-		return err
+
+		for _, update := range want.GetUpdates() {
+			fmt.Printf("  %v - %v\n", time.Unix(0, update.GetDate()), update)
+		}
+		return nil
 	default:
 		return status.Errorf(codes.InvalidArgument, "%v is not a valid command for handling wants", args[0])
 	}

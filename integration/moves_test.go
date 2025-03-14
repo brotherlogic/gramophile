@@ -10,7 +10,7 @@ import (
 	"github.com/brotherlogic/gramophile/server"
 
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -19,8 +19,8 @@ import (
 func TestMoveApplied(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{
 			&pbd.Folder{Name: "Listening Pile", Id: 123},
@@ -32,13 +32,13 @@ func TestMoveApplied(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	// Add a record that needs to be moved
 	d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{FolderId: 125, InstanceId: 1234},
-		Arrived: time.Now().Unix(),
+		Arrived: time.Now().UnixNano(),
 	})
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -61,16 +61,16 @@ func TestMoveApplied(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecord())
+	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
 	}
 }
 
 func TestRandomMoveHappensPostIntent(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{
 			&pbd.Folder{Name: "Listening Pile", Id: 123},
@@ -82,7 +82,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	// Add a record that needs to be moved
@@ -114,7 +114,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: 1234,
 		Intent: &pb.Intent{
-			Arrived: time.Now().Unix(),
+			Arrived: time.Now().UnixNano(),
 		},
 	})
 	if err != nil {
@@ -131,12 +131,12 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecord())
+	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	found := false
-	for _, move := range r.GetRecord().GetUpdates() {
+	for _, move := range r.GetRecords()[0].GetUpdates() {
 		for _, exp := range move.GetExplanation() {
 			if exp == "Moved to Listening Pile following rule test-move" {
 				found = true
@@ -145,6 +145,6 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 
 	if !found {
-		t.Errorf("Did not find update: %v", r.GetRecord().GetUpdates())
+		t.Errorf("Did not find update: %v", r.GetRecords()[0].GetUpdates())
 	}
 }

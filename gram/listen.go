@@ -36,7 +36,9 @@ func executeListen(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v\n", r.GetRecord().GetRelease().GetInstanceId())
+		for _, record := range r.GetRecords() {
+			fmt.Printf("%v\n", record.GetRecord().GetRelease().GetInstanceId())
+		}
 		return nil
 	}
 
@@ -52,7 +54,9 @@ func executeListen(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v\n", r.GetRecord().GetRelease().GetInstanceId())
+		for _, record := range r.GetRecords() {
+			fmt.Printf("%v\n", record.GetRecord().GetRelease().GetInstanceId())
+		}
 		return nil
 	}
 
@@ -74,7 +78,7 @@ func executeListen(ctx context.Context, args []string) error {
 				return err
 			}
 			if tu > 5 {
-				t = time.Unix(tu, 0)
+				t = time.Unix(0, tu)
 			} else {
 				newScore = int32(tu)
 			}

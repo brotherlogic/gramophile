@@ -1,7 +1,10 @@
 package server
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"log"
+	"sort"
 	"testing"
 	"time"
 
@@ -11,7 +14,7 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -25,8 +28,8 @@ func abs(a float32) float32 {
 func TestLabelOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
@@ -44,7 +47,7 @@ func TestLabelOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -109,8 +112,8 @@ func TestLabelOrdering(t *testing.T) {
 func TestReleaseDateOrdering(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, ReleaseDate: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
 	if err != nil {
@@ -128,7 +131,7 @@ func TestReleaseDateOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -190,11 +193,118 @@ func TestReleaseDateOrdering(t *testing.T) {
 	}
 }
 
+func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
+		{Id: 5, Name: "Width"},
+	}}
+	err := d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1234, ReleaseDate: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Catno: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1235, ReleaseDate: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Catno: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Width: 5, Release: &pbd.Release{InstanceId: 1236, ReleaseDate: 1236, FolderId: 13, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "testing",
+						Density: pb.Density_WIDTH,
+						Grouping: &pb.Grouping{
+							Type: pb.GroupingType_GROUPING_GROUP,
+						},
+						Spill: &pb.Spill{
+							Type:      pb.GroupSpill_SPILL_BREAK_ORDERING,
+							LookAhead: -1,
+						},
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							},
+							{
+								Name:   "Testing2",
+								Folder: 13,
+								Index:  2,
+								Sort:   pb.Sort_RELEASE_YEAR,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 10,
+							},
+							{
+								Name:  "Second Shelves",
+								Units: 1,
+								Width: 100,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	bp := false
+	for _, o := range org.GetSnapshot().GetPlacements() {
+		if o.Index == 1 && (o.Iid != 1234 || o.GetSpace() == "Second Shelves") {
+			bp = true
+		}
+		if o.Index == 2 && (o.Iid != 1235 || o.GetSpace() == "Second Shelves") {
+			bp = true
+		}
+		if o.Index == 3 && (o.Iid != 1236 || o.GetSpace() == "Main Shelves") {
+			bp = true
+		}
+	}
+
+	if bp {
+		t.Errorf("Bad placement")
+		for _, o := range org.Snapshot.GetPlacements() {
+			t.Errorf("%v. %v -> %v", o.Index, o.Iid, o)
+		}
+	}
+}
+
 func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -232,7 +342,7 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -323,8 +433,8 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -362,7 +472,7 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -453,8 +563,8 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -496,7 +606,7 @@ func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -588,8 +698,8 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 	log.Printf("RUNNING")
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -627,7 +737,7 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -718,13 +828,18 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 func TestLabelOrdering_GroupingFail(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
 	}}
-	err := d.SaveRecord(ctx, 123, &pb.Record{
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   50,
 		Sleeve:  "Madeup",
 		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB", Catno: "1"}}}})
@@ -739,11 +854,7 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -829,13 +940,19 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
 	}}
-	err := d.SaveRecord(ctx, 123, &pb.Record{
+
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   10,
 		Sleeve:  "Madeup",
 		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
@@ -864,11 +981,7 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -965,8 +1078,8 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
@@ -1004,7 +1117,7 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1101,8 +1214,8 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 func TestLabelOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
 	if err != nil {
@@ -1120,23 +1233,23 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			OrganisationConfig: &pb.OrganisationConfig{
+				LabelRanking: []*pb.LabelWeight{
+					{
+						Weight:  0.8,
+						LabelId: 2,
+					},
+				},
 				Organisations: []*pb.Organisation{
 					{
 						Name: "testing",
 						Grouping: &pb.Grouping{
 							Type: pb.GroupingType_GROUPING_NO_GROUPING,
-							LabelWeights: []*pb.LabelWeight{
-								{
-									Weight:  0.8,
-									LabelId: 2,
-								},
-							},
 						},
 						Foldersets: []*pb.FolderSet{
 							{
@@ -1191,11 +1304,152 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	}
 }
 
+func TestSnapshotDiff(t *testing.T) {
+	type test struct {
+		start *pb.OrganisationSnapshot
+		end   *pb.OrganisationSnapshot
+	}
+
+	tests := []test{
+		{
+			start: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+			end: &pb.OrganisationSnapshot{
+				Placements: []*pb.Placement{
+					{
+						Iid:   1234,
+						Index: 2,
+						Space: "Shelves",
+						Unit:  1,
+					},
+					{
+						Iid:   1235,
+						Index: 1,
+						Space: "Shelves",
+						Unit:  1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		diff := getSnapshotDiff(test.start, test.end)
+
+		nsnap := applyMoves(test.start, diff)
+		if tgetHash(test.end.GetPlacements()) != tgetHash(nsnap.GetPlacements()) {
+			t.Errorf("Moves failed: \nstart    %v\nexpected %v\ngot      %v\nmoves: %v\n %v vs %v", test.start, test.end, nsnap, diff, tgetHash(test.end.GetPlacements()), tgetHash(nsnap.GetPlacements()))
+		}
+	}
+}
+
+func tgetHash(placements []*pb.Placement) string {
+	sort.SliceStable(placements, func(i, j int) bool {
+		return placements[i].GetIndex() < placements[j].GetIndex()
+	})
+
+	val := &pb.OrganisationSnapshot{Placements: placements}
+	bytes, _ := proto.Marshal(val)
+	log.Printf("HASH %v -> %x", val, (sha1.Sum(bytes)))
+	return fmt.Sprintf("%x", sha1.Sum(bytes))
+}
+
+func TestSetSnapshotName(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "testing",
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:  "Main Shelves",
+								Units: 1,
+								Width: 100,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{OrgName: "testing", Name: "atestname", Date: org.GetSnapshot().GetDate()})
+	if err != nil {
+		t.Errorf("Unable to set org snapshot: %v", err)
+	}
+
+	org2, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing", Name: "atestname"})
+	if err != nil {
+		t.Errorf("Unable to get org from name: %v", err)
+	}
+
+	if org.GetSnapshot().GetHash() != org2.GetSnapshot().GetHash() {
+		t.Errorf("Expected was not received\n%v\n%v", org2, org)
+	}
+
+}
+
 func TestArtistOrdering_WithOverrides(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Id: 1, Name: "AAA"}}}})
 	if err != nil {
@@ -1213,23 +1467,23 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			OrganisationConfig: &pb.OrganisationConfig{
+				LabelRanking: []*pb.LabelWeight{
+					{
+						Weight:  0.8,
+						LabelId: 2,
+					},
+				},
 				Organisations: []*pb.Organisation{
 					{
 						Name: "testing",
 						Grouping: &pb.Grouping{
 							Type: pb.GroupingType_GROUPING_NO_GROUPING,
-							LabelWeights: []*pb.LabelWeight{
-								{
-									Weight:  0.8,
-									LabelId: 2,
-								},
-							},
 						},
 						Foldersets: []*pb.FolderSet{
 							{
@@ -1287,8 +1541,8 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 func TestWidths(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Width:   2.4,
@@ -1310,7 +1564,7 @@ func TestWidths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1368,11 +1622,93 @@ func TestWidths(t *testing.T) {
 	}
 }
 
+func TestWidths_MissingWidth(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Width"}, {Id: 5, Name: "Sleeve"}}}
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Width:   2.5,
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Sleeve:  "TestSleeve",
+		Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SleeveConfig: &pb.SleeveConfig{
+				AllowedSleeves: []*pb.Sleeve{{Name: "TestSleeve", WidthMultiplier: 1.0}},
+				Mandate:        pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{
+				Mandate: pb.Mandate_REQUIRED,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:                 "testing",
+						Density:              pb.Density_WIDTH,
+						MissingWidthHandling: pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE,
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "testing",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							}},
+						Spaces: []*pb.Space{
+							{
+								Name:   "Main Shelves",
+								Units:  2,
+								Width:  100,
+								Layout: pb.Layout_LOOSE,
+							}},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+
+	if len(org.GetSnapshot().GetPlacements()) != 2 {
+		t.Fatalf("Missing record in snapshot: %v", org)
+	}
+
+	for _, o := range org.GetSnapshot().GetPlacements() {
+		if o.GetWidth() != 2.5 {
+			t.Errorf("Width should be 2.5: %v", o)
+		}
+	}
+}
+
 func TestGetSnapshotHash(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
@@ -1390,7 +1726,7 @@ func TestGetSnapshotHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
@@ -1497,133 +1833,4 @@ func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.Organis
 		nPlacements[i-1] = indexToRecord[i]
 	}
 	return &pb.OrganisationSnapshot{Placements: nPlacements}
-}
-
-func TestSnapshotDiff(t *testing.T) {
-	type test struct {
-		start *pb.OrganisationSnapshot
-		end   *pb.OrganisationSnapshot
-	}
-
-	tests := []test{
-		{
-			start: &pb.OrganisationSnapshot{
-				Placements: []*pb.Placement{
-					{
-						Iid:   1234,
-						Index: 1,
-						Space: "Shelves",
-						Unit:  1,
-					},
-					{
-						Iid:   1235,
-						Index: 2,
-						Space: "Shelves",
-						Unit:  1,
-					},
-				},
-			},
-			end: &pb.OrganisationSnapshot{
-				Placements: []*pb.Placement{
-					{
-						Iid:   1234,
-						Index: 2,
-						Space: "Shelves",
-						Unit:  1,
-					},
-					{
-						Iid:   1235,
-						Index: 1,
-						Space: "Shelves",
-						Unit:  1,
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		diff := getSnapshotDiff(test.start, test.end)
-
-		nsnap := applyMoves(test.start, diff)
-		if getHash(test.end.GetPlacements()) != getHash(nsnap.GetPlacements()) {
-			t.Errorf("Moves failed: \nstart    %v\nexpected %v\ngot      %v\nmoves: %v\n %v vs %v", test.start, test.end, nsnap, diff, getHash(test.end.GetPlacements()), getHash(nsnap.GetPlacements()))
-		}
-	}
-}
-
-func TestSetSnapshotName(t *testing.T) {
-	ctx := getTestContext(123)
-
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
-	di := &discogs.TestDiscogsClient{}
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "CCC"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "BBB"}}}})
-	if err != nil {
-		t.Fatalf("Can't init save record: %v", err)
-	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	s := Server{d: d, di: di, qc: qc}
-
-	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
-		Config: &pb.GramophileConfig{
-			OrganisationConfig: &pb.OrganisationConfig{
-				Organisations: []*pb.Organisation{
-					{
-						Name: "testing",
-						Foldersets: []*pb.FolderSet{
-							{
-								Name:   "testing",
-								Folder: 12,
-								Index:  1,
-								Sort:   pb.Sort_LABEL_CATNO,
-							}},
-						Spaces: []*pb.Space{
-							{
-								Name:  "Main Shelves",
-								Units: 1,
-								Width: 100,
-							}},
-					},
-				},
-			},
-		},
-	})
-
-	if err != nil {
-		t.Fatalf("Unable to set config: %v", err)
-	}
-
-	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing"})
-	if err != nil {
-		t.Fatalf("Unable to get org: %v", err)
-	}
-
-	_, err = s.SetOrgSnapshot(ctx, &pb.SetOrgSnapshotRequest{OrgName: "testing", Name: "atestname", Date: org.GetSnapshot().GetDate()})
-	if err != nil {
-		t.Errorf("Unable to set org snapshot: %v", err)
-	}
-
-	org2, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "testing", Name: "atestname"})
-	if err != nil {
-		t.Errorf("Unable to get org from name: %v", err)
-	}
-
-	if getHash(org.GetSnapshot().GetPlacements()) != getHash(org2.GetSnapshot().GetPlacements()) {
-		t.Errorf("Expected was not received\n%v\n%v", org2, org)
-	}
-
 }

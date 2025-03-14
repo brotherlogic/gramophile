@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.Intent) error {
@@ -42,6 +42,14 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 	return nil
 }
 
+func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
+	if config.GetBottomRange() >= config.GetTopRange() {
+		return score
+	}
+	rangeWidth := config.GetTopRange() - config.GetBottomRange()
+	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
+}
+
 func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.SetIntentResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
@@ -49,43 +57,65 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	}
 
 	// Check that this record at least exists
-	_, err = s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
+	r, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
 		return nil, fmt.Errorf("error getting record: %w", err)
 	}
 
-	exint, err := s.d.GetIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			exint = &pb.Intent{}
-		} else {
-			return nil, fmt.Errorf("error getting intents: %w", err)
-		}
+	if req.GetIntent().GetKeep() == pb.KeepStatus_MINT_UP_KEEP && len(req.GetIntent().GetMintIds()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "You need to specify mint ids for this keep")
 	}
 
-	// Merge in the proto def
-	proto.Merge(exint, req.GetIntent())
-
 	// Validate that the intent is legit
-	err = s.validateIntent(ctx, user, exint)
+	err = s.validateIntent(ctx, user, req.GetIntent())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Saving intent: %v -> %v", exint, user)
+	// If this is for a backdated score, process it and exit without saving the intent
+	if req.GetIntent().GetNewScoreTime() > 0 {
+		log.Printf("Fast write of new score")
+		discogsScore := mapDiscogsScore(req.GetIntent().GetNewScore(), user.GetConfig().GetScoreConfig())
+		enumVal := req.GetIntent().GetNewScoreListen()
+		if enumVal == pb.ListenStatus_LISTEN_STATUS_UNKNOWN {
+			enumVal = pb.ListenStatus_LISTEN_STATUS_NO_LISTEN // We default to no listen
+		}
+		r.ScoreHistory = append(r.ScoreHistory, &pb.Score{
+			ScoreValue:                req.GetIntent().GetNewScore(),
+			ScoreMappedTo:             discogsScore,
+			ListenStatus:              enumVal,
+			AppliedToDiscogsTimestamp: req.GetIntent().GetNewScoreTime(),
+		})
+		return &pb.SetIntentResponse{}, s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
+	}
 
-	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), exint)
+	log.Printf("Saving intent: %v -> %v", req.GetIntent(), user)
+
+	// Clear the score if we've moved into the listening pile
+	//TODO: Turn this into a config setting on the folder
+	if req.GetIntent().GetNewFolder() == 812802 || req.GetIntent().GetNewFolder() == 7651472 || req.GetIntent().GetNewFolder() == 7664293 || req.GetIntent().GetNewFolder() == 7665013 {
+		req.GetIntent().NewScore = -1
+		req.GetIntent().Keep = pb.KeepStatus_RESET
+		req.GetIntent().Weight = 1
+		req.GetIntent().Width = 0.1
+	}
+
+	ts := time.Now().UnixNano()
+	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), req.GetIntent(), ts)
 	if err != nil {
 		return nil, fmt.Errorf("error saving intent: %w", err)
 	}
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:          time.Now().UnixNano(),
+			RunDate:          time.Now().UnixNano(), // We want intents to run before anything else
+			Priority:         pb.QueueElement_PRIORITY_HIGH,
 			Auth:             user.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_RefreshIntents{
-				RefreshIntents: &pb.RefreshIntents{InstanceId: req.GetInstanceId()},
+				RefreshIntents: &pb.RefreshIntents{
+					InstanceId: req.GetInstanceId(),
+					Timestamp:  ts},
 			},
 		},
 	})

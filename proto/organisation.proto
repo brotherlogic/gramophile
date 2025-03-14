@@ -4,9 +4,15 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+enum MissingWidthHandling {
+    MISSING_WIDTH_IGNORE = 0;
+    MISSING_WIDTH_AVERAGE = 1;
+}
+
 message OrganisationConfig {
     repeated ArtistTranslation artist_translation = 1;
     repeated Organisation organisations = 2;
+    repeated LabelWeight label_ranking = 3;
 }
 
 message OrganisationSnapshot {
@@ -32,6 +38,10 @@ message Placement {
     string space = 4;
     float width = 5;
 
+    // This is the unfiltered index
+    int32 original_index = 7;
+    string observations = 8;
+
     //Optional
     string sort_key = 6;
 }
@@ -41,6 +51,7 @@ enum Sort {
     LABEL_CATNO = 1;
     RELEASE_YEAR = 2;
     EARLIEST_RELEASE_YEAR = 3;
+    ADDITION_DATE = 4;
 }
 
 enum Layout {
@@ -62,6 +73,7 @@ message Organisation {
 
     bool auto_artist_translate = 5;
     Density density = 3;
+    MissingWidthHandling missing_width_handling = 8;
 
     Grouping grouping = 4;
     Spill spill = 7;
@@ -79,10 +91,6 @@ enum GroupSpill {
     SPILL_BREAK_ORDERING = 1;
 }
 
-message LabelRanking {
-    string label_name = 1;
-    float weighting = 2;
-}
 
 message ArtistMapping {
     string leader_artist = 1;
@@ -92,7 +100,6 @@ message ArtistMapping {
 message Grouping {
     GroupingType type = 1;
     repeated ArtistWeight artist_weights = 2;
-    repeated LabelWeight label_weights = 3;
 }
 
 message LabelWeight {

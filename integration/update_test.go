@@ -16,7 +16,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func getTestContext(userid int) context.Context {
@@ -28,8 +28,8 @@ func getTestContext(userid int) context.Context {
 func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -43,7 +43,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -73,14 +73,14 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
 
 	found12InchUpdate := false
 	foundStr := false
-	for _, update := range rec.GetUpdates() {
+	for _, update := range resp.GetRecords()[0].GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -91,7 +91,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
 	}
 
 	/*if !foundStr {
@@ -103,8 +103,8 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -118,7 +118,7 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
 
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
@@ -139,13 +139,13 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad record retrieve: %v", err)
 	}
-	rec := resp.GetRecord()
+	rec := resp.GetRecords()[0].GetRecord()
 	if rec.GetGoalFolder() != "12 Inches" {
 		t.Errorf("Goal folder was not set: %v", rec)
 	}
 
 	found12InchUpdate := false
-	for _, update := range rec.GetUpdates() {
+	for _, update := range resp.GetRecords()[0].GetUpdates() {
 		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
 			update.GetBefore().GetGoalFolder() != "12 Inches" {
 			found12InchUpdate = true
@@ -153,6 +153,6 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", rec.GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
 	}
 }

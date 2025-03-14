@@ -8,6 +8,18 @@ flag_management:
     - name: backend
       paths:
         - server/
+        - classification/
+      ignore:
+        - server/server.go
+      statuses:
+        - type: project
+          target: auto
+          threshold: 0%
+    - name: queue
+      paths:
+        - background/
+        - integration/
+        - queuelogic/
       statuses:
         - type: project
           target: auto

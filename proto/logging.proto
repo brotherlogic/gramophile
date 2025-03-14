@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message Log {
+    enum Action {
+        UNKNOWN = 0;
+        REFRESH_WANTS = 1;
+    }
+
+    int64 start_time_ms = 1;
+    int64 finish_time_ms = 2;
+    Action action = 3;
+    string error_code = 4;
+}

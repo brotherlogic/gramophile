@@ -7,6 +7,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/brotherlogic/gramophile/moving"
+
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 
@@ -16,6 +18,7 @@ import (
 type Validator interface {
 	Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error
 	GetMoves(c *pb.GramophileConfig) []*pb.FolderMove
+	PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig
 }
 
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, c *pb.GramophileConfig) ([]*pbd.Folder, []*pb.FolderMove, error) {
@@ -32,6 +35,8 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		&sales{},
 		&keep{},
 		&org{},
+		&wants{},
+		&moving.Moving{},
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, c)
 		if err != nil {
@@ -147,7 +152,7 @@ func Apply(c *pb.GramophileConfig, r *pb.Record) error {
 	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		if Filter(c.GetCleaningConfig().GetAppliesTo(), r) {
 			needsClean := false
-			if c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 && time.Since(time.Unix(r.GetLastCleanTime(), 0)) > time.Second*time.Duration(c.CleaningConfig.GetCleaningGapInSeconds()) {
+			if c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 && time.Since(time.Unix(0, r.GetLastCleanTime())) > time.Second*time.Duration(c.CleaningConfig.GetCleaningGapInSeconds()) {
 				needsClean = true
 			}
 

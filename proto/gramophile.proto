@@ -6,13 +6,61 @@ package gramophile;
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
 import "config.proto";
 import "organisation.proto";
+import "stats.proto";
+
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+message DBChange {
+    enum Type {
+        CHANGE_UNKNOWN = 0;
+        CHANGE_RECORD = 1;
+        CHANGE_WANT = 2;
+    }
+
+    Type type = 1;
+    Record old_record = 2;
+    Record new_record = 3;
+    int32 user_id = 4;
+    Want old_want = 5;
+    Want new_want = 6;
+}
+
+message PrintMove {
+    int64 timestamp = 1;
+    int64 iid = 2;
+    Location origin = 3;
+    Location destination = 4;
+    string record = 5;
+    int64 index = 6;
+    bool printed = 7;
+    string print_id = 8;
+}
+
+message Location {
+    string location_name = 1;
+    int32 slot = 4;
+    string shelf = 5;
+    repeated Context before = 2;
+    repeated Context after = 3;
+}
+
+message Context {
+    int32 index = 1;
+    int64 iid = 2;
+    string record = 3;
+}
+
 enum WantlistType {
-    EN_MASSE = 0;
-    ONE_BY_ONE = 1;
-    DATE_BOUNDED = 2;
+    TYPE_UNKNOWN = 0;
+    EN_MASSE = 1;
+    ONE_BY_ONE = 2;
+    DATE_BOUNDED = 3;
+}
+
+enum WantlistVisibility {
+    VISIBLE = 0;
+    INVISIBLE = 1;
 }
 
 message Wantlist {
@@ -21,6 +69,15 @@ message Wantlist {
     int64 end_date = 3;
     WantlistType type = 4;
     repeated WantlistEntry entries = 5;
+    WantlistVisibility visibility = 6;
+
+    WantFilter global_filter = 7;
+
+    int64 last_purchase_date = 8;
+
+    bool active = 9;
+
+    int64 last_updated_timestamp = 10;
 }
 
 message WantlistEntry {
@@ -29,19 +86,40 @@ message WantlistEntry {
     string title = 3;
     int32 index = 4;
     WantState state = 5;
+    int64 date_enabled = 6;
+    int64 master_id = 7;
+    bool digital_only = 8;
+    int32 score =9 ;
 }
 
 enum WantState {
-    PENDING = 0;
-    RETIRED = 1;
-    PURCHASED = 2;
-    WANTED = 3;
+    WANT_UNKNOWN = 0;
+    PENDING = 1;
+    RETIRED = 2;
+    PURCHASED = 3;
+    WANTED = 4;
+    HIDDEN = 5;
+    DELETED = 6;
+    IN_TRANSIT = 7;
+}
+
+message WantFilter {
+    repeated string formats = 1;
+   repeated string exclude_formats = 2;
 }
 
 message Want {
     int64 id = 1;
     int64 want_added_date = 2;
     WantState state = 3;
+    int64 sync_id = 4;
+
+    int64 master_id = 5;
+    WantFilter master_filter = 6;
+
+    bool clean = 7;
+
+    int32 score = 8;
 }
 
 enum NoncomplianceIssue {
@@ -59,12 +137,28 @@ message RecordUpdate {
     repeated string explanation = 4;
 }
 
+message Update {
+    int64 date = 1;
+    repeated Change changes = 2;
+}
+
+message Change {
+    enum ChangeType {
+        ADDED = 0;
+        REMOVED = 1;
+        CHANGED = 2;
+    }
+    ChangeType type = 1;
+    string description = 2;
+}
+
 enum KeepStatus {
     KEEP_UNKNOWN = 0;
     NO_KEEP = 1;
     DIGITAL_KEEP = 2;
     MINT_UP_KEEP = 3;
     KEEP = 4;
+    RESET = 5;
 }
 
 message Record {
@@ -86,8 +180,6 @@ message Record {
 
    int64 refresh_id = 11;
 
-   repeated RecordUpdate updates = 8;
-
    string goal_folder = 12;
 
    string sleeve = 13;
@@ -96,13 +188,41 @@ message Record {
 
    float mint_sale_suggestion = 15;
 
-   SaleInfo sale_info = 16;
+   // If set then we have an associated sale id
+   int64 sale_id = 16;
 
    KeepStatus keep_status = 17;
 
    discogs.Price median_price = 18;
+   discogs.Price low_price = 21;
 
    int64 earliest_release_date = 19;
+   int64 last_earliest_release_update = 20;
+   int64 last_stat_refresh = 22;
+   
+   repeated int64 og_ids = 23;
+   repeated int64 digital_ids = 24;
+
+   repeated int64 mint_versions = 25;
+
+   repeated Score score_history = 26;
+
+   bool is_oversized = 27;
+}
+
+enum ListenStatus {
+    LISTEN_STATUS_UNKNOWN = 0;
+    LISTEN_STATUS_LISTEN = 1;
+    LISTEN_STATUS_NO_LISTEN = 2;
+}
+
+message Score {
+    int32 score_value = 1;
+    int32 score_mapped_to = 2;
+
+    ListenStatus listen_status = 3;
+
+    int64 applied_to_discogs_timestamp = 4;
 }
 
 message SaleInfo {
@@ -111,12 +231,31 @@ message SaleInfo {
     discogs.SaleStatus sale_state = 3;
     int64 refresh_id = 4;
     int64 release_id = 5;
-    discogs.Price currentPrice = 6;
+    discogs.Price current_price = 6;
     string condition = 7;
 
     int64 listed_date = 8;
-    discogs.Price initialPrice = 9;
-    discogs.Price medianPrice = 10;
+    discogs.Price initial_price = 9;
+    discogs.Price median_price = 10;
+    discogs.Price low_price = 13;
+
+    repeated PriceUpdate updates = 11;
+
+    int64 time_at_median = 12;
+    int64 time_at_low = 17;
+    int64 time_at_stale = 18;
+    int64 time_created = 14;
+    int64 time_refreshed = 15;
+
+    int64 sold_date = 16;
+
+    SaleUpdateType sale_update_override = 19;
+}
+
+message PriceUpdate {
+    int64 date = 1;
+    discogs.Price set_price = 2;
+    string motivation = 3;
 }
 
 
@@ -131,6 +270,21 @@ message Intent {
     int64 arrived = 7;
     KeepStatus keep = 8;
     int32 new_score = 9;
+    int32 new_folder = 10;
+    
+    int64 new_score_time = 13;
+    ListenStatus new_score_listen = 14;
+
+
+    int64 intent_time = 11;
+    repeated int64 mint_ids = 12;
+
+    enum SetOversize {
+        UNKNOWN = 0;
+        SET = 1;
+        UNSET = 2;
+    }
+    SetOversize set_oversize = 15;
 }
 
 message Queues {
@@ -158,7 +312,6 @@ message QueueElement {
         RefreshSales refresh_sales = 10;
         LinkSales link_sales = 11;
         RefreshWantlists refresh_wantlists = 12;
-        AddWant add_want = 13;
         RefreshWants refresh_wants = 14;
         UpdateSale update_sale = 15;
         MoveRecords move_records = 16;
@@ -167,10 +320,52 @@ message QueueElement {
         RefreshCollection refresh_collection = 19;
         RefreshEarliestReleaseDates refresh_earliest_release_dates = 20;
         RefreshEarliestReleaseDate refresh_earliest_release_date = 21;
-
+        SyncWants sync_wants = 22;
+        RefreshWant refresh_want = 23;
+        AddMasterWant add_master_want = 24;
+        UpdateMasterWant update_master_want = 25;
+        RefreshState refresh_state = 26;
     }
 
     int64 refresh_id = 7;
+    string intention = 27;
+    bool force = 28;
+
+    enum Priority {
+        PRIORITY_UNKNOWN = 0;
+        PRIORITY_LOW = 1;
+        PRIORITY_HIGH = 2;
+    }
+    Priority priority = 29;
+
+    int64 addition_date = 30;
+}
+
+message RefreshState {
+    int64 iid = 1;
+    bool force = 2;
+}
+
+
+message AddMasterWant {
+    Want want = 1;
+}
+
+message UpdateMasterWant {
+    Want want = 1;
+    WantState new_state = 2;
+    bool delete = 3;
+}
+
+message RefreshWant {
+   Want want = 1;
+   bool delete = 3;
+}
+
+message SyncWants {
+    int32 page = 1;
+    int64 refresh_id = 2;
+    bool force = 3;
 }
 
 message RefreshEarliestReleaseDates {
@@ -181,14 +376,16 @@ message RefreshEarliestReleaseDates {
 message RefreshEarliestReleaseDate {
     int64 iid = 1;
     int64 other_release = 2;
+    bool update_digital_wantlist = 3;
 }
 
 message RefreshCollection {
-
+    string intention = 1;
 }
 
 message RefreshRelease {
     int64 iid = 1;
+    string intention = 2;
 }
 
 message UpdateSale {
@@ -196,6 +393,7 @@ message UpdateSale {
     int32 new_price = 2;
     int64 release_id = 3;
     string condition = 4;
+    string motivation = 5;
 }
 
 message MoveRecord {
@@ -210,7 +408,10 @@ message RefreshWants {}
 
 message AddWant {
     int64 id = 1;
+    int64 master_id = 2;
+    WantFilter filter = 3;
 }
+
 
 message RefreshWantlists {
 
@@ -249,6 +450,7 @@ message CleanCollectionEntry {
 
 message RefreshIntents {
     int64 instance_id = 1;
+    int64 timestamp = 2;
 }
 
 message EnqueueRequest{
@@ -263,10 +465,23 @@ message ListResponse {
     repeated QueueElement elements = 2;
 }
 
+message DrainRequest{
+    enum DrainType {
+        UNKNOWN = 0;
+        JUST_RELEASE_DATES = 1;
+        JUST_WANTS = 2;
+    }
+    DrainType drain_type = 1;
+}
+message DrainResponse{
+    int32 count = 1;
+}
+
 service QueueService {
     rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {};
     rpc Execute(EnqueueRequest) returns (EnqueueResponse) {};
     rpc List(ListRequest) returns (ListResponse) {};
+    rpc Drain(DrainRequest) returns (DrainResponse) {};
 }
 
 message StoredUser {
@@ -279,6 +494,7 @@ message StoredUser {
     int64 last_collection_refresh = 6;
     int64 last_config_update = 7;
     int64 last_sale_refresh = 11;
+    int64 last_want_refresh = 12;
 
     GramophileConfig config = 8;    
 
@@ -326,6 +542,8 @@ message GetStateResponse {
     string config_hash = 5;
     int32 collection_misses = 6;
     int32 folder_count = 7;
+    int64 last_sale_refresh = 8;
+    int64 last_want_sync  = 9;
 }
 
 message SetConfigRequest {
@@ -345,9 +563,17 @@ message GetRecordRequest {
         GetRecordWithIssue get_record_with_issue = 1;
         GetRecordToListenTo get_record_to_listen_to = 2;
         GetRecordWithId get_record_with_id = 3;
+        bool get_records_mint_up = 5;
     }
 
     bool include_history = 4;
+}
+
+message RecordResponse {
+    Record record = 1;
+    repeated RecordUpdate updates = 2;
+    SaleInfo sale_info = 3;
+    string category = 4;
 }
 
 message GetRecordWithId {
@@ -362,13 +588,13 @@ message GetRecordToListenTo {
 }
 
 message GetRecordResponse {
-    Record record = 1;
-    repeated Record records = 2;
+    repeated RecordResponse records = 1;
 }
 
 message GetOrgRequest {
     string org_name = 1;
     string name = 2;
+    string hash = 3;
 }
 
 message GetOrgResponse {
@@ -386,10 +612,25 @@ message SetOrgSnapshotResponse {}
 message AddWantlistRequest {
     string name = 1;
     WantlistType type = 2;
+    WantlistVisibility visibility = 3;
+    int64 date_start = 4;
+    int64 date_end = 5;
 }
 
 message AddWantlistResponse {}
 
+message RefreshRecordRequest {
+    int64 instance_id = 1;
+    bool just_state = 2;
+}
+
+message RefreshRecordResponse {}
+
+message GetStatsRequest {}
+message GetStatsResponse {
+    CollectionStats collection_stats = 1;
+    SaleStats sale_stats = 2;
+}
 
 // Externally accessible service
 service GramophileEService {
@@ -403,43 +644,79 @@ service GramophileEService {
     rpc SetIntent(SetIntentRequest) returns (SetIntentResponse) {};
 
     rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {};
+    rpc RefreshRecord(RefreshRecordRequest) returns (RefreshRecordResponse) {};
 
     rpc GetOrg(GetOrgRequest) returns (GetOrgResponse) {};
     rpc SetOrgSnapshot(SetOrgSnapshotRequest) returns (SetOrgSnapshotResponse) {};
 
     rpc AddWant(AddWantRequest) returns (AddWantResponse) {};
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
-    rpc DeleteWant(DeleteWantRequest) returns (DeleteWantResponse) {};
-
+    rpc RefreshWant(RefreshWantRequest) returns (RefreshWantResponse) {};
+  
     rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
+    rpc DeleteWantlist(DeleteWantlistRequest) returns (DeleteWantlistResponse) {};
     rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
+    rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
+
+    rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
+
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
+}
+
+message GetSaleRequest {
+    int64 id = 1;
+    int64 min_median = 2;
+}
+
+message GetSaleResponse {
+    repeated SaleInfo sales = 1;
+}
+
+message ListWantlistsRequest {}
+message ListWantlistsResponse {
+    repeated Wantlist lists = 1;
 }
 
 message UpdateWantlistRequest {
     string name = 1;
     int64 add_id = 2;
     int64 delete_id = 3;
+    WantlistType new_type = 4;
 }
 
 message UpdateWantlistResponse {}
 
-message GetWantsRequest{}
+message GetWantsRequest{
+    bool include_updates = 2;
+    int64 release_id = 3;
+}
 message GetWantsResponse{
-    repeated Want wants = 1;
+    repeated WantResponse wants = 1;
 }
 
-message DeleteWantRequest {
+message WantResponse {
+    Want want = 1;
+    repeated Update updates = 2;
+}
+
+message RefreshWantRequest {
     int64 want_id = 1;
 }
-
-message DeleteWantResponse {}
+message RefreshWantResponse {}
 
 message AddWantRequest {
     int64 want_id = 1;
+    int64 master_want_id = 2;
+    WantFilter filter = 3;
 }
 
 message AddWantResponse {}
+
+message DeleteWantlistRequest {
+    string name = 1;
+}
+message DeleteWantlistResponse {}
 
 message GetWantlistRequest{
     string name = 1;

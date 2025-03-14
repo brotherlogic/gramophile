@@ -4,8 +4,16 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+import "classification.proto";
+import "moving.proto";
 import "organisation.proto";
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
+
+message Filter {
+    repeated string formats = 1;
+    repeated int32 exclude_folder = 2;
+    repeated int32 include_folder = 3;
+}
 
 enum Basis {
     DISCOGS = 0;
@@ -72,12 +80,6 @@ message MoveHistory {
     int64 time = 3;
 }
 
-message Filter {
-    repeated string formats = 1;
-    repeated int32 exclude_folder = 2;
-    repeated int32 include_folder = 3;
-}
-
 enum MoveSource {
     USER_PROVIDED = 0;
     GRAM_PROVIDED = 1;
@@ -135,12 +137,37 @@ message GramophileConfig {
     ArrivedConfig arrived_config = 9;
     SaleConfig sale_config = 10;
     KeepConfig keep_config = 11;
+    WantsConfig wants_config = 16;
+    PrintMoveConfig print_move_config = 17;
+    MintUpConfig mint_up_config = 18;
+    WantslistConfig wants_list_config = 19;
+    ScoreConfig score_config = 20;
+    ClassificationConfig classification_config = 21;
+    MovingConfig moving_config = 22;
 
     Create create_folders = 12;
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
     repeated ValidationRule validations = 15;
+}
+
+message ScoreConfig {
+    int32 bottom_range = 1;
+    int32 top_range = 2;
+}
+
+message MintUpConfig {
+    // 0 here means no mint ups are sent
+    int32 period_in_seconds = 1;
+    string print_target = 2;
+    int64 last_mint_up_delivery = 3;
+}
+
+message PrintMoveConfig {
+    Mandate mandate = 1;
+    int32 context = 2;
+    string print_target = 3;
 }
 
 message WeightConfig {
@@ -165,11 +192,14 @@ message ArrivedConfig {
 }
 
 enum SaleUpdateType {
-    NO_SALE_UPDATE = 0;
+    SALE_UPDATE_UNKNOWN  = 0;
+    NO_SALE_UPDATE = 5;
     MINIMAL_REDUCE = 1;
 
     // Reduce to the Median over the course of 1 month, then hold at median price
     REDUCE_TO_MEDIAN = 2;
+    REDUCE_TO_MEDIAN_AND_THEN_LOW = 3;
+    REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE = 4;
 }
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
@@ -181,8 +211,67 @@ message SaleConfig {
     SaleUpdateType update_type = 4;
 
     int32 reduction = 5;
+
+    // Supports reduce to median post changes
+    int64 post_median_time = 6;
+    int32 post_median_reduction = 7;
+    int64 post_median_reduction_frequency = 8;
+    LowerBoundStrategy lower_bound_strategy = 9;
+    int32 lower_bound = 10;
+
+    // Supports reduce to stale level post reaching low
+    int64 post_low_time = 14;
+    int32 post_low_reduction = 15;
+    int32 post_low_reduction_frequency_seconds = 16;
+    int32 stale_bound = 17;
+
+    // Time based sales
+    int32 time_to_median_days = 11;
+    int32 time_to_lower_days = 12;
+    int32 time_to_stale_days = 13;
+}
+
+enum LowerBoundStrategy {
+    DISCOGS_LOW = 0;
+    STATIC_LOW = 1;
 }
 
 message KeepConfig {
     Mandate mandate = 1;
+}
+
+enum WantsBasis {
+    WANTS_DISCOGS = 0;
+    WANTS_HYBRID = 1;
+    WANTS_GRAMOPHILE = 2;
+}
+
+enum WantsExisting {
+    EXISTING_UNKNOWN = 0;
+    EXISTING_DROP = 1;
+    EXISTING_LIST = 2;
+}
+
+enum DigitalWants {
+    DIGITAL_WANTS_UNKNOWN = 0;
+    DIGITAL_WANTS_MANUAL = 1;
+    DIGITAL_WANTS_GRAMOPHILE = 2;
+}
+
+message WantsConfig {
+    WantsBasis origin = 1;
+    WantsExisting existing = 2;
+    string transfer_list = 3;
+
+    DigitalWants digital_wants = 4;
+
+    int32 max_active_want_lists = 5;
+
+    bool mint_up_want_list = 7;
+    bool digital_wants_list = 8;
+}
+
+message WantslistConfig {
+    float min_score = 1;
+    int32 min_count = 2;
 }

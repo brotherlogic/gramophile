@@ -7,7 +7,7 @@ import (
 
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc/metadata"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -37,7 +37,7 @@ func TestReverse(t *testing.T) {
 func TestRetrieveUpdates(t *testing.T) {
 	ctx := getTestContext(123)
 
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	d := db.NewTestDB(pstore_client.GetTestClient())
 	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
@@ -58,8 +58,8 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecord().GetUpdates()) > 0 {
-		t.Errorf("Updates retrieved when record is empty: %v", r.GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) > 0 {
+		t.Errorf("Updates retrieved when record is empty: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 13}})
@@ -76,8 +76,8 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecord().GetUpdates()) > 0 {
-		t.Errorf("Updates retrieved when not requested: %v", r.GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) > 0 {
+		t.Errorf("Updates retrieved when not requested: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	r, err = s.GetRecord(ctx, &pb.GetRecordRequest{
@@ -91,7 +91,34 @@ func TestRetrieveUpdates(t *testing.T) {
 		t.Fatalf("Bad get: %v", err)
 	}
 
-	if len(r.GetRecord().GetUpdates()) == 0 {
-		t.Errorf("No updates retreived, expected 1: %v", r.GetRecord())
+	if len(r.GetRecords()[0].GetUpdates()) == 0 {
+		t.Errorf("No updates retreived, expected 1: %v", r.GetRecords()[0].GetRecord())
+	}
+}
+
+func TestGetSale(t *testing.T) {
+	ctx := getTestContext(123)
+
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{SaleId: 12345, CurrentPrice: &pbd.Price{Value: 12345}})
+
+	s := Server{d: d}
+
+	sale, err := s.GetSale(ctx, &pb.GetSaleRequest{Id: 12345})
+	if err != nil {
+		t.Fatalf("Bad sale return %v", err)
+	}
+
+	if sale.GetSales()[0].GetCurrentPrice().GetValue() != 12345 {
+		t.Errorf("Bad sale return: %v", sale)
 	}
 }

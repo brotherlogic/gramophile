@@ -40,15 +40,27 @@ func executeKeep(ctx context.Context, args []string) error {
 		keepState = pb.KeepStatus_KEEP
 	case "mintup":
 		keepState = pb.KeepStatus_MINT_UP_KEEP
+	case "reset":
+		keepState = pb.KeepStatus_RESET
 	default:
 		return status.Errorf(codes.FailedPrecondition, "%v is not a valid keep state (none, digital, keep, mintup)", args[1])
 	}
+
+	var mintIds []int64
+	for _, id := range args[2:] {
+	    val, err := strconv.ParseInt(id, 10, 64)
+	    if err != nil {
+	    return err
+	    }
+	    mintIds = append(mintIds, val)
+	    }
 
 	client := pb.NewGramophileEServiceClient(conn)
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
 			Keep: keepState,
+			MintIds: mintIds, 
 		},
 	})
 	return err

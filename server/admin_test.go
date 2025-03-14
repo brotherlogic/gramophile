@@ -5,12 +5,12 @@ import (
 
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestClean(t *testing.T) {
 	ctx := getTestContext(123)
-	d := db.NewTestDB(rstore_client.GetTestClient())
+	d := db.NewTestDB(pstore_client.GetTestClient())
 	s := Server{d: d}
 
 	_, err := s.Clean(ctx, &pb.CleanRequest{})

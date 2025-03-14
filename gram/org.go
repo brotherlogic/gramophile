@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -22,9 +23,9 @@ func GetOrganisation() *CLIModule {
 }
 
 func getArtist(r *pbd.Release) string {
-     if len(r.GetArtists()) == 0 {
-     	return "NO_ARTIST"
-     }
+	if len(r.GetArtists()) == 0 {
+		return "NO_ARTIST"
+	}
 	artist := r.GetArtists()[0].GetName()
 	for _, art := range r.GetArtists()[1:] {
 		artist += ", " + art.GetName()
@@ -32,7 +33,7 @@ func getArtist(r *pbd.Release) string {
 	return artist
 }
 
-func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p *pb.Placement) (string, error) {
+func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p *pb.Placement, debug bool) (string, error) {
 	r, err := client.GetRecord(ctx, &pb.GetRecordRequest{
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{
@@ -43,7 +44,18 @@ func resolvePlacement(ctx context.Context, client pb.GramophileEServiceClient, p
 		return "", err
 	}
 
-	return fmt.Sprintf("%v - %v [%v]", getArtist(r.GetRecord().GetRelease()), r.GetRecord().GetRelease().GetTitle(), p.GetWidth()), nil
+	str := ""
+	for _, record := range r.GetRecords() {
+		str += fmt.Sprintf("%v - %v [%v / %v] %v",
+			getArtist(record.GetRecord().GetRelease()),
+			record.GetRecord().GetRelease().GetTitle(),
+			p.GetWidth(), record.GetRecord().GetWidth(), time.Unix(0, record.GetRecord().GetRelease().GetDateAdded()))
+		if debug {
+			str += fmt.Sprintf(" {%v - %v (%v)}", p.GetOriginalIndex(), p.GetObservations(), p.GetSpace())
+		}
+	}
+
+	return str, nil
 }
 
 func executeOrg(ctx context.Context, args []string) error {
@@ -55,37 +67,55 @@ func executeOrg(ctx context.Context, args []string) error {
 	if len(args) > 1 {
 		orgFlags := flag.NewFlagSet("orgflags", flag.ExitOnError)
 		name := orgFlags.String("org", "", "The name of the organisation")
-		slot := orgFlags.Int("slot", -1, "The slot to print")
+		slot := orgFlags.Int("slot", 1, "The slot to print")
+		debug := orgFlags.Bool("debug", false, "Include debug info")
+		hash := orgFlags.String("hash", "", "The hash of org snapshot")
+		//space := orgFlags.String("space", "")
 
 		if err := orgFlags.Parse(args); err == nil {
 			client := pb.NewGramophileEServiceClient(conn)
 			r, err := client.GetOrg(ctx, &pb.GetOrgRequest{
 				OrgName: *name,
+				Hash:    *hash,
 			})
 			if err != nil {
 				return fmt.Errorf("unable to get org: %w", err)
 			}
 
+			fmt.Printf("%v -> %v\n", time.Unix(0, r.GetSnapshot().GetDate()), r.GetSnapshot().GetHash())
+
 			if len(r.GetSnapshot().GetPlacements()) == 0 {
 				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)
 			}
 
+			firstShelf := ""
+			firstSlot := -1
 			currSlot := 0
 			currShelf := ""
-			for _, placement := range r.GetSnapshot().GetPlacements() {
+			totalWidth := float32(0)
+			for i, placement := range r.GetSnapshot().GetPlacements() {
+				if firstShelf == "" {
+					firstShelf = placement.GetSpace()
+				}
+				if firstSlot < 0 {
+					firstSlot = int(placement.GetUnit())
+				}
+
 				if placement.GetSpace() != currShelf {
 					currShelf = placement.GetSpace()
 					currSlot++
 				}
 
-				if currSlot == *slot || *slot == -1 {
-					pstr, err := resolvePlacement(ctx, client, placement)
+				if placement.GetUnit() == int32(*slot) || *slot == -1 {
+					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
-						return err
+						return fmt.Errorf("unable to place %v -> %w", placement.GetIid(), err)
 					}
-					fmt.Printf("%v\n", pstr)
+					fmt.Printf("%v. [%v-%v] %v\n", i, placement.GetSpace(), placement.GetUnit(), pstr)
+					totalWidth += placement.GetWidth()
 				}
 			}
+			fmt.Printf("Total Width = %v\n", totalWidth)
 			return nil
 		}
 	}

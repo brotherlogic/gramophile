@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message BooleanSelector {
+    string name = 1;
+}
+
+enum Comparator {
+    COMPARATOR_UNKNOWN = 0;
+    COMPARATOR_GREATER_THAN = 1;
+    COMPARATOR_GREATER_THAN_OR_EQUALS = 2;
+    COMPARATOR_LESS_THAN = 3;
+    COMPARATOR_LESS_THAN_OR_EQUALS = 4;
+}
+
+message IntSelector {
+    string name = 1;
+    int64 threshold = 2;
+    Comparator comp = 3;
+}
+
+
+message DateSinceSelector {
+    string name = 1;
+    string duration = 2;
+}
+
+message LocationSelector {
+    string location = 1;
+}
+
+message ClassificationRule {
+    string rule_name = 1;
+    oneof selector {
+        BooleanSelector boolean_selector = 3;
+        IntSelector int_selector = 4;
+        DateSinceSelector date_since_selector = 5;
+        LocationSelector location_selector = 6;
+    }
+}
+
+message Classifier {
+    string classifier_name = 1;
+    repeated ClassificationRule rules = 2;
+    string classification = 3;
+    int32 priority = 4;
+}
+
+message ClassificationConfig {
+    repeated Classifier classifiers = 1;
+}

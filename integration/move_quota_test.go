@@ -11,14 +11,14 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/brotherlogic/gramophile/server"
-	rstore_client "github.com/brotherlogic/rstore/client"
+	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
 func TestMoveLoopIsCaught(t *testing.T) {
 	ctx := getTestContext(123)
 
-	rstore := rstore_client.GetTestClient()
-	d := db.NewTestDB(rstore)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		Folders: []*pbd.Folder{
 			&pbd.Folder{Name: "Listening Pile", Id: 123},
@@ -30,7 +30,7 @@ func TestMoveLoopIsCaught(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(rstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
 	// Add a record that needs to be moved
@@ -78,12 +78,12 @@ func TestMoveLoopIsCaught(t *testing.T) {
 		t.Fatalf("Unable to get record: %v", err)
 	}
 
-	if r.GetRecord() == nil || r.GetRecord().GetRelease().GetFolderId() != 123 {
-		t.Errorf("Record was not moved: %v", r.GetRecord())
+	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
+		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
 	}
 
 	count := 0
-	for _, move := range r.GetRecord().GetUpdates() {
+	for _, move := range r.GetRecords()[0].GetUpdates() {
 		for _, exp := range move.GetExplanation() {
 			if strings.HasPrefix(exp, "Moved to") {
 				count++
@@ -92,7 +92,7 @@ func TestMoveLoopIsCaught(t *testing.T) {
 	}
 
 	if count < 2 || count > 8 {
-		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecord().GetUpdates())
+		t.Errorf("Too many (or too few) moves [%v] have been made: %v", count, r.GetRecords()[0].GetUpdates())
 	}
 
 	user, err := s.GetUser(ctx, &pb.GetUserRequest{})

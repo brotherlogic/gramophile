@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.19 AS build
+FROM golang:1.23 AS build
 
 WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile
 
@@ -19,12 +19,17 @@ COPY db/*.go ./db/
 RUN mkdir queue_client
 COPY queue_client/*.go ./queue_client
 
-
 RUN mkdir background
 COPY background/*.go ./background/
 
+RUN mkdir classification
+COPY classification/*.go ./classification/
+
 RUN mkdir config
 COPY config/*.go ./config/
+
+RUN mkdir org
+COPY org/*.go ./org/
 
 RUN go mod download
 

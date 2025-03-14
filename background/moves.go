@@ -19,7 +19,7 @@ func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb
 
 	var mh []*pb.MoveHistory
 	for _, move := range quota.GetPastMoves() {
-		if time.Since(time.Unix(move.GetTime(), 0)) < time.Hour {
+		if time.Since(time.Unix(0, move.GetTime())) < time.Hour {
 			mh = append(mh, move)
 		}
 	}
@@ -29,11 +29,11 @@ func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb
 
 func filter(c *pb.MoveCriteria, r *pb.Record) bool {
 	if c.GetHasSaleId() != pb.Bool_UNKNOWN {
-		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleInfo().GetSaleId() == 0 {
+		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleId() == 0 {
 			return false
 		}
 
-		if c.GetHasSaleId() == pb.Bool_FALSE && r.GetSaleInfo().GetSaleId() > 0 {
+		if c.GetHasSaleId() == pb.Bool_FALSE && r.GetSaleId() > 0 {
 			return false
 		}
 	}
@@ -95,7 +95,7 @@ func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota,
 	quota.PastMoves = append(quota.PastMoves, &pb.MoveHistory{
 		Iid:  iid,
 		Move: fm.GetName(),
-		Time: time.Now().Unix(),
+		Time: time.Now().UnixNano(),
 	})
 	err := b.db.SaveMoveQuota(ctx, uid, quota)
 	if err != nil {
@@ -106,6 +106,12 @@ func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota,
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	moves := user.GetMoves()
+
+	// Fast return on empty moves
+	if len(moves) == 0 {
+		return nil
+	}
+
 	quota, err := b.loadMoveQuota(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {

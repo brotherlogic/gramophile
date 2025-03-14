@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message CollectionStats {
+    map<int32, int32> folder_to_count = 1;
+}
+
+message SaleStats {
+    map<int32, int32> year_totals = 1;
+
+    // This tracks state "TO_MEDIAN, TO_LOW, TO_STALE" counts
+    map<string, int32> state_count = 2;
+
+    map<int64, int64> last_update = 3;
+
+    int32 total_sales = 4;
+
+    int64 oldest_last_update = 5;
+    int64 oldest_id = 6;
+
+    int64 oldest_low = 7;
+}

@@ -21,7 +21,7 @@ func GetWeight() *CLIModule {
 func executeWeight(ctx context.Context, args []string) error {
 	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("unable to dial: %w", err)
+		return fmt.Errorf("unable to reach gramophile: %w", err)
 	}
 
 	iid, err := strconv.ParseInt(args[0], 10, 64)

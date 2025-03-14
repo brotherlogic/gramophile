@@ -2,17 +2,55 @@ package server
 
 import (
 	"context"
+	"log"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func (s *Server) ListWantlists(ctx context.Context, _ *pb.ListWantlistsRequest) (*pb.ListWantlistsResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lists, err := s.d.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListWantlistsResponse{Lists: lists}, nil
+}
+
+func (s *Server) DeleteWantlist(ctx context.Context, req *pb.DeleteWantlistRequest) (*pb.DeleteWantlistResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.DeleteWantlistResponse{}, s.d.DeleteWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
+}
 
 func (s *Server) AddWantlist(ctx context.Context, req *pb.AddWantlistRequest) (*pb.AddWantlistResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return nil, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), &pb.Wantlist{Name: req.GetName(), Type: req.GetType()})
+
+	if user.GetConfig().GetWantsConfig().GetOrigin() == pb.WantsBasis_WANTS_DISCOGS {
+		return nil, status.Errorf(codes.FailedPrecondition, "you can't add wantslist to discogs controlled wants")
+	}
+
+	return &pb.AddWantlistResponse{}, s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(),
+		&pb.Wantlist{
+			Name:       req.GetName(),
+			Type:       req.GetType(),
+			Visibility: req.GetVisibility(),
+			Active:     true,
+			StartDate:  req.GetDateStart(),
+			EndDate:    req.GetDateEnd(),
+		})
 }
 
 func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*pb.GetWantlistResponse, error) {
@@ -20,7 +58,7 @@ func (s *Server) GetWantlist(ctx context.Context, req *pb.GetWantlistRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
+	list, err := s.d.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
 	return &pb.GetWantlistResponse{List: list}, err
 }
 
@@ -30,7 +68,7 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 		return nil, err
 	}
 
-	list, err := s.d.LoadWantlist(ctx, user, req.GetName())
+	list, err := s.d.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), req.GetName())
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +78,12 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 			Id:    req.GetAddId(),
 			Index: int32(len(list.GetEntries())) + 1,
 		})
+
+		log.Printf("SAVING %v", req.GetAddId())
+		s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), &pb.Want{
+			Id:    req.GetAddId(),
+			State: pb.WantState_PENDING,
+		}, "Adding from updated wantlist")
 	}
 
 	// Runs delete
@@ -51,6 +95,10 @@ func (s *Server) UpdateWantlist(ctx context.Context, req *pb.UpdateWantlistReque
 			}
 		}
 		list.Entries = entries
+	}
+
+	if req.GetNewType() != pb.WantlistType_TYPE_UNKNOWN {
+		list.Type = req.GetNewType()
 	}
 
 	err = s.d.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
