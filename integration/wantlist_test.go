@@ -970,9 +970,9 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 	s := server.BuildServer(d, di, qc)
 
 	// Add releases to go over the threshold
-	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 5, FolderId: 12})
-	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 2, InstanceId: 101, Rating: 5, FolderId: 12})
-	di.AddCollectionRelease(&pbd.Release{MasterId: 200, Id: 3, InstanceId: 102, Rating: 5, FolderId: 12})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 5, FolderId: 12}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 2, InstanceId: 101, Rating: 5, FolderId: 12}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 3, InstanceId: 102, Rating: 5, FolderId: 12}})
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -993,7 +993,7 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to get org: %v", err)
 	}
-	if len(org.GetOrg().GetPlacements()) != 3 {
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
 		t.Fatalf("Records were not placed in the org: %v", org)
 	}
 
@@ -1030,7 +1030,13 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 		t.Fatalf("Unable to get wants: %v", err)
 	}
 
-	if len(wants.GetWants()) != 0 {
-		t.Errorf("Wantlist should have been disabled: %v", wants)
+	if len(wants.GetWants()) != 2 {
+		t.Errorf("Wants not created: %v", wants)
+	}
+
+	for _, w := range wants.GetWants() {
+		if w.GetWant().GetState() == pb.WantState_WANTED {
+			t.Errorf("Want %v is wanted -> should not be", w)
+		}
 	}
 }

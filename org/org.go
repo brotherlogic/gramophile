@@ -97,7 +97,7 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load record ids: %w", err)
 	}
-	log.Printf("Ran db_read_records in %v", time.Since(t1))
+	log.Printf("Ran db_read_records (%v) in %v", len(ids), time.Since(t1))
 
 	t2 := time.Now()
 	var records []*pb.Record
@@ -172,6 +172,8 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 	}
 	recordCount.With(prometheus.Labels{"org": org.GetName()}).Set(float64(len(allRecords)))
 
+	log.Printf("ORG found %v records overall", len(allRecords))
+
 	// First sort the records into order
 	var records []*sortingElement
 	for _, folderset := range org.GetFoldersets() {
@@ -211,6 +213,7 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 
 		records = append(records, recs...)
 	}
+	log.Printf("ORG found %v records for %v", len(records), org.GetName())
 
 	ogMap := make(map[int64]int)
 	for i, r := range records {
