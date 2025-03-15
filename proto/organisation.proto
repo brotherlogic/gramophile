@@ -65,6 +65,11 @@ enum Density {
     WIDTH = 2;
 }
 
+enum OrganisationUse {
+    ORG_USE_UNKNOWN = 0;
+    ORG_USE_LISTENING = 1;
+}
+
 message Organisation {
     string name = 6;
 
@@ -77,6 +82,8 @@ message Organisation {
 
     Grouping grouping = 4;
     Spill spill = 7;
+
+    OrganisationUse use = 9;
 }
 
 message Spill {

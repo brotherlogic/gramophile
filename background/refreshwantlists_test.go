@@ -27,7 +27,7 @@ func TestZeroEntriesInWantlist(t *testing.T) {
 			{Id: 12},
 		}}
 
-	err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, wl, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		return &pb.EnqueueResponse{}, nil
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func TestInactiveWantlist(t *testing.T) {
 		&pb.WantslistConfig{
 			MinScore: 2.5,
 			MinCount: 0,
-		}, wl, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 			return &pb.EnqueueResponse{}, nil
 		})
 
@@ -156,7 +156,7 @@ func TestTimedWantlist(t *testing.T) {
 
 		counted := 0
 		log.Printf("PROCESSING")
-		err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, tc.wantlist, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 			if req.GetElement().GetRefreshWant().GetWant().GetState() == pb.WantState_WANTED {
 				counted++
 				log.Printf("COUNTED %v", req)
@@ -165,7 +165,7 @@ func TestTimedWantlist(t *testing.T) {
 		})
 
 		log.Printf("REFRESHING")
-		_, err = b.refreshWantlist(context.Background(), 123, tc.wantlist, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		_, err = b.refreshWantlist(context.Background(), 123, tc.wantlist, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 			counted++
 			log.Printf("ENQUEUING INTERNAL TEST")
 			return &pb.EnqueueResponse{}, nil

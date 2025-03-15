@@ -952,3 +952,91 @@ func TestBuildMintUplWantlist(t *testing.T) {
 		t.Errorf("Wanlist has not been populated: %v", wl)
 	}
 }
+
+func TestWantlistDisabledOnListening(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Add releases to go over the threshold
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 5, FolderId: 12}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 2, InstanceId: 101, Rating: 5, FolderId: 12}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{MasterId: 200, Id: 3, InstanceId: 102, Rating: 5, FolderId: 12}})
+
+	s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:       "Test",
+						Use:        pb.OrganisationUse_ORG_USE_LISTENING,
+						Foldersets: []*pb.FolderSet{{Name: "Listening Pile", Folder: 12}},
+					},
+				},
+			},
+			WantsListConfig: &pb.WantslistConfig{ListeningThreshold: 2},
+			WantsConfig:     &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
+
+	// Validate that the org has records in it
+	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "Test"})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(org.GetSnapshot().GetPlacements()) != 3 {
+		t.Fatalf("Records were not placed in the org: %v", org)
+	}
+
+	// Create a want list
+	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
+		Name: "test-wantlist",
+		Type: pb.WantlistType_ONE_BY_ONE,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add wantlist")
+	}
+
+	// Update
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 123,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
+		Name:  "test-wantlist",
+		AddId: 124,
+	})
+	if err != nil {
+		t.Fatalf("Unable to add to wantlist: %v", err)
+	}
+
+	qc.FlushQueue(ctx)
+
+	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
+	if err != nil {
+		t.Fatalf("Unable to get wants: %v", err)
+	}
+
+	if len(wants.GetWants()) != 2 {
+		t.Errorf("Wants not created: %v", wants)
+	}
+
+	for _, w := range wants.GetWants() {
+		if w.GetWant().GetState() == pb.WantState_WANTED {
+			t.Errorf("Want %v is wanted -> should not be", w)
+		}
+	}
+}

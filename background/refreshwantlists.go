@@ -24,8 +24,28 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		return err
 	}
 
+	// Are we over threshold
+	overthreshold := false
+	if user.GetConfig().GetWantsListConfig().GetListeningThreshold() > 0 {
+		qlog(ctx, "Checking Threshold")
+		lp := int32(0)
+		for _, org := range user.GetConfig().GetOrganisationConfig().GetOrganisations() {
+			if org.GetUse() == pb.OrganisationUse_ORG_USE_LISTENING {
+				qlog(ctx, "Threshold for %v", org.GetName())
+				ss, err := b.db.GetLatestSnapshot(ctx, user.GetUser().GetDiscogsUserId(), org.GetName())
+				if err != nil {
+					return err
+				}
+				qlog(ctx, "Threshold found: %v from %v", len(ss.GetPlacements()), ss.GetHash())
+				lp += int32(len(ss.GetPlacements()))
+			}
+		}
+
+		overthreshold = lp > user.GetConfig().GetWantsListConfig().GetListeningThreshold()
+	}
+
 	for _, list := range lists {
-		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, enqueue)
+		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -34,8 +54,10 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	return nil
 }
 
-func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	qlog(ctx, "Processing %v -> %v", list.GetName(), list.GetType())
+func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	qlog(ctx, "Processing %v -> %v with %v", list.GetName(), list.GetType(), overthreshold)
+
+	// Deactivate if set
 
 	// Clear any wants that have an id of zero
 	nentries := []*pb.WantlistEntry{}
@@ -113,7 +135,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 	}
 
-	_, err = b.refreshWantlist(ctx, di.GetUserId(), list, token, enqueue)
+	_, err = b.refreshWantlist(ctx, di.GetUserId(), list, token, overthreshold, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}
@@ -123,9 +145,9 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	return b.db.SaveWantlist(ctx, di.GetUserId(), list)
 }
 
-func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
+func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
 	// If the list is inactive - just set everything to PENDING
-	if !list.GetActive() {
+	if !list.GetActive() || overthreshold {
 		qlog(ctx, "List is inactive")
 		for _, entry := range list.GetEntries() {
 			if entry.GetState() != pb.WantState_RETIRED {
