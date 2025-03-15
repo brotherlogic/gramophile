@@ -25,6 +25,9 @@ COPY background/*.go ./background/
 RUN mkdir classification
 COPY classification/*.go ./classification/
 
+RUN mkdir moving
+COPY moving/*.go ./moving/
+
 RUN mkdir config
 COPY config/*.go ./config/
 
