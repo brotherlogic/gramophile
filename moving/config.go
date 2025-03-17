@@ -5,6 +5,8 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Moving struct{}
@@ -14,6 +16,23 @@ func (*Moving) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 }
 
 func (*Moving) Validate(ctx context.Context, fields []*pbd.Field, config *pb.GramophileConfig) error {
+
+	// Validate that all the move locations actually exist in the org config
+	for _, move := range config.GetMovingConfig().GetMoves() {
+		found := false
+		for _, org := range config.GetOrganisationConfig().GetOrganisations() {
+			for _, fs := range org.GetFoldersets() {
+				if fs.GetName() == move.GetFolder() {
+					found = true
+				}
+			}
+		}
+
+		if !found {
+			return status.Errorf(codes.InvalidArgument, "Could not find %v in organisation config", move.GetFolder())
+		}
+	}
+
 	return nil
 }
 
