@@ -16,6 +16,13 @@ message FormatClassifier {
     string default_format = 2;
 }
 
+message RecordMove {
+    repeated string classification = 1;
+    repeated string format = 2;
+    string folder = 3;
+}
+
 message MovingConfig {
     FormatClassifier format_classifier = 1;
+    repeated RecordMove moves = 2;
 }

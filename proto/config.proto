@@ -274,4 +274,6 @@ message WantsConfig {
 message WantslistConfig {
     float min_score = 1;
     int32 min_count = 2;
+
+    int32 listening_threshold = 3;
 }
