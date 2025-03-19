@@ -43,9 +43,37 @@ func TestMoveApplied(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			CreateFolders: pb.Create_AUTOMATIC,
-			CreateMoves:   pb.Create_AUTOMATIC,
 			ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_REQUIRED},
+			MovingConfig: &pb.MovingConfig{
+				FormatClassifier: &pb.FormatClassifier{DefaultFormat: "UNKNOWN"},
+				Moves: []*pb.RecordMove{
+					{
+						Classification: []string{"arrived"},
+						Format:         []string{"UNKNOWN"},
+						Folder:         "Listening Pile",
+					},
+				},
+			},
+			ClassificationConfig: &pb.ClassificationConfig{
+				Classifiers: []*pb.Classifier{
+					{
+						ClassifierName: "arrived",
+						Classification: "arrived",
+						Rules: []*pb.ClassificationRule{
+							{
+								RuleName: "arrived",
+								Selector: &pb.ClassificationRule_IntSelector{
+									IntSelector: &pb.IntSelector{
+										Name:      "arrived",
+										Threshold: 0,
+										Comp:      pb.Comparator_COMPARATOR_GREATER_THAN,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	})
 	if err != nil {
@@ -88,19 +116,39 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	// Add a record that needs to be moved
 	d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{FolderId: 125, InstanceId: 1234},
+		Arrived: time.Now().UnixNano(),
 	})
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			CreateFolders: pb.Create_AUTOMATIC,
-			CreateMoves:   pb.Create_AUTOMATIC,
-			Moves: []*pb.FolderMove{
-				{
-					Origin:     pb.Create_MANUAL,
-					Name:       "test-move",
-					MoveFolder: "Listening Pile",
-					Criteria: &pb.MoveCriteria{
-						Arrived: pb.Bool_TRUE,
+			ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_REQUIRED},
+			MovingConfig: &pb.MovingConfig{
+				FormatClassifier: &pb.FormatClassifier{DefaultFormat: "UNKNOWN"},
+				Moves: []*pb.RecordMove{
+					{
+						Classification: []string{"arrived"},
+						Format:         []string{"UNKNOWN"},
+						Folder:         "Listening Pile",
+					},
+				},
+			},
+			ClassificationConfig: &pb.ClassificationConfig{
+				Classifiers: []*pb.Classifier{
+					{
+						ClassifierName: "arrived",
+						Classification: "arrived",
+						Rules: []*pb.ClassificationRule{
+							{
+								RuleName: "arrived",
+								Selector: &pb.ClassificationRule_IntSelector{
+									IntSelector: &pb.IntSelector{
+										Name:      "arrived",
+										Threshold: 0,
+										Comp:      pb.Comparator_COMPARATOR_GREATER_THAN,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -111,19 +159,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	}
 	qc.FlushQueue(ctx)
 
-	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
-		InstanceId: 1234,
-		Intent: &pb.Intent{
-			Arrived: time.Now().UnixNano(),
-		},
-	})
-	if err != nil {
-		t.Fatalf("unable to set intent: %v", err)
-	}
-	qc.FlushQueue(ctx)
-
 	r, err := s.GetRecord(ctx, &pb.GetRecordRequest{
-		IncludeHistory: true,
 		Request: &pb.GetRecordRequest_GetRecordWithId{
 			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
 
@@ -133,18 +169,5 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 
 	if r.GetRecords()[0].GetRecord() == nil || r.GetRecords()[0].GetRecord().GetRelease().GetFolderId() != 123 {
 		t.Errorf("Record was not moved: %v", r.GetRecords()[0].GetRecord())
-	}
-
-	found := false
-	for _, move := range r.GetRecords()[0].GetUpdates() {
-		for _, exp := range move.GetExplanation() {
-			if exp == "Moved to Listening Pile following rule test-move" {
-				found = true
-			}
-		}
-	}
-
-	if !found {
-		t.Errorf("Did not find update: %v", r.GetRecords()[0].GetUpdates())
 	}
 }

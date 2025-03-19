@@ -20,20 +20,28 @@ func (*cleaning) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*cleaning) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
-		return []*pb.FolderMove{
-			{
-				Name:       "move_to_cleaning_pile",
-				MoveFolder: "Cleaning Pile",
+func (*cleaning) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{
+		{
+			ClassifierName: "Uncleaned",
+			Classification: "uncleaned",
+			Rules: []*pb.ClassificationRule{
+				{
+					RuleName: "needs_clean",
+					Selector: &pb.ClassificationRule_IntSelector{IntSelector: &pb.IntSelector{
+						Name:      "last_cleaned",
+						Threshold: 0,
+						Comp:      pb.Comparator_COMPARATOR_LESS_THAN_OR_EQUALS,
+					},
+					},
+				},
 			},
-		}
+		},
 	}
-	return []*pb.FolderMove{}
 }
 
-func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
+func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == CLEANED_FIELD_NAME {
@@ -45,7 +53,7 @@ func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramop
 		}
 	}
 
-	if c.GetCleaningConfig().GetCleaningGapInPlays() > 0 && c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 {
+	if u.GetConfig().GetCleaningConfig().GetCleaningGapInPlays() > 0 && u.GetConfig().GetCleaningConfig().GetCleaningGapInSeconds() > 0 {
 		return fmt.Errorf("You must set one of plays or seconds, not both")
 	}
 	return nil

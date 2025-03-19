@@ -9,14 +9,14 @@ import (
 )
 
 func TestValidation(t *testing.T) {
-	config := &pb.GramophileConfig{
+	config := &pb.StoredUser{Config: &pb.GramophileConfig{
 		CleaningConfig: &pb.CleaningConfig{
 			CleaningGapInSeconds: 5,
 			CleaningGapInPlays:   2,
 		},
-	}
+	}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, config)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, config)
 	if err == nil {
 		t.Errorf("Config was validated: %v", config)
 	}

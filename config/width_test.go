@@ -9,7 +9,7 @@ import (
 )
 
 func TestWidthFailedNoField(t *testing.T) {
-	c := &pb.GramophileConfig{WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_RECOMMENDED}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_RECOMMENDED}}}
 
 	w := &width{}
 	err := w.Validate(context.Background(), []*pbd.Field{}, c)
@@ -19,7 +19,7 @@ func TestWidthFailedNoField(t *testing.T) {
 }
 
 func TestWidthSuccess(t *testing.T) {
-	c := &pb.GramophileConfig{WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_RECOMMENDED}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_RECOMMENDED}}}
 
 	w := &width{}
 	err := w.Validate(context.Background(), []*pbd.Field{&pbd.Field{Name: "Width", Id: 1}}, c)

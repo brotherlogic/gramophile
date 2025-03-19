@@ -1,8 +1,5 @@
 package background
 
-<<<<<<< HEAD
-import "github.com/brotherlogic/gramophile/db"
-=======
 import (
 	"context"
 	"fmt"
@@ -13,22 +10,16 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
->>>>>>> origin/main
 
 type BackgroundRunner struct {
 	db                    db.Database
 	key, secret, callback string
-<<<<<<< HEAD
-=======
 	ReleaseRefresh        int64
->>>>>>> origin/main
 }
 
 func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
 	return &BackgroundRunner{db: db, key: key, secret: secret, callback: callback}
 }
-<<<<<<< HEAD
-=======
 
 func getRefKey(ctx context.Context) (string, error) {
 	md, found := metadata.FromIncomingContext(ctx)
@@ -67,4 +58,3 @@ func qlog(ctx context.Context, str string, v ...any) {
 	prefix := fmt.Sprintf("%v: ", key)
 	log.Printf(prefix+str, v...)
 }
->>>>>>> origin/main

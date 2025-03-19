@@ -11,6 +11,7 @@ import (
 )
 
 func applyMove(m *pb.RecordMove, r *pb.Record, class string, format string) string {
+	log.Printf("Running move on %v and %v", class, format)
 	for _, classification := range m.GetClassification() {
 		if classification == class {
 			for _, rformat := range m.GetFormat() {
@@ -65,7 +66,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 
 	records, err := b.db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
-		return fmt.Errorf("unablet to get records: %v", err)
+		return fmt.Errorf("unable to get records: %v", err)
 	}
 
 	log.Printf("Running %v moves on %v records", len(moves), len(records))

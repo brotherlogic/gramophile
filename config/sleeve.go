@@ -16,16 +16,16 @@ var (
 
 type sleeve struct{}
 
+func (*sleeve) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*sleeve) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*sleeve) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetSleeveConfig().GetMandate() != pb.Mandate_NONE {
+func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetSleeveConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == SLEEVE_FIELD {
@@ -36,7 +36,7 @@ func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramophi
 			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("Add a field called '%v'", SLEEVE_FIELD))
 		}
 
-		if len(c.SleeveConfig.GetAllowedSleeves()) == 0 {
+		if len(u.GetConfig().GetSleeveConfig().GetAllowedSleeves()) == 0 {
 			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("you must set at least one sleeve"))
 		}
 	}

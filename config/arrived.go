@@ -20,25 +20,35 @@ func (*arrived) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*arrived) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	if c.GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
-		return []*pb.FolderMove{
-			{
-				Name:       "Move_To_Listening_Pile_Once_Arrived",
-				Origin:     pb.Create_AUTOMATIC,
-				MoveFolder: "Listening Pile",
-				Criteria: &pb.MoveCriteria{ // Move if we've marked as arrived, but we've not listened to it yet
-					Listened: pb.Bool_FALSE,
-					Arrived:  pb.Bool_TRUE,
+func (*arrived) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{
+		{
+			ClassifierName: "unlistened",
+			Classification: "unlistened",
+			Rules: []*pb.ClassificationRule{
+				{
+					RuleName: "not listened yet",
+					Selector: &pb.ClassificationRule_IntSelector{IntSelector: &pb.IntSelector{
+						Name:      "last_listen",
+						Threshold: 0,
+						Comp:      pb.Comparator_COMPARATOR_LESS_THAN_OR_EQUALS,
+					}},
+				},
+				{
+					RuleName: "arrived",
+					Selector: &pb.ClassificationRule_IntSelector{IntSelector: &pb.IntSelector{
+						Name:      "has_arrived",
+						Threshold: 0,
+						Comp:      pb.Comparator_COMPARATOR_GREATER_THAN,
+					}},
 				},
 			},
-		}
+		},
 	}
-	return []*pb.FolderMove{}
 }
 
-func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
+func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == ARRIVED_FIELD {

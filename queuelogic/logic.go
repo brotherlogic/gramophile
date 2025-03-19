@@ -544,6 +544,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 		}
 
+		log.Printf("Moving record from %v to %v", rec.GetRelease().GetFolderId(), fNum)
+
+		// Fast exit if we don't need to make this move
+		if rec.GetRelease().GetFolderId() == fNum {
+			return nil
+		}
+
 		if fNum < 0 {
 			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
 		}

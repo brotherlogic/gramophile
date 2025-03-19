@@ -26,7 +26,8 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	log.Printf("got these fields: %v", fields)
 
-	folders, moves, verr := config.ValidateConfig(ctx, u, fields, req.GetConfig())
+	u.Config = req.GetConfig()
+	folders, verr := config.ValidateConfig(ctx, u, fields, u)
 	if verr != nil {
 		return nil, fmt.Errorf("bad validate: %w", verr)
 	}
@@ -45,8 +46,6 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 			}})
 	}
 
-	u.Moves = append(u.Moves, moves...)
-	u.Config = req.GetConfig()
 	u.LastConfigUpdate = time.Now().UnixNano()
 
 	log.Printf("Updated user: %v", u)

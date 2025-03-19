@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"log"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -12,18 +11,17 @@ import (
 
 type wants struct{}
 
+func (*wants) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*wants) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*wants) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*wants) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	log.Printf("VALID: %v", c)
-	if c.GetWantsConfig().GetOrigin() == pb.WantsBasis_WANTS_GRAMOPHILE {
-		if c.GetWantsConfig().GetExisting() == pb.WantsExisting_EXISTING_UNKNOWN {
+func (*wants) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetWantsConfig().GetOrigin() == pb.WantsBasis_WANTS_GRAMOPHILE {
+		if u.GetConfig().GetWantsConfig().GetExisting() == pb.WantsExisting_EXISTING_UNKNOWN {
 			return status.Errorf(codes.FailedPrecondition, "You must set an existing move")
 		}
 	}

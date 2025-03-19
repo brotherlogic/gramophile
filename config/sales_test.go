@@ -9,27 +9,27 @@ import (
 )
 
 func TestSales_FailedNoField(t *testing.T) {
-	c := &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("This should have failed but did not")
 	}
 }
 
 func TestSales_Success(t *testing.T) {
-	c := &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate sale config raised an error: %v", err)
 	}
 }
 
 func TestSales_AddsMoves(t *testing.T) {
-	c := &pb.GramophileConfig{
-		SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{
+		SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate sale config raised an error: %v", err)
 	}
@@ -45,9 +45,9 @@ func TestSales_AddsMoves(t *testing.T) {
 }
 
 func TestSales_MissingUpdate(t *testing.T) {
-	c := &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, HandlePriceUpdates: pb.Mandate_REQUIRED}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, HandlePriceUpdates: pb.Mandate_REQUIRED}}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err == nil {
 		t.Error("should have failed with an error about update time")
 	}
