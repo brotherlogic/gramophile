@@ -16,16 +16,16 @@ var (
 
 type goalFolder struct{}
 
+func (*goalFolder) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*goalFolder) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*goalFolder) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetGoalFolderConfig().GetMandate() != pb.Mandate_NONE {
+func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetGoalFolderConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == GOAL_FOLDER_FIELD {

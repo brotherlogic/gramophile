@@ -17,9 +17,10 @@ message FormatClassifier {
 }
 
 message RecordMove {
-    repeated string classification = 1;
-    repeated string format = 2;
-    string folder = 3;
+    string name = 1;
+    repeated string classification = 2;
+    repeated string format = 3;
+    string folder = 4;
 }
 
 message MovingConfig {

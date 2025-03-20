@@ -16,16 +16,16 @@ var (
 
 type weight struct{}
 
+func (*weight) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*weight) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*weight) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*weight) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetWeightConfig().GetMandate() != pb.Mandate_NONE {
+func (*weight) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetWeightConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == WEIGHT_FIELD {

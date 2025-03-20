@@ -16,6 +16,32 @@ var (
 
 type sales struct{}
 
+func (*sales) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{
+		{
+			ClassifierName: "For Sale",
+			Classification: "for_sale",
+			Rules: []*pb.ClassificationRule{
+				{
+					RuleName: "has_sale_id",
+					Selector: &pb.ClassificationRule_IntSelector{IntSelector: &pb.IntSelector{
+						Threshold: 0,
+						Comp:      pb.Comparator_COMPARATOR_GREATER_THAN,
+						Name:      "sale_id",
+					}},
+				},
+				{
+					RuleName: "is_for_sale",
+					/*Selector: &pb.ClassificationRule_EnumSelector{EnumSelector: &pb.EnumSelector{
+						Name:  "release.sale_state",
+						Value: "FOR_SALE",
+					},
+					},*/
+				},
+			},
+		}}
+}
+
 func (*sales) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
@@ -36,8 +62,8 @@ func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 	return []*pb.FolderMove{}
 }
 
-func (*sales) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetSaleConfig().GetMandate() != pb.Mandate_NONE {
+func (*sales) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetSaleConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == LAST_SALE_UPDATE_FIELD {
@@ -49,8 +75,8 @@ func (*sales) Validate(ctx context.Context, fields []*pbd.Field, c *pb.Gramophil
 		}
 	}
 
-	if c.GetSaleConfig().GetHandlePriceUpdates() != pb.Mandate_NONE {
-		if c.GetSaleConfig().GetUpdateFrequencySeconds() == 0 {
+	if u.GetConfig().GetSaleConfig().GetHandlePriceUpdates() != pb.Mandate_NONE {
+		if u.GetConfig().GetSaleConfig().GetUpdateFrequencySeconds() == 0 {
 			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("You must set the update frequency field if gramophile is handling price updates"))
 		}
 	}

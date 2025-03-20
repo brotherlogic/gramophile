@@ -16,16 +16,16 @@ var (
 
 type keep struct{}
 
+func (*keep) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*keep) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*keep) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*keep) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
-	if c.GetKeepConfig().GetMandate() != pb.Mandate_NONE {
+func (*keep) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+	if u.GetConfig().GetKeepConfig().GetMandate() != pb.Mandate_NONE {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == KEEP_FIELD {

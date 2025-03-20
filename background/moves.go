@@ -6,124 +6,67 @@ import (
 	"log"
 	"time"
 
+	"github.com/brotherlogic/gramophile/classification"
 	pb "github.com/brotherlogic/gramophile/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-func (b *BackgroundRunner) loadMoveQuota(ctx context.Context, userid int32) (*pb.MoveQuota, error) {
-	quota, err := b.db.LoadMoveQuota(ctx, userid)
-	if err != nil {
-		return nil, err
-	}
-
-	var mh []*pb.MoveHistory
-	for _, move := range quota.GetPastMoves() {
-		if time.Since(time.Unix(0, move.GetTime())) < time.Hour {
-			mh = append(mh, move)
+func applyMove(m *pb.RecordMove, r *pb.Record, class string, format string) string {
+	log.Printf("Running move on %v and %v", class, format)
+	for _, classification := range m.GetClassification() {
+		if classification == class {
+			for _, rformat := range m.GetFormat() {
+				if rformat == format {
+					return m.GetFolder()
+				}
+			}
 		}
 	}
-
-	return &pb.MoveQuota{PastMoves: mh}, nil
-}
-
-func filter(c *pb.MoveCriteria, r *pb.Record) bool {
-	if c.GetHasSaleId() != pb.Bool_UNKNOWN {
-		if c.GetHasSaleId() == pb.Bool_TRUE && r.GetSaleId() == 0 {
-			return false
-		}
-
-		if c.GetHasSaleId() == pb.Bool_FALSE && r.GetSaleId() > 0 {
-			return false
-		}
-	}
-
-	if c.GetArrived() != pb.Bool_UNKNOWN {
-		if c.GetArrived() == pb.Bool_TRUE && r.GetArrived() == 0 {
-			return false
-		}
-		if c.GetArrived() == pb.Bool_FALSE && r.GetArrived() > 0 {
-			return false
-		}
-	}
-
-	if c.GetListened() != pb.Bool_UNKNOWN {
-		if c.GetListened() == pb.Bool_TRUE && r.GetLastListenTime() == 0 {
-			return false
-		}
-		if c.GetListened() == pb.Bool_FALSE && r.GetLastListenTime() > 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
-func applyMove(m *pb.FolderMove, r *pb.Record) string {
-	if m.GetMoveState() == pb.MoveState_BLOCKED_BECAUSE_OF_LOOP {
-		return ""
-	}
-
-	if filter(m.GetCriteria(), r) {
-		if m.GetMoveToGoalFolder() {
-			return r.GetGoalFolder()
-		}
-		return m.GetMoveFolder()
-	}
-
 	return ""
 }
 
-const (
-	MaxMoves = 3
-)
+func (b *BackgroundRunner) GetFormat(ctx context.Context, record *pb.Record, fc *pb.FormatClassifier) string {
+	for _, classifier := range fc.GetFormats() {
+		description := false
+		names := false
 
-func (b *BackgroundRunner) updateQuota(ctx context.Context, quota *pb.MoveQuota, uid int32, iid int64, fm *pb.FolderMove) bool {
-	count := 0
-	log.Printf("MOVE: %v (%v)", quota, fm.GetName())
-	for _, q := range quota.GetPastMoves() {
-		if q.GetIid() == iid && q.GetMove() == fm.GetName() {
-			count++
+		for _, form := range fc.GetFormats() {
+			for _, desc := range form.GetDescription() {
+				for _, rform := range record.GetRelease().GetFormats() {
+					for _, rdesc := range rform.GetDescriptions() {
+						if rdesc == desc {
+							description = true
+						}
+					}
+				}
+			}
+			for _, name := range form.GetContains() {
+				for _, rform := range record.GetRelease().GetFormats() {
+					if rform.GetName() == name {
+						names = true
+					}
+				}
+			}
+		}
+
+		if description && names {
+			return classifier.GetFormat()
 		}
 	}
 
-	if count > MaxMoves {
-		fm.MoveState = pb.MoveState_BLOCKED_BECAUSE_OF_LOOP
-		return false
-	}
-
-	quota.PastMoves = append(quota.PastMoves, &pb.MoveHistory{
-		Iid:  iid,
-		Move: fm.GetName(),
-		Time: time.Now().UnixNano(),
-	})
-	err := b.db.SaveMoveQuota(ctx, uid, quota)
-	if err != nil {
-		return false
-	}
-	return true
+	return fc.GetDefaultFormat()
 }
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	moves := user.GetMoves()
+	moves := user.GetConfig().GetMovingConfig().GetMoves()
 
 	// Fast return on empty moves
 	if len(moves) == 0 {
 		return nil
 	}
 
-	quota, err := b.loadMoveQuota(ctx, user.GetUser().GetDiscogsUserId())
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			quota = &pb.MoveQuota{}
-		} else {
-			return err
-		}
-	}
-
 	records, err := b.db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
-		return fmt.Errorf("unablet to get records: %v", err)
+		return fmt.Errorf("unable to get records: %v", err)
 	}
 
 	log.Printf("Running %v moves on %v records", len(moves), len(records))
@@ -133,34 +76,33 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 		if err != nil {
 			return err
 		}
+		// Get record classification
+		class := classification.Classify(ctx, record, user.GetConfig().GetClassificationConfig(), user.GetConfig().GetOrganisationConfig(), b.db, user.GetUser().GetDiscogsUserId())
+
+		format := b.GetFormat(ctx, record, user.GetConfig().GetMovingConfig().GetFormatClassifier())
 
 		for _, move := range moves {
-			nfolder := applyMove(move, record)
+			nfolder := applyMove(move, record, class, format)
 			log.Printf("MOVE: %v", nfolder)
 			if nfolder != "" {
-				if b.updateQuota(ctx, quota, user.GetUser().GetDiscogsUserId(), iid, move) {
-					_, err = enqueue(ctx, &pb.EnqueueRequest{
-						Element: &pb.QueueElement{
-							RunDate: time.Now().UnixNano(),
-							Auth:    user.GetAuth().GetToken(),
-							Entry: &pb.QueueElement_MoveRecord{
-								MoveRecord: &pb.MoveRecord{
-									RecordIid:  iid,
-									MoveFolder: nfolder,
-									Rule:       move.GetName(),
-								}}},
-					})
-					log.Printf("enqueued move: %v", err)
-					if err != nil {
-						return err
-					}
-				} else {
-					log.Printf("OVER QUOTA")
-					return b.db.SaveUser(ctx, user)
+				_, err = enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano(),
+						Auth:    user.GetAuth().GetToken(),
+						Entry: &pb.QueueElement_MoveRecord{
+							MoveRecord: &pb.MoveRecord{
+								RecordIid:  iid,
+								MoveFolder: nfolder,
+								Rule:       move.GetName(),
+							}}},
+				})
+				log.Printf("enqueued move: %v", err)
+				if err != nil {
+					return err
 				}
 			}
 		}
 	}
 
-	return b.db.SaveMoveQuota(ctx, user.GetUser().GetDiscogsUserId(), quota)
+	return nil
 }

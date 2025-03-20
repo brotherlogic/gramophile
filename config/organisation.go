@@ -12,19 +12,19 @@ import (
 
 type org struct{}
 
+func (*org) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
+}
+
 func (*org) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
 	return c
 }
 
-func (*org) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
-}
-
-func (*org) Validate(ctx context.Context, fields []*pbd.Field, c *pb.GramophileConfig) error {
+func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
 
 	// Raise an error if any org relies on width being set
-	hasWidthMandate := c.GetWidthConfig().GetMandate() != pb.Mandate_NONE
-	for _, org := range c.GetOrganisationConfig().GetOrganisations() {
+	hasWidthMandate := u.GetConfig().GetWidthConfig().GetMandate() != pb.Mandate_NONE
+	for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
 		if org.GetDensity() == pb.Density_WIDTH && !hasWidthMandate {
 			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("%v requires width mandate", org.GetName()))
 		}

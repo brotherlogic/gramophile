@@ -9,18 +9,18 @@ import (
 )
 
 func TestListen_Failed(t *testing.T) {
-	c := &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
 		t.Errorf("Should have failed")
 	}
 }
 
 func TestListen_Succeed(t *testing.T) {
-	c := &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}}
 
-	_, _, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastListenDate", Id: 1}}, c)
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastListenDate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("Should not have failed: %v", err)
 	}

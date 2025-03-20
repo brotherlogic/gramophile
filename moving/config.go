@@ -5,26 +5,25 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type Moving struct{}
 
-func (*Moving) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	return []*pb.FolderMove{}
+func (*Moving) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
+	return []*pb.Classifier{}
 }
 
-func (*Moving) Validate(ctx context.Context, fields []*pbd.Field, config *pb.GramophileConfig) error {
+func (*Moving) Validate(ctx context.Context, fields []*pbd.Field, user *pb.StoredUser) error {
 
 	// Validate that all the move locations actually exist in the org config
-	for _, move := range config.GetMovingConfig().GetMoves() {
+	for _, move := range user.GetConfig().GetMovingConfig().GetMoves() {
 		found := false
-		for _, org := range config.GetOrganisationConfig().GetOrganisations() {
-			for _, fs := range org.GetFoldersets() {
-				if fs.GetName() == move.GetFolder() {
-					found = true
-				}
+		for _, folder := range user.GetFolders() {
+			if folder.GetName() == move.GetFolder() {
+				found = true
 			}
 		}
 
