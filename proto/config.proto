@@ -125,6 +125,16 @@ message ListenFilter {
     Order order = 3;
 }
 
+message UserConfig {
+    enum UserLevel {
+        USER_LEVEL_STANDARD = 0;
+        USER_LEVEL_BETA = 1;
+        USER_LEVEL_OMNIPOTENT = 2;
+    }
+
+    UserLevel user_level = 1;
+}
+
 message GramophileConfig {
     Basis basis = 2;
     CleaningConfig cleaning_config = 1;
@@ -144,6 +154,7 @@ message GramophileConfig {
     ScoreConfig score_config = 20;
     ClassificationConfig classification_config = 21;
     MovingConfig moving_config = 22;
+    UserConfig user_config = 23;
 
     Create create_folders = 12;
     Create create_moves = 13;
