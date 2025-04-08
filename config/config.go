@@ -35,6 +35,7 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		&org{},
 		&wants{},
 		&moving.Moving{},
+		&userConfig{},
 		&sleeve{}} {
 		err := validator.Validate(ctx, fields, u)
 		if err != nil {
