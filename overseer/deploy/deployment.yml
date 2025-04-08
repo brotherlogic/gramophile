@@ -53,7 +53,7 @@ spec:
     spec:
       containers:
         - name: overseer
-          image: registry.brotherlogic-backend.com/brotherlogic/overseer:0.1136.0 # {"$imagepolicy": "flux-system:overseer"}
+          image: registry.brotherlogic-backend.com/brotherlogic/overseer:0.1137.0 # {"$imagepolicy": "flux-system:overseer"}
           ports:
             - containerPort: 8081
           env:
