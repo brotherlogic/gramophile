@@ -132,6 +132,11 @@ message UserConfig {
         USER_LEVEL_OMNIPOTENT = 2;
     }
 
+    // User level sets what features are available to the user
+    // STANDARD - Standard user
+    // BETA - Beta user - early access to some features
+    //        but comes with some risk
+    // OMNIPOTENT - Classified
     UserLevel user_level = 1;
 }
 
