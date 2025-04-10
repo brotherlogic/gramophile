@@ -25,3 +25,18 @@ func TestSetOmnipotent_Failure(t *testing.T) {
 		t.Errorf("I was able to set user level")
 	}
 }
+
+func TestClearOnBeta(t *testing.T) {
+	c := &pb.GramophileConfig{
+		CleaningConfig: &pb.CleaningConfig{Cleaning: pb.Mandate_REQUIRED},
+		UserConfig:     &pb.UserConfig{UserLevel: pb.UserConfig_USER_LEVEL_BETA},
+	}
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, &pb.StoredUser{Config: c})
+	if err != nil {
+		t.Errorf("Error reseting config: %v", err)
+	}
+
+	if c.GetCleaningConfig().GetCleaning() == pb.Mandate_REQUIRED {
+		t.Errorf("Config was not reset")
+	}
+}

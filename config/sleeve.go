@@ -20,8 +20,8 @@ func (*sleeve) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 	return []*pb.Classifier{}
 }
 
-func (*sleeve) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*sleeve) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {

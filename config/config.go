@@ -18,29 +18,38 @@ import (
 type Validator interface {
 	Validate(ctx context.Context, fields []*pbd.Field, user *pb.StoredUser) error
 	GetClassification(c *pb.GramophileConfig) []*pb.Classifier
-	PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig
+	PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error)
+}
+
+var validators []Validator = []Validator{
+	// This must be first
+	&userConfig{},
+
+	&cleaning{},
+	&listen{},
+	&width{},
+	&arrived{},
+	&weight{},
+	&goalFolder{},
+	&sales{},
+	&keep{},
+	&org{},
+	&wants{},
+	&moving.Moving{},
+	&sleeve{},
 }
 
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, u *pb.StoredUser) ([]*pbd.Folder, error) {
 
-	for _, validator := range []Validator{
-		&cleaning{},
-		&listen{},
-		&width{},
-		&arrived{},
-		&weight{},
-		&goalFolder{},
-		&sales{},
-		&keep{},
-		&org{},
-		&wants{},
-		&moving.Moving{},
-		&userConfig{},
-		&sleeve{}} {
+	for _, validator := range validators {
 		err := validator.Validate(ctx, fields, u)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	for _, validator := range validators[0 : len(validators)-2] {
+		validator.PostProcess(u.GetConfig())
 	}
 
 	var folders []*pbd.Folder

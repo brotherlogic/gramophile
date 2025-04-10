@@ -16,8 +16,8 @@ func (*org) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 	return []*pb.Classifier{}
 }
 
-func (*org) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*org) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {

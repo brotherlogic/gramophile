@@ -16,8 +16,8 @@ var (
 
 type arrived struct{}
 
-func (*arrived) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*arrived) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*arrived) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {

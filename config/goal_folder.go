@@ -20,8 +20,8 @@ func (*goalFolder) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 	return []*pb.Classifier{}
 }
 
-func (*goalFolder) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*goalFolder) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {

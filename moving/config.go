@@ -35,7 +35,7 @@ func (*Moving) Validate(ctx context.Context, fields []*pbd.Field, user *pb.Store
 	return nil
 }
 
-func (*Moving) PostProcess(config *pb.GramophileConfig) *pb.GramophileConfig {
+func (*Moving) PostProcess(config *pb.GramophileConfig) (*pb.GramophileConfig, error) {
 	existing := int32(len(config.GetMovingConfig().GetFormatClassifier().GetFormats()))
 
 	// Apply our default rules over the top of the existing
@@ -70,5 +70,5 @@ func (*Moving) PostProcess(config *pb.GramophileConfig) *pb.GramophileConfig {
 			Order:       existing + 5,
 		})
 
-	return config
+	return config, nil
 }
