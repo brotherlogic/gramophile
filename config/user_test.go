@@ -40,3 +40,17 @@ func TestClearOnBeta(t *testing.T) {
 		t.Errorf("Config was not reset")
 	}
 }
+
+func TestClearOnBeta_NotSet(t *testing.T) {
+	c := &pb.GramophileConfig{
+		UserConfig: &pb.UserConfig{UserLevel: pb.UserConfig_USER_LEVEL_BETA},
+	}
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, &pb.StoredUser{Config: c})
+	if err != nil {
+		t.Errorf("Error reseting config: %v", err)
+	}
+
+	if c.GetCleaningConfig().GetCleaning() == pb.Mandate_REQUIRED {
+		t.Errorf("Config was not reset")
+	}
+}

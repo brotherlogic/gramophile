@@ -30,10 +30,14 @@ func setToDefaultArr(c protoreflect.Message, fields []string) error {
 		for i := 0; i < pfields.Len(); i++ {
 			if pfields.Get(i).TextName() == fields[0] {
 				if pfields.Get(i).Kind() == protoreflect.BoolKind {
-					c.Set(pfields.Get(i), protoreflect.ValueOfBool(false))
+					if c.Get(pfields.Get(i)).Bool() {
+						c.Set(pfields.Get(i), protoreflect.ValueOfBool(false))
+					}
 					return nil
 				} else if pfields.Get(i).Kind() == protoreflect.EnumKind {
-					c.Set(pfields.Get(i), protoreflect.ValueOfEnum(0))
+					if c.Get(pfields.Get(i)).Enum() != 0 {
+						c.Set(pfields.Get(i), protoreflect.ValueOfEnum(0))
+					}
 					return nil
 				} else {
 					return fmt.Errorf("Can only set bools or enums")
