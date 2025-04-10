@@ -26,4 +26,5 @@ message RecordMove {
 message MovingConfig {
     FormatClassifier format_classifier = 1;
     repeated RecordMove moves = 2;
+    bool enabled = 3;
 }

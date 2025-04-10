@@ -46,10 +46,12 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	for _, validator := range validators[0 : len(validators)-2] {
-		validator.PostProcess(u.GetConfig())
+		conf, err := validator.PostProcess(u.GetConfig())
+		if err != nil {
+			return nil, err
+		}
+		u.Config = conf
 	}
 
 	var folders []*pbd.Folder

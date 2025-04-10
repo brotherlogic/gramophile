@@ -1500,6 +1500,13 @@ type UserConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// User level sets what features are available to the user
+	// STANDARD - Standard user
+	// BETA - Beta user - early access to some features
+	//
+	//	but comes with some risk
+	//
+	// OMNIPOTENT - Classified
 	UserLevel UserConfig_UserLevel `protobuf:"varint,1,opt,name=user_level,json=userLevel,proto3,enum=gramophile.UserConfig_UserLevel" json:"user_level,omitempty"`
 }
 

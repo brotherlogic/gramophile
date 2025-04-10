@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -23,6 +24,7 @@ func setToDefault(c *pb.GramophileConfig, path string) error {
 }
 
 func setToDefaultArr(c protoreflect.Message, fields []string) error {
+	log.Printf("VALIDATING %v against %v", c, fields)
 	if len(fields) == 1 {
 		pfields := c.Descriptor().Fields()
 		for i := 0; i < pfields.Len(); i++ {
