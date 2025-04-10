@@ -16,8 +16,8 @@ var (
 
 type cleaning struct{}
 
-func (*cleaning) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*cleaning) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*cleaning) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {

@@ -42,8 +42,8 @@ func (*sales) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 		}}
 }
 
-func (*sales) PostProcess(c *pb.GramophileConfig) *pb.GramophileConfig {
-	return c
+func (*sales) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
+	return c, nil
 }
 
 func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
