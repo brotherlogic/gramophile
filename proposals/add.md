@@ -36,5 +36,9 @@ endpoint to remove the record.
 ## Tasks
 
 1. Setup addition config - spec default folder and enable the endpoint
+1. Enabling config should add purchase price, and purcahse location fields
+1. Sync these fields with recordcollection
+1. Recordcollection supports posthoc addition of new records
 1. Add addition API endpoint, checks for the default folder, adds the record
 1. Add delete API endpoint, removes from Discogs, removes from collection
+1. Validate that addition feeds into colleciton
