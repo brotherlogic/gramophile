@@ -22,6 +22,6 @@ func (*add) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 	return []*pb.Classifier{}
 }
 
-func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
+func (*add) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
 	return nil
 }
