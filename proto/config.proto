@@ -160,12 +160,19 @@ message GramophileConfig {
     ClassificationConfig classification_config = 21;
     MovingConfig moving_config = 22;
     UserConfig user_config = 23;
+    AddConfig add_config = 24;
 
     Create create_folders = 12;
     Create create_moves = 13;
 
     repeated FolderMove moves = 14;
     repeated ValidationRule validations = 15;
+}
+
+message AddConfig {
+    string default_folder = 1;
+    Mandate allow_adds = 2;
+    Mandate allow_delete = 3;
 }
 
 message ScoreConfig {
