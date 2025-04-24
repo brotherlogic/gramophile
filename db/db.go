@@ -706,6 +706,21 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 			return err
 		}
 	}
+
+	if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
+		update := &pb.RecordUpdate{
+			Date:      time.Now().UnixNano(),
+			Type:      pb.RecordUpdate_UPDATE_FOLDER,
+			BeforeInt: int64(old.GetRelease().GetFolderId()),
+			AfterInt:  int64(new.GetRelease().GetFolderId()),
+		}
+
+		err := d.SaveUpdate(ctx, userid, new, update)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
