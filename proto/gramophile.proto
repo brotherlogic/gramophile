@@ -662,6 +662,18 @@ service GramophileEService {
     rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
 
     rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
+
+    rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {};
+}
+
+message AddRecordRequest {
+    int64 id = 1;
+    int32 price = 2;
+    string location = 3;
+}
+
+message AddRecordResponse {
+    int64 instance_id = 1;
 }
 
 message GetSaleRequest {
