@@ -126,13 +126,23 @@ enum NoncomplianceIssue {
     NEEDS_CLEAN = 0;
 }
 
+enum UpdateType {
+    UPDATE_UNKNOWN = 0;
+    UPDATE_GOAL_FOLDER = 1;
+    UPDATE_FOLDER = 2;
+}
+
+message UpdateControl {
+    map<string, int64> lastBackfill = 1;
+}
+
+message RecordUpdates {
+    repeated RecordUpdate updates = 2;
+}
+
 message RecordUpdate {
     int64 date = 1;
-    enum UpdateType {
-        UPDATE_UNKNOWN = 0;
-        UPDATE_GOAL_FOLDER = 1;
-        UPDATE_FOLDER = 2;
-    }
+
     UpdateType type = 2;
     
     string before_string = 3;
@@ -505,6 +515,8 @@ message StoredUser {
 
     repeated discogs.Folder folders = 9;
     repeated FolderMove moves = 10;
+
+    UpdateControl updates = 13;
 }
 
 message GramophileAuth {

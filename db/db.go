@@ -696,7 +696,7 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 	if old.GetGoalFolder() != new.GetGoalFolder() {
 		update := &pb.RecordUpdate{
 			Date:         time.Now().UnixNano(),
-			Type:         pb.RecordUpdate_UPDATE_GOAL_FOLDER,
+			Type:         pb.UpdateType_UPDATE_GOAL_FOLDER,
 			BeforeString: old.GetGoalFolder(),
 			AfterString:  new.GetGoalFolder(),
 		}
@@ -710,7 +710,7 @@ func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) 
 	if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
 		update := &pb.RecordUpdate{
 			Date:      time.Now().UnixNano(),
-			Type:      pb.RecordUpdate_UPDATE_FOLDER,
+			Type:      pb.UpdateType_UPDATE_FOLDER,
 			BeforeInt: int64(old.GetRelease().GetFolderId()),
 			AfterInt:  int64(new.GetRelease().GetFolderId()),
 		}

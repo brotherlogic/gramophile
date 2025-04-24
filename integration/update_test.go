@@ -81,7 +81,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	found12InchUpdate := false
 	foundStr := false
 	for _, update := range resp.GetRecords()[0].GetUpdates() {
-		if update.GetType() == pb.RecordUpdate_UPDATE_GOAL_FOLDER {
+		if update.GetType() == pb.UpdateType_UPDATE_GOAL_FOLDER {
 			if update.GetAfterString() == "12 Inches" &&
 				update.GetBeforeString() != "12 Inches" {
 				found12InchUpdate = true
