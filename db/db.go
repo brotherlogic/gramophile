@@ -660,55 +660,68 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 		return err
 	}
 
-	old, err := d.client.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
-	})
+	old, err := d.GetRecord(ctx, userid, record.GetRelease().GetInstanceId())
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
 			return err
 		}
-		old = &rspb.ReadResponse{}
-		old.Value = &anypb.Any{Value: []byte{}}
 	}
 
-	oldRecord := &pb.Record{}
-	err = proto.Unmarshal(old.GetValue().GetValue(), oldRecord)
-	if err != nil {
-		return err
-	}
-
-	err = d.saveUpdate(ctx, userid, oldRecord, record)
-	if err != nil {
-		return err
-	}
-
+	// Write the main release
 	_, err = d.client.Write(ctx, &rspb.WriteRequest{
 		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
 		Value: &anypb.Any{Value: data},
 	})
 	log.Printf("Writing gramophile/user/%v/release/%v -> %v", userid, record.GetRelease().GetInstanceId(), err)
 
+	if err != nil {
+		return err
+	}
+
+	// Write historical data
+	_, err = d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("gramophile/user/%v/releasehistory/%v-%v", userid, record.GetRelease().GetInstanceId(), time.Now().UnixNano()),
+		Value: &anypb.Any{Value: data},
+	})
+
+	// Write out updates
+	if old != nil {
+		d.saveUpdate(ctx, userid, old, record)
+	}
+
 	return err
 }
 
-func ResolveDiff(update *pb.RecordUpdate) []string {
-	var diff []string
-	if update.GetBefore().GetGoalFolder() != update.GetAfter().GetGoalFolder() {
-		if update.GetBefore().GetGoalFolder() == "" {
-			diff = append(diff, fmt.Sprintf("Goal Folder was set to %v", update.GetAfter().GetGoalFolder()))
+func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
+	if old.GetGoalFolder() != new.GetGoalFolder() {
+		update := &pb.RecordUpdate{
+			Date:         time.Now().UnixNano(),
+			Type:         pb.RecordUpdate_UPDATE_GOAL_FOLDER,
+			BeforeString: old.GetGoalFolder(),
+			AfterString:  new.GetGoalFolder(),
+		}
+
+		err := d.SaveUpdate(ctx, userid, new, update)
+		if err != nil {
+			return err
 		}
 	}
-	return diff
-}
 
-func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
-	update := &pb.RecordUpdate{
-		Date:   time.Now().UnixNano(),
-		Before: old,
-		After:  new,
+	if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
+		update := &pb.RecordUpdate{
+			Date:      time.Now().UnixNano(),
+			Type:      pb.RecordUpdate_UPDATE_FOLDER,
+			BeforeInt: int64(old.GetRelease().GetFolderId()),
+			AfterInt:  int64(new.GetRelease().GetFolderId()),
+		}
+
+		err := d.SaveUpdate(ctx, userid, new, update)
+		if err != nil {
+			return err
+		}
 	}
 
-	return d.SaveUpdate(ctx, userid, new, update)
+	return nil
 }
 
 func (d *DB) SaveUpdate(ctx context.Context, userid int32, r *pb.Record, update *pb.RecordUpdate) error {
