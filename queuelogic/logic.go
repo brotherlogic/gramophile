@@ -565,8 +565,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		//Update and save record
 		rec.GetRelease().FolderId = int32(fNum)
 		err = q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
-			Date:        time.Now().UnixNano(),
-			Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
+			Date: time.Now().UnixNano(),
+			//Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
 		})
 		if err != nil {
 			return err

@@ -128,13 +128,14 @@ enum NoncomplianceIssue {
 
 message RecordUpdate {
     int64 date = 1;
-
-    Record before = 2;
-    Record after = 3;
-
-    string metadata = 5;
-
-    repeated string explanation = 4;
+    enum UpdateType {
+        UPDATE_UNKNOWN = 0;
+        UPDATE_GOAL_FOLDER = 1;
+    }
+    UpdateType type = 2;
+    
+    string before_string = 3;
+    string after_string = 4;
 }
 
 message Update {
