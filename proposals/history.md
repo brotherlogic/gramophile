@@ -35,7 +35,7 @@ We'll seed this with tracking width over time.
 
 ## Tasks
 
-1. Add a path to also save a historical version each time we save a record
+1. ~~Add a path to also save a historical version each time we save a record~~
 1. Add control file proto to the proto list
 1. Add changelog file proto to the proto list
 1. Add logic to save new widths to the changelog if we see a difference between
