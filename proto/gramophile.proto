@@ -515,6 +515,8 @@ message StoredUser {
 
     repeated discogs.Folder folders = 9;
     repeated FolderMove moves = 10;
+
+    UpdateControl updates = 13;
 }
 
 message GramophileAuth {
