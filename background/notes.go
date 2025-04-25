@@ -455,7 +455,7 @@ func (b *BackgroundRunner) ProcessPurchaseLocation(ctx context.Context, d discog
 	}
 
 	if cfield < 0 {
-		return status.Errorf(codes.FailedPrecondition, "Unable to locate Purchase Location field (from %+v)", fields)
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Purchase Location field (from %+v) -> %v", fields, config.PURCHASED_LOCATION_FIELD)
 	}
 
 	err := d.SetField(ctx, r.GetRelease(), cfield, i.GetPurchaseLocation())

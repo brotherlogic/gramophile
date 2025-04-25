@@ -292,3 +292,31 @@ func TestScoreRecord_ValidateMapping(t *testing.T) {
 		t.Errorf("Rating was not set correctly: %v", r.GetRelease().GetRating())
 	}
 }
+
+func TestPurchaseLocation(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Purchase Location"}}}
+	su := &pb.StoredUser{
+		User:   &pbd.User{DiscogsUserId: 123},
+		Auth:   &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{}}
+	b.db.SaveUser(ctx, su)
+	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234}})
+
+	err := b.ProcessIntents(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 1234}}, &pb.Intent{
+		PurchaseLocation: "bounce",
+	}, "123")
+	if err != nil {
+		t.Fatalf("Unable to process purchase location: %v", err)
+	}
+
+	r, err := b.db.GetRecord(ctx, 123, 1234)
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if r.GetPurchaseLocation() != "bounce" {
+		t.Errorf("Location was not set correctly: %v", r)
+	}
+}

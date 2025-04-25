@@ -11,7 +11,7 @@ import (
 
 var (
 	PURCHASED_PRICE_FIELD    = "Purchase Price"
-	PURCHASED_LOCATION_FIELD = "Purcahse Location"
+	PURCHASED_LOCATION_FIELD = "Purchase Location"
 )
 
 type add struct{}
