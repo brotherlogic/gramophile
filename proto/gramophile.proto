@@ -221,6 +221,9 @@ message Record {
    repeated Score score_history = 26;
 
    bool is_oversized = 27;
+
+   string purchase_location = 28;
+   int32 purchase_price = 29;
 }
 
 enum ListenStatus {
@@ -298,6 +301,9 @@ message Intent {
         UNSET = 2;
     }
     SetOversize set_oversize = 15;
+
+    int32 purchase_price = 16;
+    string purchase_location = 17;
 }
 
 message Queues {
@@ -690,6 +696,18 @@ service GramophileEService {
     rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
 
     rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
+
+    rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {};
+}
+
+message AddRecordRequest {
+    int64 id = 1;
+    int32 price = 2;
+    string location = 3;
+}
+
+message AddRecordResponse {
+    int64 instance_id = 1;
 }
 
 message GetSaleRequest {

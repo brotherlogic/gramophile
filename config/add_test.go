@@ -27,7 +27,7 @@ func TestAddConfigEnabled_Success(t *testing.T) {
 			Name: "Purchase Price",
 		},
 		{
-			Name: "Purcahse Location",
+			Name: "Purchase Location",
 		},
 	}, c)
 	if err != nil {

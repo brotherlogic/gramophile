@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	PURCHASED_PRICE    = "Purchase Price"
-	PURCHASED_LOCATION = "Purcahse Location"
+	PURCHASED_PRICE_FIELD    = "Purchase Price"
+	PURCHASED_LOCATION_FIELD = "Purchase Location"
 )
 
 type add struct{}
@@ -29,18 +29,18 @@ func (*add) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser)
 		foundp := false
 		foundl := false
 		for _, field := range fields {
-			if field.GetName() == PURCHASED_PRICE {
+			if field.GetName() == PURCHASED_PRICE_FIELD {
 				foundp = true
 			}
-			if field.GetName() == PURCHASED_LOCATION {
+			if field.GetName() == PURCHASED_LOCATION_FIELD {
 				foundl = true
 			}
 		}
 		if !foundp {
-			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", PURCHASED_PRICE)
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", PURCHASED_PRICE_FIELD)
 		}
 		if !foundl {
-			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", PURCHASED_LOCATION)
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", PURCHASED_LOCATION_FIELD)
 		}
 	}
 
