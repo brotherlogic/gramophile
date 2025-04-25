@@ -29,7 +29,7 @@ func TestAdd_Success(t *testing.T) {
 	}
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
 		{Id: 10, Name: "Goal Folder"},
-		{Id: 11, Name: "Purcahse Location"},
+		{Id: 11, Name: "Purchase Location"},
 		{Id: 12, Name: "Purchase Price"},
 	}}
 	pstore := pstore_client.GetTestClient()
