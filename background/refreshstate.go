@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,7 +36,7 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 
 			log.Printf("Found and updated %v -> %v from %v", iid, record.GetRelease().FolderId, rel)
 
-			return b.db.SaveRecord(ctx, d.GetUserId(), record)
+			return b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 		}
 	}
 

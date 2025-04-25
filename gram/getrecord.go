@@ -131,7 +131,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 
 			for _, update := range r.GetUpdates() {
-				fmt.Printf(" %v -> %v\n", update.GetDate(), update.GetExplanation())
+				fmt.Printf(" %v -> %v\n", update.GetDate(), update)
 			}
 		}
 

@@ -39,7 +39,7 @@ func TestMoveApplied(t *testing.T) {
 	d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{FolderId: 125, InstanceId: 1234},
 		Arrived: time.Now().UnixNano(),
-	})
+	}, &db.SaveOptions{})
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
@@ -117,7 +117,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 	d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{FolderId: 125, InstanceId: 1234},
 		Arrived: time.Now().UnixNano(),
-	})
+	}, &db.SaveOptions{})
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{

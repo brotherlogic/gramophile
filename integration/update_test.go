@@ -30,7 +30,7 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -81,22 +81,18 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	found12InchUpdate := false
 	foundStr := false
 	for _, update := range resp.GetRecords()[0].GetUpdates() {
-		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
-			update.GetBefore().GetGoalFolder() != "12 Inches" {
-			found12InchUpdate = true
-			if len(update.GetExplanation()) != 0 && update.GetExplanation()[0] != "" {
-				foundStr = true
+		if update.GetType() == pb.UpdateType_UPDATE_GOAL_FOLDER {
+			if update.GetAfter() == "12 Inches" &&
+				update.GetBefore() != "12 Inches" {
+				found12InchUpdate = true
 			}
 		}
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0])
 	}
 
-	/*if !foundStr {
-		t.Errorf("Update did not include explanation: %v", rec.GetUpdates()[0])
-	}*/
 	log.Printf("Huh: %v", foundStr)
 }
 
@@ -105,7 +101,7 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -146,13 +142,13 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 
 	found12InchUpdate := false
 	for _, update := range resp.GetRecords()[0].GetUpdates() {
-		if update.GetAfter().GetGoalFolder() == "12 Inches" &&
-			update.GetBefore().GetGoalFolder() != "12 Inches" {
+		if update.GetAfter() == "12 Inches" &&
+			update.GetBefore() != "12 Inches" {
 			found12InchUpdate = true
 		}
 	}
 
 	if !found12InchUpdate {
-		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0].After)
+		t.Errorf("Updates do not reflect change: %v", resp.GetRecords()[0].GetUpdates()[0])
 	}
 }

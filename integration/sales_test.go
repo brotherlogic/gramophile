@@ -42,7 +42,7 @@ func TestSyncSales_Success(t *testing.T) {
 
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 			Condition:  "Very Good Plus (VG+)",
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
 		SaleId: 123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 1225},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -389,7 +389,7 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 			Labels:     []*pbd.Label{{Name: "AAA"}}},
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -493,7 +493,7 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -601,7 +601,7 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -708,7 +708,7 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -816,7 +816,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -926,7 +926,7 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
 		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
 		SaleId:      123456,
-	})
+	}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}

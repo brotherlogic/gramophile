@@ -126,15 +126,28 @@ enum NoncomplianceIssue {
     NEEDS_CLEAN = 0;
 }
 
+enum UpdateType {
+    UPDATE_UNKNOWN = 0;
+    UPDATE_GOAL_FOLDER = 1;
+    UPDATE_FOLDER = 2;
+    UPDATE_WIDTH = 3;
+}
+
+message UpdateControl {
+    map<string, int64> lastBackfill = 1;
+}
+
+message RecordUpdates {
+    repeated RecordUpdate updates = 2;
+}
+
 message RecordUpdate {
     int64 date = 1;
 
-    Record before = 2;
-    Record after = 3;
-
-    string metadata = 5;
-
-    repeated string explanation = 4;
+    UpdateType type = 2;
+    
+    string before = 3;
+    string after = 4;
 }
 
 message Update {
@@ -325,6 +338,8 @@ message QueueElement {
         AddMasterWant add_master_want = 24;
         UpdateMasterWant update_master_want = 25;
         RefreshState refresh_state = 26;
+        FanoutHistory fanout_history = 31;
+        RecordHistory record_history = 32;
     }
 
     int64 refresh_id = 7;
@@ -339,6 +354,17 @@ message QueueElement {
     Priority priority = 29;
 
     int64 addition_date = 30;
+}
+
+message FanoutHistory {
+    int64 userid = 1;
+    UpdateType type = 2;
+}
+
+message RecordHistory {
+    int64 userid = 1;
+    UpdateType type = 2;
+    int64 instance_id = 3;
 }
 
 message RefreshState {
@@ -500,6 +526,8 @@ message StoredUser {
 
     repeated discogs.Folder folders = 9;
     repeated FolderMove moves = 10;
+
+    UpdateControl updates = 13;
 }
 
 message GramophileAuth {

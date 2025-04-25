@@ -384,7 +384,7 @@ func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 		}
 	}
 
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -499,7 +499,7 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
 	}
 
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Rating: 5, Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Rating: 5, Id: 123, InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
