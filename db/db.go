@@ -755,28 +755,28 @@ func (d *DB) GetDiff(old, new *pb.Record, typ pb.UpdateType) *pb.RecordUpdate {
 	case pb.UpdateType_UPDATE_GOAL_FOLDER:
 		if old.GetGoalFolder() != new.GetGoalFolder() {
 			return &pb.RecordUpdate{
-				Date:         time.Now().UnixNano(),
-				Type:         pb.UpdateType_UPDATE_GOAL_FOLDER,
-				BeforeString: old.GetGoalFolder(),
-				AfterString:  new.GetGoalFolder(),
+				Date:   time.Now().UnixNano(),
+				Type:   pb.UpdateType_UPDATE_GOAL_FOLDER,
+				Before: old.GetGoalFolder(),
+				After:  new.GetGoalFolder(),
 			}
 		}
 	case pb.UpdateType_UPDATE_FOLDER:
 		if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
 			return &pb.RecordUpdate{
-				Date:      time.Now().UnixNano(),
-				Type:      pb.UpdateType_UPDATE_FOLDER,
-				BeforeInt: int64(old.GetRelease().GetFolderId()),
-				AfterInt:  int64(new.GetRelease().GetFolderId()),
+				Date:   time.Now().UnixNano(),
+				Type:   pb.UpdateType_UPDATE_FOLDER,
+				Before: fmt.Sprintf("%v", old.GetRelease().GetFolderId()),
+				After:  fmt.Sprintf("%v", new.GetRelease().GetFolderId()),
 			}
 		}
 	case pb.UpdateType_UPDATE_WIDTH:
 		if old.GetWidth() != new.GetWidth() {
 			return &pb.RecordUpdate{
-				Date:         time.Now().Unix(),
-				Type:         pb.UpdateType_UPDATE_WIDTH,
-				BeforeString: fmt.Sprintf("%v", old.GetWidth()),
-				AfterString:  fmt.Sprintf("%v", new.GetWidth()),
+				Date:   time.Now().Unix(),
+				Type:   pb.UpdateType_UPDATE_WIDTH,
+				Before: fmt.Sprintf("%v", old.GetWidth()),
+				After:  fmt.Sprintf("%v", new.GetWidth()),
 			}
 		}
 	}

@@ -146,11 +146,8 @@ message RecordUpdate {
 
     UpdateType type = 2;
     
-    string before_string = 3;
-    string after_string = 4;
-
-    int64 before_int = 5;
-    int64 after_int  = 6;
+    string before = 3;
+    string after = 4;
 }
 
 message Update {

@@ -82,8 +82,8 @@ func TestUpdateUpdatedFollowingSyncLoop(t *testing.T) {
 	foundStr := false
 	for _, update := range resp.GetRecords()[0].GetUpdates() {
 		if update.GetType() == pb.UpdateType_UPDATE_GOAL_FOLDER {
-			if update.GetAfterString() == "12 Inches" &&
-				update.GetBeforeString() != "12 Inches" {
+			if update.GetAfter() == "12 Inches" &&
+				update.GetBefore() != "12 Inches" {
 				found12InchUpdate = true
 			}
 		}
@@ -142,8 +142,8 @@ func TestUpdateSavedOnIntentUpdate(t *testing.T) {
 
 	found12InchUpdate := false
 	for _, update := range resp.GetRecords()[0].GetUpdates() {
-		if update.GetAfterString() == "12 Inches" &&
-			update.GetBeforeString() != "12 Inches" {
+		if update.GetAfter() == "12 Inches" &&
+			update.GetBefore() != "12 Inches" {
 			found12InchUpdate = true
 		}
 	}

@@ -42,5 +42,5 @@ We'll seed this with tracking width over time.
    the old file and the new, updating the control file if it's not zero
 1. ~~Add background job to process historical versions and build out the changelog,
    and update the control file. Background job should not run if control file is set~~
-1. Kick off the background job when we encounter a zero last in the control file
+1. ~~Kick off the background job when we encounter a zero last in the control file~~
 1. Add get history piece to gram get, showing changes over time
