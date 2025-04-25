@@ -83,6 +83,16 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessPurchasePrice(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
+	err = b.ProcessPurchaseLocation(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
@@ -400,6 +410,60 @@ func (b *BackgroundRunner) ProcessGoalFolder(ctx context.Context, d discogs.Disc
 	}
 
 	r.GoalFolder = i.GetGoalFolder()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+}
+
+func (b *BackgroundRunner) ProcessPurchasePrice(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	// We don't zero out the listen time
+	if i.GetPurchasePrice() == 0 {
+		return nil
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.PURCHASED_PRICE_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Purchase Price field (from %+v)", fields)
+	}
+
+	err := d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%.2f", float32(i.GetPurchasePrice())/100.0))
+	if err != nil {
+		return err
+	}
+
+	r.PurchasePrice = i.GetPurchasePrice()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+}
+
+func (b *BackgroundRunner) ProcessPurchaseLocation(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	// We don't zero out the listen time
+	if i.GetPurchaseLocation() == "" {
+		return nil
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.PURCHASED_LOCATION_FIELD {
+			cfield = int(field.GetId())
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Purchase Location field (from %+v)", fields)
+	}
+
+	err := d.SetField(ctx, r.GetRelease(), cfield, i.GetPurchaseLocation())
+	if err != nil {
+		return err
+	}
+
+	r.PurchaseLocation = i.GetPurchaseLocation()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }

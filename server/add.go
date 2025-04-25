@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -48,6 +50,19 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	if iid == 0 {
 		return nil, fmt.Errorf("Permanent failure trying to add record, last error was: %v", err)
 	}
+
+	// Save the new record and enqueue updates for price and location
+	s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), &pb.Record{
+		Release: &pbd.Release{InstanceId: iid},
+	})
+
+	s.SetIntent(ctx, &pb.SetIntentRequest{
+		InstanceId: iid,
+		Intent: &pb.Intent{
+			PurchaseLocation: req.GetLocation(),
+			PurchasePrice:    req.GetPrice(),
+		},
+	})
 
 	return &pb.AddRecordResponse{InstanceId: iid}, nil
 }
