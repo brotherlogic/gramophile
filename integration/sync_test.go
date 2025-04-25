@@ -26,7 +26,7 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
-	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, MasterId: 12345, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234, MasterId: 12345, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}

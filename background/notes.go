@@ -9,6 +9,7 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
+	"github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
 
@@ -231,7 +232,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	}
 
 	r.GetRelease().FolderId = i.GetNewFolder()
-	b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
+	b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r, &db.SaveOptions{})
 	norg := getOrg(i.GetNewFolder(), user.GetConfig())
 	if norg == nil {
 		return status.Errorf(codes.Internal, "Unable to locate organisation for %v", i.GetNewFolder())
@@ -261,7 +262,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return err
 	}
 
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -288,7 +289,7 @@ func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discog
 
 	r.LastCleanTime = i.GetCleanTime()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -315,7 +316,7 @@ func (b *BackgroundRunner) ProcessListenDate(ctx context.Context, d discogs.Disc
 
 	r.LastListenTime = i.GetListenTime()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
@@ -353,7 +354,7 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 	})
 
 	config.Apply(user.GetConfig(), r)
-	err = b.db.SaveRecord(ctx, d.GetUserId(), r)
+	err = b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 	if err != nil {
 		return err
 	}
@@ -400,7 +401,7 @@ func (b *BackgroundRunner) ProcessGoalFolder(ctx context.Context, d discogs.Disc
 
 	r.GoalFolder = i.GetGoalFolder()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessSetWidth(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -427,7 +428,7 @@ func (b *BackgroundRunner) ProcessSetWidth(ctx context.Context, d discogs.Discog
 
 	r.Width = i.GetWidth()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessSetWeight(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -454,7 +455,7 @@ func (b *BackgroundRunner) ProcessSetWeight(ctx context.Context, d discogs.Disco
 
 	r.Weight = i.GetWeight()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -481,7 +482,7 @@ func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs,
 
 	r.Sleeve = i.GetSleeve()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -508,7 +509,7 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 
 	r.Arrived = i.GetArrived()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
 func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -521,7 +522,7 @@ func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Dis
 		r.IsOversized = false
 	}
 
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 
 }
 
@@ -609,5 +610,5 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		}
 	}
 
-	return b.db.SaveRecord(ctx, d.GetUserId(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }

@@ -53,12 +53,17 @@ func NewTestDB(cl pstore_client.PStoreClient) Database {
 	return db
 }
 
+type SaveOptions struct {
+	NoUpdates bool
+}
+
 type Database interface {
 	GetRecord(ctx context.Context, userid int32, iid int64) (*pb.Record, error)
+	GetHistoricalRecord(ctx context.Context, userid, iid, date int64) (*pb.Record, error)
 	DeleteRecord(ctx context.Context, userid int32, iid int64) error
 	GetRecords(ctx context.Context, userid int32) ([]int64, error)
 	LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, error)
-	SaveRecord(ctx context.Context, userid int32, record *pb.Record) error
+	SaveRecord(ctx context.Context, userid int32, record *pb.Record, options ...*SaveOptions) error
 	SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
 	GetUpdates(ctx context.Context, userid int32, record *pb.Record) ([]*pb.RecordUpdate, error)
 	SaveUpdate(ctx context.Context, userid int32, record *pb.Record, update *pb.RecordUpdate) error
@@ -105,6 +110,9 @@ type Database interface {
 	SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) error
 	DeletePrintMove(ctx context.Context, userId int32, iid int64, index int64) error
 	LoadPrintMoves(ctx context.Context, userId int32) ([]*pb.PrintMove, error)
+
+	GetDiff(r1, r2 *pb.Record, typ pb.UpdateType) *pb.RecordUpdate
+	GetRecordHistory(ctx context.Context, userId int32, iid int64) ([]int64, error)
 }
 
 func NewDatabase(ctx context.Context) Database {
@@ -615,6 +623,13 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 
 	su := &pb.StoredUser{}
 	err = proto.Unmarshal(resp.GetValue().GetValue(), su)
+
+	if su.GetUpdates() == nil {
+		su.Updates = &pb.UpdateControl{
+			LastBackfill: make(map[string]int64),
+		}
+	}
+
 	return su, err
 }
 
@@ -654,7 +669,7 @@ func (d *DB) SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.
 	return err
 }
 
-func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) error {
+func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, options ...*SaveOptions) error {
 	data, err := proto.Marshal(record)
 	if err != nil {
 		return err
@@ -685,39 +700,103 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record) er
 	})
 
 	// Write out updates
+	saveUpdate := true
 	if old != nil {
-		d.saveUpdate(ctx, userid, old, record)
+		for _, option := range options {
+			log.Printf("HUH %+v", option)
+			if option.NoUpdates {
+				saveUpdate = false
+			}
+		}
+		if saveUpdate {
+			log.Printf("Saving")
+			d.saveUpdate(ctx, userid, old, record)
+		}
 	}
 
 	return err
 }
 
-func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
-	if old.GetGoalFolder() != new.GetGoalFolder() {
-		update := &pb.RecordUpdate{
-			Date:         time.Now().UnixNano(),
-			Type:         pb.UpdateType_UPDATE_GOAL_FOLDER,
-			BeforeString: old.GetGoalFolder(),
-			AfterString:  new.GetGoalFolder(),
-		}
-
-		err := d.SaveUpdate(ctx, userid, new, update)
+func (d *DB) GetRecordHistory(ctx context.Context, userid int32, iid int64) ([]int64, error) {
+	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("gramophile/user/%v/releasehistory/%v", userid, iid),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var history []int64
+	for _, key := range keys.GetKeys() {
+		elems := strings.Split(key, "-")
+		val, err := strconv.ParseInt(elems[1], 10, 64)
 		if err != nil {
-			return err
+			return nil, err
+		}
+		history = append(history, val)
+	}
+
+	return history, nil
+}
+
+func (d *DB) GetHistoricalRecord(ctx context.Context, userid, iid, date int64) (*pb.Record, error) {
+	data, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("gramophile/user/%v/releasehistory/%v-%v", userid, iid, date),
+	})
+
+	rec := &pb.Record{}
+	err = proto.Unmarshal(data.GetValue().GetValue(), rec)
+	if err != nil {
+		return nil, err
+	}
+	return rec, nil
+}
+
+func (d *DB) GetDiff(old, new *pb.Record, typ pb.UpdateType) *pb.RecordUpdate {
+	switch typ {
+	case pb.UpdateType_UPDATE_GOAL_FOLDER:
+		if old.GetGoalFolder() != new.GetGoalFolder() {
+			return &pb.RecordUpdate{
+				Date:         time.Now().UnixNano(),
+				Type:         pb.UpdateType_UPDATE_GOAL_FOLDER,
+				BeforeString: old.GetGoalFolder(),
+				AfterString:  new.GetGoalFolder(),
+			}
+		}
+	case pb.UpdateType_UPDATE_FOLDER:
+		if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
+			return &pb.RecordUpdate{
+				Date:      time.Now().UnixNano(),
+				Type:      pb.UpdateType_UPDATE_FOLDER,
+				BeforeInt: int64(old.GetRelease().GetFolderId()),
+				AfterInt:  int64(new.GetRelease().GetFolderId()),
+			}
+		}
+	case pb.UpdateType_UPDATE_WIDTH:
+		if old.GetWidth() != new.GetWidth() {
+			return &pb.RecordUpdate{
+				Date:         time.Now().Unix(),
+				Type:         pb.UpdateType_UPDATE_WIDTH,
+				BeforeString: fmt.Sprintf("%v", old.GetWidth()),
+				AfterString:  fmt.Sprintf("%v", new.GetWidth()),
+			}
 		}
 	}
 
-	if old.GetRelease().GetFolderId() != new.GetRelease().GetFolderId() {
-		update := &pb.RecordUpdate{
-			Date:      time.Now().UnixNano(),
-			Type:      pb.UpdateType_UPDATE_FOLDER,
-			BeforeInt: int64(old.GetRelease().GetFolderId()),
-			AfterInt:  int64(new.GetRelease().GetFolderId()),
-		}
+	return nil
 
-		err := d.SaveUpdate(ctx, userid, new, update)
-		if err != nil {
-			return err
+}
+
+func (d *DB) saveUpdate(ctx context.Context, userid int32, old, new *pb.Record) error {
+	for _, typ := range []pb.UpdateType{
+		pb.UpdateType_UPDATE_GOAL_FOLDER,
+		pb.UpdateType_UPDATE_FOLDER,
+		pb.UpdateType_UPDATE_WIDTH,
+	} {
+		update := d.GetDiff(old, new, typ)
+		if update != nil {
+			err := d.SaveUpdate(ctx, userid, new, update)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

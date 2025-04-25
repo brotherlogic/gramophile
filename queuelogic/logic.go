@@ -476,43 +476,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 
-	if fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollectionEntry" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshIntents" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWants" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWant" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshRelease" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshSales" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_LinkSales" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshState" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_UpdateSale" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshWantlists" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecords" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUser" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddMasterWant" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_AddFolderUpdate" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_MoveRecord" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshCollection" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshUpdates" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDates" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_RefreshEarliestReleaseDate" &&
-		fmt.Sprintf("%T", entry.Entry) != "*proto.QueueElement_SyncWants" {
-		qlog(ctx, "Skipping '%T'", entry.Entry)
-
-		client, err := ghb_client.GetClientInternal()
-		if err != nil {
-			return err
-		}
-		client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
-			Title: "Skipping Entry",
-			Body:  fmt.Sprintf("%v was skipped", entry),
-			User:  "brotherlogic",
-			Repo:  "gramophile",
-		})
-
-		return nil
-	}
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_FanoutHistory:
+		err := q.b.FanoutHistory(ctx, entry.GetFanoutHistory().GetType(), u, entry.GetAuth(), q.Enqueue)
+		return err
+	case *pb.QueueElement_RecordHistory:
+		err := q.b.RecordHistory(ctx, entry.GetRecordHistory().GetType(), int64(u.GetUser().GetDiscogsUserId()), entry.GetRecordHistory().GetInstanceId())
+		return err
 	case *pb.QueueElement_RefreshState:
 		err := q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
 		if err != nil {

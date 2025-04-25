@@ -19,7 +19,7 @@ func TestSetListen_Success(t *testing.T) {
 
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
-	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestSetListen_ResetScore(t *testing.T) {
 		InstanceId: 1234,
 		FolderId:   12,
 		Rating:     5,
-		Labels:     []*pbd.Label{{Name: "AAA"}}}})
+		Labels:     []*pbd.Label{{Name: "AAA"}}}}, &db.SaveOptions{})
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}

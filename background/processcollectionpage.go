@@ -9,6 +9,7 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/config"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -98,7 +99,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 				return -1, err
 			}
 
-			err = b.db.SaveRecord(ctx, d.GetUserId(), stored)
+			err = b.db.SaveRecord(ctx, d.GetUserId(), stored, &db.SaveOptions{})
 			if err != nil {
 				return -1, err
 			}
@@ -113,7 +114,7 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 				return -1, err
 			}
 
-			err = b.db.SaveRecord(ctx, d.GetUserId(), record)
+			err = b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 			if err != nil {
 				return -1, err
 			}

@@ -7,6 +7,7 @@ import (
 	"github.com/brotherlogic/discogs"
 	dpb "github.com/brotherlogic/discogs/proto"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -27,7 +28,7 @@ func TestDigitalListExtended(t *testing.T) {
 	b.db.SaveRecord(context.Background(), 123, &pb.Record{
 		Release: &pbd.Release{
 			InstanceId: 100, MasterId: 200,
-		}})
+		}}, &db.SaveOptions{})
 
 	d.AddCollectionRelease(&dpb.Release{MasterId: 200, Id: 1, InstanceId: 100, Rating: 2})
 

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -81,7 +82,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 
 	err = b.refreshWantlists(ctx, d, record)
 
-	err = b.db.SaveRecord(ctx, d.GetUserId(), record)
+	err = b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 	qlog(ctx, "Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
 	return err
 }

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -80,7 +81,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
 		qlog(ctx, "Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
-		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
+		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease, &db.SaveOptions{})
 	}
 
 	addDigital := b.addDigitalList(ctx, storedRelease, release)
@@ -115,7 +116,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	}
 
 	if needsSave {
-		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease)
+		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease, &db.SaveOptions{})
 	}
 
 	return nil
