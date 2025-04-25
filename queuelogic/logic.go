@@ -768,7 +768,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		return q.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
 	case *pb.QueueElement_RefreshUser:
-		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth())
+		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshRelease:
 		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
 		qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
