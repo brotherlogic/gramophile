@@ -130,6 +130,7 @@ enum UpdateType {
     UPDATE_UNKNOWN = 0;
     UPDATE_GOAL_FOLDER = 1;
     UPDATE_FOLDER = 2;
+    UPDATE_WIDTH = 3;
 }
 
 message UpdateControl {
@@ -145,11 +146,8 @@ message RecordUpdate {
 
     UpdateType type = 2;
     
-    string before_string = 3;
-    string after_string = 4;
-
-    int64 before_int = 5;
-    int64 after_int  = 6;
+    string before = 3;
+    string after = 4;
 }
 
 message Update {
@@ -340,6 +338,8 @@ message QueueElement {
         AddMasterWant add_master_want = 24;
         UpdateMasterWant update_master_want = 25;
         RefreshState refresh_state = 26;
+        FanoutHistory fanout_history = 31;
+        RecordHistory record_history = 32;
     }
 
     int64 refresh_id = 7;
@@ -354,6 +354,17 @@ message QueueElement {
     Priority priority = 29;
 
     int64 addition_date = 30;
+}
+
+message FanoutHistory {
+    int64 userid = 1;
+    UpdateType type = 2;
+}
+
+message RecordHistory {
+    int64 userid = 1;
+    UpdateType type = 2;
+    int64 instance_id = 3;
 }
 
 message RefreshState {

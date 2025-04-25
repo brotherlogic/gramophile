@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -403,7 +404,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 
 			if changed {
 				log.Printf("Saving on change: %v", record)
-				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record, &db.SaveOptions{})
 				if err != nil {
 					return fmt.Errorf("unable to save record: %w", err)
 				}
@@ -428,7 +429,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 
 		if !found {
 			record.SaleId = 0
-			err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record)
+			err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record, &db.SaveOptions{})
 			if err != nil {
 				return err
 			}

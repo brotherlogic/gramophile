@@ -108,7 +108,7 @@ func TestGetCollectionPage_NotClobberingDateAdded(t *testing.T) {
 	b := GetTestBackgroundRunner()
 	d := &discogs.TestDiscogsClient{UserId: 123}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Labels: []*pbd.Label{{Name: "testing"}}})
-	b.db.SaveRecord(context.Background(), 123, &pb.Record{Release: &pbd.Release{Id: 1, DateAdded: 1234, Labels: []*pbd.Label{{Name: "testing"}}, InstanceId: 100}})
+	b.db.SaveRecord(context.Background(), 123, &pb.Record{Release: &pbd.Release{Id: 1, DateAdded: 1234, Labels: []*pbd.Label{{Name: "testing"}}, InstanceId: 100}}, &db.SaveOptions{})
 
 	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
 	if err != nil {

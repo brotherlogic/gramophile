@@ -19,7 +19,6 @@ flag_management:
       paths:
         - background/
         - integration/
-        - queuelogic/
       statuses:
         - type: project
           target: auto
