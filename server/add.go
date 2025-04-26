@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -44,6 +45,7 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 		if err != nil && status.Code(err) != codes.ResourceExhausted {
 			return nil, fmt.Errorf("unable to add record: %w", err)
 		}
+		log.Printf("Got result %v and %v", iid, err)
 		attempts++
 	}
 
