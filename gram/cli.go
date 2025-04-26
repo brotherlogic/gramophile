@@ -71,6 +71,7 @@ func main() {
 		GetWantlist(),
 		GetFolder(),
 		GetScore(),
+		GetAdd(),
 		GetGetSats(),
 		GetWeight()}
 
