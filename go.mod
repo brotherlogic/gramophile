@@ -3,7 +3,7 @@ module github.com/brotherlogic/gramophile
 go 1.23.2
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20250426005831-b31bc85c71de
+	github.com/brotherlogic/discogs v0.0.0-20250426011528-6ce070f89c4b
 	github.com/brotherlogic/githubridge v0.2853.0
 	github.com/brotherlogic/godiscogs v0.0.0-20250423134217-27caff832e51
 	github.com/brotherlogic/pstore v0.33.0
