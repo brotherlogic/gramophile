@@ -40,7 +40,7 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 		// Cheap Backoff
 		time.Sleep(time.Second * time.Duration(attempts))
 
-		iid, err = s.di.AddRelease(ctx, req.GetId(), defaultFolder)
+		iid, err = s.di.ForUser(user.GetUser()).AddRelease(ctx, req.GetId(), defaultFolder)
 		if err != nil && status.Code(err) != codes.ResourceExhausted {
 			return nil, fmt.Errorf("unable to add record: %w", err)
 		}

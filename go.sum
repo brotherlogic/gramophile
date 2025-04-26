@@ -12,6 +12,8 @@ github.com/brotherlogic/discogs v0.0.0-20250426011528-6ce070f89c4b h1:jRFNLycP94
 github.com/brotherlogic/discogs v0.0.0-20250426011528-6ce070f89c4b/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/discogs v0.0.0-20250426012810-1d44478f92e1 h1:kFfWDsjxpfjqMGPmOv/i5GKkLH1DC9muprP+g5DJQdU=
 github.com/brotherlogic/discogs v0.0.0-20250426012810-1d44478f92e1/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
+github.com/brotherlogic/discogs v0.0.0-20250426013948-98e1bebf61d4 h1:eyrg7EDUy0kqFDZJKXWZrhg9G+Rp0yPpwQHmkfGdIZ0=
+github.com/brotherlogic/discogs v0.0.0-20250426013948-98e1bebf61d4/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/githubridge v0.2830.0 h1:LowW28eY1KyVouSfEM8pOFKhx88ejbm2pslrzagcyJY=
 github.com/brotherlogic/githubridge v0.2830.0/go.mod h1:CcY6P3N92LjEFDNPY0G/54zJpSmsLpNgo71QjiK9NnA=
 github.com/brotherlogic/githubridge v0.2834.0 h1:HYYOew/sJ5lvyUDhM6D/IXT78H5dgE4if8JT97qit34=
