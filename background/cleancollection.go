@@ -18,6 +18,7 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 	for _, r := range records {
 		record, err := b.db.GetRecord(ctx, d.GetUserId(), r)
 		if err != nil {
+			qlog(ctx, "Failed on get record %v", err)
 			return err
 		}
 
