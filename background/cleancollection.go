@@ -14,6 +14,7 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 		return err
 	}
 
+	qlog(ctx, "Cleaning %v records", len(records))
 	for _, r := range records {
 		record, err := b.db.GetRecord(ctx, d.GetUserId(), r)
 		if err != nil {
@@ -26,6 +27,8 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 			if err != nil {
 				return err
 			}
+		} else {
+			qlog(ctx, "Keeping %v", r)
 		}
 	}
 
