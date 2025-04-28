@@ -11,6 +11,7 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 	qlog(ctx, "Cleaning collection with %v", refreshId)
 	records, err := b.db.GetRecords(ctx, d.GetUserId())
 	if err != nil {
+		qlog(ctx, "Got records: %v", err)
 		return err
 	}
 
