@@ -8,6 +8,7 @@ import (
 )
 
 func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discogs, refreshId int64) error {
+	qlog(ctx, "Cleaning collection with %v", refreshId)
 	records, err := b.db.GetRecords(ctx, d.GetUserId())
 	if err != nil {
 		return err
