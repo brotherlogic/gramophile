@@ -867,6 +867,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 						MoveRecords: &pb.MoveRecords{}},
 					Auth: entry.GetAuth(),
 				}})
+			qlog(ctx, "Found %v", err)
 			if err != nil {
 				return err
 			}
