@@ -871,7 +871,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return err
 			}
-			return q.b.CleanCollection(ctx, q.d, entry.GetRefreshCollectionEntry().GetRefreshId())
+			return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId())
 		}
 		return nil
 	}
