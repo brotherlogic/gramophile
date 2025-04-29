@@ -8,7 +8,7 @@ import (
 )
 
 func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discogs, refreshId int64) error {
-	qlog(ctx, "Cleaning collection with %v", refreshId)
+	qlog(ctx, "Cleaning collection with %v - > %v", refreshId, d.GetUserId())
 	records, err := b.db.GetRecords(ctx, d.GetUserId())
 	if err != nil {
 		qlog(ctx, "Got records: %v", err)
@@ -25,12 +25,9 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 
 		if record.GetRefreshId() != refreshId {
 			err = b.db.DeleteRecord(ctx, d.GetUserId(), r)
-			qlog(ctx, "Deleting %v -> %v", r, err)
 			if err != nil {
 				return err
 			}
-		} else {
-			qlog(ctx, "Keeping %v", r)
 		}
 	}
 
