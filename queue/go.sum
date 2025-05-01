@@ -4,8 +4,8 @@ github.com/brotherlogic/discogs v0.0.0-20250426144650-52aee641500d h1:cWFeOy4hyC
 github.com/brotherlogic/discogs v0.0.0-20250426144650-52aee641500d/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/githubridge v0.2853.0 h1:uNoX4ac034WxQdRDAzj2HPmmeIiIpe/5Er7ImXuH5O0=
 github.com/brotherlogic/githubridge v0.2853.0/go.mod h1:1Izl2qh17QzTwv4+0Waq/xAnbaywurJQHSN19/PlPvU=
-github.com/brotherlogic/gramophile v0.1169.0 h1:6bqs4NfHV1yTlI5QJAzUrHPPcFSUCORjKbsJC/Btaqs=
-github.com/brotherlogic/gramophile v0.1169.0/go.mod h1:9IIVufjop2KYsM0GWkEULOCKQj85GG6U+WkNJrVqWds=
+github.com/brotherlogic/gramophile v0.1172.0 h1:dDZY5eClylYfMhlDd99pZWTsjKeqON98H7RwcChjLAQ=
+github.com/brotherlogic/gramophile v0.1172.0/go.mod h1:5xMIktSN5OeqXc+NAs/lwHE9XYxhiI4CQpBarVTV9yo=
 github.com/brotherlogic/pstore v0.33.0 h1:wW6TeChmNG9JUw7pXCZgCnyr6ZwEPwSPmBt/CQ124zQ=
 github.com/brotherlogic/pstore v0.33.0/go.mod h1:Sdpq6/rkBnvcrtW9fbxSVaY2oPJPZ/SwjOIcsjjguMo=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
