@@ -100,6 +100,11 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		req.GetIntent().Width = 0.1
 	}
 
+	if req.GetIntent().GetNewFolder() == 7651472 {
+		req.GetIntent().NewScore = -1
+		req.GetIntent().Keep = pb.KeepStatus_RESET
+	}
+
 	ts := time.Now().UnixNano()
 	err = s.d.SaveIntent(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId(), req.GetIntent(), ts)
 	if err != nil {
