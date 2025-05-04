@@ -100,7 +100,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		req.GetIntent().Width = 0.1
 	}
 
-	if req.GetIntent().GetNewFolder() == 7651472 {
+	if req.GetIntent().GetNewFolder() == 7651472 || req.GetIntent().GetNewFolder() == 7665013 {
 		req.GetIntent().NewScore = -1
 		req.GetIntent().Keep = pb.KeepStatus_RESET
 	}
