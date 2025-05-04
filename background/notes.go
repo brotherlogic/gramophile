@@ -102,7 +102,7 @@ func (b *BackgroundRunner) buildRecord(ctx context.Context, userid int32, iid in
 		return "", err
 	}
 
-	if len(rec.GetRelease().GetArtists()) == 0 {{
+	if len(rec.GetRelease().GetArtists()) == 0 {
 		return fmt.Sprintf("Unknown artist - %v", rec.GetRelease().GetTitle()), nil
 	}
 	return fmt.Sprintf("%v - %v", rec.GetRelease().GetArtists()[0].GetName(), rec.GetRelease().GetTitle()), nil
