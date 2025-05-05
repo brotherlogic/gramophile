@@ -20,7 +20,7 @@ pull in the linked sale id, and perform a rc update if necessary.
 ## Config
 
 ```
-message SaeConfig {
+message SaleConfig {
     Enabled enabled = 1;
 
     float32 listing_price_buffer = 2;
