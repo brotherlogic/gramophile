@@ -51,12 +51,7 @@ message Context {
     string record = 3;
 }
 
-enum WantlistType {
-    TYPE_UNKNOWN = 0;
-    EN_MASSE = 1;
-    ONE_BY_ONE = 2;
-    DATE_BOUNDED = 3;
-}
+
 
 enum WantlistVisibility {
     VISIBLE = 0;

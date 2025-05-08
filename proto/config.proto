@@ -299,4 +299,27 @@ message WantslistConfig {
     int32 min_count = 2;
 
     int32 listening_threshold = 3;
+
+    repeated StoredWantlist wantlists = 4;
+}
+
+enum WantlistType {
+    TYPE_UNKNOWN = 0;
+    EN_MASSE = 1;
+    ONE_BY_ONE = 2;
+    DATE_BOUNDED = 3;
+}
+
+message StoredWantlist {
+    string name = 1;
+    int64 start_date = 2;
+    int64 end_date = 3;
+    WantlistType type = 4;
+    repeated StoredWantlistEntry entries = 5;
+}
+
+message StoredWantlistEntry {
+    int64 id = 1;
+    int64 master_id = 2;
+    int32 index = 3;
 }
