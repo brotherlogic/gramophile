@@ -310,12 +310,19 @@ enum WantlistType {
     DATE_BOUNDED = 3;
 }
 
+enum WantlistVisibility {
+    VISIBLE = 0;
+    INVISIBLE = 1;
+}
+
+
 message StoredWantlist {
     string name = 1;
     int64 start_date = 2;
     int64 end_date = 3;
     WantlistType type = 4;
     repeated StoredWantlistEntry entries = 5;
+    WantlistVisibility visibility = 6;
 }
 
 message StoredWantlistEntry {

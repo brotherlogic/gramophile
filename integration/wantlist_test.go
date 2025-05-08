@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
-	"github.com/brotherlogic/gramophile/server"
-
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
+	"github.com/brotherlogic/gramophile/server"
 	pstore_client "github.com/brotherlogic/pstore/client"
 
-	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -33,33 +32,18 @@ func TestDowngradeToOneByOne(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_EN_MASSE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -69,7 +53,7 @@ func TestDowngradeToOneByOne(t *testing.T) {
 	}
 
 	if len(wants.GetWants()) != 2 {
-		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
+		t.Fatalf("Bad wants returned first pass (expected to see original want): %v", wants)
 	}
 
 	for _, want := range wants.GetWants() {
@@ -83,11 +67,18 @@ func TestDowngradeToOneByOne(t *testing.T) {
 			}
 		}
 	}
-
-	s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:    "test-wantlist",
-		NewType: pb.WantlistType_ONE_BY_ONE,
-	})
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_ONE_BY_ONE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -130,33 +121,18 @@ func TestUpgradeToEnMasse(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_ONE_BY_ONE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_ONE_BY_ONE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -172,19 +148,27 @@ func TestUpgradeToEnMasse(t *testing.T) {
 	for _, want := range wants.GetWants() {
 		if want.GetWant().GetId() == 123 {
 			if want.GetWant().GetState() != pb.WantState_WANTED {
-				t.Errorf("First entry should be wanted: %v", want)
+				t.Errorf("PrU First entry should be wanted: %v", want)
 			}
 		} else {
 			if want.GetWant().GetState() == pb.WantState_WANTED {
-				t.Errorf("Second entry should not be wanted: %v", want)
+				t.Errorf("PrU Second entry should not be wanted: %v", want)
 			}
 		}
 	}
 
-	s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:    "test-wantlist",
-		NewType: pb.WantlistType_EN_MASSE,
-	})
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -222,25 +206,17 @@ func TestWantlistLifecycle(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_EN_MASSE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Add first want
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 1234,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 1234},
+				},
+			},
+		}}}})
 
 	err = qc.FlushQueue(ctx)
 	if err != nil {
@@ -339,33 +315,18 @@ func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_EN_MASSE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -460,33 +421,18 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_ONE_BY_ONE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -572,33 +518,18 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_ONE_BY_ONE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name: "test-wantlist",
+				Type: pb.WantlistType_EN_MASSE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}, {Id: 124}},
+			},
+		},
+		},
+	}})
 
 	qc.FlushQueue(ctx)
 
@@ -668,39 +599,26 @@ func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name:       "test-wantlist-visible",
-		Type:       pb.WantlistType_ONE_BY_ONE,
-		Visibility: pb.WantlistVisibility_VISIBLE,
-	})
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name:       "test-wantlist-invisible",
-		Type:       pb.WantlistType_ONE_BY_ONE,
-		Visibility: pb.WantlistVisibility_INVISIBLE,
-	})
-	if err != nil {
-		t.Fatalf("unable to add wantlist: %v", err)
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist-visible",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist-invisible",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name:       "test-wantlist-visible",
+				Type:       pb.WantlistType_ONE_BY_ONE,
+				Visibility: pb.WantlistVisibility_VISIBLE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}},
+			},
+			{
+				Name:       "test-wantlist-invisible",
+				Type:       pb.WantlistType_ONE_BY_ONE,
+				Visibility: pb.WantlistVisibility_INVISIBLE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 124}},
+			},
+		},
+		},
+	}})
 
 	log.Printf("TEST sync 1")
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -743,39 +661,26 @@ func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name:       "test-wantlist-visible",
-		Type:       pb.WantlistType_ONE_BY_ONE,
-		Visibility: pb.WantlistVisibility_VISIBLE,
-	})
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name:       "test-wantlist-invisible",
-		Type:       pb.WantlistType_ONE_BY_ONE,
-		Visibility: pb.WantlistVisibility_INVISIBLE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist: %v", err)
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist-visible",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist-invisible",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
+			{
+				Name:       "test-wantlist-visible",
+				Type:       pb.WantlistType_ONE_BY_ONE,
+				Visibility: pb.WantlistVisibility_VISIBLE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}},
+			},
+			{
+				Name:       "test-wantlist-invisible",
+				Type:       pb.WantlistType_ONE_BY_ONE,
+				Visibility: pb.WantlistVisibility_INVISIBLE,
+				Entries: []*pb.StoredWantlistEntry{
+					{Id: 123}},
+			},
+		},
+		},
+	}})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -985,8 +890,15 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 					},
 				},
 			},
-			WantsListConfig: &pb.WantslistConfig{ListeningThreshold: 2},
-			WantsConfig:     &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
+			WantsListConfig: &pb.WantslistConfig{ListeningThreshold: 2, Wantlists: []*pb.StoredWantlist{
+				{
+					Name:       "test-wantlist-visible",
+					Type:       pb.WantlistType_ONE_BY_ONE,
+					Visibility: pb.WantlistVisibility_VISIBLE,
+					Entries: []*pb.StoredWantlistEntry{
+						{Id: 123}, {Id: 124}},
+				}}},
+			WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}}})
 
 	// Validate that the org has records in it
 	org, err := s.GetOrg(ctx, &pb.GetOrgRequest{OrgName: "Test"})
@@ -995,32 +907,6 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 	}
 	if len(org.GetSnapshot().GetPlacements()) != 3 {
 		t.Fatalf("Records were not placed in the org: %v", org)
-	}
-
-	// Create a want list
-	_, err = s.AddWantlist(ctx, &pb.AddWantlistRequest{
-		Name: "test-wantlist",
-		Type: pb.WantlistType_ONE_BY_ONE,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add wantlist")
-	}
-
-	// Update
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 123,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
-	}
-
-	_, err = s.UpdateWantlist(ctx, &pb.UpdateWantlistRequest{
-		Name:  "test-wantlist",
-		AddId: 124,
-	})
-	if err != nil {
-		t.Fatalf("Unable to add to wantlist: %v", err)
 	}
 
 	qc.FlushQueue(ctx)

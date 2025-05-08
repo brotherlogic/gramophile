@@ -10,6 +10,126 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func convertList(list *pb.StoredWantlist) *pb.Wantlist {
+	return &pb.Wantlist{
+		Name:       list.GetName(),
+		StartDate:  list.GetStartDate(),
+		EndDate:    list.GetEndDate(),
+		Type:       list.GetType(),
+		Visibility: list.GetVisibility(),
+		Active:     true,
+	}
+}
+
+func (s *Server) handleWantslists(ctx context.Context, u *pb.StoredUser, lists []*pb.StoredWantlist) error {
+	log.Printf("HANDLE HERE: %v", lists)
+
+	savedLists, err := s.d.GetWantlists(ctx, u.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return err
+	}
+
+	for _, list := range lists {
+		// Set index on these if we need to
+		foundOne := false
+		for _, entry := range list.GetEntries() {
+			if entry.GetIndex() != 0 {
+				foundOne = true
+			}
+		}
+		if !foundOne {
+			for i, entry := range list.GetEntries() {
+				entry.Index = int32(i + 1)
+			}
+		}
+
+		var wlist *pb.Wantlist
+		for _, savedList := range savedLists {
+			if savedList.GetName() == list.GetName() {
+				wlist = savedList
+
+				savedList.Type = list.GetType()
+				savedList.Visibility = list.GetVisibility()
+				savedList.EndDate = list.GetEndDate()
+				savedList.StartDate = list.GetStartDate()
+
+				break
+			}
+		}
+
+		if wlist == nil {
+			wlist = convertList(list)
+
+		}
+
+		// We've found this list, no we need to update it
+		maxIndex := int32(0)
+		for _, entry := range list.GetEntries() {
+			if entry.GetIndex() > maxIndex {
+				maxIndex = entry.GetIndex()
+			}
+
+			var wentry *pb.WantlistEntry
+			for _, savedEntry := range wlist.GetEntries() {
+				if entry.GetIndex() == savedEntry.GetIndex() {
+					wentry = savedEntry
+					break
+				}
+			}
+
+			if wentry == nil {
+				wentry = &pb.WantlistEntry{
+					Index:    entry.GetIndex(),
+					Id:       entry.GetId(),
+					MasterId: entry.GetMasterId(),
+				}
+				if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
+					wentry.State = pb.WantState_HIDDEN
+				}
+
+				log.Printf("Adding")
+				wlist.Entries = append(wlist.Entries, wentry)
+			} else {
+				wentry.Id = entry.GetId()
+				wentry.MasterId = entry.GetMasterId()
+			}
+		}
+
+		// And trim off any hanging entries
+		var newEntries []*pb.WantlistEntry
+		if maxIndex != 0 || len(list.GetEntries()) != 0 {
+			for _, entry := range wlist.GetEntries() {
+				if entry.GetIndex() <= maxIndex {
+					newEntries = append(newEntries, entry)
+				}
+			}
+		}
+		log.Printf("%v and %v -> %v from %v --> %v", maxIndex, len(list.GetEntries()), newEntries, list.GetEntries(), newEntries)
+
+		wlist.Entries = newEntries
+		err = s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(), wlist)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete any lists removed from the master list
+	for _, slist := range savedLists {
+		found := false
+		for _, list := range lists {
+			if list.GetName() == slist.GetName() {
+				found = true
+			}
+		}
+
+		if !found {
+			s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), slist.GetName())
+		}
+	}
+
+	return nil
+}
+
 func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
 	u, err := s.getUser(ctx)
 	if err != nil {
@@ -51,21 +171,51 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	log.Printf("Updated user: %v", u)
 
 	if req.GetConfig().GetWantsConfig().GetMintUpWantList() {
-		s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(),
-			&pb.Wantlist{
-				Name: "mint_up_wantlist",
-			})
-	} else {
-		s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), "mint_up_wantlist")
+		// Inject into the fields if not present
+		found := false
+		for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+			if list.GetName() == "mint_up_wantlist" {
+				found = true
+			}
+		}
+		if !found {
+			if u.GetConfig().GetWantsListConfig() == nil {
+				u.GetConfig().WantsListConfig = &pb.WantslistConfig{}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "mint_up_wantlist"})
+		} else {
+			var nlist []*pb.StoredWantlist
+			for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+				if list.GetName() != "mint_up_wantlist" {
+					nlist = append(nlist, list)
+				}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = nlist
+		}
 	}
 
 	if req.GetConfig().GetWantsConfig().GetDigitalWantsList() {
-		s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(),
-			&pb.Wantlist{
-				Name: "digital_wantlist",
-			})
-	} else {
-		s.d.DeleteWantlist(ctx, u.GetUser().GetDiscogsUserId(), "digital_wantlist")
+		// Inject into the fields if not present
+		found := false
+		for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+			if list.GetName() == "digital_wantlist" {
+				found = true
+			}
+		}
+		if !found {
+			if u.GetConfig().GetWantsListConfig() == nil {
+				u.GetConfig().WantsListConfig = &pb.WantslistConfig{}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "digital_wantlist"})
+		} else {
+			var nlist []*pb.StoredWantlist
+			for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+				if list.GetName() != "digital_wantlist" {
+					nlist = append(nlist, list)
+				}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = nlist
+		}
 	}
 
 	// Apply the config
@@ -97,6 +247,20 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 			BackoffInSeconds: 60,
 			Entry: &pb.QueueElement_MoveRecords{
 				MoveRecords: &pb.MoveRecords{},
+			},
+		}})
+	if err != nil {
+		return nil, fmt.Errorf("unable to enqueue: %w", err)
+	}
+
+	s.handleWantslists(ctx, u, u.GetConfig().WantsListConfig.GetWantlists())
+	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:          time.Now().UnixNano(),
+			Auth:             u.GetAuth().GetToken(),
+			BackoffInSeconds: 60,
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
 			},
 		}})
 	if err != nil {

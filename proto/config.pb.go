@@ -656,6 +656,52 @@ func (WantlistType) EnumDescriptor() ([]byte, []int) {
 	return file_config_proto_rawDescGZIP(), []int{12}
 }
 
+type WantlistVisibility int32
+
+const (
+	WantlistVisibility_VISIBLE   WantlistVisibility = 0
+	WantlistVisibility_INVISIBLE WantlistVisibility = 1
+)
+
+// Enum value maps for WantlistVisibility.
+var (
+	WantlistVisibility_name = map[int32]string{
+		0: "VISIBLE",
+		1: "INVISIBLE",
+	}
+	WantlistVisibility_value = map[string]int32{
+		"VISIBLE":   0,
+		"INVISIBLE": 1,
+	}
+)
+
+func (x WantlistVisibility) Enum() *WantlistVisibility {
+	p := new(WantlistVisibility)
+	*p = x
+	return p
+}
+
+func (x WantlistVisibility) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WantlistVisibility) Descriptor() protoreflect.EnumDescriptor {
+	return file_config_proto_enumTypes[13].Descriptor()
+}
+
+func (WantlistVisibility) Type() protoreflect.EnumType {
+	return &file_config_proto_enumTypes[13]
+}
+
+func (x WantlistVisibility) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WantlistVisibility.Descriptor instead.
+func (WantlistVisibility) EnumDescriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{13}
+}
+
 type Order_Ordering int32
 
 const (
@@ -686,11 +732,11 @@ func (x Order_Ordering) String() string {
 }
 
 func (Order_Ordering) Descriptor() protoreflect.EnumDescriptor {
-	return file_config_proto_enumTypes[13].Descriptor()
+	return file_config_proto_enumTypes[14].Descriptor()
 }
 
 func (Order_Ordering) Type() protoreflect.EnumType {
-	return &file_config_proto_enumTypes[13]
+	return &file_config_proto_enumTypes[14]
 }
 
 func (x Order_Ordering) Number() protoreflect.EnumNumber {
@@ -735,11 +781,11 @@ func (x UserConfig_UserLevel) String() string {
 }
 
 func (UserConfig_UserLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_config_proto_enumTypes[14].Descriptor()
+	return file_config_proto_enumTypes[15].Descriptor()
 }
 
 func (UserConfig_UserLevel) Type() protoreflect.EnumType {
-	return &file_config_proto_enumTypes[14]
+	return &file_config_proto_enumTypes[15]
 }
 
 func (x UserConfig_UserLevel) Number() protoreflect.EnumNumber {
@@ -2608,11 +2654,12 @@ type StoredWantlist struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name      string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	StartDate int64                  `protobuf:"varint,2,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate   int64                  `protobuf:"varint,3,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
-	Type      WantlistType           `protobuf:"varint,4,opt,name=type,proto3,enum=gramophile.WantlistType" json:"type,omitempty"`
-	Entries   []*StoredWantlistEntry `protobuf:"bytes,5,rep,name=entries,proto3" json:"entries,omitempty"`
+	Name       string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	StartDate  int64                  `protobuf:"varint,2,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate    int64                  `protobuf:"varint,3,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Type       WantlistType           `protobuf:"varint,4,opt,name=type,proto3,enum=gramophile.WantlistType" json:"type,omitempty"`
+	Entries    []*StoredWantlistEntry `protobuf:"bytes,5,rep,name=entries,proto3" json:"entries,omitempty"`
+	Visibility WantlistVisibility     `protobuf:"varint,6,opt,name=visibility,proto3,enum=gramophile.WantlistVisibility" json:"visibility,omitempty"`
 }
 
 func (x *StoredWantlist) Reset() {
@@ -2678,6 +2725,13 @@ func (x *StoredWantlist) GetEntries() []*StoredWantlistEntry {
 		return x.Entries
 	}
 	return nil
+}
+
+func (x *StoredWantlist) GetVisibility() WantlistVisibility {
+	if x != nil {
+		return x.Visibility
+	}
+	return WantlistVisibility_VISIBLE
 }
 
 type StoredWantlistEntry struct {
@@ -3116,7 +3170,7 @@ var file_config_proto_rawDesc = []byte{
 	0x69, 0x73, 0x74, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x72, 0x61,
 	0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x57, 0x61,
 	0x6e, 0x74, 0x6c, 0x69, 0x73, 0x74, 0x52, 0x09, 0x77, 0x61, 0x6e, 0x74, 0x6c, 0x69, 0x73, 0x74,
-	0x73, 0x22, 0xc7, 0x01, 0x0a, 0x0e, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x57, 0x61, 0x6e, 0x74,
+	0x73, 0x22, 0x87, 0x02, 0x0a, 0x0e, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x57, 0x61, 0x6e, 0x74,
 	0x6c, 0x69, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x73, 0x74, 0x61, 0x72,
 	0x74, 0x5f, 0x64, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x73, 0x74,
@@ -3128,7 +3182,11 @@ var file_config_proto_rawDesc = []byte{
 	0x12, 0x39, 0x0a, 0x07, 0x65, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28,
 	0x0b, 0x32, 0x1f, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x53,
 	0x74, 0x6f, 0x72, 0x65, 0x64, 0x57, 0x61, 0x6e, 0x74, 0x6c, 0x69, 0x73, 0x74, 0x45, 0x6e, 0x74,
-	0x72, 0x79, 0x52, 0x07, 0x65, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x22, 0x58, 0x0a, 0x13, 0x53,
+	0x72, 0x79, 0x52, 0x07, 0x65, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x12, 0x3e, 0x0a, 0x0a, 0x76,
+	0x69, 0x73, 0x69, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0e, 0x32,
+	0x1e, 0x2e, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2e, 0x57, 0x61, 0x6e,
+	0x74, 0x6c, 0x69, 0x73, 0x74, 0x56, 0x69, 0x73, 0x69, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x52,
+	0x0a, 0x76, 0x69, 0x73, 0x69, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x22, 0x58, 0x0a, 0x13, 0x53,
 	0x74, 0x6f, 0x72, 0x65, 0x64, 0x57, 0x61, 0x6e, 0x74, 0x6c, 0x69, 0x73, 0x74, 0x45, 0x6e, 0x74,
 	0x72, 0x79, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02,
 	0x69, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18,
@@ -3193,10 +3251,13 @@ var file_config_proto_rawDesc = []byte{
 	0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x45, 0x4e, 0x5f, 0x4d, 0x41, 0x53, 0x53,
 	0x45, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4f, 0x4e, 0x45, 0x5f, 0x42, 0x59, 0x5f, 0x4f, 0x4e,
 	0x45, 0x10, 0x02, 0x12, 0x10, 0x0a, 0x0c, 0x44, 0x41, 0x54, 0x45, 0x5f, 0x42, 0x4f, 0x55, 0x4e,
-	0x44, 0x45, 0x44, 0x10, 0x03, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x72, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x6c, 0x6f, 0x67, 0x69, 0x63,
-	0x2f, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x44, 0x45, 0x44, 0x10, 0x03, 0x2a, 0x30, 0x0a, 0x12, 0x57, 0x61, 0x6e, 0x74, 0x6c, 0x69, 0x73,
+	0x74, 0x56, 0x69, 0x73, 0x69, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x56,
+	0x49, 0x53, 0x49, 0x42, 0x4c, 0x45, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x49, 0x4e, 0x56, 0x49,
+	0x53, 0x49, 0x42, 0x4c, 0x45, 0x10, 0x01, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x72, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x6c, 0x6f, 0x67,
+	0x69, 0x63, 0x2f, 0x67, 0x72, 0x61, 0x6d, 0x6f, 0x70, 0x68, 0x69, 0x6c, 0x65, 0x2f, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3211,7 +3272,7 @@ func file_config_proto_rawDescGZIP() []byte {
 	return file_config_proto_rawDescData
 }
 
-var file_config_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
+var file_config_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
 var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_config_proto_goTypes = []any{
 	(Basis)(0),                   // 0: gramophile.Basis
@@ -3227,89 +3288,90 @@ var file_config_proto_goTypes = []any{
 	(WantsExisting)(0),           // 10: gramophile.WantsExisting
 	(DigitalWants)(0),            // 11: gramophile.DigitalWants
 	(WantlistType)(0),            // 12: gramophile.WantlistType
-	(Order_Ordering)(0),          // 13: gramophile.Order.Ordering
-	(UserConfig_UserLevel)(0),    // 14: gramophile.UserConfig.UserLevel
-	(*Filter)(nil),               // 15: gramophile.Filter
-	(*MoveCriteria)(nil),         // 16: gramophile.MoveCriteria
-	(*ValidationCriteria)(nil),   // 17: gramophile.ValidationCriteria
-	(*ValidationRule)(nil),       // 18: gramophile.ValidationRule
-	(*FolderMove)(nil),           // 19: gramophile.FolderMove
-	(*MoveQuota)(nil),            // 20: gramophile.MoveQuota
-	(*MoveHistory)(nil),          // 21: gramophile.MoveHistory
-	(*Sleeve)(nil),               // 22: gramophile.Sleeve
-	(*SleeveConfig)(nil),         // 23: gramophile.SleeveConfig
-	(*CleaningConfig)(nil),       // 24: gramophile.CleaningConfig
-	(*ListenConfig)(nil),         // 25: gramophile.ListenConfig
-	(*Order)(nil),                // 26: gramophile.Order
-	(*ListenFilter)(nil),         // 27: gramophile.ListenFilter
-	(*UserConfig)(nil),           // 28: gramophile.UserConfig
-	(*GramophileConfig)(nil),     // 29: gramophile.GramophileConfig
-	(*AddConfig)(nil),            // 30: gramophile.AddConfig
-	(*ScoreConfig)(nil),          // 31: gramophile.ScoreConfig
-	(*MintUpConfig)(nil),         // 32: gramophile.MintUpConfig
-	(*PrintMoveConfig)(nil),      // 33: gramophile.PrintMoveConfig
-	(*WeightConfig)(nil),         // 34: gramophile.WeightConfig
-	(*WidthConfig)(nil),          // 35: gramophile.WidthConfig
-	(*GoalFolderConfig)(nil),     // 36: gramophile.GoalFolderConfig
-	(*ArrivedConfig)(nil),        // 37: gramophile.ArrivedConfig
-	(*SaleConfig)(nil),           // 38: gramophile.SaleConfig
-	(*KeepConfig)(nil),           // 39: gramophile.KeepConfig
-	(*WantsConfig)(nil),          // 40: gramophile.WantsConfig
-	(*WantslistConfig)(nil),      // 41: gramophile.WantslistConfig
-	(*StoredWantlist)(nil),       // 42: gramophile.StoredWantlist
-	(*StoredWantlistEntry)(nil),  // 43: gramophile.StoredWantlistEntry
-	(proto.SaleStatus)(0),        // 44: discogs.SaleStatus
-	(*OrganisationConfig)(nil),   // 45: gramophile.OrganisationConfig
-	(*ClassificationConfig)(nil), // 46: gramophile.ClassificationConfig
-	(*MovingConfig)(nil),         // 47: gramophile.MovingConfig
+	(WantlistVisibility)(0),      // 13: gramophile.WantlistVisibility
+	(Order_Ordering)(0),          // 14: gramophile.Order.Ordering
+	(UserConfig_UserLevel)(0),    // 15: gramophile.UserConfig.UserLevel
+	(*Filter)(nil),               // 16: gramophile.Filter
+	(*MoveCriteria)(nil),         // 17: gramophile.MoveCriteria
+	(*ValidationCriteria)(nil),   // 18: gramophile.ValidationCriteria
+	(*ValidationRule)(nil),       // 19: gramophile.ValidationRule
+	(*FolderMove)(nil),           // 20: gramophile.FolderMove
+	(*MoveQuota)(nil),            // 21: gramophile.MoveQuota
+	(*MoveHistory)(nil),          // 22: gramophile.MoveHistory
+	(*Sleeve)(nil),               // 23: gramophile.Sleeve
+	(*SleeveConfig)(nil),         // 24: gramophile.SleeveConfig
+	(*CleaningConfig)(nil),       // 25: gramophile.CleaningConfig
+	(*ListenConfig)(nil),         // 26: gramophile.ListenConfig
+	(*Order)(nil),                // 27: gramophile.Order
+	(*ListenFilter)(nil),         // 28: gramophile.ListenFilter
+	(*UserConfig)(nil),           // 29: gramophile.UserConfig
+	(*GramophileConfig)(nil),     // 30: gramophile.GramophileConfig
+	(*AddConfig)(nil),            // 31: gramophile.AddConfig
+	(*ScoreConfig)(nil),          // 32: gramophile.ScoreConfig
+	(*MintUpConfig)(nil),         // 33: gramophile.MintUpConfig
+	(*PrintMoveConfig)(nil),      // 34: gramophile.PrintMoveConfig
+	(*WeightConfig)(nil),         // 35: gramophile.WeightConfig
+	(*WidthConfig)(nil),          // 36: gramophile.WidthConfig
+	(*GoalFolderConfig)(nil),     // 37: gramophile.GoalFolderConfig
+	(*ArrivedConfig)(nil),        // 38: gramophile.ArrivedConfig
+	(*SaleConfig)(nil),           // 39: gramophile.SaleConfig
+	(*KeepConfig)(nil),           // 40: gramophile.KeepConfig
+	(*WantsConfig)(nil),          // 41: gramophile.WantsConfig
+	(*WantslistConfig)(nil),      // 42: gramophile.WantslistConfig
+	(*StoredWantlist)(nil),       // 43: gramophile.StoredWantlist
+	(*StoredWantlistEntry)(nil),  // 44: gramophile.StoredWantlistEntry
+	(proto.SaleStatus)(0),        // 45: discogs.SaleStatus
+	(*OrganisationConfig)(nil),   // 46: gramophile.OrganisationConfig
+	(*ClassificationConfig)(nil), // 47: gramophile.ClassificationConfig
+	(*MovingConfig)(nil),         // 48: gramophile.MovingConfig
 }
 var file_config_proto_depIdxs = []int32{
 	2,  // 0: gramophile.MoveCriteria.has_sale_id:type_name -> gramophile.Bool
-	44, // 1: gramophile.MoveCriteria.sale_status:type_name -> discogs.SaleStatus
+	45, // 1: gramophile.MoveCriteria.sale_status:type_name -> discogs.SaleStatus
 	2,  // 2: gramophile.MoveCriteria.listened:type_name -> gramophile.Bool
 	2,  // 3: gramophile.MoveCriteria.arrived:type_name -> gramophile.Bool
 	2,  // 4: gramophile.ValidationCriteria.is_cleaned:type_name -> gramophile.Bool
-	15, // 5: gramophile.ValidationRule.validation_filter:type_name -> gramophile.Filter
-	17, // 6: gramophile.ValidationRule.validation_criteria:type_name -> gramophile.ValidationCriteria
+	16, // 5: gramophile.ValidationRule.validation_filter:type_name -> gramophile.Filter
+	18, // 6: gramophile.ValidationRule.validation_criteria:type_name -> gramophile.ValidationCriteria
 	4,  // 7: gramophile.ValidationRule.validation_strategy:type_name -> gramophile.ValidationStrategy
-	16, // 8: gramophile.FolderMove.criteria:type_name -> gramophile.MoveCriteria
+	17, // 8: gramophile.FolderMove.criteria:type_name -> gramophile.MoveCriteria
 	6,  // 9: gramophile.FolderMove.origin:type_name -> gramophile.Create
 	3,  // 10: gramophile.FolderMove.move_state:type_name -> gramophile.MoveState
-	21, // 11: gramophile.MoveQuota.past_moves:type_name -> gramophile.MoveHistory
+	22, // 11: gramophile.MoveQuota.past_moves:type_name -> gramophile.MoveHistory
 	1,  // 12: gramophile.SleeveConfig.mandate:type_name -> gramophile.Mandate
-	22, // 13: gramophile.SleeveConfig.allowed_sleeves:type_name -> gramophile.Sleeve
+	23, // 13: gramophile.SleeveConfig.allowed_sleeves:type_name -> gramophile.Sleeve
 	1,  // 14: gramophile.CleaningConfig.cleaning:type_name -> gramophile.Mandate
-	15, // 15: gramophile.CleaningConfig.applies_to:type_name -> gramophile.Filter
+	16, // 15: gramophile.CleaningConfig.applies_to:type_name -> gramophile.Filter
 	1,  // 16: gramophile.ListenConfig.mandate:type_name -> gramophile.Mandate
-	27, // 17: gramophile.ListenConfig.filters:type_name -> gramophile.ListenFilter
-	13, // 18: gramophile.Order.ordering:type_name -> gramophile.Order.Ordering
-	15, // 19: gramophile.ListenFilter.filter:type_name -> gramophile.Filter
-	26, // 20: gramophile.ListenFilter.order:type_name -> gramophile.Order
-	14, // 21: gramophile.UserConfig.user_level:type_name -> gramophile.UserConfig.UserLevel
+	28, // 17: gramophile.ListenConfig.filters:type_name -> gramophile.ListenFilter
+	14, // 18: gramophile.Order.ordering:type_name -> gramophile.Order.Ordering
+	16, // 19: gramophile.ListenFilter.filter:type_name -> gramophile.Filter
+	27, // 20: gramophile.ListenFilter.order:type_name -> gramophile.Order
+	15, // 21: gramophile.UserConfig.user_level:type_name -> gramophile.UserConfig.UserLevel
 	0,  // 22: gramophile.GramophileConfig.basis:type_name -> gramophile.Basis
-	24, // 23: gramophile.GramophileConfig.cleaning_config:type_name -> gramophile.CleaningConfig
-	25, // 24: gramophile.GramophileConfig.listen_config:type_name -> gramophile.ListenConfig
-	35, // 25: gramophile.GramophileConfig.width_config:type_name -> gramophile.WidthConfig
-	45, // 26: gramophile.GramophileConfig.organisation_config:type_name -> gramophile.OrganisationConfig
-	34, // 27: gramophile.GramophileConfig.weight_config:type_name -> gramophile.WeightConfig
-	36, // 28: gramophile.GramophileConfig.goal_folder_config:type_name -> gramophile.GoalFolderConfig
-	23, // 29: gramophile.GramophileConfig.sleeve_config:type_name -> gramophile.SleeveConfig
-	37, // 30: gramophile.GramophileConfig.arrived_config:type_name -> gramophile.ArrivedConfig
-	38, // 31: gramophile.GramophileConfig.sale_config:type_name -> gramophile.SaleConfig
-	39, // 32: gramophile.GramophileConfig.keep_config:type_name -> gramophile.KeepConfig
-	40, // 33: gramophile.GramophileConfig.wants_config:type_name -> gramophile.WantsConfig
-	33, // 34: gramophile.GramophileConfig.print_move_config:type_name -> gramophile.PrintMoveConfig
-	32, // 35: gramophile.GramophileConfig.mint_up_config:type_name -> gramophile.MintUpConfig
-	41, // 36: gramophile.GramophileConfig.wants_list_config:type_name -> gramophile.WantslistConfig
-	31, // 37: gramophile.GramophileConfig.score_config:type_name -> gramophile.ScoreConfig
-	46, // 38: gramophile.GramophileConfig.classification_config:type_name -> gramophile.ClassificationConfig
-	47, // 39: gramophile.GramophileConfig.moving_config:type_name -> gramophile.MovingConfig
-	28, // 40: gramophile.GramophileConfig.user_config:type_name -> gramophile.UserConfig
-	30, // 41: gramophile.GramophileConfig.add_config:type_name -> gramophile.AddConfig
+	25, // 23: gramophile.GramophileConfig.cleaning_config:type_name -> gramophile.CleaningConfig
+	26, // 24: gramophile.GramophileConfig.listen_config:type_name -> gramophile.ListenConfig
+	36, // 25: gramophile.GramophileConfig.width_config:type_name -> gramophile.WidthConfig
+	46, // 26: gramophile.GramophileConfig.organisation_config:type_name -> gramophile.OrganisationConfig
+	35, // 27: gramophile.GramophileConfig.weight_config:type_name -> gramophile.WeightConfig
+	37, // 28: gramophile.GramophileConfig.goal_folder_config:type_name -> gramophile.GoalFolderConfig
+	24, // 29: gramophile.GramophileConfig.sleeve_config:type_name -> gramophile.SleeveConfig
+	38, // 30: gramophile.GramophileConfig.arrived_config:type_name -> gramophile.ArrivedConfig
+	39, // 31: gramophile.GramophileConfig.sale_config:type_name -> gramophile.SaleConfig
+	40, // 32: gramophile.GramophileConfig.keep_config:type_name -> gramophile.KeepConfig
+	41, // 33: gramophile.GramophileConfig.wants_config:type_name -> gramophile.WantsConfig
+	34, // 34: gramophile.GramophileConfig.print_move_config:type_name -> gramophile.PrintMoveConfig
+	33, // 35: gramophile.GramophileConfig.mint_up_config:type_name -> gramophile.MintUpConfig
+	42, // 36: gramophile.GramophileConfig.wants_list_config:type_name -> gramophile.WantslistConfig
+	32, // 37: gramophile.GramophileConfig.score_config:type_name -> gramophile.ScoreConfig
+	47, // 38: gramophile.GramophileConfig.classification_config:type_name -> gramophile.ClassificationConfig
+	48, // 39: gramophile.GramophileConfig.moving_config:type_name -> gramophile.MovingConfig
+	29, // 40: gramophile.GramophileConfig.user_config:type_name -> gramophile.UserConfig
+	31, // 41: gramophile.GramophileConfig.add_config:type_name -> gramophile.AddConfig
 	6,  // 42: gramophile.GramophileConfig.create_folders:type_name -> gramophile.Create
 	6,  // 43: gramophile.GramophileConfig.create_moves:type_name -> gramophile.Create
-	19, // 44: gramophile.GramophileConfig.moves:type_name -> gramophile.FolderMove
-	18, // 45: gramophile.GramophileConfig.validations:type_name -> gramophile.ValidationRule
+	20, // 44: gramophile.GramophileConfig.moves:type_name -> gramophile.FolderMove
+	19, // 45: gramophile.GramophileConfig.validations:type_name -> gramophile.ValidationRule
 	1,  // 46: gramophile.AddConfig.allow_adds:type_name -> gramophile.Mandate
 	1,  // 47: gramophile.AddConfig.allow_delete:type_name -> gramophile.Mandate
 	1,  // 48: gramophile.PrintMoveConfig.mandate:type_name -> gramophile.Mandate
@@ -3325,14 +3387,15 @@ var file_config_proto_depIdxs = []int32{
 	9,  // 58: gramophile.WantsConfig.origin:type_name -> gramophile.WantsBasis
 	10, // 59: gramophile.WantsConfig.existing:type_name -> gramophile.WantsExisting
 	11, // 60: gramophile.WantsConfig.digital_wants:type_name -> gramophile.DigitalWants
-	42, // 61: gramophile.WantslistConfig.wantlists:type_name -> gramophile.StoredWantlist
+	43, // 61: gramophile.WantslistConfig.wantlists:type_name -> gramophile.StoredWantlist
 	12, // 62: gramophile.StoredWantlist.type:type_name -> gramophile.WantlistType
-	43, // 63: gramophile.StoredWantlist.entries:type_name -> gramophile.StoredWantlistEntry
-	64, // [64:64] is the sub-list for method output_type
-	64, // [64:64] is the sub-list for method input_type
-	64, // [64:64] is the sub-list for extension type_name
-	64, // [64:64] is the sub-list for extension extendee
-	0,  // [0:64] is the sub-list for field type_name
+	44, // 63: gramophile.StoredWantlist.entries:type_name -> gramophile.StoredWantlistEntry
+	13, // 64: gramophile.StoredWantlist.visibility:type_name -> gramophile.WantlistVisibility
+	65, // [65:65] is the sub-list for method output_type
+	65, // [65:65] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_config_proto_init() }
@@ -3348,7 +3411,7 @@ func file_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_config_proto_rawDesc,
-			NumEnums:      15,
+			NumEnums:      16,
 			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   0,
