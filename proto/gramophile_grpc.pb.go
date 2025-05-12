@@ -231,10 +231,7 @@ const (
 	GramophileEService_AddWant_FullMethodName        = "/gramophile.GramophileEService/AddWant"
 	GramophileEService_GetWants_FullMethodName       = "/gramophile.GramophileEService/GetWants"
 	GramophileEService_RefreshWant_FullMethodName    = "/gramophile.GramophileEService/RefreshWant"
-	GramophileEService_AddWantlist_FullMethodName    = "/gramophile.GramophileEService/AddWantlist"
 	GramophileEService_GetWantlist_FullMethodName    = "/gramophile.GramophileEService/GetWantlist"
-	GramophileEService_DeleteWantlist_FullMethodName = "/gramophile.GramophileEService/DeleteWantlist"
-	GramophileEService_UpdateWantlist_FullMethodName = "/gramophile.GramophileEService/UpdateWantlist"
 	GramophileEService_ListWantlists_FullMethodName  = "/gramophile.GramophileEService/ListWantlists"
 	GramophileEService_GetSale_FullMethodName        = "/gramophile.GramophileEService/GetSale"
 	GramophileEService_AddSale_FullMethodName        = "/gramophile.GramophileEService/AddSale"
@@ -259,10 +256,7 @@ type GramophileEServiceClient interface {
 	AddWant(ctx context.Context, in *AddWantRequest, opts ...grpc.CallOption) (*AddWantResponse, error)
 	GetWants(ctx context.Context, in *GetWantsRequest, opts ...grpc.CallOption) (*GetWantsResponse, error)
 	RefreshWant(ctx context.Context, in *RefreshWantRequest, opts ...grpc.CallOption) (*RefreshWantResponse, error)
-	AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error)
 	GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error)
-	DeleteWantlist(ctx context.Context, in *DeleteWantlistRequest, opts ...grpc.CallOption) (*DeleteWantlistResponse, error)
-	UpdateWantlist(ctx context.Context, in *UpdateWantlistRequest, opts ...grpc.CallOption) (*UpdateWantlistResponse, error)
 	ListWantlists(ctx context.Context, in *ListWantlistsRequest, opts ...grpc.CallOption) (*ListWantlistsResponse, error)
 	GetSale(ctx context.Context, in *GetSaleRequest, opts ...grpc.CallOption) (*GetSaleResponse, error)
 	AddSale(ctx context.Context, in *AddSaleRequest, opts ...grpc.CallOption) (*AddSaleResponse, error)
@@ -395,36 +389,9 @@ func (c *gramophileEServiceClient) RefreshWant(ctx context.Context, in *RefreshW
 	return out, nil
 }
 
-func (c *gramophileEServiceClient) AddWantlist(ctx context.Context, in *AddWantlistRequest, opts ...grpc.CallOption) (*AddWantlistResponse, error) {
-	out := new(AddWantlistResponse)
-	err := c.cc.Invoke(ctx, GramophileEService_AddWantlist_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *gramophileEServiceClient) GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error) {
 	out := new(GetWantlistResponse)
 	err := c.cc.Invoke(ctx, GramophileEService_GetWantlist_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gramophileEServiceClient) DeleteWantlist(ctx context.Context, in *DeleteWantlistRequest, opts ...grpc.CallOption) (*DeleteWantlistResponse, error) {
-	out := new(DeleteWantlistResponse)
-	err := c.cc.Invoke(ctx, GramophileEService_DeleteWantlist_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gramophileEServiceClient) UpdateWantlist(ctx context.Context, in *UpdateWantlistRequest, opts ...grpc.CallOption) (*UpdateWantlistResponse, error) {
-	out := new(UpdateWantlistResponse)
-	err := c.cc.Invoke(ctx, GramophileEService_UpdateWantlist_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -493,10 +460,7 @@ type GramophileEServiceServer interface {
 	AddWant(context.Context, *AddWantRequest) (*AddWantResponse, error)
 	GetWants(context.Context, *GetWantsRequest) (*GetWantsResponse, error)
 	RefreshWant(context.Context, *RefreshWantRequest) (*RefreshWantResponse, error)
-	AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error)
 	GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error)
-	DeleteWantlist(context.Context, *DeleteWantlistRequest) (*DeleteWantlistResponse, error)
-	UpdateWantlist(context.Context, *UpdateWantlistRequest) (*UpdateWantlistResponse, error)
 	ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error)
 	GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error)
 	AddSale(context.Context, *AddSaleRequest) (*AddSaleResponse, error)
@@ -547,17 +511,8 @@ func (UnimplementedGramophileEServiceServer) GetWants(context.Context, *GetWants
 func (UnimplementedGramophileEServiceServer) RefreshWant(context.Context, *RefreshWantRequest) (*RefreshWantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshWant not implemented")
 }
-func (UnimplementedGramophileEServiceServer) AddWantlist(context.Context, *AddWantlistRequest) (*AddWantlistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddWantlist not implemented")
-}
 func (UnimplementedGramophileEServiceServer) GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWantlist not implemented")
-}
-func (UnimplementedGramophileEServiceServer) DeleteWantlist(context.Context, *DeleteWantlistRequest) (*DeleteWantlistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteWantlist not implemented")
-}
-func (UnimplementedGramophileEServiceServer) UpdateWantlist(context.Context, *UpdateWantlistRequest) (*UpdateWantlistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateWantlist not implemented")
 }
 func (UnimplementedGramophileEServiceServer) ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListWantlists not implemented")
@@ -820,24 +775,6 @@ func _GramophileEService_RefreshWant_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GramophileEService_AddWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddWantlistRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GramophileEServiceServer).AddWantlist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GramophileEService_AddWantlist_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GramophileEServiceServer).AddWantlist(ctx, req.(*AddWantlistRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _GramophileEService_GetWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWantlistRequest)
 	if err := dec(in); err != nil {
@@ -852,42 +789,6 @@ func _GramophileEService_GetWantlist_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GramophileEServiceServer).GetWantlist(ctx, req.(*GetWantlistRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GramophileEService_DeleteWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteWantlistRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GramophileEServiceServer).DeleteWantlist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GramophileEService_DeleteWantlist_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GramophileEServiceServer).DeleteWantlist(ctx, req.(*DeleteWantlistRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GramophileEService_UpdateWantlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateWantlistRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GramophileEServiceServer).UpdateWantlist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GramophileEService_UpdateWantlist_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GramophileEServiceServer).UpdateWantlist(ctx, req.(*UpdateWantlistRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1042,20 +943,8 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GramophileEService_RefreshWant_Handler,
 		},
 		{
-			MethodName: "AddWantlist",
-			Handler:    _GramophileEService_AddWantlist_Handler,
-		},
-		{
 			MethodName: "GetWantlist",
 			Handler:    _GramophileEService_GetWantlist_Handler,
-		},
-		{
-			MethodName: "DeleteWantlist",
-			Handler:    _GramophileEService_DeleteWantlist_Handler,
-		},
-		{
-			MethodName: "UpdateWantlist",
-			Handler:    _GramophileEService_UpdateWantlist_Handler,
 		},
 		{
 			MethodName: "ListWantlists",

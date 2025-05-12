@@ -3,8 +3,8 @@ module github.com/brotherlogic/gramophile/queue
 go 1.23.2
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20250426144650-52aee641500d
-	github.com/brotherlogic/gramophile v0.1180.0
+	github.com/brotherlogic/discogs v0.0.0-20250507133040-f0eeb656eb81
+	github.com/brotherlogic/gramophile v0.1184.0
 	github.com/brotherlogic/pstore v0.33.0
 	github.com/prometheus/client_golang v1.22.0
 	google.golang.org/grpc v1.72.0
@@ -20,10 +20,10 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250428153025-10db94c68c34 // indirect
+	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )

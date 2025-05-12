@@ -51,18 +51,6 @@ message Context {
     string record = 3;
 }
 
-enum WantlistType {
-    TYPE_UNKNOWN = 0;
-    EN_MASSE = 1;
-    ONE_BY_ONE = 2;
-    DATE_BOUNDED = 3;
-}
-
-enum WantlistVisibility {
-    VISIBLE = 0;
-    INVISIBLE = 1;
-}
-
 message Wantlist {
     string name = 1;
     int64 start_date = 2;
@@ -690,10 +678,7 @@ service GramophileEService {
     rpc GetWants(GetWantsRequest) returns (GetWantsResponse) {};
     rpc RefreshWant(RefreshWantRequest) returns (RefreshWantResponse) {};
   
-    rpc AddWantlist(AddWantlistRequest) returns (AddWantlistResponse) {};
     rpc GetWantlist(GetWantlistRequest) returns (GetWantlistResponse) {};
-    rpc DeleteWantlist(DeleteWantlistRequest) returns (DeleteWantlistResponse) {};
-    rpc UpdateWantlist(UpdateWantlistRequest) returns (UpdateWantlistResponse) {};
     rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
 
     rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};

@@ -126,6 +126,8 @@ func TestConfigUpdate_CreateWantlists(t *testing.T) {
 		t.Fatalf("Bad initial config set: %v", err)
 	}
 
+	qc.FlushQueue(ctx)
+
 	_, err = s.GetWantlist(ctx, &pb.GetWantlistRequest{
 		Name: "digital_wantlist",
 	})
@@ -137,7 +139,7 @@ func TestConfigUpdate_CreateWantlists(t *testing.T) {
 		Name: "mint_up_wantlist",
 	})
 	if err != nil {
-		t.Errorf("Unable to get digital wnatlist")
+		t.Errorf("Unable to get mint_up wnatlist")
 	}
 
 }

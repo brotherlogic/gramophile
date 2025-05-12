@@ -107,6 +107,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	}
 
 	storedWant.Clean = true
+	log.Printf("STORED: %v -> %v", storedWant, want)
 	return b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
 }
 
@@ -123,6 +124,7 @@ func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Di
 	if want.GetMasterId() > 0 {
 		return status.Errorf(codes.Internal, "Unable to delete master id currently")
 	}
+	qlog(ctx, "Deleting want")
 	return d.DeleteWant(ctx, want.GetId())
 }
 

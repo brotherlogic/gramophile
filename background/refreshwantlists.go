@@ -88,6 +88,9 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 					Id:    entry.GetId(),
 					State: pb.WantState_WANT_UNKNOWN,
 				}
+				if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
+					want.State = pb.WantState_HIDDEN
+				}
 				err = b.db.SaveWant(ctx, di.GetUserId(), want, "Creating from wantlist update")
 				if err != nil {
 					return nil
