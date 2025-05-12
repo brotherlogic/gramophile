@@ -161,7 +161,6 @@ message GramophileConfig {
     MovingConfig moving_config = 22;
     UserConfig user_config = 23;
     AddConfig add_config = 24;
-    SaleConfig sale_config = 25;
 
     Create create_folders = 12;
     Create create_moves = 13;
@@ -175,21 +174,6 @@ enum Enabled {
     ENABLED_ENABLED = 1;
 }
 
-message SaleConfig {
-    Enabled enabled = 1;
-
-    float32 listing_price_buffer = 2;
-    enum ListingStrategy {
-        LISTING_STRATEGY_SPECIFY = 0;
-        LISTING_STRATEGY_HIGH = 1;
-        LISTING_STRATEGY_MEDIAN = 2;
-        LISTING_STRATEGY_RECOMMENDED_MINT = 3;
-        LISTING_STRATEGY_RECOMMENDED_VGPLUS = 4;
-    }
-    ListingStrategy listing_strategy = 3;
-
-    bool allow_offers = 4;
-}
 
 message AddConfig {
     string default_folder = 1;
@@ -274,7 +258,21 @@ message SaleConfig {
     int32 time_to_median_days = 11;
     int32 time_to_lower_days = 12;
     int32 time_to_stale_days = 13;
+
+    // Config for adding sales
+    Enabled add_sale_enabled = 18;    
+    float listing_price_buffer = 19;
+    enum ListingStrategy {
+        LISTING_STRATEGY_SPECIFY = 0;
+        LISTING_STRATEGY_HIGH = 1;
+        LISTING_STRATEGY_MEDIAN = 2;
+        LISTING_STRATEGY_RECOMMENDED_MINT = 3;
+        LISTING_STRATEGY_RECOMMENDED_VGPLUS = 4;
+    }
+    ListingStrategy listing_strategy = 20;
+    bool allow_offers = 21;
 }
+    
 
 enum LowerBoundStrategy {
     DISCOGS_LOW = 0;

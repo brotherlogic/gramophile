@@ -5,6 +5,8 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) GetSale(ctx context.Context, req *pb.GetSaleRequest) (*pb.GetSaleResponse, error) {
@@ -57,4 +59,45 @@ func (s *Server) GetSale(ctx context.Context, req *pb.GetSaleRequest) (*pb.GetSa
 	}
 
 	return &pb.GetSaleResponse{Sales: []*pb.SaleInfo{saleinfo}}, nil
+}
+
+func (s *Server) AddSale(ctx context.Context, req *pb.AddSaleRequest) (*pb.AddSaleResponse, error) {
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate that we own a record with this release id and that one of them doesn't have a sale id
+	records, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{ReleaseId: req.GetParams().GetReleaseId()},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var foundRecord *pb.Record
+	for _, record := range records.GetRecords() {
+		if record.GetSaleInfo().GetSaleId() == 0 {
+			foundRecord = record.GetRecord()
+			break
+		}
+	}
+
+	if foundRecord == nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "You cannot sell a record you do not own")
+	}
+
+	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  time.Now().UnixNano(),
+			Auth:     user.GetAuth().GetToken(),
+			Priority: pb.QueueElement_PRIORITY_LOW,
+			Entry: &pb.QueueElement_AddSale{
+				AddSale: &pb.AddSale{SaleParams: req.GetParams()},
+			},
+		},
+	})
+	return &pb.AddSaleResponse{}, err
 }

@@ -262,8 +262,6 @@ message PriceUpdate {
     string motivation = 3;
 }
 
-
-
 message Intent {
     int64 clean_time = 1;
     int64 listen_time = 2;
@@ -334,6 +332,7 @@ message QueueElement {
         RefreshState refresh_state = 26;
         FanoutHistory fanout_history = 31;
         RecordHistory record_history = 32;
+        AddSale add_sale = 33;
     }
 
     int64 refresh_id = 7;
@@ -348,6 +347,10 @@ message QueueElement {
     Priority priority = 29;
 
     int64 addition_date = 30;
+}
+
+message AddSale {
+    SaleParams saleParams = 1;
 }
 
 message FanoutHistory {
@@ -679,11 +682,36 @@ service GramophileEService {
     rpc ListWantlists(ListWantlistsRequest) returns (ListWantlistsResponse) {};
 
     rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {};
+    rpc AddSale(AddSaleRequest) returns (AddSaleResponse) {};
 
     rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
 
     rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {};
 }
+
+message SaleParams {
+    int64 release_id = 1;
+    string condition = 2;
+    string sleeve_condition = 3;
+    float price = 4;
+    string comments = 5;
+    bool allow_offers = 6;
+    enum Status {
+        STATUS_DRAFT = 0;
+        STATUS_FOR_SALE = 1;
+    }
+    Status status = 7;
+    string external_id = 8;
+    string location = 9;
+    int32 weight = 10;
+    int32 format_quantity = 11;
+}
+
+message AddSaleRequest {
+    SaleParams params = 1;
+}
+
+message AddSaleResponse {}
 
 message AddRecordRequest {
     int64 id = 1;

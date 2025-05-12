@@ -234,6 +234,7 @@ const (
 	GramophileEService_GetWantlist_FullMethodName    = "/gramophile.GramophileEService/GetWantlist"
 	GramophileEService_ListWantlists_FullMethodName  = "/gramophile.GramophileEService/ListWantlists"
 	GramophileEService_GetSale_FullMethodName        = "/gramophile.GramophileEService/GetSale"
+	GramophileEService_AddSale_FullMethodName        = "/gramophile.GramophileEService/AddSale"
 	GramophileEService_GetStats_FullMethodName       = "/gramophile.GramophileEService/GetStats"
 	GramophileEService_AddRecord_FullMethodName      = "/gramophile.GramophileEService/AddRecord"
 )
@@ -258,6 +259,7 @@ type GramophileEServiceClient interface {
 	GetWantlist(ctx context.Context, in *GetWantlistRequest, opts ...grpc.CallOption) (*GetWantlistResponse, error)
 	ListWantlists(ctx context.Context, in *ListWantlistsRequest, opts ...grpc.CallOption) (*ListWantlistsResponse, error)
 	GetSale(ctx context.Context, in *GetSaleRequest, opts ...grpc.CallOption) (*GetSaleResponse, error)
+	AddSale(ctx context.Context, in *AddSaleRequest, opts ...grpc.CallOption) (*AddSaleResponse, error)
 	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 	AddRecord(ctx context.Context, in *AddRecordRequest, opts ...grpc.CallOption) (*AddRecordResponse, error)
 }
@@ -414,6 +416,15 @@ func (c *gramophileEServiceClient) GetSale(ctx context.Context, in *GetSaleReque
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) AddSale(ctx context.Context, in *AddSaleRequest, opts ...grpc.CallOption) (*AddSaleResponse, error) {
+	out := new(AddSaleResponse)
+	err := c.cc.Invoke(ctx, GramophileEService_AddSale_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gramophileEServiceClient) GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error) {
 	out := new(GetStatsResponse)
 	err := c.cc.Invoke(ctx, GramophileEService_GetStats_FullMethodName, in, out, opts...)
@@ -452,6 +463,7 @@ type GramophileEServiceServer interface {
 	GetWantlist(context.Context, *GetWantlistRequest) (*GetWantlistResponse, error)
 	ListWantlists(context.Context, *ListWantlistsRequest) (*ListWantlistsResponse, error)
 	GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error)
+	AddSale(context.Context, *AddSaleRequest) (*AddSaleResponse, error)
 	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 	AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error)
 }
@@ -507,6 +519,9 @@ func (UnimplementedGramophileEServiceServer) ListWantlists(context.Context, *Lis
 }
 func (UnimplementedGramophileEServiceServer) GetSale(context.Context, *GetSaleRequest) (*GetSaleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSale not implemented")
+}
+func (UnimplementedGramophileEServiceServer) AddSale(context.Context, *AddSaleRequest) (*AddSaleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddSale not implemented")
 }
 func (UnimplementedGramophileEServiceServer) GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
@@ -814,6 +829,24 @@ func _GramophileEService_GetSale_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_AddSale_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddSaleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).AddSale(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GramophileEService_AddSale_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).AddSale(ctx, req.(*AddSaleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GramophileEService_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetStatsRequest)
 	if err := dec(in); err != nil {
@@ -920,6 +953,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSale",
 			Handler:    _GramophileEService_GetSale_Handler,
+		},
+		{
+			MethodName: "AddSale",
+			Handler:    _GramophileEService_AddSale_Handler,
 		},
 		{
 			MethodName: "GetStats",

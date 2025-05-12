@@ -26,6 +26,19 @@ var (
 	}, []string{"id"})
 )
 
+func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, saleParams *pbd.SaleParams) error {
+	sid, err := d.CreateSale(ctx, saleParams)
+	if err != nil {
+		return err
+	}
+
+	// Save the sale
+	return b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
+		SaleId:    sid,
+		ReleaseId: saleParams.GetReleaseId(),
+	})
+}
+
 func tidyUpdates(s *pb.SaleInfo) {
 	updates := s.GetUpdates()
 	sort.SliceStable(updates, func(i, j int) bool {
