@@ -35,7 +35,7 @@ func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, saleP
 	// Save the sale
 	return b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 		SaleId:    sid,
-		ReleaseId: saleparams.GetReleaseId(),
+		ReleaseId: saleParams.GetReleaseId(),
 	})
 }
 
