@@ -1014,3 +1014,35 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 		t.Errorf("Unable to find sale: %v", sales)
 	}
 }
+
+func TestAddSale(t *testing.T) {
+	ctx, s, d, q := buildTestScaffold(t)
+
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         123,
+			InstanceId: 1234,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}}},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      123456,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("Unable to save record")
+	}
+
+	_, err = s.AddSale(ctx, &pb.AddSaleRequest{
+		InstanceId: 1234,
+		Params: &pbd.SaleParams{
+			ReleaseId: 123,
+			Price:     12.24,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to add sale: %v", err)
+	}
+
+	q.FlushQueue(ctx)
+}

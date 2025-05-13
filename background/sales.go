@@ -26,8 +26,68 @@ var (
 	}, []string{"id"})
 )
 
-func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, saleParams *pbd.SaleParams) error {
-	sid, err := d.CreateSale(ctx, saleParams)
+func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Discogs, iid int64, saleParams *pbd.SaleParams, user *pb.StoredUser) (*pbd.SaleParams, error) {
+	// Fast exit if we already have set a price
+	if saleParams.Price > 0 {
+		return saleParams, nil
+	}
+
+	// Load the record
+	r, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure we have the stats
+	if r.GetLowPrice().GetValue() == 0 || r.GetMedianPrice().GetValue() == 0 || r.GetHighPrice().GetValue() == 0 {
+		return nil, status.Errorf(codes.FailedPrecondition, "Requires stats to be present")
+	}
+
+	// Deal with the bare strats first
+	switch user.GetConfig().GetSaleConfig().GetListingStrategy() {
+	case pb.SaleConfig_LISTING_STRATEGY_MEDIAN:
+		saleParams.Price = float32(r.GetMedianPrice().GetValue())
+		return saleParams, nil
+	case pb.SaleConfig_LISTING_STRATEGY_HIGH:
+		saleParams.Price = float32(r.GetHighPrice().GetValue())
+		return saleParams, nil
+	}
+
+	// Get the sale stats
+	stats, err := d.GetSaleStats(ctx, r.GetRelease().GetId())
+	if err != nil {
+		return nil, err
+	}
+
+	switch user.GetConfig().GetSaleConfig().GetListingStrategy() {
+	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_MINT:
+		saleParams.Price = float32(stats.GetMPrice())
+		return saleParams, nil
+	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_VGPLUS:
+		saleParams.Price = float32(stats.GetVgplusPrice())
+		return saleParams, nil
+	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_MINT_OR_HIGH:
+		saleParams.Price = maxF(float32(stats.GetMPrice()), float32(r.GetHighPrice().Value))
+		return saleParams, nil
+	}
+
+	return nil, status.Errorf(codes.InvalidArgument, "%v is not a usable strategy currently", user.GetConfig().GetSaleConfig().GetListingStrategy())
+}
+
+func maxF(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, iid int64, saleParams *pbd.SaleParams, user *pb.StoredUser) error {
+	nsp, err := b.updateSaleParams(ctx, d, iid, saleParams, user)
+	if err != nil {
+		return err
+	}
+
+	sid, err := d.CreateSale(ctx, nsp)
 	if err != nil {
 		return err
 	}

@@ -477,6 +477,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 
 	switch entry.Entry.(type) {
+	case *pb.QueueElement_AddSale:
+		nd := d.ForUser(u.GetUser())
+		return q.b.AddSale(ctx, nd, entry.GetAddSale().GetInstanceId(), entry.GetAddSale().GetSaleParams(), u)
 	case *pb.QueueElement_FanoutHistory:
 		err := q.b.FanoutHistory(ctx, entry.GetFanoutHistory().GetType(), u, entry.GetAuth(), q.Enqueue)
 		return err
