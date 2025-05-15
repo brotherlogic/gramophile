@@ -27,6 +27,8 @@ func TestRefreshRelease(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234}})
+
 	s := Server{d: d, di: di, qc: qc}
 
 	_, err = s.RefreshRecord(ctx, &pb.RefreshRecordRequest{
