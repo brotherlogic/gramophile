@@ -49,5 +49,10 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 				}}},
 	})
 
-	return &pb.RefreshRecordResponse{}, err
+	record, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.RefreshRecordResponse{SaleId: record.GetSaleId()}, err
 }

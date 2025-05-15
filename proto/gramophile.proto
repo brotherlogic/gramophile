@@ -651,7 +651,9 @@ message RefreshRecordRequest {
     bool just_state = 2;
 }
 
-message RefreshRecordResponse {}
+message RefreshRecordResponse {
+    int64 sale_id = 1;
+}
 
 message GetStatsRequest {}
 message GetStatsResponse {
