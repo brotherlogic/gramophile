@@ -1032,9 +1032,15 @@ func TestAddSale(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to save record")
 	}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				ListingStrategy: pb.SaleConfig_LISTING_STRATEGY_MEDIAN,
+			},
+		},
+	})
 
 	_, err = s.AddSale(ctx, &pb.AddSaleRequest{
-		InstanceId: 1234,
 		Params: &pbd.SaleParams{
 			ReleaseId: 123,
 			Price:     12.24,
@@ -1044,5 +1050,107 @@ func TestAddSale(t *testing.T) {
 		t.Fatalf("Unable to add sale: %v", err)
 	}
 
+	// Link sales and valiate that the record has a sale linked
+	q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:    "123",
+			RunDate: time.Now().UnixNano(),
+			Entry: &pb.QueueElement_LinkSales{
+				LinkSales: &pb.LinkSales{RefreshId: 12},
+			},
+		},
+	})
+
 	q.FlushQueue(ctx)
+
+	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if len(rec.GetRecords()) == 0 {
+		t.Fatalf("Could not find record: %v", rec)
+	}
+
+	if rec.GetRecords()[0].GetSaleInfo().GetSaleId() == 0 {
+		t.Errorf("Record was not linked to sale: %v", rec)
+	}
+
+	if float64(rec.GetRecords()[0].GetSaleInfo().GetCurrentPrice().GetValue()) != 1224 {
+		t.Errorf("Record has wrong sale price: %v", rec)
+	}
+}
+
+func TestAddSale_WithPriceStrategy(t *testing.T) {
+	ctx, s, d, q := buildTestScaffold(t)
+
+	err := d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         123,
+			InstanceId: 1234,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}}},
+		HighPrice:   &pbd.Price{Currency: "USD", Value: 8000},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      123456,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("Unable to save record")
+	}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				ListingStrategy: pb.SaleConfig_LISTING_STRATEGY_MEDIAN,
+			},
+		},
+	})
+
+	_, err = s.AddSale(ctx, &pb.AddSaleRequest{
+		Params: &pbd.SaleParams{
+			ReleaseId: 123,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to add sale: %v", err)
+	}
+
+	// Link sales and valiate that the record has a sale linked
+	q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:    "123",
+			RunDate: time.Now().UnixNano(),
+			Entry: &pb.QueueElement_LinkSales{
+				LinkSales: &pb.LinkSales{RefreshId: 12},
+			},
+		},
+	})
+
+	q.FlushQueue(ctx)
+
+	rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to get record: %v", err)
+	}
+
+	if len(rec.GetRecords()) == 0 {
+		t.Fatalf("Could not find record: %v", rec)
+	}
+
+	if rec.GetRecords()[0].GetSaleInfo().GetSaleId() == 0 {
+		t.Errorf("Record was not linked to sale: %v", rec)
+	}
+
+	if float64(rec.GetRecords()[0].GetSaleInfo().GetCurrentPrice().GetValue()) != 4000 {
+		t.Errorf("Record has wrong sale price: %v", rec)
+	}
 }

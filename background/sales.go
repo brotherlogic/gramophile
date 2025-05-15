@@ -32,6 +32,10 @@ func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Disco
 		return saleParams, nil
 	}
 
+	if user.GetConfig().GetSaleConfig().GetListingStrategy() == pb.SaleConfig_LISTING_STRATEGY_SPECIFY {
+		return nil, status.Errorf(codes.FailedPrecondition, "Specify is the strategy, but no price was set")
+	}
+
 	// Load the record
 	r, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
 	if err != nil {
@@ -46,10 +50,10 @@ func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Disco
 	// Deal with the bare strats first
 	switch user.GetConfig().GetSaleConfig().GetListingStrategy() {
 	case pb.SaleConfig_LISTING_STRATEGY_MEDIAN:
-		saleParams.Price = float32(r.GetMedianPrice().GetValue())
+		saleParams.Price = float32(r.GetMedianPrice().GetValue()) / 100
 		return saleParams, nil
 	case pb.SaleConfig_LISTING_STRATEGY_HIGH:
-		saleParams.Price = float32(r.GetHighPrice().GetValue())
+		saleParams.Price = float32(r.GetHighPrice().GetValue()) / 100
 		return saleParams, nil
 	}
 
@@ -61,13 +65,13 @@ func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Disco
 
 	switch user.GetConfig().GetSaleConfig().GetListingStrategy() {
 	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_MINT:
-		saleParams.Price = float32(stats.GetMPrice())
+		saleParams.Price = float32(stats.GetMPrice()) / 100
 		return saleParams, nil
 	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_VGPLUS:
 		saleParams.Price = float32(stats.GetVgplusPrice())
 		return saleParams, nil
 	case pb.SaleConfig_LISTING_STRATEGY_RECOMMENDED_MINT_OR_HIGH:
-		saleParams.Price = maxF(float32(stats.GetMPrice()), float32(r.GetHighPrice().Value))
+		saleParams.Price = maxF(float32(stats.GetMPrice()), float32(r.GetHighPrice().Value)/100)
 		return saleParams, nil
 	}
 
@@ -94,8 +98,10 @@ func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, iid i
 
 	// Save the sale
 	return b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
-		SaleId:    sid,
-		ReleaseId: saleParams.GetReleaseId(),
+		SaleId:       sid,
+		ReleaseId:    saleParams.GetReleaseId(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		CurrentPrice: &pbd.Price{Value: int32(nsp.GetPrice() * 100)},
 	})
 }
 
@@ -434,6 +440,9 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 	if err != nil {
 		return fmt.Errorf("unable to read sales: %w", err)
 	}
+
+	qlog(ctx, "Got %v records and %v sales", len(records), len(sids))
+
 	var sales []*pb.SaleInfo
 	for _, s := range sids {
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), s)
