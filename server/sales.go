@@ -95,7 +95,9 @@ func (s *Server) AddSale(ctx context.Context, req *pb.AddSaleRequest) (*pb.AddSa
 			Auth:     user.GetAuth().GetToken(),
 			Priority: pb.QueueElement_PRIORITY_LOW,
 			Entry: &pb.QueueElement_AddSale{
-				AddSale: &pb.AddSale{SaleParams: req.GetParams()},
+				AddSale: &pb.AddSale{
+					InstanceId: foundRecord.GetRelease().GetInstanceId(),
+					SaleParams: req.GetParams()},
 			},
 		},
 	})

@@ -469,6 +469,7 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
+	qlog(ctx, "Found user: %v", u)
 
 	queueBacklogTime.With(prometheus.Labels{
 		"type":     fmt.Sprintf("%T", entry.Entry),

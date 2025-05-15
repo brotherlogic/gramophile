@@ -12,7 +12,7 @@ import (
 	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
-func TestRefreshRelease(t *testing.T) {
+func TestAddSale(t *testing.T) {
 	ctx := getTestContext(123)
 
 	pstore := pstore_client.GetTestClient()
@@ -27,14 +27,24 @@ func TestRefreshRelease(t *testing.T) {
 		t.Fatalf("Can't init save user: %v", err)
 	}
 
-	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Id: 123, InstanceId: 1234}})
 
 	s := Server{d: d, di: di, qc: qc}
-
-	_, err = s.RefreshRecord(ctx, &pb.RefreshRecordRequest{
-		InstanceId: 1234,
+	_, err = s.AddSale(ctx, &pb.AddSaleRequest{
+		Params: &pbd.SaleParams{
+			ReleaseId: 123,
+		},
 	})
 	if err != nil {
-		t.Errorf("Unable to refresh Release: %v", err)
+		t.Fatalf("Unable to add sale")
 	}
+
+	elems, err := qc.List(ctx, &pb.ListRequest{})
+	if err != nil {
+		t.Fatalf("Unable to list queue elements")
+	}
+	if len(elems.GetElements()) != 1 {
+		t.Errorf("Wrong number of queued elements: %v", len(elems.GetElements()))
+	}
+
 }
