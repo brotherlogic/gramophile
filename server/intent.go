@@ -63,8 +63,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 		if status.Code(err) == codes.NotFound {
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano(),
-					Auth:    user.GetAuth().GetToken(),
+					Priority: pb.QueueElement_PRIORITY_HIGH,
+					Force:    true,
+					RunDate:  time.Now().UnixNano(),
+					Auth:     user.GetAuth().GetToken(),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
 						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}}})
 		}
