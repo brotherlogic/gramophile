@@ -59,6 +59,15 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	// Check that this record at least exists
 	r, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
+		// If we can't find the record, we may be behind - trigger a collection refresh
+		if status.Code(err) == codes.NotFound {
+			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate: time.Now().UnixNano(),
+					Auth:    user.GetAuth().GetToken(),
+					Entry: &pb.QueueElement_RefreshCollectionEntry{
+						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}}})
+		}
 		return nil, fmt.Errorf("error getting record: %w", err)
 	}
 
