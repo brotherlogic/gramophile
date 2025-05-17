@@ -8,8 +8,17 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	irefresh = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_intent_refresh",
+		Help: "The length of the working queue I think yes",
+	}, []string{"iid"})
 )
 
 func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.Intent) error {
@@ -61,6 +70,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	if err != nil {
 		// If we can't find the record, we may be behind - trigger a collection refresh
 		if status.Code(err) == codes.NotFound {
+			irefresh.With(prometheus.Labels{"iid": fmt.Sprintf("%v", req.GetInstanceId())}).Inc()
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Priority: pb.QueueElement_PRIORITY_HIGH,
