@@ -42,7 +42,7 @@ func main() {
 		fmt.Printf("Drained %v items\n", resp.GetCount())
 	case "rdrain":
 		resp, err := client.Drain(ctx, &pb.DrainRequest{
-			DrainType: pb.DrainRequest_JUST_REFRESH
+			DrainType: pb.DrainRequest_JUST_REFRESH,
 		})
 		if err != nil {
 			log.Fatalf("Unable to drain queue: %v", err)
