@@ -54,9 +54,12 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	}
 
 	// Save the new record and enqueue updates for price and location
-	s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), &pb.Record{
+	err = s.d.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), &pb.Record{
 		Release: &pbd.Release{Id: req.GetId(), InstanceId: iid},
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	s.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
