@@ -824,6 +824,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease())
 	case *pb.QueueElement_RefreshCollectionEntry:
+		rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {
 			return fmt.Errorf("unable to get user: %w", err)
@@ -917,6 +918,10 @@ var (
 		Name: "gramophile_marker_rejects",
 		Help: "The length of the working queue I think yes",
 	})
+	rintention = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_refresh_intention",
+		Help: "The length of the working queue I think yes",
+	}, []string{"intention"})
 )
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
