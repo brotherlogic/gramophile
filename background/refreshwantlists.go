@@ -151,7 +151,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
 	// If the list is inactive - just set everything to PENDING
 	if !list.GetActive() || overthreshold {
-		qlog(ctx, "List is inactive")
+		qlog(ctx, "List %v is inactive (%v) or is overthreshold (%v)", list.GetName(), list.GetActive(), overthreshold)
 		for _, entry := range list.GetEntries() {
 			if entry.GetState() != pb.WantState_RETIRED {
 				entry.State = pb.WantState_RETIRED
