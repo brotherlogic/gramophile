@@ -627,6 +627,12 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 	}
 	config.Apply(user.GetConfig(), r)
 
+	// If this is an adjust to DIGITAL_KEEP - let's reset the refresh date in
+	// order to refresh the digital wants
+	if r.KeepStatus == pb.KeepStatus_DIGITAL_KEEP {
+		r.LastEarliestReleaseUpdate = 0
+	}
+
 	log.Printf("Trying to set: %v", r)
 	if r.KeepStatus == pb.KeepStatus_MINT_UP_KEEP && user.GetConfig().GetWantsConfig().GetMintUpWantList() {
 		for _, mid := range i.GetMintIds() {
