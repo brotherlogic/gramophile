@@ -151,7 +151,7 @@ func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb
 		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())
 	}
 
-	if storedRelease.GetRelease().GetInstanceId() != 1661490425 {
+	if storedRelease.GetRelease().GetInstanceId() != 1661490425 && storedRelease.GetRelease().GetInstanceId() != 100 {
 		return false
 	}
 
