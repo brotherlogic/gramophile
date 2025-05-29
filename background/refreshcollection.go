@@ -51,22 +51,21 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 				return err
 			}
 			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > RefreshReleaseDatesPeriod {
-				if id == 1661490425 {
-					_, err = enqueue(ctx, &pb.EnqueueRequest{
-						Element: &pb.QueueElement{
-							RunDate: time.Now().UnixNano(),
-							Auth:    authToken,
-							Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
-								RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
-									Iid:      id,
-									MasterId: rec.GetRelease().GetMasterId(),
-								}}},
-					})
-					if err != nil && status.Code(err) != codes.AlreadyExists {
-						return err
-					}
+				_, err = enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						RunDate: time.Now().UnixNano(),
+						Auth:    authToken,
+						Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
+							RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
+								Iid:      id,
+								MasterId: rec.GetRelease().GetMasterId(),
+							}}},
+				})
+				if err != nil && status.Code(err) != codes.AlreadyExists {
+					return err
 				}
 			}
+
 		} else {
 			qlog(ctx, "SKIPPING DATE REFRESH %v", id)
 			//skipped++
