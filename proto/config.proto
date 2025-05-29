@@ -312,7 +312,7 @@ message WantsConfig {
     int32 max_active_want_lists = 5;
 
     bool mint_up_want_list = 7;
-    bool digital_wants_list = 8;
+    bool digital_want_list = 8;
 }
 
 message WantslistConfig {

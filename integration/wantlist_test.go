@@ -743,7 +743,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			WantsConfig: &pb.WantsConfig{
-				DigitalWantsList: true,
+				DigitalWantList: true,
 			},
 		},
 	})

@@ -45,7 +45,10 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	}
 
 	for _, list := range lists {
-		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold, enqueue)
+		// Reset overthreshold for built lists
+		builtList := list.GetName() == "digital_wants"
+
+		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold || builtList, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}

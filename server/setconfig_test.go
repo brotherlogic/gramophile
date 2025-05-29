@@ -120,7 +120,7 @@ func TestConfigUpdate_CreateWantlists(t *testing.T) {
 
 	nconfig := &pb.GramophileConfig{
 		Basis:       pb.Basis_GRAMOPHILE,
-		WantsConfig: &pb.WantsConfig{MintUpWantList: true, DigitalWantsList: true}}
+		WantsConfig: &pb.WantsConfig{MintUpWantList: true, DigitalWantList: true}}
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
 	if err != nil {
 		t.Fatalf("Bad initial config set: %v", err)
