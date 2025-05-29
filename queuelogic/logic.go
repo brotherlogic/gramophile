@@ -815,7 +815,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
-		digWants := user.GetConfig().GetWantsConfig().GetDigitalWantsList()
+		digWants := user.GetConfig().GetWantsConfig().GetDigitalWantList()
 		err = q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), digWants, q.Enqueue)
 		if err != nil {
 			return err

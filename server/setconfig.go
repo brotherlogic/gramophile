@@ -194,7 +194,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		}
 	}
 
-	if req.GetConfig().GetWantsConfig().GetDigitalWantsList() {
+	if req.GetConfig().GetWantsConfig().GetDigitalWantList() {
 		// Inject into the fields if not present
 		found := false
 		for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
