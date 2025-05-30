@@ -475,7 +475,6 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
-	qlog(ctx, "Found user: %v", u)
 
 	queueBacklogTime.With(prometheus.Labels{
 		"type":     fmt.Sprintf("%T", entry.Entry),
@@ -927,7 +926,7 @@ var (
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	qlog(ctx, "Enqueue: %v", req)
 
-	if len(q.keys) > 10000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
+	if len(q.keys) > 100000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
 		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full (%v)", len(q.keys))
 	}
 
@@ -956,25 +955,6 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
-		}
-	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		qlog(ctx, "Trying to refresh dates: %v", req.GetElement().GetRefreshEarliestReleaseDates())
-		// Check for a marker
-		marker, err := q.getRefreshDateMarker(ctx, req.Element.GetAuth())
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				qlog(ctx, "NO DATEMARKER")
-				return nil, fmt.Errorf("Unable to get refresh datemarker: %w", err)
-			}
-		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Minute {
-			markerCount.Inc()
-			qlog(ctx, "REJECTING because we have a refresh date in the queue (%v)", time.Unix(0, marker))
-			return nil, status.Errorf(codes.AlreadyExists, "Refresh date is in the queue: %v", time.Since(time.Unix(0, marker)))
-		}
-
-		err = q.setRefreshDateMarker(ctx, req.Element.GetAuth())
-		if err != nil {
-			return nil, fmt.Errorf("Unable to write refresh date marker: %w", err)
 		}
 	}
 
