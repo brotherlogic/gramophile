@@ -273,13 +273,18 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return fmt.Errorf("Unable to get subsequent location: %w", err)
 	}
 
+	artist := "UNKNOWN"
+	if len(r.GetRelease().GetArtists()) > 0 {
+		artist = r.GetRelease().GetArtists()[0].GetName()
+	}
+
 	// Save the change for printing
 	err = b.db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), &pb.PrintMove{
 		Timestamp:   time.Now().UnixNano(),
 		Iid:         r.GetRelease().GetInstanceId(),
 		Origin:      oldLoc,
 		Destination: newLoc,
-		Record:      fmt.Sprintf("%v - %v", r.GetRelease().GetArtists()[0].GetName(), r.GetRelease().GetTitle()),
+		Record:      fmt.Sprintf("%v - %v", artist, r.GetRelease().GetTitle()),
 	})
 	log.Printf("Savedthe print move for %v -> %v", r.GetRelease().GetInstanceId(), err)
 	if err != nil {
