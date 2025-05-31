@@ -228,20 +228,31 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 
 	// Run a preorg since this might be a new record
 	orglogic := org.GetOrg(b.db)
-	org := getOrg(r.GetRelease().GetFolderId(), user.GetConfig())
-	if org == nil {
-		return status.Errorf(codes.Internal, "Unable to locate old organisation for %v", r.GetRelease.GetFolderId())
-	}
-	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
-	if err != nil {
-		return err
-	}
-	log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
-	b.db.SaveSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()).GetName(), snap)
+	var oldLoc *pb.Location
+	if r.GetRelease().GetFolderId() == 0 {
+		oldLoc = &pb.Location{
+			LocationName: "New",
+			Slot:         1,
+			Shelf:        "New",
+			Before:       []*pb.Context{},
+			After:        []*pb.Context{},
+		}
+	} else {
+		org := getOrg(r.GetRelease().GetFolderId(), user.GetConfig())
+		if org == nil {
+			return status.Errorf(codes.Internal, "Unable to locate old organisation for %v", r.GetRelease().GetFolderId())
+		}
+		snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
+		if err != nil {
+			return err
+		}
+		log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
+		b.db.SaveSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()).GetName(), snap)
 
-	oldLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
-	if err != nil {
-		return fmt.Errorf("Unable to get prior location (with %v @ %v): %w", snap.GetHash(), time.Unix(0, snap.GetDate()), err)
+		oldLoc, err = b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
+		if err != nil {
+			return fmt.Errorf("Unable to get prior location (with %v @ %v): %w", snap.GetHash(), time.Unix(0, snap.GetDate()), err)
+		}
 	}
 
 	r.GetRelease().FolderId = i.GetNewFolder()
@@ -250,7 +261,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	if norg == nil {
 		return status.Errorf(codes.Internal, "Unable to locate new organisation for %v", i.GetNewFolder())
 	}
-	snap, err = orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
+	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
 	if err != nil {
 		return err
 	}
