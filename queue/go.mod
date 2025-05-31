@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20250516174159-fe8652bd9b78
-	github.com/brotherlogic/gramophile v0.1202.0
+	github.com/brotherlogic/gramophile v0.1205.0
 	github.com/brotherlogic/pstore v0.33.0
 	github.com/prometheus/client_golang v1.22.0
 	google.golang.org/grpc v1.72.2
@@ -20,7 +20,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.64.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
+	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
