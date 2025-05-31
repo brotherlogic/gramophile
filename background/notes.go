@@ -230,7 +230,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	orglogic := org.GetOrg(b.db)
 	org := getOrg(r.GetRelease().GetFolderId(), user.GetConfig())
 	if org == nil {
-		return status.Errorf(codes.Internal, "Unable to locate organisation for %v", i.GetNewFolder())
+		return status.Errorf(codes.Internal, "Unable to locate old organisation for %v", r.GetRelease.GetFolderId())
 	}
 	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
 	if err != nil {
@@ -248,7 +248,7 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r, &db.SaveOptions{})
 	norg := getOrg(i.GetNewFolder(), user.GetConfig())
 	if norg == nil {
-		return status.Errorf(codes.Internal, "Unable to locate organisation for %v", i.GetNewFolder())
+		return status.Errorf(codes.Internal, "Unable to locate new organisation for %v", i.GetNewFolder())
 	}
 	snap, err = orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
 	if err != nil {
