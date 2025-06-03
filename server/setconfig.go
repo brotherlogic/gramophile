@@ -207,15 +207,9 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 				u.GetConfig().WantsListConfig = &pb.WantslistConfig{}
 			}
 			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "digital_wantlist"})
-		} else {
-			var nlist []*pb.StoredWantlist
-			for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
-				if list.GetName() != "digital_wantlist" {
-					nlist = append(nlist, list)
-				}
-			}
-			u.GetConfig().GetWantsListConfig().Wantlists = nlist
 		}
+
+		log.Printf("Added digital wantlist: %v", u.GetConfig().GetWantsListConfig())
 	}
 
 	// Apply the config
