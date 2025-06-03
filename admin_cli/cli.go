@@ -134,6 +134,16 @@ func main() {
 			Element: &pb.QueueElement{Force: true, RunDate: 123456, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDates{RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{Iid: iid, MasterId: mid}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "refresh_release_dates":
+		iid, err := strconv.ParseInt(os.Args[4], 10, 64)
+		rid, err := strconv.ParseInt(os.Args[5], 10, 64)
+		if err != nil {
+			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
+		}
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshEarliestReleaseDate{RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{Iid: iid, OtherRelease: rid, UpdateDigitalWantlist: true}}},
+		})
+		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_master":
 		iid, err := strconv.ParseInt(os.Args[4], 10, 64)
 		if err != nil {
