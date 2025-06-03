@@ -216,6 +216,8 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 			}
 			u.GetConfig().GetWantsListConfig().Wantlists = nlist
 		}
+
+		log.Printf("Added digital wantlist: %v", u.GetConfig().GetWantsListConfig())
 	}
 
 	// Apply the config
