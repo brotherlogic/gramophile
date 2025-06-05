@@ -19,6 +19,9 @@ func (s *Server) getCollectionStats(ctx context.Context, userid int32) (*pb.Coll
 	cs := &pb.CollectionStats{FolderToCount: make(map[int32]int32)}
 	for _, r := range recs {
 		cs.FolderToCount[r.GetRelease().GetFolderId()]++
+		if r.GetEarliestReleaseDate() == 0 {
+			cs.ErdMissingCount++
+		}
 	}
 
 	return cs, nil
