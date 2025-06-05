@@ -7,8 +7,6 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pb "github.com/brotherlogic/gramophile/proto"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,12 +16,7 @@ const (
 	RefreshReleaseDatesPeriod = time.Hour * 24 * 7 * 30 // Once a month
 )
 
-var (
-	erdMissing = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "gramophile_erd_missing",
-		Help: "The number of records without ERD",
-	})
-)
+var ()
 
 func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	ids, err := b.db.GetRecords(ctx, d.GetUserId())
@@ -32,10 +25,6 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 	}
 
 	skipped := 0
-	noERD := 0
-	defer func() {
-		erdMissing.Set(float64(noERD))
-	}()
 
 	qlog(ctx, "Refreshing %v releases", len(ids))
 	for _, id := range ids {
@@ -43,10 +32,6 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		rec, err := b.db.GetRecord(ctx, d.GetUserId(), id)
 		if err != nil {
 			return fmt.Errorf("unable to get record %v: %w", id, err)
-		}
-
-		if rec.GetEarliestReleaseDate() == 0 {
-			noERD++
 		}
 
 		if time.Since(time.Unix(0, rec.GetLastUpdateTime())) > RefreshReleasePeriod {

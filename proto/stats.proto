@@ -6,6 +6,7 @@ option go_package = "github.com/brotherlogic/gramophile/proto";
 
 message CollectionStats {
     map<int32, int32> folder_to_count = 1;
+    int32 erd_missing_count = 2;
 }
 
 message SaleStats {
