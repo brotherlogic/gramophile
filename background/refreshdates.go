@@ -151,6 +151,19 @@ func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb
 		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())
 	}
 
+	found := false
+	for _, entry := range storedRelease.GetDigitalVersions() {
+		if entry.GetId() == childRelease.GetId() {
+			found = true
+		}
+	}
+	if !found {
+		storedRelease.DigitalVersions = append(storedRelease.DigitalVersions, &pb.DigitalVersion{
+			Id:                   childRelease.GetId(),
+			DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_COMPUTED,
+		})
+	}
+
 	if storedRelease.GetRelease().GetInstanceId() != 1661490425 && storedRelease.GetRelease().GetInstanceId() != 100 {
 		return false
 	}
