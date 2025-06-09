@@ -647,6 +647,21 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 	// order to refresh the digital wants
 	if r.KeepStatus == pb.KeepStatus_DIGITAL_KEEP {
 		r.LastEarliestReleaseUpdate = 0
+		for _, eid := range i.GetDigitalIds() {
+			found := false
+			for _, exid := range r.GetDigitalVersions() {
+				if exid.GetId() == eid {
+					exid.DigitalVersionSource = pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED
+					found = true
+				}
+			}
+			if !found {
+				r.DigitalVersions = append(r.DigitalVersions, &pb.DigitalVersion{
+					Id:                   eid,
+					DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED,
+				})
+			}
+		}
 	}
 
 	log.Printf("Trying to set: %v", r)

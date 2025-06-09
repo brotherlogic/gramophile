@@ -163,31 +163,31 @@ enum KeepStatus {
 }
 
 message Record {
-   discogs.Release release = 1;
+  discogs.Release release = 1;
 
-   int64 last_update_time = 2;
+  int64 last_update_time = 2;
 
-   string last_good_config_hash = 3;
+  string last_good_config_hash = 3;
 
-   int64 last_clean_time = 4;
-   int64 last_listen_time = 7;
+  int64 last_clean_time = 4;
+  int64 last_listen_time = 7;
 
-   float weight = 10;
-   float width = 9;
+  float weight = 10;
+  float width = 9;
 
-   int32 num_plays = 5;
+  int32 num_plays = 5;
 
-   repeated NoncomplianceIssue issues = 6;
+  repeated NoncomplianceIssue issues = 6;
 
-   int64 refresh_id = 11;
+  int64 refresh_id = 11;
 
-   string goal_folder = 12;
+  string goal_folder = 12;
 
-   string sleeve = 13;
+  string sleeve = 13;
 
-   int64 arrived = 14;
+  int64 arrived = 14;
 
-   float mint_sale_suggestion = 15;
+  float mint_sale_suggestion = 15;
 
    // If set then we have an associated sale id
    int64 sale_id = 16;
@@ -204,6 +204,7 @@ message Record {
    
    repeated int64 og_ids = 23;
    repeated int64 digital_ids = 24;
+   repeated DigitalVersion digital_versions = 31;
 
    repeated int64 mint_versions = 25;
 
@@ -213,6 +214,16 @@ message Record {
 
    string purchase_location = 28;
    int32 purchase_price = 29;
+}
+
+message DigitalVersion {
+  int64 id = 1;
+  enum DigitalVersionSource {
+    DIGITAL_VERSION_SOURCE_UNSPECIFIED = 0;
+    DIGITAL_VERSION_SOURCE_COMPUTED = 1;
+    DIGITAL_VERSION_SOURCE_PROVIDED = 2;
+  }
+  DigitalVersionSource digital_version_source = 2;
 }
 
 enum ListenStatus {
@@ -281,6 +292,7 @@ message Intent {
 
     int64 intent_time = 11;
     repeated int64 mint_ids = 12;
+    repeated int64 digital_ids = 18;
 
     enum SetOversize {
         UNKNOWN = 0;
@@ -361,9 +373,9 @@ message FanoutHistory {
 }
 
 message RecordHistory {
-    int64 userid = 1;
-    UpdateType type = 2;
-    int64 instance_id = 3;
+  int64 userid = 1;
+  UpdateType type = 2;
+  int64 instance_id = 3;
 }
 
 message RefreshState {
