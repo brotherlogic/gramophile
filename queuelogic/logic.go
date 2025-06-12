@@ -829,11 +829,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 
-		if !entry.GetForce() && time.Since(time.Unix(0, user.GetLastCollectionRefresh())) < CollectionRefresh {
-			qlog(ctx, "Skipping because %v (%v)", time.Since(time.Unix(0, user.GetLastCollectionRefresh())), entry.GetIntention())
-			return nil
-		}
-
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
 		}
@@ -859,15 +854,14 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				if err != nil {
 					return fmt.Errorf("unable to enqueue: %w", err)
 				}
+				user.LastCollectionRefresh = time.Now().UnixNano()
+				err = q.db.SaveUser(ctx, user)
+				if err != nil {
+					return fmt.Errorf("unable to sell user: %w", err)
+				}
 			}
-
 		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
 			qlog(ctx, "Writing collection refresh chip")
-			user.LastCollectionRefresh = time.Now().UnixNano()
-			err = q.db.SaveUser(ctx, user)
-			if err != nil {
-				return fmt.Errorf("unable to sell user: %w", err)
-			}
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
