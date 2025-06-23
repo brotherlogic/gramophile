@@ -81,7 +81,10 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
 		qlog(ctx, "Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
-		return b.db.SaveRecord(ctx, d.GetUserId(), storedRelease, &db.SaveOptions{})
+		err = b.db.SaveRecord(ctx, d.GetUserId(), storedRelease, &db.SaveOptions{})
+		if err != nil {
+			return err
+		}
 	}
 
 	addDigital := b.addDigitalList(ctx, storedRelease, release)
