@@ -71,7 +71,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 
 		} else {
 			qlog(ctx, "SKIPPING DATE REFRESH %v", id)
-			//skipped++
+			skipped++
 		}
 	}
 
