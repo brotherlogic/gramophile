@@ -79,8 +79,9 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 
 	log.Printf("GOT %v vs %v", release, storedRelease)
 	if release.GetReleaseDate() < storedRelease.GetEarliestReleaseDate() || (release.GetReleaseDate() > 0 && storedRelease.GetEarliestReleaseDate() == 0) {
-		qlog(ctx, "Updating ERD: %v", release)
 		storedRelease.EarliestReleaseDate = release.GetReleaseDate()
+		qlog(ctx, "Updating ERD: %v -> %v", release, storedRelease.EarliestReleaseDate)
+
 		err = b.db.SaveRecord(ctx, d.GetUserId(), storedRelease, &db.SaveOptions{})
 		if err != nil {
 			return err
