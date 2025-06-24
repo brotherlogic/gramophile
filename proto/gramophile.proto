@@ -66,6 +66,7 @@ message Wantlist {
     bool active = 9;
 
     int64 last_updated_timestamp = 10;
+    string last_change_detail = 11;
 }
 
 message WantlistEntry {
