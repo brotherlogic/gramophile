@@ -155,6 +155,13 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 	// If the list is inactive - just set everything to PENDING
 	if !list.GetActive() || overthreshold {
 		qlog(ctx, "List %v is inactive (%v) or is overthreshold (%v)", list.GetName(), list.GetActive(), overthreshold)
+
+		if !list.GetActive() {
+			list.LastChangeDetail = "List is not active, retiring entries"
+		} else if overthreshold {
+			list.LastChangeDetail = "LP is over threshold, retiring entries"
+		}
+
 		for _, entry := range list.GetEntries() {
 			if entry.GetState() != pb.WantState_RETIRED {
 				entry.State = pb.WantState_RETIRED
