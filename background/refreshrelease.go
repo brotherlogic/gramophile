@@ -49,7 +49,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	}
 	qlog(ctx, "Read release: %v", release)
 
-	if time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
+	if !force || time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
 		stats, err := d.GetReleaseStats(ctx, release.GetId())
 		if err != nil {
@@ -58,6 +58,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		qlog(ctx, "Stats for %v == %v (%v)", iid, stats, err)
 		record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
 		record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
+		record.HighPrice = &pbd.Price{Currency: "USD", Value: stats.GetHighPrice()}
 
 		record.LastStatRefresh = time.Now().UnixNano()
 	} else {

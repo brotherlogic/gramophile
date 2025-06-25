@@ -54,5 +54,5 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 		return nil, err
 	}
 
-	return &pb.RefreshRecordResponse{SaleId: record.GetSaleId()}, err
+	return &pb.RefreshRecordResponse{SaleId: record.GetSaleId(), HighPrice: record.GetHighPrice().GetValue()}, err
 }
