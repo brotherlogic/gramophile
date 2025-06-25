@@ -32,7 +32,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 		return fmt.Errorf("unable to get record from db: %w", err)
 	}
 
-	if !force && time.Since(time.Unix(0, record.GetLastUpdateTime())) < minRefreshFreq {
+	if !force && record.GetHighPrice().GetValue() > 0 && time.Since(time.Unix(0, record.GetLastUpdateTime())) < minRefreshFreq {
 		qlog(ctx, "Not refreshing %v as %v", iid, time.Since(time.Unix(0, record.GetLastUpdateTime())))
 		return nil
 	}
@@ -49,7 +49,7 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	}
 	qlog(ctx, "Read release: %v", release)
 
-	if force || time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
+	if force || record.GetHighPrice().GetValue() == 0 || time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
 		stats, err := d.GetReleaseStats(ctx, release.GetId())
 		if err != nil {
