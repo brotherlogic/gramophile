@@ -54,7 +54,8 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		}
 	}
 
-	return nil
+	user.LastWantlistRefresh = time.Now().UnixNano()
+	return b.db.SaveUser(ctx, user)
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {

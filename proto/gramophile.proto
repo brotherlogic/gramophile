@@ -534,6 +534,7 @@ message StoredUser {
     int64 last_config_update = 7;
     int64 last_sale_refresh = 11;
     int64 last_want_refresh = 12;
+    int64 last_wantlist_refresh = 14;
 
     GramophileConfig config = 8;    
 
@@ -585,6 +586,8 @@ message GetStateResponse {
     int32 folder_count = 7;
     int64 last_sale_refresh = 8;
     int64 last_want_sync  = 9;
+    
+    int64 last_wantlist_sync = 10;
 }
 
 message SetConfigRequest {
