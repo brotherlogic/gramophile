@@ -35,6 +35,7 @@ func executeGetState(ctx context.Context, args []string) error {
 	fmt.Printf("Config last udpate: %v [%v]\n", time.Unix(0, state.GetLastConfigUpdate()), state.ConfigHash)
 	fmt.Printf("Collection last synced: %v\n", time.Unix(0, state.GetLastCollectionSync()))
 	fmt.Printf("Wants last synced: %v\n", time.Unix(0, state.GetLastWantSync()))
-	fmt.Printf("%v records in collection (%v are marked bad)\n", state.GetCollectionSize(), state.GetCollectionMisses())
+	fmt.Printf("Wantlists last sycned: %v\n", time.Unix(0, state.GetLastWantlistSync()))
+	fmt.Printf("\n%v records in collection (%v are marked bad)\n", state.GetCollectionSize(), state.GetCollectionMisses())
 	return nil
 }
