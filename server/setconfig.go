@@ -206,7 +206,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 			if u.GetConfig().GetWantsListConfig() == nil {
 				u.GetConfig().WantsListConfig = &pb.WantslistConfig{}
 			}
-			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "digital_wantlist"})
+			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "digital_wantlist", Type: pb.WantlistType_EN_MASSE})
 		}
 
 		log.Printf("Added digital wantlist: %v", u.GetConfig().GetWantsListConfig())

@@ -250,6 +250,12 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
 	log.Printf("Saving wantlist: %v (%v)", wantlist, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()))
+
+	// Temporary override for digital wantlist
+	if wantlist.GetName() == "digital_wantlist" {
+		wantlist.Type = pb.WantlistType_EN_MASSE
+	}
+
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
