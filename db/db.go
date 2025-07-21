@@ -256,6 +256,11 @@ func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantli
 		wantlist.Type = pb.WantlistType_EN_MASSE
 	}
 
+	// Correct missing ids
+	if wantlist.GetId() == 0 {
+		wantlist.Id = time.Now().UnixNano()
+	}
+
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
