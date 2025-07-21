@@ -40,10 +40,10 @@ func executeWantlist(ctx context.Context, args []string) error {
 		}
 	}
 
-	fmt.Printf("List: %v (%v) [%v (%v)]\n", wantlist.GetList().GetName(), wantlist.GetList().GetType(), wantlist.GetList().GetActive(), total/count)
+	fmt.Printf("List: %v (%v) [%v (%v)] %v\n", wantlist.GetList().GetName(), wantlist.GetList().GetType(), wantlist.GetList().GetActive(), total/count, wantlist.GetList().GetId())
 	fmt.Printf("Updated: %v\n", time.Unix(0, wantlist.GetList().GetLastUpdatedTimestamp()))
 	for _, entry := range wantlist.GetList().GetEntries() {
-		fmt.Printf("  [%v] %v - %v (%v) [%v]\n", entry.GetId(), entry.GetArtist(), entry.GetTitle(), entry.GetState(), entry.GetScore())
+		fmt.Printf("  [%v] %v - %v (%v) [%v]]\n", entry.GetId(), entry.GetArtist(), entry.GetTitle(), entry.GetState(), entry.GetScore())
 
 		fmt.Printf(" Last change: %v\n", wantlist.GetList().GetLastChangeDetail())
 	}
