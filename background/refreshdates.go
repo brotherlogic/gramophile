@@ -109,7 +109,10 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 			}
 
 			if !found {
-				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{Id: dig})
+				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{
+					Id:       dig,
+					SourceId: iid,
+				})
 				updated = true
 			}
 		}

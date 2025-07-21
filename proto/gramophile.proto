@@ -79,6 +79,7 @@ message WantlistEntry {
     int64 master_id = 7;
     bool digital_only = 8;
     int32 score =9 ;
+    int64 source_id = 10;
 }
 
 enum WantState {
