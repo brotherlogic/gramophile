@@ -250,6 +250,17 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 
 func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
 	log.Printf("Saving wantlist: %v (%v)", wantlist, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()))
+
+	// Temporary override for digital wantlist
+	if wantlist.GetName() == "digital_wantlist" {
+		wantlist.Type = pb.WantlistType_EN_MASSE
+	}
+
+	// Correct missing ids
+	if wantlist.GetId() == 0 {
+		wantlist.Id = time.Now().UnixNano()
+	}
+
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
 }
 
@@ -616,7 +627,6 @@ func (d *DB) GetUser(ctx context.Context, user string) (*pb.StoredUser, error) {
 	resp, err := d.client.Read(ctx, &rspb.ReadRequest{
 		Key: fmt.Sprintf("%v%v", USER_PREFIX, user),
 	})
-	log.Printf("HERE: %v, %v", resp, err)
 	if err != nil {
 		return nil, err
 	}
