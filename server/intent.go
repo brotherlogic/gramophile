@@ -7,6 +7,8 @@ import (
 	"math"
 	"time"
 
+	discogs "github.com/brotherlogic/discogs"
+
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -85,6 +87,12 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	if req.GetIntent().GetKeep() == pb.KeepStatus_MINT_UP_KEEP && len(req.GetIntent().GetMintIds()) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "You need to specify mint ids for this keep")
+	}
+
+	if req.GetIntent().GetKeep() == pb.KeepStatus_DIGITAL_KEEP {
+		if discogs.ReleaseIsDigital(r.GetRelease()) {
+			return nil, status.Errorf(codes.InvalidArgument, "This record is already digital")
+		}
 	}
 
 	// Validate that the intent is legit
