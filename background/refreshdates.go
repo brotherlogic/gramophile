@@ -56,7 +56,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 	return nil
 }
 
-func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, digWants bool, iid, rid int64) error {
+func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, digWants bool, iid, rid int64, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("STORED %v -> %v", iid, rid)
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
@@ -109,13 +109,23 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 			}
 
 			if !found {
-				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{Id: dig})
+				log.Printf("ADDING %v -> %v", dig, storedRelease.GetRelease().GetId())
+				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{Id: dig, State: pb.WantState_WANTED, SourceId: iid})
 				updated = true
 			}
 		}
 
 		if updated {
 			b.db.SaveWantlist(ctx, d.GetUserId(), wantlist)
+
+			// Since we updated the wants, we should also trigger a wants sync
+			_, err = enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate: time.Now().UnixNano(),
+					Auth:    token,
+					Entry:   &pb.QueueElement_RefreshWantlists{},
+				},
+			})
 		}
 	}
 
