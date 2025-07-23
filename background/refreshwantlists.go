@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 	"time"
@@ -15,6 +16,7 @@ import (
 )
 
 func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	qlog(ctx, "Refreshing Wantlists")
 	lists, err := b.db.GetWantlists(ctx, di.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get wantlists: %w", err)
@@ -48,7 +50,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
 
-		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold || builtList, enqueue)
+		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold && !builtList, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -59,7 +61,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 }
 
 func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	qlog(ctx, "Processing %v -> %v with %v", list.GetName(), list.GetType(), overthreshold)
+	qlog(ctx, "Processing %v -> %v with %v (%v)", list.GetName(), list.GetType(), overthreshold, len(list.GetEntries()))
 
 	// Deactivate if set
 
@@ -82,7 +84,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 	}
 
 	for _, entry := range list.GetEntries() {
-		qlog(ctx, "REFRESH %v -> %v", list.GetName(), entry)
+		qlog(ctx, "REFRESH_WANT %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
 		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
 		if err != nil {
@@ -105,7 +107,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 		}
 
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
-			qlog(ctx, "HERE %v and %v", want, entry)
+			qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
 			entry.State = want.GetState()
 			list.LastPurchaseDate = time.Now().UnixNano()
 		}
@@ -190,21 +192,56 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 		return true, nil
 	}
 
+	nlist, err := b.cleanWantlist(ctx, userid, list)
+	if err != nil {
+		return false, err
+	}
+
 	switch list.GetType() {
 	case pb.WantlistType_ONE_BY_ONE:
-		return b.refreshOneByOneWantlist(ctx, userid, list, token, enqueue)
+		return b.refreshOneByOneWantlist(ctx, userid, nlist, token, enqueue)
 	case pb.WantlistType_EN_MASSE:
-		return b.refreshEnMasseWantlist(ctx, userid, list, token, enqueue)
+		return b.refreshEnMasseWantlist(ctx, userid, nlist, token, enqueue)
 	case pb.WantlistType_DATE_BOUNDED:
-		return b.refreshTimedWantlist(ctx, userid, list, token, enqueue)
+		return b.refreshTimedWantlist(ctx, userid, nlist, token, enqueue)
 	default:
 		qlog(ctx, "Failure to process want list because %v", list.GetType())
-		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", list.GetName(), list.GetType())
+		return false, status.Errorf(codes.FailedPrecondition, "%v is not currently processable (%v)", nlist.GetName(), nlist.GetType())
 	}
+}
+
+// Does cleaning jobs - currently just for any list that has multiple entries from a single source (e.g. the digital wantlist)
+func (b *BackgroundRunner) cleanWantlist(ctx context.Context, userid int32, list *pb.Wantlist) (*pb.Wantlist, error) {
+	log.Printf("Cleaning Wantlist")
+	var deleteIds []int64
+	for _, entry := range list.GetEntries() {
+		if entry.GetSourceId() > 0 && (entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT) {
+			deleteIds = append(deleteIds, entry.GetSourceId())
+		}
+	}
+
+	log.Printf("TO DELETE: %v", deleteIds)
+
+	var nentries []*pb.WantlistEntry
+	for _, entry := range list.GetEntries() {
+		found := false
+		for _, did := range deleteIds {
+			if entry.GetSourceId() == did {
+				found = true
+			}
+		}
+		if !found {
+			nentries = append(nentries, entry)
+		}
+	}
+	list.Entries = nentries
+
+	return list, nil
 }
 
 func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
 	updated := false
+	qlog(ctx, "HERE HERE Refreshing %v with %v", list.GetName(), len(list.GetEntries()))
 	for _, entry := range list.GetEntries() {
 		want, err := b.db.GetWant(ctx, userid, entry.GetId())
 		if err != nil {
