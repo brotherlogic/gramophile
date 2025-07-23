@@ -35,11 +35,17 @@ func TestDigitalListExtended(t *testing.T) {
 	d.AddNonCollectionRelease(&dpb.Release{MasterId: 200, Id: 2, Rating: 2})
 	d.AddNonCollectionRelease(&dpb.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
-	err = b.RefreshReleaseDate(context.Background(), d, true, 100, 2)
+	err = b.RefreshReleaseDate(context.Background(), d, true, 100, 2, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		//Do Nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Fatalf("Bad refresh: %v", err)
 	}
-	b.RefreshReleaseDate(context.Background(), d, true, 100, 3)
+	b.RefreshReleaseDate(context.Background(), d, true, 100, 3, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		//Do Nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Fatalf("Bad refresh: %v", err)
 	}
