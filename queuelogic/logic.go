@@ -763,7 +763,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to get intent: %w", err)
 		}
-		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth())
+		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth(), q.Enqueue)
 		if v != nil {
 			return v
 		}

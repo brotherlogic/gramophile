@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string) error {
+func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("BOUNCE: %v", b.db)
 	user, err := b.db.GetUser(ctx, auth)
 	if err != nil {
@@ -63,7 +63,7 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	err = b.ProcessKeep(ctx, d, r, i, user, fields)
+	err = b.ProcessKeep(ctx, d, r, i, user, fields, auth, enqueue)
 	if err != nil {
 		return err
 	}
@@ -609,7 +609,7 @@ func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Dis
 
 }
 
-func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field, auth string, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing Keep")
 
 	// We don't zero out the clean time
@@ -647,6 +647,20 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 	// order to refresh the digital wants
 	if r.KeepStatus == pb.KeepStatus_DIGITAL_KEEP {
 		r.LastEarliestReleaseUpdate = 0
+
+		// Also enqueue an update for this relaese
+		enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth:    auth,
+				RunDate: time.Now().UnixNano(),
+				Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
+					RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
+						Iid:      r.GetRelease().GetInstanceId(),
+						MasterId: r.GetRelease().GetMasterId(),
+					}},
+			},
+		})
+
 		for _, eid := range i.GetDigitalIds() {
 			found := false
 			for _, exid := range r.GetDigitalVersions() {
