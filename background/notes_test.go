@@ -69,7 +69,10 @@ func TestMovePrint(t *testing.T) {
 	b.db.SaveSnapshot(ctx, su, "Second", org2)
 	log.Printf("Saved snapshot: %v", org2)
 
-	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Fatalf("Bad intent processing: %v", err)
 	}
@@ -105,7 +108,10 @@ func TestMovePrint(t *testing.T) {
 	}
 
 	// Also test that if we re-move it we get a nil return
-	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123")
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Fatalf("Bad intent processing: %v", err)
 	}
@@ -152,7 +158,10 @@ func TestMovePrint_MissingOrgorigin(t *testing.T) {
 	}
 	b.db.SaveSnapshot(ctx, su, "First", org1)
 
-	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 1}, "123")
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), mr, &pb.Intent{NewFolder: 1}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err == nil {
 		t.Fatalf("Intent was processed: %v", err)
 	}
@@ -173,7 +182,10 @@ func TestMintUpKeep_Success(t *testing.T) {
 	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
 		Keep:    pb.KeepStatus_MINT_UP_KEEP,
 		MintIds: []int64{124},
-	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Errorf("Unable to process keep: %v", err)
 	}
@@ -190,7 +202,10 @@ func TestMintUpKeep_Success(t *testing.T) {
 	err = b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{
 		Keep:    pb.KeepStatus_MINT_UP_KEEP,
 		MintIds: []int64{124},
-	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Errorf("Unable to process keep: %v", err)
 	}
@@ -207,7 +222,10 @@ func TestMintUpKeep_Success(t *testing.T) {
 	err = b.ProcessKeep(ctx, di, &pb.Record{MintVersions: []int64{125}}, &pb.Intent{
 		Keep:    pb.KeepStatus_MINT_UP_KEEP,
 		MintIds: []int64{125},
-	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	}, su, []*pbd.Field{{Id: 10, Name: "Keep"}}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Errorf("Unable to process keep: %v", err)
 	}
@@ -227,7 +245,10 @@ func TestMintUpKeep_NoField(t *testing.T) {
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
 	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
 
-	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{})
+	err := b.ProcessKeep(ctx, di, &pb.Record{}, &pb.Intent{Keep: pb.KeepStatus_MINT_UP_KEEP}, su, []*pbd.Field{}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Errorf("Should have failed with :Failed Precondition %v", err)
 	}
@@ -239,7 +260,10 @@ func TestMintUpKeep_Reset(t *testing.T) {
 	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
 	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{}}
 
-	err := b.ProcessKeep(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 12345}, KeepStatus: pb.KeepStatus_DIGITAL_KEEP}, &pb.Intent{Keep: pb.KeepStatus_RESET}, su, []*pbd.Field{{Id: 10, Name: "Keep"}})
+	err := b.ProcessKeep(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 12345}, KeepStatus: pb.KeepStatus_DIGITAL_KEEP}, &pb.Intent{Keep: pb.KeepStatus_RESET}, su, []*pbd.Field{{Id: 10, Name: "Keep"}}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Errorf("Should not have failed: %v", err)
 	}
@@ -306,7 +330,10 @@ func TestPurchaseLocation(t *testing.T) {
 
 	err := b.ProcessIntents(ctx, di, &pb.Record{Release: &pbd.Release{InstanceId: 1234}}, &pb.Intent{
 		PurchaseLocation: "bounce",
-	}, "123")
+	}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		// Do nothing
+		return nil, nil
+	})
 	if err != nil {
 		t.Fatalf("Unable to process purchase location: %v", err)
 	}
