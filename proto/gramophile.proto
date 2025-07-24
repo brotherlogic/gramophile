@@ -103,6 +103,7 @@ message Want {
     int64 id = 1;
     int64 want_added_date = 2;
     WantState state = 3;
+    WantState intended_state = 9;
     int64 sync_id = 4;
 
     int64 master_id = 5;

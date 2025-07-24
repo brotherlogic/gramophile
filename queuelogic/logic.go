@@ -969,7 +969,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	q.pMapMutex.Lock()
 	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 	q.pMapMutex.Unlock()
-	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
+	qlog(ctx, "Appended %v -> %v [%v]", req.GetElement(), len(q.keys), req.GetElement().GetRunDate())
 
 	return &pb.EnqueueResponse{}, err
 }

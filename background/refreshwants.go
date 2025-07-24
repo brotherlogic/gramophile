@@ -83,6 +83,7 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 }
 
 func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	qlog(ctx, "Refhresing single want: %v", want)
 	user, err := b.db.GetUser(ctx, authToken)
 	if err != nil {
 		return err
@@ -91,6 +92,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	var storedWant *pb.Want
 	if want.GetMasterId() == 0 {
 		storedWant, err = b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())
+		log.Printf("From %v to %v", want, storedWant)
 		if err != nil {
 			return err
 		}
@@ -101,31 +103,74 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 		}
 	}
 
-	err = b.RefreshWantInternal(ctx, d, want, authToken, enqueue)
+	changed, err := b.RefreshWantInternal(ctx, d, storedWant, authToken, enqueue)
 	if err != nil {
 		return err
 	}
+	log.Printf("CHANGED %v -> %v", storedWant, changed)
 
+	// Update any wantlist entry that contains this want
+	if changed {
+		lists, err := b.db.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return err
+		}
+		for _, list := range lists {
+			updated := false
+
+			for _, entry := range list.GetEntries() {
+				if entry.GetId() == storedWant.GetId() {
+					entry.State = storedWant.GetState()
+					updated = true
+				}
+				if updated {
+					err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+		}
+	}
 	storedWant.Clean = true
 	log.Printf("STORED: %v -> %v", storedWant, want)
 	return b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
 }
 
-func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
+	qlog(ctx, "Refreshing the want %v", want)
+	// If the want is already in the intended state, do nothing
+	if want.GetIntendedState() == want.GetState() {
+		qlog(ctx, "Not updating want since state balances")
+		return false, nil
+	}
+
 	log.Printf("Refreshing: %v", want)
-	if want.GetState() == pb.WantState_WANTED {
+	if want.GetIntendedState() == pb.WantState_WANTED {
 		if want.GetMasterId() > 0 && want.GetId() == 0 {
-			return b.handleMasterWant(ctx, d, want, authToken, enqueue)
+			return true, b.handleMasterWant(ctx, d, want, authToken, enqueue)
 		}
 		_, err := d.AddWant(ctx, want.GetId())
-		return err
+		if err != nil {
+			return true, err
+		}
+		want.State = want.GetIntendedState()
+		return true, b.db.SaveWant(ctx, d.GetUserId(), want, "Adding want")
 	}
 
 	if want.GetMasterId() > 0 {
-		return status.Errorf(codes.Internal, "Unable to delete master id currently")
+		return true, status.Errorf(codes.Internal, "Unable to delete master id currently")
 	}
 	qlog(ctx, "Deleting want")
-	return d.DeleteWant(ctx, want.GetId())
+	err := d.DeleteWant(ctx, want.GetId())
+
+	// Not Found here is fine if we never wanted this thing in the first place
+	if err != nil && status.Code(err) != codes.NotFound {
+		return true, err
+	}
+	want.State = want.GetIntendedState()
+	return true, b.db.SaveWant(ctx, d.GetUserId(), want, "Deleting want")
 }
 
 func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) error {
@@ -148,9 +193,9 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 			if want.GetId() == rec.GetRelease().GetId() {
 				found = true
 				log.Printf("Refreshing Want %v -> %v", want, rec)
-				want.State = pb.WantState_IN_TRANSIT
+				want.IntendedState = pb.WantState_IN_TRANSIT
 				if rec.GetArrived() > 0 {
-					want.State = pb.WantState_PURCHASED
+					want.IntendedState = pb.WantState_PURCHASED
 				}
 				if rec.GetRelease().GetRating() > 0 {
 					want.Score = rec.GetRelease().GetRating()
@@ -165,8 +210,8 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 		}
 
 		// This is wrong - reset this
-		if !found && (want.State == pb.WantState_IN_TRANSIT || want.State == pb.WantState_PURCHASED) {
-			want.State = pb.WantState_WANT_UNKNOWN
+		if !found && (want.GetState() == pb.WantState_IN_TRANSIT || want.GetState() == pb.WantState_PURCHASED) {
+			want.IntendedState = pb.WantState_WANT_UNKNOWN
 			err = b.db.SaveWant(ctx, d.GetUserId(), want, "Mislabelled purchase")
 			if err != nil {
 				return fmt.Errorf("unable to save want: %v", err)

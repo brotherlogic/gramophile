@@ -66,14 +66,25 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	if err != nil {
 		return nil, err
 	}
+
 	for _, want := range wants {
 		if want.GetId() == req.GetId() {
 			log.Printf("FOUND WANT %v AND SETTING PURCHASED", want)
-			want.State = pb.WantState_PURCHASED
+			want.IntendedState = pb.WantState_IN_TRANSIT
 			err = s.d.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), want, "Saving because purchased")
 			if err != nil {
 				return nil, err
 			}
+			// Trigger a want update to ensure we capture wantlist changes
+			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate: time.Now().UnixNano(),
+					Auth:    user.GetAuth().GetToken(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{Want: want},
+					},
+				},
+			})
 		}
 	}
 
