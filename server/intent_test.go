@@ -19,6 +19,29 @@ import (
 	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
+func TestAddIntent_FailOnDigitalReelase(t *testing.T) {
+	ctx := getTestContext(123)
+
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Formats: []*pbd.Format{{Name: "CD"}}}})
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	s := Server{d: d, di: di, qc: qc}
+
+	r, err := s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{Keep: pb.KeepStatus_DIGITAL_KEEP},
+		InstanceId: 1234,
+	})
+	if err == nil {
+		t.Errorf("Should have failed: %v (%v)", r, err)
+	}
+}
+
 func TestAddIntent_FailOnBadUser(t *testing.T) {
 	ctx := getTestContext(12345)
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -90,13 +91,14 @@ const (
 )
 
 type Queue struct {
-	pstore  pstore_client.PStoreClient
-	b       *background.BackgroundRunner
-	d       discogs.Discogs
-	db      db.Database
-	keys    []int64
-	pMap    map[int64]pb.QueueElement_Priority
-	gclient ghb_client.GithubridgeClient
+	pstore    pstore_client.PStoreClient
+	b         *background.BackgroundRunner
+	d         discogs.Discogs
+	db        db.Database
+	keys      []int64
+	pMapMutex sync.Mutex
+	pMap      map[int64]pb.QueueElement_Priority
+	gclient   ghb_client.GithubridgeClient
 }
 
 func getRefKey(ctx context.Context) (string, error) {
@@ -195,7 +197,8 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 
 	return &Queue{
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
-		pMap: pMap,
+		pMap:      pMap,
+		pMapMutex: sync.Mutex{},
 	}
 }
 
@@ -888,8 +891,9 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 		}
 	}
 	q.keys = nkeys
+	q.pMapMutex.Lock()
 	delete(q.pMap, entry.GetRunDate())
-
+	q.pMapMutex.Unlock()
 	// Also delete the stored key
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
@@ -962,7 +966,9 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	}
 	q.keys = append(q.keys, req.GetElement().GetRunDate())
 	qlog(ctx, "Adding %v", req)
+	q.pMapMutex.Lock()
 	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
+	q.pMapMutex.Unlock()
 	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
 
 	return &pb.EnqueueResponse{}, err
@@ -985,9 +991,11 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
 	})*/
 	counts := make(map[string]float64)
+	q.pMapMutex.Lock()
 	for _, val := range q.pMap {
 		counts[fmt.Sprintf("%v", val)]++
 	}
+	q.pMapMutex.Unlock()
 	for str, val := range counts {
 		queueLen.With(prometheus.Labels{"type": str}).Set(float64(val))
 	}
@@ -1002,8 +1010,7 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 
 	foundKey := keys[0]
 
-	log.Printf("%v keys and %v pMaps", len(keys), len(q.pMap))
-
+	q.pMapMutex.Lock()
 	if val, ok := q.pMap[foundKey]; ok && val != pb.QueueElement_PRIORITY_HIGH {
 		// Find a better one
 		for _, key := range keys {
@@ -1018,6 +1025,7 @@ func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	} else {
 		log.Printf("pMasp error: %v", len(q.pMap))
 	}
+	q.pMapMutex.Unlock()
 
 	data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
 	if err != nil {
