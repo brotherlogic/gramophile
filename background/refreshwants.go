@@ -173,7 +173,7 @@ func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Di
 	return true, b.db.SaveWant(ctx, d.GetUserId(), want, "Deleting want")
 }
 
-func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) error {
+func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, auth string, enqueue func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	// Look for any wants that have been purchased
 	recs, err := b.db.LoadAllRecords(ctx, d.GetUserId())
 	if err != nil {
@@ -205,6 +205,15 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs) 
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)
 				}
+				enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						Auth:    auth,
+						RunDate: time.Now().UnixNano(),
+						Entry: &pb.QueueElement_RefreshWant{
+							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
+						},
+					},
+				})
 				continue
 			}
 		}

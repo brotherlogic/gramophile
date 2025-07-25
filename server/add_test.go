@@ -123,7 +123,7 @@ func TestAdd_WithWantUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad want get: %v", err)
 	}
-	if len(want.GetWants()) == 0 || want.GetWants()[0].GetWant().GetId() != 123 || want.GetWants()[0].GetWant().GetState() != pb.WantState_PURCHASED {
+	if len(want.GetWants()) == 0 || want.GetWants()[0].GetWant().GetId() != 123 || want.GetWants()[0].GetWant().GetState() != pb.WantState_IN_TRANSIT {
 		t.Errorf("Bad want return: %v", want)
 	}
 }

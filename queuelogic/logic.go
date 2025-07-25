@@ -583,7 +583,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return err
 	case *pb.QueueElement_RefreshWants:
-		return q.b.RefreshWants(ctx, d)
+		return q.b.RefreshWants(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshWant:
 		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_SyncWants:
