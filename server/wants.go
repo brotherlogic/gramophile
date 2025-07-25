@@ -97,10 +97,10 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 	}
 
 	want := &pb.Want{
-		State:        pb.WantState_WANTED,
-		Id:           req.GetWantId(),
-		MasterId:     req.GetMasterWantId(),
-		MasterFilter: req.GetFilter()}
+		IntendedState: pb.WantState_WANTED,
+		Id:            req.GetWantId(),
+		MasterId:      req.GetMasterWantId(),
+		MasterFilter:  req.GetFilter()}
 
 	err = s.d.SaveWant(
 		ctx,

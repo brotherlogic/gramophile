@@ -423,6 +423,8 @@ func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason s
 		return err
 	}
 
+	log.Printf("Saving Want %v (%v)", want, reason)
+
 	if want.GetId() > 0 {
 		return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
 	}

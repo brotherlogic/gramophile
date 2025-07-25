@@ -229,7 +229,7 @@ func TestWantlistLifecycle(t *testing.T) {
 	}
 
 	if wantlist.GetList().GetEntries()[0].GetState() != pb.WantState_WANTED {
-		t.Errorf("Want was not wanted: %v", wantlist)
+		t.Errorf("Want was not wanted: %v", wantlist.GetList().GetEntries()[0])
 	}
 
 	// purchase want
@@ -266,7 +266,7 @@ func TestWantlistLifecycle(t *testing.T) {
 	}
 
 	if wantlist.GetList().GetEntries()[0].GetState() != pb.WantState_IN_TRANSIT {
-		t.Errorf("Want was not wanted: %v", wantlist)
+		t.Errorf("Want was not IN TRANSIT: %v", wantlist)
 	}
 
 	// Record has arrived

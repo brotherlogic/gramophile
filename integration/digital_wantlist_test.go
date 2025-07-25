@@ -97,7 +97,8 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 
 	for _, entry := range wl.GetList().GetEntries() {
 		if entry.GetState() != pb.WantState_WANTED {
-			t.Fatalf("Wantlist should all be WANTED: %v", entry)
+			want, err := d.GetWant(ctx, 123, entry.GetId())
+			t.Fatalf("Wantlist should all be WANTED: %v; %v -> %v", entry, want, err)
 		}
 	}
 

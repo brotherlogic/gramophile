@@ -583,7 +583,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return err
 	case *pb.QueueElement_RefreshWants:
-		return q.b.RefreshWants(ctx, d)
+		return q.b.RefreshWants(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshWant:
 		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_SyncWants:
@@ -969,7 +969,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	q.pMapMutex.Lock()
 	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 	q.pMapMutex.Unlock()
-	qlog(ctx, "Appended %v -> %v", req.GetElement(), len(q.keys))
+	qlog(ctx, "Appended %v -> %v [%v]", req.GetElement(), len(q.keys), req.GetElement().GetRunDate())
 
 	return &pb.EnqueueResponse{}, err
 }
