@@ -64,7 +64,7 @@ func TestAddMasterWant_WithFilteringt(t *testing.T) {
 
 }
 
-func TestAddMasterWant(t *testing.T) {
+func TestAddMasterWant_Success(t *testing.T) {
 	ctx := getTestContext(123)
 
 	pstore := pstore_client.GetTestClient()
