@@ -423,11 +423,14 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 		}
 	}
 
+	log.Printf("HARE %v -> %v", want, val)
+
 	if want.State != pb.WantState_HIDDEN {
 		val.IntendedState = want.State
 	}
 	if want.State == pb.WantState_HIDDEN {
-		if val.State == pb.WantState_PENDING || val.State == pb.WantState_WANTED {
+		log.Printf("DONE %v", val)
+		if val.IntendedState == pb.WantState_PENDING || val.IntendedState == pb.WantState_WANTED {
 			val.IntendedState = want.GetState()
 		}
 	}
