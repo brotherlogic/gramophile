@@ -76,6 +76,10 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 	}
 
 	qlog(ctx, "Skipped %v releases", skipped)
-
-	return nil
+	user, err := b.db.GetUser(ctx, authToken)
+	if err != nil {
+		return fmt.Errorf("unable to get user: %w", err)
+	}
+	user.LastCollectionCheck = time.Now().UnixNano()
+	return b.db.SaveUser(ctx, user)
 }
