@@ -97,8 +97,8 @@ func runLoop(ctx context.Context) error {
 	oldestSaleId.Set(float64(stats.SaleStats.GetOldestId()))
 	erdMissing.Set(float64(stats.GetCollectionStats().GetErdMissingCount()))
 
-	//wants.Set(float64(stats.GetCollectionStats().GetWants()))
-	//syncedWants.Set(float64(stats.GetCollectionStats().GetSyncedWants()))
+	wants.Set(float64(stats.GetCollectionStats().GetWants()))
+	syncedWants.Set(float64(stats.GetCollectionStats().GetSyncedWants()))
 
 	return nil
 }
