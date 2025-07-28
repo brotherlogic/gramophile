@@ -24,6 +24,19 @@ func (s *Server) getCollectionStats(ctx context.Context, userid int32) (*pb.Coll
 		}
 	}
 
+	wants, err := s.d.GetWants(ctx, userid)
+	if err != nil {
+		return nil, err
+	}
+	synced := int32(0)
+	for _, w := range wants {
+		if w.GetIntendedState() == w.GetState() {
+			synced++
+		}
+	}
+	cs.TotalWants = int32(len(wants))
+	cs.SyncedWants = synced
+
 	return cs, nil
 }
 
