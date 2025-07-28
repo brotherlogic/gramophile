@@ -6,6 +6,8 @@ github.com/brotherlogic/discogs v0.0.0-20250507133040-f0eeb656eb81 h1:IiY9yv8OQd
 github.com/brotherlogic/discogs v0.0.0-20250507133040-f0eeb656eb81/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/discogs v0.0.0-20250516174159-fe8652bd9b78 h1:cUQnvm++hdbPsgIO4Dk0YXk6+815Lm8ylsVqOQQW9zE=
 github.com/brotherlogic/discogs v0.0.0-20250516174159-fe8652bd9b78/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
+github.com/brotherlogic/discogs v0.0.0-20250723221002-21b284874932 h1:lRkV0LAQ7CVhzU4387LazWk23SNGcVWtxMhiEEiknAI=
+github.com/brotherlogic/discogs v0.0.0-20250723221002-21b284874932/go.mod h1:ZQrj/DKTPBbaQL+RO5MkwKmPrTffm6qwsSnVcdckSw8=
 github.com/brotherlogic/githubridge v0.2853.0 h1:uNoX4ac034WxQdRDAzj2HPmmeIiIpe/5Er7ImXuH5O0=
 github.com/brotherlogic/githubridge v0.2853.0/go.mod h1:1Izl2qh17QzTwv4+0Waq/xAnbaywurJQHSN19/PlPvU=
 github.com/brotherlogic/githubridge v0.2857.0 h1:1k2idzdCAX+MzQcJMgdR6dJVifkpWiY7RE7HZ+ifZf8=
@@ -66,6 +68,8 @@ github.com/brotherlogic/gramophile v0.1239.0 h1:2YwqMAj09yOTOEr5rVgoIwnKUoytbgbj
 github.com/brotherlogic/gramophile v0.1239.0/go.mod h1:vVn1VLaDm04U48LNXyz8pEjq2HfY8v5x+R3MnZK518s=
 github.com/brotherlogic/gramophile v0.1241.0 h1:RCbzmJ+FUm/toeq96lkLmULTw/WD8lKBAxXLCVv8XsA=
 github.com/brotherlogic/gramophile v0.1241.0/go.mod h1:vVn1VLaDm04U48LNXyz8pEjq2HfY8v5x+R3MnZK518s=
+github.com/brotherlogic/gramophile v0.1249.0 h1:E9K/scM1Dbyl/W3dhI4VBnGjkhNVNSo2Rj0GvPrapNw=
+github.com/brotherlogic/gramophile v0.1249.0/go.mod h1:4skonl0o9BfAkvj28LK3TjLuO5zvNCuBbu8kkJoZPPs=
 github.com/brotherlogic/pstore v0.33.0 h1:wW6TeChmNG9JUw7pXCZgCnyr6ZwEPwSPmBt/CQ124zQ=
 github.com/brotherlogic/pstore v0.33.0/go.mod h1:Sdpq6/rkBnvcrtW9fbxSVaY2oPJPZ/SwjOIcsjjguMo=
 github.com/brotherlogic/scraper v0.79.0 h1:qJnxsD0ZfJ0JgbWcMCrlvM6gSmpxcj7LL1molbbnIig=
@@ -189,6 +193,8 @@ google.golang.org/grpc v1.72.2 h1:TdbGzwb82ty4OusHWepvFWGLgIbNo1/SUynEN0ssqv8=
 google.golang.org/grpc v1.72.2/go.mod h1:wH5Aktxcg25y1I3w7H69nHfXdOG3UiadoBtjh3izSDM=
 google.golang.org/grpc v1.73.0 h1:VIWSmpI2MegBtTuFt5/JWy2oXxtjJ/e89Z70ImfD2ok=
 google.golang.org/grpc v1.73.0/go.mod h1:50sbHOUqWoCQGI8V2HQLJM0B+LMlIUjNSZmow7EVBQc=
+google.golang.org/grpc v1.74.2 h1:WoosgB65DlWVC9FqI82dGsZhWFNBSLjQ84bjROOpMu4=
+google.golang.org/grpc v1.74.2/go.mod h1:CtQ+BGjaAIXHs/5YS3i473GqwBBa1zGQNevxdeBEXrM=
 google.golang.org/protobuf v1.36.6 h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=
 google.golang.org/protobuf v1.36.6/go.mod h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

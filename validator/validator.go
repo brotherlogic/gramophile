@@ -53,7 +53,7 @@ func runValidationLoop(ctx context.Context) error {
 				}
 			}
 
-			/*log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastCollectionCheck())))
+			log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastCollectionCheck())))
 			if time.Since(time.Unix(0, user.GetLastCollectionCheck())) > queuelogic.CollectionCheck {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
@@ -71,7 +71,7 @@ func runValidationLoop(ctx context.Context) error {
 					return err
 
 				}
-			}*/
+			}
 
 			log.Printf("Collection: %v", time.Since(time.Unix(0, user.GetLastCollectionRefresh())))
 			if time.Since(time.Unix(0, user.GetLastCollectionRefresh())) > queuelogic.CollectionRefresh {
