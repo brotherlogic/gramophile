@@ -53,6 +53,14 @@ var (
 		Name: "gramophile_overseer_erd_missing",
 		Help: "The number of records without ERD",
 	})
+	wants = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_total_wants",
+		Help: "The number of wants",
+	})
+	syncedWants = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_synced_wants",
+		Help: "The number of wants",
+	})
 
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
 )
@@ -88,6 +96,9 @@ func runLoop(ctx context.Context) error {
 	oldestSale.Set(float64(stats.GetSaleStats().GetOldestLastUpdate()))
 	oldestSaleId.Set(float64(stats.SaleStats.GetOldestId()))
 	erdMissing.Set(float64(stats.GetCollectionStats().GetErdMissingCount()))
+
+	//wants.Set(float64(stats.GetCollectionStats().GetWants()))
+	//syncedWants.Set(float64(stats.GetCollectionStats().GetSyncedWants()))
 
 	return nil
 }
