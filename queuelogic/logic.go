@@ -88,6 +88,7 @@ var (
 
 const (
 	CollectionRefresh = time.Hour * 24 * 7 // Refresh the full collection once a week
+	CollectionCheck   = time.Hour * 24     // Check through collection once a day
 )
 
 type Queue struct {
