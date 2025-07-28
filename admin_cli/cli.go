@@ -111,12 +111,12 @@ func main() {
 			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force: true, RunDate: 1222, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshRelease{RefreshRelease: &pb.RefreshRelease{Iid: iid, Intention: "from-cli"}}},
+			Element: &pb.QueueElement{RunDate: 1222, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshRelease{RefreshRelease: &pb.RefreshRelease{Iid: iid, Intention: "from-cli"}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_wantlists":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Priority: pb.QueueElement_PRIORITY_HIGH, Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
+			Element: &pb.QueueElement{Priority: pb.QueueElement_PRIORITY_HIGH, Force: true, RunDate: 1015, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWantlists{}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_wants":
