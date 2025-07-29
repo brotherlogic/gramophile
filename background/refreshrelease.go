@@ -52,13 +52,27 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 	if force || record.GetHighPrice().GetValue() == 0 || time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
 		stats, err := d.GetReleaseStats(ctx, release.GetId())
-		if err != nil {
+		if err != nil && status.Code(err) != codes.NotFound {
 			return err
 		}
-		qlog(ctx, "Stats for %v == %v (%v)", iid, stats, err)
-		record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
-		record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
-		record.HighPrice = &pbd.Price{Currency: "USD", Value: stats.GetHighPrice()}
+		if status.Code(err) == codes.NotFound {
+			// Default values are $100 high and median, $5 low price
+			stats = &pbd.ReleaseStats{
+				HighPrice:   10000,
+				MedianPrice: 10000,
+				LowPrice:    500,
+			}
+			qlog(ctx, "Default Stats for %v == %v (%v)", iid, stats, err)
+			record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
+			record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
+			record.HighPrice = &pbd.Price{Currency: "USD", Value: stats.GetHighPrice()}
+
+		} else {
+			qlog(ctx, "Stats for %v == %v (%v)", iid, stats, err)
+			record.MedianPrice = &pbd.Price{Currency: "USD", Value: stats.GetMedianPrice()}
+			record.LowPrice = &pbd.Price{Currency: "USD", Value: stats.GetLowPrice()}
+			record.HighPrice = &pbd.Price{Currency: "USD", Value: stats.GetHighPrice()}
+		}
 
 		record.LastStatRefresh = time.Now().UnixNano()
 	} else {
