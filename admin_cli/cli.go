@@ -124,6 +124,16 @@ func main() {
 			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWants{}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "refresh_want":
+		id, err := strconv.ParseInt(os.Args[4], 10, 64)
+		if err != nil {
+			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
+		}
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWant{RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: id}}}},
+		})
+		fmt.Printf("%v and %v\n", a, b)
+
 	case "refresh_release_date":
 		iid, err := strconv.ParseInt(os.Args[4], 10, 64)
 		mid, err := strconv.ParseInt(os.Args[5], 10, 64)
