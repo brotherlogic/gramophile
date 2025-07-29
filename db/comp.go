@@ -25,6 +25,13 @@ func buildWantUpdates(old, new *pb.Want, reason string) *pb.Update {
 		})
 	}
 
+	if old.State != new.IntendedState {
+		update.Changes = append(update.Changes, &pb.Change{
+			Type:        pb.Change_CHANGED,
+			Description: fmt.Sprintf("State changed: %v -> %v (%v)", old.GetState(), new.GetIntendedState(), reason),
+		})
+	}
+
 	if len(update.GetChanges()) == 0 {
 		return nil
 	}
