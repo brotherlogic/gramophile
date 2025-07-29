@@ -72,7 +72,7 @@ func executeWant(ctx context.Context, args []string) error {
 			return err
 		}
 		want := wants.GetWants()[0]
-		fmt.Printf("%v [%v]\n", want.GetWant().GetId(), want.GetWant().GetState())
+		fmt.Printf("%v [%v] (%v)\n", want.GetWant().GetId(), want.GetWant().GetState(), want.GetWant().GetIntendedState())
 
 		sort.SliceStable(want.Updates, func(i, j int) bool {
 			return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
