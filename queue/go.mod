@@ -1,10 +1,10 @@
 module github.com/brotherlogic/gramophile/queue
 
-go 1.23.2
+go 1.23.8
 
 require (
-	github.com/brotherlogic/discogs v0.0.0-20250723221002-21b284874932
-	github.com/brotherlogic/gramophile v0.1258.0
+	github.com/brotherlogic/discogs v0.0.0-20250729214233-806b1a4864d8
+	github.com/brotherlogic/gramophile v0.1261.0
 	github.com/brotherlogic/pstore v0.33.0
 	github.com/prometheus/client_golang v1.22.0
 	google.golang.org/grpc v1.74.2
