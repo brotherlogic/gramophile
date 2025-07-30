@@ -88,25 +88,18 @@ func executeOrg(ctx context.Context, args []string) error {
 				return status.Errorf(codes.InvalidArgument, "org %v has no elements", *name)
 			}
 
-			firstShelf := ""
-			firstSlot := -1
 			currSlot := 0
 			currShelf := ""
+			cslot := int32(0)
 			totalWidth := float32(0)
 			for i, placement := range r.GetSnapshot().GetPlacements() {
-				if firstShelf == "" {
-					firstShelf = placement.GetSpace()
-				}
-				if firstSlot < 0 {
-					firstSlot = int(placement.GetUnit())
-				}
-
-				if placement.GetSpace() != currShelf {
+				if placement.GetSpace() != currShelf || placement.GetUnit() != cslot {
 					currShelf = placement.GetSpace()
+					cslot = placement.GetUnit()
 					currSlot++
 				}
 
-				if placement.GetUnit() == int32(*slot) || *slot == -1 {
+				if currSlot == *slot || *slot == -1 {
 					pstr, err := resolvePlacement(ctx, client, placement, *debug)
 					if err != nil {
 						return fmt.Errorf("unable to place %v -> %w", placement.GetIid(), err)
