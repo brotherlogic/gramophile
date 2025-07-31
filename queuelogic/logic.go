@@ -684,10 +684,6 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		return nil
 	case *pb.QueueElement_RefreshWantlists:
-		if q.hMap["RefreshWantlists"] {
-			// Silent fail since it's already in the queue
-			return nil
-		}
 		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
 		if err == nil {
 			q.hMap["RefreshWantlists"] = false
@@ -929,12 +925,16 @@ var (
 		Name: "gramophile_queue_refresh_intention",
 		Help: "The length of the working queue I think yes",
 	}, []string{"intention"})
+	enqueueFail = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_queue_enqueue",
+	}, []string{"code"})
 )
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	qlog(ctx, "Enqueue: %v", req)
 
 	if len(q.keys) > 100000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
+		enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.ResourceExhausted)}).Inc()
 		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full (%v)", len(q.keys))
 	}
 
@@ -942,9 +942,18 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
+	case *pb.QueueElement_RefreshWantlists:
+		if q.hMap["RefreshWantlists"] {
+			// Silent fail since it's already in the queue
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+		} else {
+			q.hMap["RefreshWantlists"] = true
+		}
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
 			intention.With(prometheus.Labels{"intention": "REJECT"}).Inc()
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.InvalidArgument)}).Inc()
 			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
 		}
 		intention.With(prometheus.Labels{"intention": req.GetElement().GetRefreshRelease().GetIntention()}).Inc()
@@ -953,15 +962,18 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
+				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
 			}
 		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 && req.GetElement().GetRefreshRelease().GetIntention() != "Manual Update" {
 			markerCount.Inc()
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
 		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
 	}
@@ -988,6 +1000,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	q.pMapMutex.Unlock()
 	qlog(ctx, "Appended %v -> %v [%v]", req.GetElement(), len(q.keys), req.GetElement().GetRunDate())
 
+	enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 	return &pb.EnqueueResponse{}, err
 }
 
