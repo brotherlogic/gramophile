@@ -194,3 +194,44 @@ func TestEnqueuePriority(t *testing.T) {
 		t.Errorf("Bad element returned: %v", entry)
 	}
 }
+
+func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition: %v", err)
+	}
+
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err == nil {
+		t.Errorf("Should have had error on addition: %v", err)
+	}
+
+	// But if we flush the queue it should work
+	q.FlushQueue(context.Background())
+
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition: %v", err)
+	}
+
+}
