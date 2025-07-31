@@ -100,6 +100,7 @@ type Queue struct {
 	pMapMutex sync.Mutex
 	pMap      map[int64]pb.QueueElement_Priority
 	gclient   ghb_client.GithubridgeClient
+	hMap      map[string]bool
 }
 
 func getRefKey(ctx context.Context) (string, error) {
@@ -171,6 +172,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 	}
 	var ckeys []int64
 	pMap := make(map[int64]pb.QueueElement_Priority)
+	hMap := make(map[string]bool)
 	t := time.Now()
 	for _, key := range keys.GetKeys() {
 		value, err := strconv.ParseInt(key[len(QUEUE_PREFIX):], 10, 64)
@@ -193,6 +195,11 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 		pMap[key] = entry.GetPriority()
 		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
+
+		switch entry.GetEntry().(type) {
+		case *pb.QueueElement_RefreshWantlists:
+			hMap["RefreshWantlists"] = true
+		}
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
 
@@ -200,6 +207,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
 		pMap:      pMap,
 		pMapMutex: sync.Mutex{},
+		hMap:      hMap,
 	}
 }
 
@@ -676,7 +684,15 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		return nil
 	case *pb.QueueElement_RefreshWantlists:
-		return q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
+		if q.hMap["RefreshWantlists"] {
+			// Silent fail since it's already in the queue
+			return nil
+		}
+		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
+		if err == nil {
+			q.hMap["RefreshWantlists"] = false
+		}
+		return err
 	case *pb.QueueElement_LinkSales:
 		err := q.b.LinkSales(ctx, u)
 		if err != nil {
