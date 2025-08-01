@@ -73,6 +73,7 @@ func executeWant(ctx context.Context, args []string) error {
 		}
 		want := wants.GetWants()[0]
 		fmt.Printf("%v [%v] (%v)\n", want.GetWant().GetId(), want.GetWant().GetState(), want.GetWant().GetIntendedState())
+		fmt.Printf("Last updated %v\n\n", time.Unix(0, want.GetWant().GetWantAddedDate()))
 
 		sort.SliceStable(want.Updates, func(i, j int) bool {
 			return want.GetUpdates()[i].Date < want.GetUpdates()[j].Date
