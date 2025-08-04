@@ -98,7 +98,7 @@ func main() {
 			log.Fatalf("Bad list: %v", err)
 		}
 		for _, item := range items.GetElements() {
-			fmt.Printf("%T\n", item)
+			fmt.Printf("%v\n", item)
 		}
 	case "syncsales":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
@@ -130,7 +130,7 @@ func main() {
 			log.Fatalf("Unable to parse %v -> %v", os.Args[4], err)
 		}
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWant{RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: id}}}},
+			Element: &pb.QueueElement{Priority: pb.QueueElement_PRIORITY_HIGH, Force: true, RunDate: 10, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshWant{RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: id}}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 

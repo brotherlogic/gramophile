@@ -12,12 +12,11 @@ import (
 
 func convertList(list *pb.StoredWantlist) *pb.Wantlist {
 	return &pb.Wantlist{
-		Name:       list.GetName(),
-		StartDate:  list.GetStartDate(),
-		EndDate:    list.GetEndDate(),
-		Type:       list.GetType(),
-		Visibility: list.GetVisibility(),
-		Active:     true,
+		Name:      list.GetName(),
+		StartDate: list.GetStartDate(),
+		EndDate:   list.GetEndDate(),
+		Type:      list.GetType(),
+		Active:    true,
 	}
 }
 
@@ -49,7 +48,6 @@ func (s *Server) handleWantslists(ctx context.Context, u *pb.StoredUser, lists [
 				wlist = savedList
 
 				savedList.Type = list.GetType()
-				savedList.Visibility = list.GetVisibility()
 				savedList.EndDate = list.GetEndDate()
 				savedList.StartDate = list.GetStartDate()
 
@@ -82,9 +80,6 @@ func (s *Server) handleWantslists(ctx context.Context, u *pb.StoredUser, lists [
 					Index:    entry.GetIndex(),
 					Id:       entry.GetId(),
 					MasterId: entry.GetMasterId(),
-				}
-				if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
-					wentry.State = pb.WantState_HIDDEN
 				}
 
 				log.Printf("Adding")
