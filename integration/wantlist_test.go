@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"log"
 	"testing"
 	"time"
 
@@ -583,143 +582,6 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 
 }
 
-func TestWantlistUpdatedOnSync_Hidden(t *testing.T) {
-	ctx := getTestContext(123)
-
-	pstore := pstore_client.GetTestClient()
-	d := db.NewTestDB(pstore)
-	err := d.SaveUser(ctx, &pb.StoredUser{
-		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
-		User:    &pbd.User{DiscogsUserId: 123},
-		Auth:    &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	s := server.BuildServer(d, di, qc)
-
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
-		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
-		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
-			{
-				Name:       "test-wantlist-visible",
-				Type:       pb.WantlistType_ONE_BY_ONE,
-				Visibility: pb.WantlistVisibility_VISIBLE,
-				Entries: []*pb.StoredWantlistEntry{
-					{Id: 123}},
-			},
-			{
-				Name:       "test-wantlist-invisible",
-				Type:       pb.WantlistType_ONE_BY_ONE,
-				Visibility: pb.WantlistVisibility_INVISIBLE,
-				Entries: []*pb.StoredWantlistEntry{
-					{Id: 124}},
-			},
-		},
-		},
-	}})
-
-	log.Printf("TEST sync 1")
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
-		},
-	})
-
-	qc.FlushQueue(ctx)
-
-	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
-	if err != nil {
-		t.Fatalf("Unable to get wants: %v", err)
-	}
-
-	log.Printf("WANTS: %v", wants)
-
-	if len(wants.GetWants()) != 2 ||
-		(wants.GetWants()[0].GetWant().Id != 123 && wants.GetWants()[1].GetWant().Id != 123) ||
-		(wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN && wants.GetWants()[1].GetWant().State != pb.WantState_HIDDEN) {
-		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
-	}
-}
-
-func TestWantlistUpdatedOnSync_InvisibleAndHidden(t *testing.T) {
-	ctx := getTestContext(123)
-
-	pstore := pstore_client.GetTestClient()
-	d := db.NewTestDB(pstore)
-	err := d.SaveUser(ctx, &pb.StoredUser{
-		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
-		User:    &pbd.User{DiscogsUserId: 123},
-		Auth:    &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Can't init save user: %v", err)
-	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
-	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	s := server.BuildServer(d, di, qc)
-
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
-		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
-		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
-			{
-				Name:       "test-wantlist-visible",
-				Type:       pb.WantlistType_ONE_BY_ONE,
-				Visibility: pb.WantlistVisibility_VISIBLE,
-				Entries: []*pb.StoredWantlistEntry{
-					{Id: 123}},
-			},
-			{
-				Name:       "test-wantlist-invisible",
-				Type:       pb.WantlistType_ONE_BY_ONE,
-				Visibility: pb.WantlistVisibility_INVISIBLE,
-				Entries: []*pb.StoredWantlistEntry{
-					{Id: 123}},
-			},
-		},
-		},
-	}})
-
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
-		},
-	})
-
-	qc.FlushQueue(ctx)
-
-	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{})
-	if err != nil {
-		t.Fatalf("Unable to get wants: %v", err)
-	}
-
-	if len(wants.GetWants()) != 1 ||
-		wants.GetWants()[0].GetWant().Id != 123 ||
-		wants.GetWants()[0].GetWant().State != pb.WantState_HIDDEN {
-		t.Fatalf("Bad wants returned (expected to see original want): %v", wants)
-	}
-
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
-		},
-	})
-
-	qc.FlushQueue(ctx)
-
-	dwants, _, err := di.GetWants(ctx, 1)
-
-	if len(dwants) != 0 {
-		t.Errorf("There should be only one non-hidden want: %v", dwants)
-	}
-}
-
 func TestBuildDigitalWantlist(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -892,9 +754,8 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 			},
 			WantsListConfig: &pb.WantslistConfig{ListeningThreshold: 2, Wantlists: []*pb.StoredWantlist{
 				{
-					Name:       "test-wantlist-visible",
-					Type:       pb.WantlistType_ONE_BY_ONE,
-					Visibility: pb.WantlistVisibility_VISIBLE,
+					Name: "test-wantlist-visible",
+					Type: pb.WantlistType_ONE_BY_ONE,
 					Entries: []*pb.StoredWantlistEntry{
 						{Id: 123}, {Id: 124}},
 				}}},
