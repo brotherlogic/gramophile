@@ -694,6 +694,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to link sales: %w", err)
 		}
+		q.hMap["LinkSales"] = false
 		return nil
 	case *pb.QueueElement_RefreshSales:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
@@ -942,6 +943,14 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
+	case *pb.QueueElement_LinkSales:
+		if q.hMap["LinkSales"] {
+			// Silent fail since it's already in the queue
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+		} else {
+			q.hMap["LinkSales"] = true
+		}
 	case *pb.QueueElement_RefreshWantlists:
 		if q.hMap["RefreshWantlists"] {
 			// Silent fail since it's already in the queue
