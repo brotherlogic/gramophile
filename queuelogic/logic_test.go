@@ -196,13 +196,24 @@ func TestEnqueuePriority(t *testing.T) {
 }
 
 func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
+	ctx := getTestContext(123)
+
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
 
-	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Auth: "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})
@@ -211,8 +222,9 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 		t.Errorf("Error on addition: %v", err)
 	}
 
-	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Auth: "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})
@@ -222,10 +234,11 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 	}
 
 	// But if we flush the queue it should work
-	q.FlushQueue(context.Background())
+	q.FlushQueue(ctx)
 
-	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Auth: "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})

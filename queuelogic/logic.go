@@ -289,7 +289,7 @@ func (q *Queue) FlushQueue(ctx context.Context) error {
 	for err == nil {
 		user, errv := q.db.GetUser(ctx, elem.GetAuth())
 		if errv != nil {
-			log.Fatalf("unable to get user to flush queue: %v -> %v", errv, elem.GetAuth())
+			log.Fatalf("unable to get user to flush queue: %v -> %v from %v", errv, elem.GetAuth(), ctx)
 		}
 		user.User.UserSecret = user.UserSecret
 		user.User.UserToken = user.UserToken
