@@ -94,9 +94,6 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 					Id:    entry.GetId(),
 					State: pb.WantState_WANT_UNKNOWN,
 				}
-				if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
-					want.State = pb.WantState_HIDDEN
-				}
 				err = b.db.SaveWant(ctx, di.GetUserId(), want, "Creating from wantlist update")
 				if err != nil {
 					return nil
@@ -358,36 +355,11 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			foundFirst = true
 		case pb.WantState_WANTED:
 			foundFirst = true
-			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
-				err := b.mergeWant(ctx, userid, &pb.Want{
-					Id:    entry.GetId(),
-					State: pb.WantState_HIDDEN,
-				})
-				if err != nil {
-					return false, err
-				}
-				_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Auth:    token,
-					RunDate: time.Now().UnixNano(),
-					Entry: &pb.QueueElement_RefreshWant{
-						RefreshWant: &pb.RefreshWant{
-							Want: &pb.Want{Id: entry.GetId()},
-						},
-					},
-				}})
-				if err != nil {
-					return false, err
-				}
-				continue
-			}
 		case pb.WantState_PURCHASED:
 			continue
 		case pb.WantState_PENDING, pb.WantState_RETIRED, pb.WantState_WANT_UNKNOWN:
 			foundFirst = true
 			state := pb.WantState_WANTED
-			if list.GetVisibility() == pb.WantlistVisibility_INVISIBLE {
-				state = pb.WantState_HIDDEN
-			}
 			entry.State = state
 			qlog(ctx, "ESETTING ENTRY: %v", entry)
 			err := b.mergeWant(ctx, userid, &pb.Want{
@@ -425,14 +397,6 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 
 	log.Printf("HARE %v -> %v", want, val)
 
-	if want.State != pb.WantState_HIDDEN {
-		val.IntendedState = want.State
-	}
-	if want.State == pb.WantState_HIDDEN {
-		log.Printf("DONE %v", val)
-		if val.IntendedState == pb.WantState_PENDING || val.IntendedState == pb.WantState_WANTED {
-			val.IntendedState = want.GetState()
-		}
-	}
+	val.IntendedState = want.State
 	return b.db.SaveWant(ctx, userid, val, "Updated from refresh wantlist")
 }
