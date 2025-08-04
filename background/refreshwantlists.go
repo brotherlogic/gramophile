@@ -91,8 +91,9 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 			if status.Code(err) == codes.NotFound {
 				// We need to save this want
 				want = &pb.Want{
-					Id:    entry.GetId(),
-					State: pb.WantState_WANT_UNKNOWN,
+					Id:           entry.GetId(),
+					State:        pb.WantState_WANT_UNKNOWN,
+					FromWantlist: []string{list.GetName()},
 				}
 				err = b.db.SaveWant(ctx, di.GetUserId(), want, "Creating from wantlist update")
 				if err != nil {
@@ -103,6 +104,22 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 			}
 		}
 
+		// Check that we've annotated this want correctly
+		found := false
+		for _, wl := range want.GetFromWantlist() {
+			if wl == list.GetName() {
+				found = true
+			}
+		}
+		if !found {
+			want.FromWantlist = append(want.GetFromWantlist(), list.GetName())
+			err = b.db.SaveWant(ctx, di.GetUserId(), want, "Adding from wantlist")
+			if err != nil {
+				return fmt.Errorf("unable to save want: %w", err)
+			}
+		}
+
+		// Update the want
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
 			qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
 			entry.State = want.GetState()
