@@ -57,8 +57,7 @@ message Wantlist {
     int64 end_date = 3;
     WantlistType type = 4;
     repeated WantlistEntry entries = 5;
-    WantlistVisibility visibility = 6;
-
+  
     WantFilter global_filter = 7;
 
     int64 last_purchase_date = 8;
@@ -89,7 +88,6 @@ enum WantState {
     RETIRED = 2;
     PURCHASED = 3;
     WANTED = 4;
-    HIDDEN = 5;
     DELETED = 6;
     IN_TRANSIT = 7;
 }
@@ -660,7 +658,6 @@ message SetOrgSnapshotResponse {}
 message AddWantlistRequest {
     string name = 1;
     WantlistType type = 2;
-    WantlistVisibility visibility = 3;
     int64 date_start = 4;
     int64 date_end = 5;
 }
