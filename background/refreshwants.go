@@ -89,6 +89,11 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 		return err
 	}
 
+	// If this want has no associated wantlist, set it to RETIRED
+	if len(want.GetFromWantlist()) == 0 {
+		want.IntendedState = pb.WantState_RETIRED
+	}
+
 	var storedWant *pb.Want
 	if want.GetMasterId() == 0 {
 		storedWant, err = b.db.GetWant(ctx, user.GetUser().GetDiscogsUserId(), want.GetId())

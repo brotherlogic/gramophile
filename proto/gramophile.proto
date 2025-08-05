@@ -110,6 +110,10 @@ message Want {
     bool clean = 7;
 
     int32 score = 8;
+
+    // Captures which wantlist we created this from
+    // We only allow wants from lists
+    repeated string from_wantlist = 10;
 }
 
 enum NoncomplianceIssue {
