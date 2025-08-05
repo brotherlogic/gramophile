@@ -674,7 +674,34 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 					Id:                   eid,
 					DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED,
 				})
+				log.Printf("BUTNOW %v", r.DigitalVersions)
 			}
+		}
+
+		list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), "digital_wantlist")
+		if err != nil {
+			return err
+		}
+		for _, v := range r.GetDigitalVersions() {
+			found := false
+			for _, entry := range list.GetEntries() {
+				if entry.GetId() == v.GetId() {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				list.Entries = append(list.Entries, &pb.WantlistEntry{
+					Id:       v.GetId(),
+					SourceId: r.GetRelease().GetInstanceId(),
+				})
+			}
+		}
+
+		err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+		if err != nil {
+			return err
 		}
 	}
 
