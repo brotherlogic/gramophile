@@ -594,7 +594,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}, {Id: 20, Name: "Keep"}}}
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
@@ -602,13 +602,19 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 2, Rating: 2})
 	di.AddNonCollectionRelease(&pbd.Release{MasterId: 200, Id: 3, Rating: 2, Formats: []*pbd.Format{{Name: "CD"}}})
 
-	s.SetConfig(ctx, &pb.SetConfigRequest{
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			WantsConfig: &pb.WantsConfig{
 				DigitalWantList: true,
 			},
+			KeepConfig: &pb.KeepConfig{
+				Mandate: pb.Mandate_REQUIRED,
+			},
 		},
 	})
+	if err != nil {
+		t.Fatalf("Cannot set config: %v", err)
+	}
 
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -619,6 +625,18 @@ func TestBuildDigitalWantlist(t *testing.T) {
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
 	})
+
+	qc.FlushQueue(ctx)
+
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		InstanceId: 100,
+		Intent: &pb.Intent{
+			Keep: pb.KeepStatus_DIGITAL_KEEP,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Bad intent: %v", err)
+	}
 
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -649,7 +667,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 
 	// It should have one entry
 	if len(wl.GetList().GetEntries()) != 1 {
-		t.Errorf("Wanlist has not been populated: %v", wl)
+		t.Fatalf("Wanlist has not been populated: %v", wl)
 	}
 
 	if wl.GetList().GetEntries()[0].GetId() != r.GetRecords()[0].GetRecord().GetDigitalIds()[0] {

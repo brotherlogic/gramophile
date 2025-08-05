@@ -91,14 +91,15 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	addDigital := b.addDigitalList(ctx, storedRelease, release)
 	needsSave = needsSave || addDigital
 
-	log.Printf("DIG %v and %v", addDigital, digWants)
-	if addDigital && digWants {
+	log.Printf("DIG %v and %v -> %v", addDigital, digWants, storedRelease)
+	if addDigital && digWants && storedRelease.GetKeepStatus() == pb.KeepStatus_DIGITAL_KEEP {
 		updated := false
 		// Update any wantlist if needed
 		wantlist, err := b.db.LoadWantlist(ctx, d.GetUserId(), "digital_wantlist")
 		if err != nil {
 			return err
 		}
+		log.Printf("ADDING: %v", wantlist)
 
 		for _, dig := range storedRelease.GetDigitalIds() {
 			found := false
@@ -159,24 +160,25 @@ func (b *BackgroundRunner) addDigitalList(ctx context.Context, storedRelease *pb
 		}
 	}
 
-	qlog(ctx, "DIGITAL %v is %v", childRelease, isDigital)
+	qlog(ctx, "DIGITAL %v is %v (%v)", childRelease, isDigital, storedRelease.DigitalIds)
 
 	if isDigital {
 		storedRelease.DigitalIds = append(storedRelease.DigitalIds, childRelease.GetId())
-	}
 
-	found := false
-	for _, entry := range storedRelease.GetDigitalVersions() {
-		if entry.GetId() == childRelease.GetId() {
-			found = true
+		found := false
+		for _, entry := range storedRelease.GetDigitalVersions() {
+			if entry.GetId() == childRelease.GetId() {
+				found = true
+			}
+		}
+		if !found {
+			storedRelease.DigitalVersions = append(storedRelease.DigitalVersions, &pb.DigitalVersion{
+				Id:                   childRelease.GetId(),
+				DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_COMPUTED,
+			})
 		}
 	}
-	if !found {
-		storedRelease.DigitalVersions = append(storedRelease.DigitalVersions, &pb.DigitalVersion{
-			Id:                   childRelease.GetId(),
-			DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_COMPUTED,
-		})
-	}
+	qlog(ctx, "BUTNOW %v", storedRelease.DigitalVersions)
 
 	return isDigital
 }

@@ -15,6 +15,36 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int32) error {
+	list, err := b.db.LoadWantlist(ctx, userid, "digital_wantlist")
+	if err != nil {
+		return err
+	}
+
+	records, err := b.db.LoadAllRecords(ctx, userid)
+	if err != nil {
+		return err
+	}
+
+	idMap := make(map[int64][]int64)
+	for _, entry := range list.GetEntries() {
+		if _, ok := idMap[entry.GetSourceId()]; !ok {
+			idMap[entry.GetSourceId()] = make([]int64, 0)
+		}
+		idMap[entry.GetSourceId()] = append(idMap[entry.GetSourceId()], entry.GetId())
+	}
+
+	for _, record := range records {
+		if _, ok := idMap[record.GetRelease().GetId()]; ok {
+			if !discogs.ReleaseIsDigital(record.GetRelease()) {
+				delete(idMap, record.GetRelease().GetId())
+			}
+		}
+	}
+
+	return nil
+}
+
 func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	qlog(ctx, "Refreshing Wantlists")
 	lists, err := b.db.GetWantlists(ctx, di.GetUserId())
@@ -49,6 +79,12 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	for _, list := range lists {
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
+		if builtList {
+			err = b.PurgeDigitalwantlist(ctx, di.GetUserId())
+			if err != nil {
+				return err
+			}
+		}
 
 		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold && !builtList, enqueue)
 		if err != nil {
