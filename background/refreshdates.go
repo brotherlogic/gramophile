@@ -91,7 +91,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 	addDigital := b.addDigitalList(ctx, storedRelease, release)
 	needsSave = needsSave || addDigital
 
-	log.Printf("DIG %v and %v", addDigital, digWants)
+	log.Printf("DIG %v and %v -> %v", addDigital, digWants, storedRelease)
 	if addDigital && digWants && storedRelease.GetKeepStatus() == pb.KeepStatus_DIGITAL_KEEP {
 		updated := false
 		// Update any wantlist if needed
@@ -99,6 +99,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		if err != nil {
 			return err
 		}
+		log.Printf("ADDING: %v", wantlist)
 
 		for _, dig := range storedRelease.GetDigitalIds() {
 			found := false

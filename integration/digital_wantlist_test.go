@@ -132,7 +132,7 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}, {Id: 20, Name: "Purchase Price"}, {Id: 30, Name: "Purchase Location"}}}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}, {Id: 15, Name: "Keep"}, {Id: 20, Name: "Purchase Price"}, {Id: 30, Name: "Purchase Location"}}}
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
 
@@ -166,6 +166,16 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 		},
 	})
 
+	qc.FlushQueue(ctx)
+
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		InstanceId: 100,
+		Intent:     &pb.Intent{Keep: pb.KeepStatus_DIGITAL_KEEP},
+	})
+	if err != nil {
+		t.Fatalf("Unable to set intent: %v", err)
+	}
+
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
@@ -197,7 +207,7 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 
 	// It should have one entry
 	if len(wl.GetList().GetEntries()) != 2 {
-		t.Errorf("Wanlist has not been populated: %v", wl)
+		t.Errorf("Wanlist has not been populated: (%v) %v", len(wl.GetList().GetEntries()), wl)
 	}
 
 	for _, entry := range wl.GetList().GetEntries() {
