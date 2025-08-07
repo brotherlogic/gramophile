@@ -262,10 +262,14 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 
 // Does cleaning jobs - currently just for any list that has multiple entries from a single source (e.g. the digital wantlist)
 func (b *BackgroundRunner) cleanWantlist(ctx context.Context, userid int32, list *pb.Wantlist) (*pb.Wantlist, error) {
-	log.Printf("Cleaning Wantlist")
+	if list.GetName() != "digital_wantlist" {
+		return list, nil
+	}
+
+	log.Printf("Cleaning Wantlist (%v)", list.GetName())
 	var deleteIds []int64
 	for _, entry := range list.GetEntries() {
-		if entry.GetSourceId() == 0 {
+		if entry.GetSourceId() == 0 || (entry.GetSourceId() > 0 && (entry.GetState() == pb.WantState_IN_TRANSIT || entry.GetState() == pb.WantState_PURCHASED)) {
 			deleteIds = append(deleteIds, entry.GetSourceId())
 		}
 	}
