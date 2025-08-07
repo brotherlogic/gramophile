@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"sort"
 	"strconv"
@@ -51,23 +52,28 @@ func executeWant(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	wid, err := strconv.ParseInt(args[1], 10, 64)
-	if err != nil {
-		return err
-	}
-
 	switch args[0] {
 	case "add":
+		wid, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return err
+		}
+
 		_, err = client.AddWant(ctx, &pb.AddWantRequest{
 			WantId: wid,
 		})
 		return err
 	case "get":
-		id, err := strconv.ParseInt(args[1], 10, 64)
+		flgs := flag.NewFlagSet("get", flag.ExitOnError)
+		id := flgs.Int64("id", -1, "Release id of the record being added")
+		debug := flgs.Bool("debug", false, "Displau the raw proto")
+
+		err = flgs.Parse(args[1:])
 		if err != nil {
 			return err
 		}
-		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{ReleaseId: id, IncludeUpdates: true})
+
+		wants, err := client.GetWants(ctx, &pb.GetWantsRequest{ReleaseId: *id, IncludeUpdates: true})
 		if err != nil {
 			return err
 		}
@@ -82,6 +88,11 @@ func executeWant(ctx context.Context, args []string) error {
 		for _, update := range want.GetUpdates() {
 			fmt.Printf("  %v - %v\n", time.Unix(0, update.GetDate()), update)
 		}
+
+		if *debug {
+			fmt.Printf("\n\n%v\n", want)
+		}
+
 		return nil
 	default:
 		return status.Errorf(codes.InvalidArgument, "%v is not a valid command for handling wants", args[0])
