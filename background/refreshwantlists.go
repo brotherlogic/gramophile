@@ -302,7 +302,7 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 		if want.GetIntendedState() != pb.WantState_WANTED &&
 			want.GetIntendedState() != pb.WantState_PURCHASED &&
 			want.GetIntendedState() != pb.WantState_IN_TRANSIT {
-			want.IntendedState = pb.WantState_WANTED
+			//want.IntendedState = pb.WantState_WANTED
 			want.Clean = false
 			err = b.db.SaveWant(ctx, userid, want, "Saving from wantlist update")
 			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
@@ -450,6 +450,6 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 
 	log.Printf("HARE %v -> %v", want, val)
 
-	val.IntendedState = want.State
-	return b.db.SaveWant(ctx, userid, val, fmt.Sprintf("Updated from refresh wantlist (%v)", list))
+	//val.IntendedState = want.State
+	return b.db.SaveWant(ctx, userid, val, fmt.Sprintf("Updated from refresh wantlist (%v) %v", list))
 }
