@@ -265,7 +265,7 @@ func (b *BackgroundRunner) cleanWantlist(ctx context.Context, userid int32, list
 	log.Printf("Cleaning Wantlist")
 	var deleteIds []int64
 	for _, entry := range list.GetEntries() {
-		if entry.GetSourceId() > 0 && (entry.GetState() == pb.WantState_PURCHASED || entry.GetState() == pb.WantState_IN_TRANSIT) {
+		if entry.GetSourceId() == 0 {
 			deleteIds = append(deleteIds, entry.GetSourceId())
 		}
 	}

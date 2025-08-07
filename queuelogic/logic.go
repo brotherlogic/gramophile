@@ -296,6 +296,7 @@ func (q *Queue) FlushQueue(ctx context.Context) error {
 		qlog(ctx, "USER: %v", user)
 		d := q.d.ForUser(user.GetUser())
 		errp := q.ExecuteInternal(ctx, d, user, elem)
+		qlog(ctx, "Ran %v", elem)
 		if errp == nil {
 			q.delete(ctx, elem)
 		} else {
