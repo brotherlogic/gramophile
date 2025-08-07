@@ -221,7 +221,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 				err := b.mergeWant(ctx, userid, &pb.Want{
 					Id:    entry.GetId(),
 					State: pb.WantState_RETIRED,
-				})
+				}, list.GetName())
 				if err != nil {
 					return false, err
 				}
@@ -384,7 +384,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 
 		if foundFirst {
 			if entry.GetState() != pb.WantState_PENDING {
-				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING})
+				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING}, list.GetName())
 				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Auth:    token,
 					RunDate: time.Now().UnixNano(),
@@ -418,7 +418,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			err := b.mergeWant(ctx, userid, &pb.Want{
 				Id:    entry.GetId(),
 				State: state,
-			})
+			}, list.GetName())
 			if err != nil {
 				return false, err
 			}
@@ -438,7 +438,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 	return false, nil
 }
 
-func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb.Want) error {
+func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb.Want, list string) error {
 	val, err := b.db.GetWant(ctx, userid, want.GetId())
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -451,5 +451,5 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 	log.Printf("HARE %v -> %v", want, val)
 
 	val.IntendedState = want.State
-	return b.db.SaveWant(ctx, userid, val, "Updated from refresh wantlist")
+	return b.db.SaveWant(ctx, userid, val, fmt.Sprintf("Updated from refresh wantlist (%v)", list))
 }
