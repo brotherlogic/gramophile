@@ -441,21 +441,24 @@ func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse
 	}
 
 	var elems []*pb.QueueElement
+	fcount := int32(0)
 	for _, key := range keys.GetKeys() {
 		data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: key})
 		if err != nil {
-			return nil, err
+			fcount++
+			continue
 		}
 
 		entry := &pb.QueueElement{}
 		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 		if err != nil {
-			return nil, err
+			fcount++
+			continue
 		}
 		elems = append(elems, entry)
 	}
 
-	return &pb.ListResponse{Elements: elems}, nil
+	return &pb.ListResponse{Elements: elems, SkippedCount: fcount}, nil
 }
 
 func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {

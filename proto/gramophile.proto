@@ -505,6 +505,7 @@ message EnqueueResponse {}
 message ListRequest {
 }
 message ListResponse {
+    int32 skipped_count = 1;
     repeated QueueElement elements = 2;
 }
 
