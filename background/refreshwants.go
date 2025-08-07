@@ -91,7 +91,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 
 	// If this want has no associated wantlist, set it to RETIRED
 	if len(want.GetFromWantlist()) == 0 {
-		want.IntendedState = pb.WantState_RETIRED
+		//want.IntendedState = pb.WantState_RETIRED
 	}
 
 	var storedWant *pb.Want
@@ -198,9 +198,9 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 			if want.GetId() == rec.GetRelease().GetId() {
 				found = true
 				log.Printf("Refreshing Want %v -> %v", want, rec)
-				want.IntendedState = pb.WantState_IN_TRANSIT
+				//want.IntendedState = pb.WantState_IN_TRANSIT
 				if rec.GetArrived() > 0 {
-					want.IntendedState = pb.WantState_PURCHASED
+					//want.IntendedState = pb.WantState_PURCHASED
 				}
 				if rec.GetRelease().GetRating() > 0 {
 					want.Score = rec.GetRelease().GetRating()
@@ -225,7 +225,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 
 		// This is wrong - reset this
 		if !found && (want.GetState() == pb.WantState_IN_TRANSIT || want.GetState() == pb.WantState_PURCHASED) {
-			want.IntendedState = pb.WantState_WANT_UNKNOWN
+			//want.IntendedState = pb.WantState_WANT_UNKNOWN
 			err = b.db.SaveWant(ctx, d.GetUserId(), want, "Mislabelled purchase")
 			if err != nil {
 				return fmt.Errorf("unable to save want: %v", err)

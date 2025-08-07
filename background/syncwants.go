@@ -19,7 +19,7 @@ func (b *BackgroundRunner) CullWants(ctx context.Context, d discogs.Discogs, sid
 
 	for _, swant := range wants {
 		if swant.GetSyncId() != sid && swant.GetState() == pb.WantState_WANTED {
-			swant.IntendedState = pb.WantState_RETIRED
+			//swant.IntendedState = pb.WantState_RETIRED
 			err = b.db.SaveWant(ctx, d.GetUserId(), swant, "Determined to be culled")
 		}
 	}
