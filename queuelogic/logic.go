@@ -822,7 +822,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return derr
 	case *pb.QueueElement_RefreshCollection:
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
-		return q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
+		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
+		if err != nil {
+			q.hMap["RefreshCollection"] = false
+		}
+		return err
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
 		if err != nil {
@@ -962,6 +966,13 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
 			q.hMap["RefreshWantlists"] = true
+		}
+	case *pb.QueueElement_RefreshCollection:
+		if q.hMap["RefreshCollection"] {
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+		} else {
+			q.hMap["RefreshCollection"] = true
 		}
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
