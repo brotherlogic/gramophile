@@ -23,7 +23,7 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 			return err
 		}
 
-		if record.GetRefreshId() != refreshId {
+		if record.GetRefreshId() < refreshId {
 			log.Printf("DELETE %v because %v != %v", r, record.GetRefreshId(), refreshId)
 			err = b.db.DeleteRecord(ctx, d.GetUserId(), r)
 			if err != nil {
