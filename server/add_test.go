@@ -87,7 +87,7 @@ func TestAdd_WithWantUpdate(t *testing.T) {
 	}}
 	pstore := pstore_client.GetTestClient()
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
-	d.SaveWant(ctx, 123, &pb.Want{Id: 123, State: pb.WantState_WANTED}, "saving for test")
+	d.SaveWant(ctx, 123, &pb.Want{Id: 123, State: pb.WantState_WANTED, FromWantlist: []string{"digital"}}, "saving for test")
 
 	s := Server{d: d, di: di, qc: qc}
 
