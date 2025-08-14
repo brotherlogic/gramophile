@@ -15,15 +15,15 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int32) error {
+func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int32) (*pb.Wantlist, error) {
 	list, err := b.db.LoadWantlist(ctx, userid, "digital_wantlist")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	records, err := b.db.LoadAllRecords(ctx, userid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	idMap := make(map[int64][]int64)
@@ -34,15 +34,26 @@ func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int3
 		idMap[entry.GetSourceId()] = append(idMap[entry.GetSourceId()], entry.GetId())
 	}
 
+	log.Printf("SOURCES = %v (%v)", idMap, records)
+
 	for _, record := range records {
 		if _, ok := idMap[record.GetRelease().GetId()]; ok {
-			if !discogs.ReleaseIsDigital(record.GetRelease()) {
+			log.Printf("FOUND RECORD %v", record)
+			if !discogs.ReleaseIsDigital(record.GetRelease()) || record.GetKeepStatus() != pb.KeepStatus_DIGITAL_KEEP {
 				delete(idMap, record.GetRelease().GetId())
 			}
 		}
 	}
 
-	return nil
+	var nentries []*pb.WantlistEntry
+	for _, entry := range list.GetEntries() {
+		if _, ok := idMap[entry.GetSourceId()]; ok {
+			nentries = append(nentries, entry)
+		}
+	}
+	log.Printf("REDUCE TO %v", nentries)
+	list.Entries = nentries
+	return list, b.db.SaveWantlist(ctx, userid, list)
 }
 
 func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
@@ -80,7 +91,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
 		if builtList {
-			err = b.PurgeDigitalwantlist(ctx, di.GetUserId())
+			list, err = b.PurgeDigitalwantlist(ctx, di.GetUserId())
 			if err != nil {
 				return err
 			}
