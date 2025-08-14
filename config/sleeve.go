@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -33,11 +32,11 @@ func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUs
 			}
 		}
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("Add a field called '%v'", SLEEVE_FIELD))
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", SLEEVE_FIELD)
 		}
 
 		if len(u.GetConfig().GetSleeveConfig().GetAllowedSleeves()) == 0 {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("you must set at least one sleeve"))
+			return status.Errorf(codes.FailedPrecondition, "you must set at least one sleeve")
 		}
 	}
 

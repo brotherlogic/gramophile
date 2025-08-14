@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -26,7 +25,7 @@ func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser)
 	hasWidthMandate := u.GetConfig().GetWidthConfig().GetMandate() != pb.Mandate_NONE
 	for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
 		if org.GetDensity() == pb.Density_WIDTH && !hasWidthMandate {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("%v requires width mandate", org.GetName()))
+			return status.Errorf(codes.FailedPrecondition, "%v requires width mandate", org.GetName())
 		}
 	}
 

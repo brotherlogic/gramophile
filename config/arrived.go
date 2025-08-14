@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -56,7 +55,7 @@ func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredU
 			}
 		}
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("Add a field called '%v'", ARRIVED_FIELD))
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", ARRIVED_FIELD)
 		}
 	}
 

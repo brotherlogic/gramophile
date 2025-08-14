@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -71,13 +70,13 @@ func (*sales) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUse
 			}
 		}
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("Add a field called '%v'", LAST_SALE_UPDATE_FIELD))
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", LAST_SALE_UPDATE_FIELD)
 		}
 	}
 
 	if u.GetConfig().GetSaleConfig().GetHandlePriceUpdates() != pb.Mandate_NONE {
 		if u.GetConfig().GetSaleConfig().GetUpdateFrequencySeconds() == 0 {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("You must set the update frequency field if gramophile is handling price updates"))
+			return status.Errorf(codes.FailedPrecondition, "You must set the update frequency field if gramophile is handling price updates")
 		}
 	}
 
