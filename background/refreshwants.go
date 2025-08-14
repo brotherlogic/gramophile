@@ -117,13 +117,13 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 
 	// Update any wantlist entry that contains this want
 	if changed {
-		lists, err := b.db.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
-		if err != nil {
-			return err
-		}
-		for _, list := range lists {
+		nlists := storedWant.GetFromWantlist()
+		for _, listname := range nlists {
 			updated := false
-
+			list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), listname)
+			if err != nil {
+				return err
+			}
 			for _, entry := range list.GetEntries() {
 				if entry.GetId() == storedWant.GetId() {
 					entry.State = storedWant.GetState()
