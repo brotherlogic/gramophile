@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -33,7 +32,7 @@ func (*keep) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser
 			}
 		}
 		if !found {
-			return status.Errorf(codes.FailedPrecondition, fmt.Sprintf("Add a field called '%v'", KEEP_FIELD))
+			return status.Errorf(codes.FailedPrecondition, "Add a field called '%v'", KEEP_FIELD)
 		}
 	}
 	return nil
