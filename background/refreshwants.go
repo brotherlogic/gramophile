@@ -170,6 +170,7 @@ func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Di
 	}
 	qlog(ctx, "Deleting want")
 	err := d.DeleteWant(ctx, want.GetId())
+	qlog(ctx, "Deleted want")
 
 	// Not Found here is fine if we never wanted this thing in the first place
 	if err != nil && status.Code(err) != codes.NotFound {
