@@ -118,6 +118,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	// Update any wantlist entry that contains this want
 	if changed {
 		nlists := storedWant.GetFromWantlist()
+		foundInList := false
 		for _, listname := range nlists {
 			updated := false
 			list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), listname)
@@ -126,6 +127,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 			}
 			for _, entry := range list.GetEntries() {
 				if entry.GetId() == storedWant.GetId() {
+					foundInList = true
 					entry.State = storedWant.GetState()
 					updated = true
 				}
@@ -136,7 +138,14 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 					}
 				}
 			}
+		}
 
+		if !foundInList {
+			storedWant.IntendedState = pb.WantState_RETIRED
+			_, err := b.RefreshWantInternal(ctx, d, storedWant, authToken, enqueue)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	storedWant.Clean = true
@@ -195,6 +204,36 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 	log.Printf("Found %v wants and %v records", len(wants), len(recs))
 
 	for _, want := range wants {
+		// Validate in wants
+		for _, listname := range want.GetFromWantlist() {
+			list, err := b.db.LoadWantlist(ctx, d.GetUserId(), listname)
+			if err != nil {
+				return fmt.Errorf("unable to load wantlist: %w", err)
+			}
+			found := false
+			for _, entry := range list.GetEntries() {
+				if entry.GetId() == want.GetId() {
+					found = true
+				}
+			}
+			if !found {
+				want.IntendedState = pb.WantState_RETIRED
+				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Not in wantlist, retiring")
+				if err != nil {
+					return fmt.Errorf("unable to save want: %w", err)
+				}
+				enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						Auth:    auth,
+						RunDate: time.Now().UnixNano(),
+						Entry: &pb.QueueElement_RefreshWant{
+							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
+						},
+					},
+				})
+			}
+		}
+
 		for _, rec := range recs {
 			if want.GetId() == rec.GetRelease().GetId() {
 				log.Printf("Refreshing Want %v -> %v", want, rec)
