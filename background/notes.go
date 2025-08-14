@@ -617,6 +617,8 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		return nil
 	}
 
+	oldKeepStatus := r.GetKeepStatus()
+
 	cfield := -1
 	for _, field := range fields {
 		if field.GetName() == config.KEEP_FIELD {
@@ -645,63 +647,92 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 
 	// If this is an adjust to DIGITAL_KEEP - let's reset the refresh date in
 	// order to refresh the digital wants
-	if r.KeepStatus == pb.KeepStatus_DIGITAL_KEEP {
-		r.LastEarliestReleaseUpdate = 0
+	if user.GetConfig().GetWantsConfig().GetDigitalWantList() {
+		if r.KeepStatus == pb.KeepStatus_DIGITAL_KEEP {
+			r.LastEarliestReleaseUpdate = 0
 
-		// Also enqueue an update for this relaese
-		enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Auth:    auth,
-				RunDate: time.Now().UnixNano(),
-				Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
-					RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
-						Iid:      r.GetRelease().GetInstanceId(),
-						MasterId: r.GetRelease().GetMasterId(),
-					}},
-			},
-		})
+			// Also enqueue an update for this relaese
+			enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Auth:    auth,
+					RunDate: time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
+						RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
+							Iid:      r.GetRelease().GetInstanceId(),
+							MasterId: r.GetRelease().GetMasterId(),
+						}},
+				},
+			})
 
-		for _, eid := range i.GetDigitalIds() {
-			found := false
-			for _, exid := range r.GetDigitalVersions() {
-				if exid.GetId() == eid {
-					exid.DigitalVersionSource = pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED
-					found = true
+			for _, eid := range i.GetDigitalIds() {
+				found := false
+				for _, exid := range r.GetDigitalVersions() {
+					if exid.GetId() == eid {
+						exid.DigitalVersionSource = pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED
+						found = true
+					}
+				}
+				if !found {
+					r.DigitalVersions = append(r.DigitalVersions, &pb.DigitalVersion{
+						Id:                   eid,
+						DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED,
+					})
+					log.Printf("BUTNOW %v", r.DigitalVersions)
 				}
 			}
-			if !found {
-				r.DigitalVersions = append(r.DigitalVersions, &pb.DigitalVersion{
-					Id:                   eid,
-					DigitalVersionSource: pb.DigitalVersion_DIGITAL_VERSION_SOURCE_PROVIDED,
-				})
-				log.Printf("BUTNOW %v", r.DigitalVersions)
+
+			list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), "digital_wantlist")
+			if err != nil {
+				return err
+			}
+			for _, v := range r.GetDigitalVersions() {
+				found := false
+				for _, entry := range list.GetEntries() {
+					if entry.GetId() == v.GetId() {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					list.Entries = append(list.Entries, &pb.WantlistEntry{
+						Id:       v.GetId(),
+						SourceId: r.GetRelease().GetInstanceId(),
+					})
+				}
+			}
+
+			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+			if err != nil {
+				return err
 			}
 		}
 
-		list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), "digital_wantlist")
-		if err != nil {
-			return err
-		}
-		for _, v := range r.GetDigitalVersions() {
-			found := false
+		// If we moved away from digital keep, ensure we remove the entries from the wantlist
+		if oldKeepStatus == pb.KeepStatus_DIGITAL_KEEP && r.KeepStatus != pb.KeepStatus_DIGITAL_KEEP {
+			list, err := b.db.LoadWantlist(ctx, user.GetUser().GetDiscogsUserId(), "digital_wantlist")
+			if err != nil {
+				return err
+			}
+
+			var nentries []*pb.WantlistEntry
 			for _, entry := range list.GetEntries() {
-				if entry.GetId() == v.GetId() {
-					found = true
-					break
+				found := false
+				for _, v := range r.GetDigitalVersions() {
+					if v.GetId() == entry.GetId() {
+						found = true
+					}
+				}
+
+				if !found {
+					nentries = append(nentries, entry)
 				}
 			}
-
-			if !found {
-				list.Entries = append(list.Entries, &pb.WantlistEntry{
-					Id:       v.GetId(),
-					SourceId: r.GetRelease().GetInstanceId(),
-				})
+			list.Entries = nentries
+			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+			if err != nil {
+				return err
 			}
-		}
-
-		err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
-		if err != nil {
-			return err
 		}
 	}
 
