@@ -26,6 +26,12 @@ enum Mandate {
     REQUIRED = 2;
 }
 
+enum Enabled {
+    ENABLED_UNKNOWN = 0;
+    ENABLED_DISABLED = 1;
+    ENABLED_ENABLED = 2;
+}
+
 enum Bool {
     UNKNOWN = 0;
     TRUE = 1;
@@ -92,11 +98,13 @@ message Sleeve {
 
 message SleeveConfig {
     Mandate mandate = 1;
+    Enabled enabled = 3;
     repeated Sleeve allowed_sleeves = 2;
 }
 
 message CleaningConfig {
     Mandate cleaning = 1;
+    Enabled enabled = 5;
     Filter applies_to = 2;
 
     int64 cleaning_gap_in_seconds = 3;
@@ -105,6 +113,8 @@ message CleaningConfig {
 
 message ListenConfig {
     Mandate mandate = 1;
+    Enabled enabled = 3;
+
     repeated ListenFilter filters = 2;
 }
 
@@ -169,16 +179,16 @@ message GramophileConfig {
     repeated ValidationRule validations = 15;
 }
 
-enum Enabled {
-    ENABLED_DISABLED = 0;
-    ENABLED_ENABLED = 1;
-}
-
-
 message AddConfig {
     string default_folder = 1;
+
+    // Mandate is deprecated
     Mandate allow_adds = 2;
+    Enabled adds = 4;
+
+    // Mandate is deprecated
     Mandate allow_delete = 3;
+    Enabled deletes = 5;
 }
 
 message ScoreConfig {
@@ -194,17 +204,21 @@ message MintUpConfig {
 }
 
 message PrintMoveConfig {
+    // Mandate is deprecated
     Mandate mandate = 1;
+    Enabled enabled = 4;
     int32 context = 2;
     string print_target = 3;
 }
 
 message WeightConfig {
     Mandate mandate = 1;
+    Enabled enabled = 2;
 }
 
 message WidthConfig {
     Mandate mandate = 1;
+    Enabled enabled = 2;
 }
 
 enum Create {
@@ -214,10 +228,12 @@ enum Create {
 
 message GoalFolderConfig {
     Mandate mandate = 1;
+    Enabled enabled = 2;
 }
 
 message ArrivedConfig {
     Mandate mandate = 1;
+    Enabled enabled = 2;
 }
 
 enum SaleUpdateType {
@@ -234,6 +250,7 @@ enum SaleUpdateType {
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
 message SaleConfig {
     Mandate mandate = 1;
+    Enabled enabled = 22;
 
     Mandate handle_price_updates = 2;
     int64 update_frequency_seconds = 3;
@@ -282,6 +299,7 @@ enum LowerBoundStrategy {
 
 message KeepConfig {
     Mandate mandate = 1;
+    Enabled enabled = 2;
 }
 
 enum WantsBasis {
