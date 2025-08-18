@@ -608,7 +608,7 @@ func TestBuildDigitalWantlist(t *testing.T) {
 				DigitalWantList: true,
 			},
 			KeepConfig: &pb.KeepConfig{
-				Mandate: pb.Mandate_REQUIRED,
+				Enabled: pb.Enabled_ENABLED_ENABLED,
 			},
 		},
 	})

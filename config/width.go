@@ -24,7 +24,7 @@ func (*width) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) 
 }
 
 func (*width) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetWidthConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetWidthConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == WIDTH_FIELD {

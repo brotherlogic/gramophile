@@ -37,7 +37,7 @@ func TestSetListen_Success(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			ListenConfig: &pb.ListenConfig{
-				Mandate: pb.Mandate_REQUIRED,
+				Enabled: pb.Enabled_ENABLED_ENABLED,
 			},
 		},
 	})
@@ -97,7 +97,7 @@ func TestSetListen_ResetScore(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			ListenConfig: &pb.ListenConfig{
-				Mandate: pb.Mandate_REQUIRED,
+				Enabled: pb.Enabled_ENABLED_ENABLED,
 			},
 		},
 	})

@@ -20,12 +20,6 @@ enum Basis {
     GRAMOPHILE = 1;
 }
 
-enum Mandate {
-    NONE = 0;
-    RECOMMENDED = 1;
-    REQUIRED = 2;
-}
-
 enum Enabled {
     ENABLED_UNKNOWN = 0;
     ENABLED_DISABLED = 1;
@@ -97,13 +91,13 @@ message Sleeve {
 }
 
 message SleeveConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 3;
     repeated Sleeve allowed_sleeves = 2;
 }
 
 message CleaningConfig {
-    Mandate cleaning = 1;
+    reserved 1; // Depreated 'cleaning'
     Enabled enabled = 5;
     Filter applies_to = 2;
 
@@ -112,7 +106,7 @@ message CleaningConfig {
 }
 
 message ListenConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 3;
 
     repeated ListenFilter filters = 2;
@@ -182,12 +176,10 @@ message GramophileConfig {
 message AddConfig {
     string default_folder = 1;
 
-    // Mandate is deprecated
-    Mandate allow_adds = 2;
+    reserved 2; // Depreated 'mallow_adds'
     Enabled adds = 4;
 
-    // Mandate is deprecated
-    Mandate allow_delete = 3;
+    reserved 3; // Depreated 'allow_delete'
     Enabled deletes = 5;
 }
 
@@ -204,20 +196,19 @@ message MintUpConfig {
 }
 
 message PrintMoveConfig {
-    // Mandate is deprecated
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 4;
     int32 context = 2;
     string print_target = 3;
 }
 
 message WeightConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 2;
 }
 
 message WidthConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 2;
 }
 
@@ -227,12 +218,12 @@ enum Create {
 }
 
 message GoalFolderConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 2;
 }
 
 message ArrivedConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 2;
 }
 
@@ -249,10 +240,11 @@ enum SaleUpdateType {
 
 // Setting this mandate will enable gramophile to support sale tracking / adjustment
 message SaleConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 22;
 
-    Mandate handle_price_updates = 2;
+    reserved 2; // Depreated 'handle_price_updates'
+    Enabled handle_price_updates = 23;
     int64 update_frequency_seconds = 3;
     SaleUpdateType update_type = 4;
 
@@ -298,7 +290,7 @@ enum LowerBoundStrategy {
 }
 
 message KeepConfig {
-    Mandate mandate = 1;
+    reserved 1; // Depreated 'mandate'
     Enabled enabled = 2;
 }
 

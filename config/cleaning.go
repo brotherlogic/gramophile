@@ -41,7 +41,7 @@ func (*cleaning) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 }
 
 func (*cleaning) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
+	if u.GetConfig().GetCleaningConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == CLEANED_FIELD_NAME {

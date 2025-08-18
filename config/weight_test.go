@@ -9,7 +9,7 @@ import (
 )
 
 func TestWeightFailedNoField(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
@@ -18,7 +18,7 @@ func TestWeightFailedNoField(t *testing.T) {
 }
 
 func TestWeightSuccess(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{WeightConfig: &pb.WeightConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Weight", Id: 1}}, c)
 	if err != nil {

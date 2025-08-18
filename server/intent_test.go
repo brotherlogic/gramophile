@@ -230,9 +230,10 @@ func TestKeepIntent_FailWithNoMint(t *testing.T) {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 	err = d.SaveUser(ctx, &pb.StoredUser{
-		User:   &pbd.User{DiscogsUserId: 123},
-		Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_REQUIRED}},
-		Auth:   &pb.GramophileAuth{Token: "123"}})
+		User: &pbd.User{DiscogsUserId: 123},
+		Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{
+			Enabled: pb.Enabled_ENABLED_ENABLED}},
+		Auth: &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -261,7 +262,7 @@ func TestScoreIntent_FastBackfill(t *testing.T) {
 	err = d.SaveUser(ctx, &pb.StoredUser{
 		User: &pbd.User{DiscogsUserId: 123},
 		Config: &pb.GramophileConfig{
-			KeepConfig:  &pb.KeepConfig{Mandate: pb.Mandate_REQUIRED},
+			KeepConfig:  &pb.KeepConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			ScoreConfig: &pb.ScoreConfig{TopRange: 100, BottomRange: 1}},
 		Auth: &pb.GramophileAuth{Token: "123"}})
 	if err != nil {

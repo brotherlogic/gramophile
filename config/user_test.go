@@ -28,7 +28,7 @@ func TestSetOmnipotent_Failure(t *testing.T) {
 
 func TestClearOnBeta(t *testing.T) {
 	c := &pb.GramophileConfig{
-		CleaningConfig: &pb.CleaningConfig{Cleaning: pb.Mandate_REQUIRED},
+		CleaningConfig: &pb.CleaningConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 		UserConfig:     &pb.UserConfig{UserLevel: pb.UserConfig_USER_LEVEL_BETA},
 	}
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, &pb.StoredUser{Config: c})
@@ -36,7 +36,7 @@ func TestClearOnBeta(t *testing.T) {
 		t.Errorf("Error reseting config: %v", err)
 	}
 
-	if c.GetCleaningConfig().GetCleaning() == pb.Mandate_REQUIRED {
+	if c.GetCleaningConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		t.Errorf("Config was not reset")
 	}
 }
@@ -50,7 +50,7 @@ func TestClearOnBeta_NotSet(t *testing.T) {
 		t.Errorf("Error reseting config: %v", err)
 	}
 
-	if c.GetCleaningConfig().GetCleaning() == pb.Mandate_REQUIRED {
+	if c.GetCleaningConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		t.Errorf("Config was not reset")
 	}
 }

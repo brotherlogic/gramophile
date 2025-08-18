@@ -24,7 +24,7 @@ func (*goalFolder) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, er
 }
 
 func (*goalFolder) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetGoalFolderConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetGoalFolderConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == GOAL_FOLDER_FIELD {

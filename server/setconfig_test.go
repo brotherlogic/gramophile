@@ -69,7 +69,9 @@ func TestConfigUpdate_FailsOnMissingField(t *testing.T) {
 
 	s := Server{d: d, di: di, qc: qc}
 
-	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE, GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_REQUIRED}}
+	nconfig := &pb.GramophileConfig{
+		Basis:            pb.Basis_GRAMOPHILE,
+		GoalFolderConfig: &pb.GoalFolderConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
 	if err == nil {
 		t.Errorf("Set config should have failed on missing field")
@@ -94,7 +96,8 @@ func TestConfigUpdate_FailsOnBadUser(t *testing.T) {
 
 	ctx = getTestContext(1234)
 
-	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE, GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_REQUIRED}}
+	nconfig := &pb.GramophileConfig{
+		Basis: pb.Basis_GRAMOPHILE, GoalFolderConfig: &pb.GoalFolderConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
 	if err == nil {
 		t.Errorf("Set config should have failed on missing field")

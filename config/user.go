@@ -15,7 +15,7 @@ import (
 
 var (
 	standardPaths []string = []string{}
-	betaPaths     []string = []string{"cleaning_config.cleaning"}
+	betaPaths     []string = []string{"cleaning_config.enabled"}
 )
 
 func setToDefault(c *pb.GramophileConfig, path string) error {

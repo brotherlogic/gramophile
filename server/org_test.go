@@ -222,7 +222,7 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			OrganisationConfig: &pb.OrganisationConfig{
 				Organisations: []*pb.Organisation{
 					{
@@ -347,9 +347,9 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -477,9 +477,9 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -611,9 +611,9 @@ func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -742,9 +742,9 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -859,9 +859,9 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -986,9 +986,9 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -1122,9 +1122,9 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			SleeveConfig: &pb.SleeveConfig{
-				Mandate:        pb.Mandate_REQUIRED,
+				Enabled:        pb.Enabled_ENABLED_ENABLED,
 				AllowedSleeves: []*pb.Sleeve{{Name: "Madeup", WidthMultiplier: 1.0}},
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -1571,9 +1571,9 @@ func TestWidths(t *testing.T) {
 		Config: &pb.GramophileConfig{
 			SleeveConfig: &pb.SleeveConfig{
 				AllowedSleeves: []*pb.Sleeve{{Name: "TestSleeve", WidthMultiplier: 1.5}},
-				Mandate:        pb.Mandate_REQUIRED},
+				Enabled:        pb.Enabled_ENABLED_ENABLED},
 			WidthConfig: &pb.WidthConfig{
-				Mandate: pb.Mandate_REQUIRED,
+				Enabled: pb.Enabled_ENABLED_ENABLED,
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
 				Organisations: []*pb.Organisation{
@@ -1654,9 +1654,9 @@ func TestWidths_MissingWidth(t *testing.T) {
 		Config: &pb.GramophileConfig{
 			SleeveConfig: &pb.SleeveConfig{
 				AllowedSleeves: []*pb.Sleeve{{Name: "TestSleeve", WidthMultiplier: 1.0}},
-				Mandate:        pb.Mandate_REQUIRED},
+				Enabled:        pb.Enabled_ENABLED_ENABLED},
 			WidthConfig: &pb.WidthConfig{
-				Mandate: pb.Mandate_REQUIRED,
+				Enabled: pb.Enabled_ENABLED_ENABLED,
 			},
 			OrganisationConfig: &pb.OrganisationConfig{
 				Organisations: []*pb.Organisation{

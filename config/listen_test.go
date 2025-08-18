@@ -9,7 +9,7 @@ import (
 )
 
 func TestListen_Failed(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
@@ -18,7 +18,7 @@ func TestListen_Failed(t *testing.T) {
 }
 
 func TestListen_Succeed(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{ListenConfig: &pb.ListenConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastListenDate", Id: 1}}, c)
 	if err != nil {

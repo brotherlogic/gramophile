@@ -47,7 +47,7 @@ func (*arrived) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 }
 
 func (*arrived) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetArrivedConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetArrivedConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == ARRIVED_FIELD {
