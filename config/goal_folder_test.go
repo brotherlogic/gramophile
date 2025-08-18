@@ -9,7 +9,7 @@ import (
 )
 
 func TestGoalFolderFailedNoField(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{GoalFolderConfig: &pb.GoalFolderConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	gf := &goalFolder{}
 	err := gf.Validate(context.Background(), []*pbd.Field{}, c)
@@ -19,7 +19,7 @@ func TestGoalFolderFailedNoField(t *testing.T) {
 }
 
 func TestGoalFolderSuccess(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{GoalFolderConfig: &pb.GoalFolderConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{GoalFolderConfig: &pb.GoalFolderConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	w := &width{}
 	err := w.Validate(context.Background(), []*pbd.Field{&pbd.Field{Name: "Goal Folder", Id: 1}}, c)

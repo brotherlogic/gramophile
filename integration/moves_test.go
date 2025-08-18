@@ -43,7 +43,7 @@ func TestMoveApplied(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_REQUIRED},
+			ArrivedConfig: &pb.ArrivedConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			MovingConfig: &pb.MovingConfig{
 				FormatClassifier: &pb.FormatClassifier{DefaultFormat: "UNKNOWN"},
 				Moves: []*pb.RecordMove{
@@ -121,7 +121,7 @@ func TestRandomMoveHappensPostIntent(t *testing.T) {
 
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
-			ArrivedConfig: &pb.ArrivedConfig{Mandate: pb.Mandate_REQUIRED},
+			ArrivedConfig: &pb.ArrivedConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			MovingConfig: &pb.MovingConfig{
 				FormatClassifier: &pb.FormatClassifier{DefaultFormat: "UNKNOWN"},
 				Moves: []*pb.RecordMove{

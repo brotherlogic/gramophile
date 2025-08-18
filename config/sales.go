@@ -46,7 +46,7 @@ func (*sales) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) 
 }
 
 func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
-	if c.GetSaleConfig().GetMandate() != pb.Mandate_NONE {
+	if c.GetSaleConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		return []*pb.FolderMove{
 			{
 				Criteria:   &pb.MoveCriteria{HasSaleId: pb.Bool_TRUE, SaleStatus: pbd.SaleStatus_FOR_SALE},
@@ -62,7 +62,7 @@ func (*sales) GetMoves(c *pb.GramophileConfig) []*pb.FolderMove {
 }
 
 func (*sales) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetSaleConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetSaleConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == LAST_SALE_UPDATE_FIELD {
@@ -74,7 +74,7 @@ func (*sales) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUse
 		}
 	}
 
-	if u.GetConfig().GetSaleConfig().GetHandlePriceUpdates() != pb.Mandate_NONE {
+	if u.GetConfig().GetSaleConfig().GetHandlePriceUpdates() == pb.Enabled_ENABLED_ENABLED {
 		if u.GetConfig().GetSaleConfig().GetUpdateFrequencySeconds() == 0 {
 			return status.Errorf(codes.FailedPrecondition, "You must set the update frequency field if gramophile is handling price updates")
 		}

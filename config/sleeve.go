@@ -24,7 +24,7 @@ func (*sleeve) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error)
 }
 
 func (*sleeve) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetSleeveConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetSleeveConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == SLEEVE_FIELD {

@@ -22,7 +22,7 @@ func (*org) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error) {
 func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
 
 	// Raise an error if any org relies on width being set
-	hasWidthMandate := u.GetConfig().GetWidthConfig().GetMandate() != pb.Mandate_NONE
+	hasWidthMandate := u.GetConfig().GetWidthConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED
 	for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
 		if org.GetDensity() == pb.Density_WIDTH && !hasWidthMandate {
 			return status.Errorf(codes.FailedPrecondition, "%v requires width mandate", org.GetName())

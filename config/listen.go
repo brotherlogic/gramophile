@@ -24,7 +24,7 @@ func (*listen) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error)
 }
 
 func (*listen) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetListenConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetListenConfig().GetEnabled() != pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == LISTEN_FIELD {

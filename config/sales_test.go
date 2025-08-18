@@ -9,7 +9,7 @@ import (
 )
 
 func TestSales_FailedNoField(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Enabled: pb.Enabled_ENABLED_ENABLED, UpdateFrequencySeconds: 1}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
@@ -18,7 +18,7 @@ func TestSales_FailedNoField(t *testing.T) {
 }
 
 func TestSales_Success(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, UpdateFrequencySeconds: 1}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Enabled: pb.Enabled_ENABLED_ENABLED, UpdateFrequencySeconds: 1}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
@@ -28,7 +28,7 @@ func TestSales_Success(t *testing.T) {
 
 func TestSales_AddsMoves(t *testing.T) {
 	c := &pb.StoredUser{Config: &pb.GramophileConfig{
-		SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+		SaleConfig: &pb.SaleConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err != nil {
 		t.Errorf("validate sale config raised an error: %v", err)
@@ -45,7 +45,7 @@ func TestSales_AddsMoves(t *testing.T) {
 }
 
 func TestSales_MissingUpdate(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Mandate: pb.Mandate_RECOMMENDED, HandlePriceUpdates: pb.Mandate_REQUIRED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{SaleConfig: &pb.SaleConfig{Enabled: pb.Enabled_ENABLED_ENABLED, HandlePriceUpdates: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "LastSaleUpdate", Id: 1}}, c)
 	if err == nil {

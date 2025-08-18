@@ -9,7 +9,7 @@ import (
 )
 
 func TestKeep_Failed(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{}, c)
 	if err == nil {
@@ -18,7 +18,7 @@ func TestKeep_Failed(t *testing.T) {
 }
 
 func TestKeep_Success(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Mandate: pb.Mandate_RECOMMENDED}}}
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{KeepConfig: &pb.KeepConfig{Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{&pbd.Field{Name: "Keep", Id: 1}}, c)
 	if err != nil {

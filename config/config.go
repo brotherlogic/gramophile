@@ -124,7 +124,7 @@ func Filter(filter *pb.Filter, r *pb.Record) bool {
 }
 
 func Apply(c *pb.GramophileConfig, r *pb.Record) error {
-	if c.GetCleaningConfig().GetCleaning() != pb.Mandate_NONE {
+	if c.GetCleaningConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		if Filter(c.GetCleaningConfig().GetAppliesTo(), r) {
 			needsClean := false
 			if c.GetCleaningConfig().GetCleaningGapInSeconds() > 0 && time.Since(time.Unix(0, r.GetLastCleanTime())) > time.Second*time.Duration(c.CleaningConfig.GetCleaningGapInSeconds()) {

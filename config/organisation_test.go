@@ -26,7 +26,7 @@ func TestOrganisation_FailOnWidth(t *testing.T) {
 
 func TestOrganisation_Success(t *testing.T) {
 	c := &pb.StoredUser{Config: &pb.GramophileConfig{
-		WidthConfig: &pb.WidthConfig{Mandate: pb.Mandate_REQUIRED},
+		WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 		OrganisationConfig: &pb.OrganisationConfig{
 			Organisations: []*pb.Organisation{
 				{

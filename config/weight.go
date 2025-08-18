@@ -24,7 +24,7 @@ func (*weight) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, error)
 }
 
 func (*weight) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetWeightConfig().GetMandate() != pb.Mandate_NONE {
+	if u.GetConfig().GetWeightConfig().GetEnabled() != pb.Enabled_ENABLED_ENABLED {
 		found := false
 		for _, field := range fields {
 			if field.GetName() == WEIGHT_FIELD {

@@ -209,8 +209,8 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                pb.Mandate_REQUIRED,
-				HandlePriceUpdates:     pb.Mandate_REQUIRED,
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds: 10,
 				UpdateType:             pb.SaleUpdateType_MINIMAL_REDUCE,
 			},
@@ -296,8 +296,8 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                pb.Mandate_REQUIRED,
-				HandlePriceUpdates:     pb.Mandate_REQUIRED,
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds: 10,
 				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
 				Reduction:              100,
@@ -401,8 +401,8 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                pb.Mandate_REQUIRED,
-				HandlePriceUpdates:     pb.Mandate_REQUIRED,
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds: 10,
 				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
 				Reduction:              100,
@@ -505,8 +505,8 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                      pb.Mandate_REQUIRED,
-				HandlePriceUpdates:           pb.Mandate_REQUIRED,
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds:       10,
 				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
 				Reduction:                    100,
@@ -613,8 +613,8 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                      pb.Mandate_REQUIRED,
-				HandlePriceUpdates:           pb.Mandate_REQUIRED,
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds:       10,
 				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
 				Reduction:                    100,
@@ -720,8 +720,8 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                      pb.Mandate_REQUIRED,
-				HandlePriceUpdates:           pb.Mandate_REQUIRED,
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds:       10,
 				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
 				Reduction:                    100,
@@ -828,8 +828,8 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                      pb.Mandate_REQUIRED,
-				HandlePriceUpdates:           pb.Mandate_REQUIRED,
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds:       10,
 				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
 				Reduction:                    100,
@@ -938,8 +938,8 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				Mandate:                          pb.Mandate_REQUIRED,
-				HandlePriceUpdates:               pb.Mandate_REQUIRED,
+				Enabled:                          pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:               pb.Enabled_ENABLED_ENABLED,
 				UpdateFrequencySeconds:           10,
 				UpdateType:                       pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
 				Reduction:                        100,

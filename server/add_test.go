@@ -19,7 +19,7 @@ func TestAdd_Success(t *testing.T) {
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		User: &pbd.User{DiscogsUserId: 123},
 		Config: &pb.GramophileConfig{AddConfig: &pb.AddConfig{
-			AllowAdds:     pb.Mandate_REQUIRED,
+			Adds:          pb.Enabled_ENABLED_DISABLED,
 			DefaultFolder: "limbo",
 		}},
 		Folders: []*pbd.Folder{{Name: "limbo", Id: 123}},
@@ -72,7 +72,7 @@ func TestAdd_WithWantUpdate(t *testing.T) {
 	err := d.SaveUser(ctx, &pb.StoredUser{
 		User: &pbd.User{DiscogsUserId: 123},
 		Config: &pb.GramophileConfig{AddConfig: &pb.AddConfig{
-			AllowAdds:     pb.Mandate_REQUIRED,
+			Adds:          pb.Enabled_ENABLED_ENABLED,
 			DefaultFolder: "limbo",
 		}},
 		Folders: []*pbd.Folder{{Name: "limbo", Id: 123}},

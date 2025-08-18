@@ -244,6 +244,7 @@ message SaleConfig {
     Enabled enabled = 22;
 
     reserved 2; // Depreated 'handle_price_updates'
+    Enabled handle_price_updates = 23;
     int64 update_frequency_seconds = 3;
     SaleUpdateType update_type = 4;
 
