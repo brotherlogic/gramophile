@@ -84,11 +84,11 @@ message WantlistEntry {
 
 enum WantState {
     WANT_UNKNOWN = 0;
-    PENDING = 1;
+    PENDING = 1; 
     RETIRED = 2;
     PURCHASED = 3;
     WANTED = 4;
-    DELETED = 6;
+    reserved 6; // Was DELETED
     IN_TRANSIT = 7;
 }
 
