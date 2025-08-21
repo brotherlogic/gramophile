@@ -103,7 +103,7 @@ type Database interface {
 	GetSales(ctx context.Context, userId int32) ([]int64, error)
 	GetSale(ctx context.Context, userId int32, saleId int64) (*pb.SaleInfo, error)
 
-	Clean(ctx context.Context) error
+	Clean(ctx context.Context, ctype pb.CleanRequest_CleanType) error
 	LoadMoveQuota(ctx context.Context, userId int32) (*pb.MoveQuota, error)
 	SaveMoveQuota(ctx context.Context, userId int32, mh *pb.MoveQuota) error
 
@@ -393,26 +393,13 @@ func (d *DB) GetWants(ctx context.Context, userid int32) ([]*pb.Want, error) {
 }
 
 func (d *DB) GetWantUpdates(ctx context.Context, userid int32, wid int64) ([]*pb.Update, error) {
-	keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: fmt.Sprintf("gramophile/user/%v/want/%v/updates/", userid, wid),
-	})
-	if err != nil {
+	update := &pb.WantUpdate{}
+	raw, err := d.load(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/update", userid, wid))
+	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, err
 	}
-
-	var updates []*pb.Update
-	for _, key := range keys.GetKeys() {
-		data, err := d.load(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-
-		update := &pb.Update{}
-		proto.Unmarshal(data, update)
-		updates = append(updates, update)
-	}
-
-	return updates, nil
+	proto.Unmarshal(raw, update)
+	return update.GetUpdates(), nil
 }
 
 func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error {
@@ -431,14 +418,26 @@ func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason s
 }
 
 func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, reason string) error {
+	key := fmt.Sprintf("gramophile/user/%v/want/%v/updates/update", userid, want.GetId())
+
 	old, err := d.GetWant(ctx, userid, want.GetId())
 	if err != nil && status.Code(err) != codes.NotFound {
 		return err
 	}
 
-	updates := buildWantUpdates(old, want, reason)
-	if updates != nil {
-		err := d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v/updates/%v.update", userid, want.GetId(), updates.GetDate()), updates)
+	update := &pb.WantUpdate{}
+	updatesRaw, err := d.load(ctx, key)
+	if err != nil && status.Code(err) != codes.NotFound {
+		return err
+	}
+	err = proto.Unmarshal(updatesRaw, update)
+	if err != nil {
+		return err
+	}
+
+	update = buildWantUpdates(old, want, update, reason)
+	if update != nil {
+		err := d.save(ctx, key, update)
 		if err != nil {
 			return err
 		}
@@ -1003,29 +1002,53 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	return rusers, err
 }
 
-func (d *DB) Clean(ctx context.Context) error {
+func (d *DB) Clean(ctx context.Context, ctype pb.CleanRequest_CleanType) error {
 
-	// Load each wantlist and reset to want_unknown
-	users, err := d.GetUsers(ctx)
-	if err != nil {
-		return err
+	if ctype == pb.CleanRequest_NO_CLEAN {
+		return nil
 	}
-	for _, user := range users {
-		suser, err := d.GetUser(ctx, user)
+
+	if ctype == pb.CleanRequest_CLEAN_WANT_UPDATES {
+		keys, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
+			Prefix: "gramophile/users",
+		})
 		if err != nil {
 			return err
 		}
-		wantlists, err := d.GetWantlists(ctx, suser.GetUser().GetDiscogsUserId())
-		if err != nil {
-			return err
-		}
-		for _, wantlist := range wantlists {
-			for _, want := range wantlist.GetEntries() {
-				want.State = pb.WantState_WANT_UNKNOWN
+
+		for _, key := range keys.GetKeys() {
+			if strings.Contains(key, "gramophile/user") &&
+				strings.Contains(key, "want") &&
+				strings.Contains(key, "updates") &&
+				!strings.HasSuffix(key, "updates") {
+				d.client.Delete(ctx, &rspb.DeleteRequest{Key: key})
 			}
-			err = d.SaveWantlist(ctx, suser.GetUser().GetDiscogsUserId(), wantlist)
+		}
+	}
+
+	if ctype == pb.CleanRequest_CLEAN_WANTLISTS {
+		// Load each wantlist and reset to want_unknown
+		users, err := d.GetUsers(ctx)
+		if err != nil {
+			return err
+		}
+		for _, user := range users {
+			suser, err := d.GetUser(ctx, user)
 			if err != nil {
 				return err
+			}
+			wantlists, err := d.GetWantlists(ctx, suser.GetUser().GetDiscogsUserId())
+			if err != nil {
+				return err
+			}
+			for _, wantlist := range wantlists {
+				for _, want := range wantlist.GetEntries() {
+					want.State = pb.WantState_WANT_UNKNOWN
+				}
+				err = d.SaveWantlist(ctx, suser.GetUser().GetDiscogsUserId(), wantlist)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

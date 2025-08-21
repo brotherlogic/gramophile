@@ -144,8 +144,12 @@ message RecordUpdate {
     string after = 4;
 }
 
+message WantUpdate {
+    repeated Update updates = 1;
+}
+
 message Update {
-    int64 date = 1;
+    int64 date = 1; // Deprecated - use the date in
     repeated Change changes = 2;
 }
 
@@ -810,7 +814,14 @@ message DeleteUserRequest {
 }
 message DeleteUserResponse {}
 
-message CleanRequest {}
+message CleanRequest {
+    enum CleanType {
+        NO_CLEAN = 0;
+        CLEAN_WANT_UPDATES = 1;
+        CLEAN_WANTLISTS = 2;
+    }
+    CleanType type = 1;
+}
 message CleanResponse {}
 
 // Internally accessible service

@@ -7,7 +7,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func buildWantUpdates(old, new *pb.Want, reason string) *pb.Update {
+func buildWantUpdates(old, new *pb.Want, up *pb.WantUpdate, reason string) *pb.WantUpdate {
 	update := &pb.Update{Date: time.Now().UnixNano()}
 
 	if old == nil {
@@ -15,7 +15,8 @@ func buildWantUpdates(old, new *pb.Want, reason string) *pb.Update {
 			Type:        pb.Change_ADDED,
 			Description: fmt.Sprintf("Want created: %v", reason),
 		})
-		return update
+		up.Updates = append(up.Updates, update)
+		return up
 	}
 
 	if old.State != new.State {
@@ -35,5 +36,8 @@ func buildWantUpdates(old, new *pb.Want, reason string) *pb.Update {
 	if len(update.GetChanges()) == 0 {
 		return nil
 	}
-	return update
+
+	up.Updates = append(up.Updates, update)
+
+	return up
 }
