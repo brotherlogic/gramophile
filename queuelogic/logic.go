@@ -607,6 +607,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		// Only refresh every 24 hours
 		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 {
+			qlog(ctx, "Needs more time to sync")
 			return nil
 		}
 

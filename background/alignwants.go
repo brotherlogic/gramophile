@@ -3,19 +3,18 @@ package background
 import (
 	"context"
 
-	"github.com/brotherlogic/discogs"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
 // Ensures everything is in a wantlist - only used when ORIGIN_GRAMOPHILE is set for wants
-func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c *pb.WantsConfig) error {
+func (b *BackgroundRunner) AlignWants(ctx context.Context, user *pb.StoredUser, c *pb.WantsConfig) error {
 
-	wants, err := b.db.GetWants(ctx, di.GetUserId())
+	wants, err := b.db.GetWants(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return err
 	}
 
-	wantlists, err := b.db.GetWantlists(ctx, di.GetUserId())
+	wantlists, err := b.db.GetWantlists(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 		if !found {
 			if c.GetExisting() == pb.WantsExisting_EXISTING_DROP {
 				w.State = pb.WantState_RETIRED
-				b.db.SaveWant(ctx, di.GetUserId(), w, "Config is set to EXISTING_DROP")
+				b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), w, "Config is set to EXISTING_DROP")
 			} else {
 				updated = true
 				cwantlist.Entries = append(cwantlist.Entries, &pb.WantlistEntry{Id: w.GetId()})
@@ -51,7 +50,7 @@ func (b *BackgroundRunner) AlignWants(ctx context.Context, di discogs.Discogs, c
 	}
 
 	if updated {
-		return b.db.SaveWantlist(ctx, di.GetUserId(), cwantlist)
+		return b.db.SaveWantlist(ctx, user, cwantlist)
 	}
 
 	return nil

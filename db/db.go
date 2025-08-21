@@ -93,7 +93,7 @@ type Database interface {
 	GetMasterWants(ctx context.Context, userid int32) ([]*pb.Want, error)
 	SaveWant(ctx context.Context, userid int32, want *pb.Want, reason string) error
 
-	SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error
+	SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error
 	LoadWantlist(ctx context.Context, userid int32, name string) (*pb.Wantlist, error)
 	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 	DeleteWantlist(ctx context.Context, userid int32, name string) error
@@ -248,7 +248,7 @@ func (d *DB) SavePrintMove(ctx context.Context, userId int32, m *pb.PrintMove) e
 	return d.save(ctx, fmt.Sprintf("gramophile/%v/pmoves/%v-%v", userId, m.GetIid(), m.GetIndex()), m)
 }
 
-func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantlist) error {
+func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb.Wantlist) error {
 	// Temporary override for digital wantlist
 	if wantlist.GetName() == "digital_wantlist" {
 		wantlist.Type = pb.WantlistType_EN_MASSE
@@ -259,7 +259,27 @@ func (d *DB) SaveWantlist(ctx context.Context, userid int32, wantlist *pb.Wantli
 		wantlist.Id = time.Now().UnixNano()
 	}
 
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", userid, wantlist.GetName()), wantlist)
+	if wantlist.GetName() == "float" {
+		// We need to also update the user config here
+		for _, list := range user.GetConfig().GetWantsListConfig().GetWantlists() {
+			if list.GetName() == "float" {
+				list.Entries = []*pb.StoredWantlistEntry{}
+				for _, entry := range list.GetEntries() {
+					list.Entries = append(list.Entries, &pb.StoredWantlistEntry{
+						Id:       entry.Id,
+						MasterId: entry.GetMasterId(),
+						Index:    entry.GetIndex(),
+					})
+				}
+			}
+		}
+		err := d.SaveUser(ctx, user)
+		if err != nil {
+			return err
+		}
+	}
+
+	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist.GetName()), wantlist)
 }
 
 func (d *DB) DeleteWantlist(ctx context.Context, userid int32, name string) error {
@@ -1045,7 +1065,7 @@ func (d *DB) Clean(ctx context.Context, ctype pb.CleanRequest_CleanType) error {
 				for _, want := range wantlist.GetEntries() {
 					want.State = pb.WantState_WANT_UNKNOWN
 				}
-				err = d.SaveWantlist(ctx, suser.GetUser().GetDiscogsUserId(), wantlist)
+				err = d.SaveWantlist(ctx, suser, wantlist)
 				if err != nil {
 					return err
 				}

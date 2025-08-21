@@ -189,6 +189,7 @@ func TestConfigIncludesFloats(t *testing.T) {
 	if len(wantlists) != 2 {
 		t.Errorf("We are not returning the created wantlists: %v", wantlists)
 	}
+
 }
 
 func TestConfigUpdate_CreateFolders(t *testing.T) {
