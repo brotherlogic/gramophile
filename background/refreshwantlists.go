@@ -15,6 +15,51 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func (b *BackgroundRunner) AlignDigitalWantlist(ctx context.Context, userid int32) error {
+	list, err := b.db.LoadWantlist(ctx, userid, "digital_wantlist")
+	if err != nil {
+		return err
+	}
+
+	// Validates all the wants
+	wants, err := b.db.GetWants(ctx, userid)
+	if err != nil {
+		return err
+	}
+
+	for _, want := range wants {
+		inDig := false
+		for _, flist := range want.GetFromWantlist() {
+			if flist == "digital_wantlist" {
+				inDig = true
+			}
+		}
+
+		if inDig {
+			for _, entry := range list.GetEntries() {
+				if entry.GetId() == want.GetId() {
+					continue
+				}
+			}
+
+			// Let's remove the digital_wantlist chip
+			var nlist []string
+			for _, flist := range want.GetFromWantlist() {
+				if flist != "digital_wantlist" {
+					nlist = append(nlist, flist)
+				}
+			}
+			want.FromWantlist = nlist
+			err = b.db.SaveWant(ctx, userid, want, "Removing the digital_wantlist chip")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int32) (*pb.Wantlist, error) {
 	list, err := b.db.LoadWantlist(ctx, userid, "digital_wantlist")
 	if err != nil {
@@ -92,6 +137,10 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		builtList := list.GetName() == "digital_wantlist"
 		if builtList {
 			list, err = b.PurgeDigitalwantlist(ctx, di.GetUserId())
+			if err != nil {
+				return err
+			}
+			err = b.AlignDigitalWantlist(ctx, di.GetUserId())
 			if err != nil {
 				return err
 			}

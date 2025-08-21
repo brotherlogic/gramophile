@@ -752,3 +752,74 @@ func TestWantRemovedOnWantlistRemoval(t *testing.T) {
 		t.Errorf("Bad resultant want: %v", wants)
 	}
 }
+
+func TestHangingWantRemoved(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}, {Id: 15, Name: "Keep"}, {Id: 20, Name: "Purchase Price"}, {Id: 30, Name: "Purchase Location"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			WantsConfig: &pb.WantsConfig{
+				DigitalWantList: true,
+			},
+			AddConfig: &pb.AddConfig{
+				Adds:          pb.Enabled_ENABLED_ENABLED,
+				DefaultFolder: "12 Inches",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+
+	// Let's create a haning want
+	err = d.SaveWant(ctx, 123, &pb.Want{
+		Id:           3,
+		FromWantlist: []string{"digital_wantlist"},
+	}, "Adding for test")
+	if err != nil {
+		t.Fatalf("Unable to save want: %v", err)
+	}
+
+	// Queue up a collection refresh
+	qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Auth:    "123",
+			RunDate: time.Now().UnixNano(),
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{}},
+		},
+	})
+
+	qc.FlushQueue(ctx)
+
+	// If we load the want, it should have the digital_wantlist chip removed
+	want, err := d.GetWant(ctx, 123, 3)
+	if err != nil {
+		t.Fatalf("Unable to load want: %v", err)
+	}
+
+	found := false
+	for _, list := range want.GetFromWantlist() {
+		if list == "digital_wantlist" {
+			found = true
+		}
+	}
+
+	if found {
+		t.Errorf("Want is still part of the digital wantlist: %v", want)
+	}
+
+}
