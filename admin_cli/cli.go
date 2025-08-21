@@ -92,6 +92,12 @@ func main() {
 			log.Fatalf("Error in clean: %v", err)
 		}
 		log.Printf("Cleaned: %v", err)
+	case "clean-wantupdates":
+		_, err := sclient.Clean(ctx, &pb.CleanRequest{})
+		if err != nil {
+			log.Fatalf("Error in clean: %v", err)
+		}
+		log.Printf("Cleaned: %v", err)
 	case "list":
 		items, err := client.List(context.Background(), &pb.ListRequest{})
 		if err != nil {
