@@ -147,6 +147,50 @@ func TestConfigUpdate_CreateWantlists(t *testing.T) {
 
 }
 
+func TestConfigIncludesFloats(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: qc}
+
+	nconfig := &pb.GramophileConfig{
+		Basis:         pb.Basis_GRAMOPHILE,
+		CreateFolders: pb.Create_AUTOMATIC,
+		Validations:   []*pb.ValidationRule{{ValidationStrategy: pb.ValidationStrategy_LISTEN_TO_VALIDATE}},
+		WantsConfig: &pb.WantsConfig{
+			Origin:          pb.WantsBasis_WANTS_GRAMOPHILE,
+			Existing:        pb.WantsExisting_EXISTING_LIST,
+			DigitalWantList: true,
+		},
+	}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err != nil {
+		t.Fatalf("Bad initial config set: %v", err)
+	}
+
+	config, err := s.GetUser(ctx, &pb.GetUserRequest{})
+	if err != nil {
+		t.Fatalf("Bad get user: %v", err)
+	}
+
+	wantlists := config.GetUser().GetConfig().GetWantsListConfig().GetWantlists()
+
+	if len(wantlists) != 2 {
+		t.Errorf("We are not returning the created wantlists: %v", wantlists)
+	}
+}
+
 func TestConfigUpdate_CreateFolders(t *testing.T) {
 	ctx := getTestContext(123)
 

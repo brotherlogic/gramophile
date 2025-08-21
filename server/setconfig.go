@@ -189,6 +189,30 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		}
 	}
 
+	if req.GetConfig().GetWantsConfig().GetExisting() == pb.WantsExisting_EXISTING_LIST {
+		// Inject into the fields if not present
+		found := false
+		for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+			if list.GetName() == "float" {
+				found = true
+			}
+		}
+		if !found {
+			if u.GetConfig().GetWantsListConfig() == nil {
+				u.GetConfig().WantsListConfig = &pb.WantslistConfig{}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = append(u.GetConfig().GetWantsListConfig().GetWantlists(), &pb.StoredWantlist{Name: "float"})
+		} else {
+			var nlist []*pb.StoredWantlist
+			for _, list := range u.GetConfig().GetWantsListConfig().GetWantlists() {
+				if list.GetName() != "float" {
+					nlist = append(nlist, list)
+				}
+			}
+			u.GetConfig().GetWantsListConfig().Wantlists = nlist
+		}
+	}
+
 	if req.GetConfig().GetWantsConfig().GetDigitalWantList() {
 		// Inject into the fields if not present
 		found := false
