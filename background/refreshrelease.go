@@ -26,7 +26,7 @@ const (
 	digitalWantlistName = "digital"
 )
 
-func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d discogs.Discogs, force bool) error {
+func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.StoredUser, d discogs.Discogs, force bool) error {
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
 		return fmt.Errorf("unable to get record from db: %w", err)
@@ -95,14 +95,14 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, d disc
 
 	//TODO: Need to pull the instance specifc details in here
 
-	err = b.refreshWantlists(ctx, d, record)
+	err = b.refreshWantlists(ctx, u, d, record)
 
 	err = b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 	qlog(ctx, "Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
 	return err
 }
 
-func (b *BackgroundRunner) refreshWantlists(ctx context.Context, d discogs.Discogs, record *pb.Record) error {
+func (b *BackgroundRunner) refreshWantlists(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, record *pb.Record) error {
 	if record.GetKeepStatus() == pb.KeepStatus_DIGITAL_KEEP {
 		isPhysical := false
 		for _, format := range record.GetRelease().GetFormats() {
@@ -115,7 +115,7 @@ func (b *BackgroundRunner) refreshWantlists(ctx context.Context, d discogs.Disco
 			wantlist, err := b.db.LoadWantlist(ctx, d.GetUserId(), digitalWantlistName)
 			if err != nil && status.Code(err) == codes.NotFound {
 				// Create a digital wantlist here
-				return b.db.SaveWantlist(ctx, d.GetUserId(), &pb.Wantlist{
+				return b.db.SaveWantlist(ctx, u, &pb.Wantlist{
 					Name:    digitalWantlistName,
 					Type:    pb.WantlistType_ONE_BY_ONE,
 					Entries: []*pb.WantlistEntry{{Id: record.GetRelease().GetId()}},
@@ -133,7 +133,7 @@ func (b *BackgroundRunner) refreshWantlists(ctx context.Context, d discogs.Disco
 			}
 			if !found {
 				wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{MasterId: record.GetRelease().GetMasterId(), DigitalOnly: true})
-				return b.db.SaveWantlist(ctx, d.GetUserId(), wantlist)
+				return b.db.SaveWantlist(ctx, u, wantlist)
 			}
 		}
 	}

@@ -27,7 +27,7 @@ func TestZeroEntriesInWantlist(t *testing.T) {
 			{Id: 12},
 		}}
 
-	err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	err = b.processWantlist(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, di, &pb.WantslistConfig{}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		return &pb.EnqueueResponse{}, nil
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func TestInactiveWantlist(t *testing.T) {
 		}}
 	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 5, Score: 2, State: pb.WantState_PURCHASED}, "testing")
 
-	err = b.processWantlist(context.Background(), di,
+	err = b.processWantlist(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, di,
 		&pb.WantslistConfig{
 			MinScore: 2.5,
 			MinCount: 0,
@@ -156,7 +156,7 @@ func TestTimedWantlist(t *testing.T) {
 
 		counted := 0
 		log.Printf("PROCESSING")
-		err = b.processWantlist(context.Background(), di, &pb.WantslistConfig{}, tc.wantlist, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		err = b.processWantlist(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, di, &pb.WantslistConfig{}, tc.wantlist, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 			if req.GetElement().GetRefreshWant().GetWant().GetState() == pb.WantState_WANTED {
 				counted++
 				log.Printf("COUNTED %v", req)

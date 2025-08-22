@@ -264,7 +264,7 @@ func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb
 		for _, list := range user.GetConfig().GetWantsListConfig().GetWantlists() {
 			if list.GetName() == "float" {
 				list.Entries = []*pb.StoredWantlistEntry{}
-				for _, entry := range list.GetEntries() {
+				for _, entry := range wantlist.GetEntries() {
 					list.Entries = append(list.Entries, &pb.StoredWantlistEntry{
 						Id:       entry.Id,
 						MasterId: entry.GetMasterId(),

@@ -102,7 +102,7 @@ func (s *Server) handleWantslists(ctx context.Context, u *pb.StoredUser, lists [
 		log.Printf("%v and %v -> %v from %v --> %v", maxIndex, len(list.GetEntries()), newEntries, list.GetEntries(), newEntries)
 
 		wlist.Entries = newEntries
-		err = s.d.SaveWantlist(ctx, u.GetUser().GetDiscogsUserId(), wlist)
+		err = s.d.SaveWantlist(ctx, u, wlist)
 		if err != nil {
 			return err
 		}

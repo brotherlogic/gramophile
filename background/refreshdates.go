@@ -56,7 +56,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 	return nil
 }
 
-func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Discogs, digWants bool, iid, rid int64, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, digWants bool, iid, rid int64, token string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("STORED %v -> %v", iid, rid)
 	storedRelease, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {
@@ -117,7 +117,7 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, d discogs.Dis
 		}
 
 		if updated {
-			b.db.SaveWantlist(ctx, d.GetUserId(), wantlist)
+			b.db.SaveWantlist(ctx, u, wantlist)
 
 			// Since we updated the wants, we should also trigger a wants sync
 			_, err = enqueue(ctx, &pb.EnqueueRequest{

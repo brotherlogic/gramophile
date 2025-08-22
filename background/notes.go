@@ -702,7 +702,7 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 				}
 			}
 
-			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+			err = b.db.SaveWantlist(ctx, user, list)
 			if err != nil {
 				return err
 			}
@@ -729,7 +729,7 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 				}
 			}
 			list.Entries = nentries
-			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+			err = b.db.SaveWantlist(ctx, user, list)
 			if err != nil {
 				return err
 			}
@@ -779,7 +779,7 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		}
 
 		if adjust {
-			err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), wl)
+			err = b.db.SaveWantlist(ctx, user, wl)
 			if err != nil {
 				return err
 			}

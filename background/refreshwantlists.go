@@ -60,7 +60,7 @@ func (b *BackgroundRunner) AlignDigitalWantlist(ctx context.Context, userid int3
 	return nil
 }
 
-func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int32) (*pb.Wantlist, error) {
+func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, user *pb.StoredUser, userid int32) (*pb.Wantlist, error) {
 	list, err := b.db.LoadWantlist(ctx, userid, "digital_wantlist")
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, userid int3
 	}
 	log.Printf("REDUCE TO %v", nentries)
 	list.Entries = nentries
-	return list, b.db.SaveWantlist(ctx, userid, list)
+	return list, b.db.SaveWantlist(ctx, user, list)
 }
 
 func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
@@ -136,7 +136,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
 		if builtList {
-			list, err = b.PurgeDigitalwantlist(ctx, di.GetUserId())
+			list, err = b.PurgeDigitalwantlist(ctx, user, di.GetUserId())
 			if err != nil {
 				return err
 			}
@@ -146,7 +146,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 			}
 		}
 
-		err = b.processWantlist(ctx, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold && !builtList, enqueue)
+		err = b.processWantlist(ctx, user, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold && !builtList, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -156,7 +156,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	return b.db.SaveUser(ctx, user)
 }
 
-func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	qlog(ctx, "Processing %v -> %v with %v (%v)", list.GetName(), list.GetType(), overthreshold, len(list.GetEntries()))
 
 	// Deactivate if set
@@ -261,7 +261,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, di discogs.Disco
 
 	list.LastUpdatedTimestamp = time.Now().UnixNano()
 
-	return b.db.SaveWantlist(ctx, di.GetUserId(), list)
+	return b.db.SaveWantlist(ctx, u, list)
 }
 
 func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {
