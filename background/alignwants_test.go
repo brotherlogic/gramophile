@@ -45,7 +45,7 @@ func TestWantsDropped_Drop(t *testing.T) {
 		t.Errorf("Bad want pull: %v", wants)
 	}
 
-	b.AlignWants(ctx, d, c)
+	b.AlignWants(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, c)
 
 	// Want should have been dropped
 	wants, err = b.db.GetWants(ctx, 123)
@@ -87,7 +87,7 @@ func TestWantsDropped_TransferToNew(t *testing.T) {
 		t.Errorf("Bad want pull: %v", wants)
 	}
 
-	b.AlignWants(ctx, d, c)
+	b.AlignWants(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, c)
 
 	// Want should have been dropped
 	wants, err = b.db.GetWants(ctx, 123)
@@ -121,7 +121,7 @@ func TestWantsDropped_TransferToExisting(t *testing.T) {
 		t.Errorf("Bad user save: %v", err)
 	}
 
-	b.db.SaveWantlist(ctx, 123, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}}})
+	b.db.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}}})
 
 	d.AddWant(ctx, 12345)
 	_, err = b.PullWants(ctx, d, 1, 12345, c)
@@ -139,7 +139,7 @@ func TestWantsDropped_TransferToExisting(t *testing.T) {
 		t.Errorf("Bad want pull: %v", wants)
 	}
 
-	b.AlignWants(ctx, d, c)
+	b.AlignWants(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, c)
 
 	// Want should have been dropped
 	wants, err = b.db.GetWants(ctx, 123)

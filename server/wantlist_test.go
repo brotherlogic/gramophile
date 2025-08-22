@@ -75,7 +75,7 @@ func TestSaveAndLoadWantlist(t *testing.T) {
 	}
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
-	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Existing: pb.WantsExisting_EXISTING_LIST, Origin: pb.WantsBasis_WANTS_HYBRID},
+	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
 		WantsListConfig: &pb.WantslistConfig{
 			Wantlists: []*pb.StoredWantlist{
 				{
@@ -245,7 +245,7 @@ func TestDeleteWantlist(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := Server{d: d, di: di, qc: qc}
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
-		WantsConfig: &pb.WantsConfig{Existing: pb.WantsExisting_EXISTING_LIST, Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsConfig: &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
 		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{
 			{
 				Name: "testing",
@@ -266,7 +266,7 @@ func TestDeleteWantlist(t *testing.T) {
 	}
 
 	s.SetConfig(ctx, &pb.SetConfigRequest{Config: &pb.GramophileConfig{
-		WantsConfig:     &pb.WantsConfig{Existing: pb.WantsExisting_EXISTING_LIST, Origin: pb.WantsBasis_WANTS_HYBRID},
+		WantsConfig:     &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID},
 		WantsListConfig: &pb.WantslistConfig{Wantlists: []*pb.StoredWantlist{}},
 	}})
 	lists, err = s.ListWantlists(ctx, &pb.ListWantlistsRequest{})

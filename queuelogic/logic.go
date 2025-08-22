@@ -607,6 +607,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		// Only refresh every 24 hours
 		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 {
+			qlog(ctx, "Needs more time to sync")
 			return nil
 		}
 
@@ -633,7 +634,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		// If this is the final sync, let's run the alignment
 		if entry.GetSyncWants().GetPage() >= pages {
-			err = q.b.AlignWants(ctx, d, user.GetConfig().GetWantsConfig())
+			err = q.b.AlignWants(ctx, user, user.GetConfig().GetWantsConfig())
 			if err != nil {
 				return err
 			}
@@ -800,7 +801,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshRelease:
-		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
+		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), u, d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
 		qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 		if err != nil {
 			if status.Code(err) == codes.NotFound {
@@ -839,7 +840,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return q.deleteRefreshDateMarker(ctx, entry.GetAuth())
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
-		return q.b.RefreshReleaseDate(ctx, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease(), entry.GetAuth(), q.Enqueue)
+		return q.b.RefreshReleaseDate(ctx, u, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshCollectionEntry:
 		rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
 		user, err := q.db.GetUser(ctx, entry.GetAuth())

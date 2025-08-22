@@ -29,7 +29,7 @@ func (b *BackgroundRunner) CullWants(ctx context.Context, d discogs.Discogs, sid
 
 func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, page int32, sid int64, wc *pb.WantsConfig) (int32, error) {
 	wants, pag, err := d.GetWants(ctx, page)
-	log.Printf("HERE: %v", wants)
+	log.Printf("GET_WANTS: %v", wants)
 
 	if err != nil {
 		return -1, fmt.Errorf("bad get wants: %w", err)

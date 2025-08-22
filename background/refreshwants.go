@@ -132,7 +132,7 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 					updated = true
 				}
 				if updated {
-					err = b.db.SaveWantlist(ctx, user.GetUser().GetDiscogsUserId(), list)
+					err = b.db.SaveWantlist(ctx, user, list)
 					if err != nil {
 						return err
 					}

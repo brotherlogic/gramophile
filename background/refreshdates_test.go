@@ -19,7 +19,7 @@ func TestDigitalListExtended(t *testing.T) {
 		t.Errorf("Bad user save: %v", err)
 	}
 
-	err = b.db.SaveWantlist(context.Background(), 123, &pb.Wantlist{Name: "digital_wantlist"})
+	err = b.db.SaveWantlist(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, &pb.Wantlist{Name: "digital_wantlist"})
 	if err != nil {
 		t.Fatalf("Bad wantlist save: %v", err)
 	}
@@ -43,14 +43,14 @@ func TestDigitalListExtended(t *testing.T) {
 	rec.KeepStatus = pb.KeepStatus_DIGITAL_KEEP
 	err = b.db.SaveRecord(context.Background(), 123, rec)
 
-	err = b.RefreshReleaseDate(context.Background(), d, true, 100, 2, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	err = b.RefreshReleaseDate(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, d, true, 100, 2, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		//Do Nothing
 		return nil, nil
 	})
 	if err != nil {
 		t.Fatalf("Bad refresh: %v", err)
 	}
-	b.RefreshReleaseDate(context.Background(), d, true, 100, 3, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	b.RefreshReleaseDate(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, d, true, 100, 3, "123", func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		//Do Nothing
 		return nil, nil
 	})

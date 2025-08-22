@@ -355,7 +355,7 @@ func TestChangeKeepRemoveDigitalWantlist(t *testing.T) {
 	wantlist.Entries = append(wantlist.Entries, &pb.WantlistEntry{
 		Id:    200,
 		State: pb.WantState_WANTED})
-	d.SaveWantlist(ctx, 123, wantlist)
+	d.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, wantlist)
 
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
@@ -593,7 +593,7 @@ func TestWantlistCleanoutCorrect(t *testing.T) {
 		Id:       3,
 		SourceId: 1,
 		State:    pb.WantState_WANTED})
-	err = d.SaveWantlist(ctx, 123, list)
+	err = d.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, list)
 	if err != nil {
 		t.Errorf("Unable to save wantlist: %v", err)
 	}
