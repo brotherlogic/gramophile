@@ -16,6 +16,9 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	ghb "github.com/brotherlogic/githubridge/client"
+
+	pbgh "github.com/brotherlogic/githubridge/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -62,8 +65,51 @@ var (
 		Help: "The number of wants",
 	})
 
+	launchTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_launch_total",
+	}, []string{"version"})
+	launchDone = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gramophile_overseer_launch_done",
+	}, []string{"version"})
+
 	metricsPort = flag.Int("metrics_port", 8081, "Metrics port")
 )
+
+func getLaunchBug(ctx context.Context, user, repo string, number int32) (*pbgh.GetIssueResponse, error) {
+	ghbclient, err := ghb.GetClientInternal()
+	if err != nil {
+		return nil, err
+	}
+
+	issue, err := ghbclient.GetIssue(ctx, &pbgh.GetIssueRequest{
+		User: user,
+		Repo: repo,
+		Id:   number,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return issue, nil
+}
+
+func countSubs(subs []*pbgh.GithubIssue) (float64, float64) {
+	total := float64(0)
+	complete := float64(0)
+	for _, sub := range subs {
+		if sub.GetState() == pbgh.IssueState_ISSUE_STATE_CLOSED {
+			complete++
+		}
+		total++
+
+		nt, nc := countSubs(sub.GetSubIssues())
+		total += nt
+		complete += nc
+	}
+
+	return total, complete
+}
 
 func runLoop(ctx context.Context) error {
 	// Get all the users
@@ -77,6 +123,25 @@ func runLoop(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	launch, err := getLaunchBug(ctx, "brotherlogic", "gramophile", 1760)
+	if err != nil {
+		return err
+	}
+
+	total := float64(0)
+	complete := float64(0)
+
+	if launch.GetState() == pbgh.IssueState_ISSUE_STATE_CLOSED {
+		complete++
+	}
+	total++
+	nt, nc := countSubs(launch.GetSubIssues())
+	total += nt
+	complete += nc
+
+	launchTotal.With(prometheus.Labels{"version": "v1"}).Set(total)
+	launchDone.With(prometheus.Labels{"version": "v1"}).Set(complete)
 
 	collectionSize.Reset()
 	for folder, count := range stats.GetCollectionStats().GetFolderToCount() {
