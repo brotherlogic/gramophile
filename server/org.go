@@ -8,9 +8,20 @@ import (
 
 	orglogic "github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+)
+
+var (
+	orgLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "gramophile_org_latency",
+	}, []string{"stage"})
+	overallLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "gramophile_overall_org_latency",
+	})
 )
 
 func min(a, b int32) int32 {
@@ -41,25 +52,35 @@ func (s *Server) SetOrgSnapshot(ctx context.Context, req *pb.SetOrgSnapshotReque
 }
 
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
+	t := time.Now()
+	defer func() {
+		overallLatency.Observe(float64(time.Since(t).Milliseconds()))
+	}()
+
 	user, err := s.getUser(ctx)
 	if err != nil {
 		return nil, err
 	}
+	orgLatency.With(prometheus.Labels{"stage": "getUser"}).Observe(float64(time.Since(t).Milliseconds()))
 
 	if req.GetHash() != "" {
+		t := time.Now()
 		snapshot, err := s.d.LoadSnapshotHash(ctx, user, req.GetOrgName(), req.GetHash())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to load snapshot hash: %w", err)
 		}
+		orgLatency.With(prometheus.Labels{"stage": "snapshothasg"}).Observe(float64(time.Since(t).Milliseconds()))
 
 		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
 	}
 
 	if req.GetName() != "" {
+		t := time.Now()
 		snapshot, err := s.d.LoadSnapshot(ctx, user, req.GetOrgName(), req.GetName())
 		if err != nil {
 			return nil, fmt.Errorf("Unable to load snapshot: %w", err)
 		}
+		orgLatency.With(prometheus.Labels{"stage": "loadsnapshot"}).Observe(float64(time.Since(t).Milliseconds()))
 
 		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
 	}
@@ -75,25 +96,34 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 		return nil, status.Errorf(codes.NotFound, "unable to locate org called %v", req.GetOrgName())
 	}
 
+	t = time.Now()
 	org := orglogic.GetOrg(s.d)
+	orgLatency.With(prometheus.Labels{"stage": "getorg"}).Observe(float64(time.Since(t).Milliseconds()))
 
+	t = time.Now()
 	snapshot, err := org.BuildSnapshot(ctx, user, o, user.Config.GetOrganisationConfig())
 	if err != nil {
 		return nil, fmt.Errorf("unable to build snapshot: %w", err)
 	}
+	orgLatency.With(prometheus.Labels{"stage": "buildsnapshot"}).Observe(float64(time.Since(t).Milliseconds()))
 
+	t = time.Now()
 	latest, err := s.d.GetLatestSnapshot(ctx, user.GetUser().GetDiscogsUserId(), req.GetOrgName())
 	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, fmt.Errorf("unable to load previous snapshot: %w", err)
 	}
+	orgLatency.With(prometheus.Labels{"stage": "getlatestsnapshot"}).Observe(float64(time.Since(t).Milliseconds()))
 
 	log.Printf("LATEST %v vs RECENT %v", time.Unix(0, latest.GetDate()), time.Unix(0, snapshot.GetDate()))
 
 	if latest == nil || latest.GetHash() != snapshot.GetHash() {
+		t = time.Now()
 		err = s.d.SaveSnapshot(ctx, user, req.GetOrgName(), snapshot)
 		if err != nil {
 			return nil, fmt.Errorf("unable to save new snapshot: %w", err)
 		}
+		orgLatency.With(prometheus.Labels{"stage": "savesnapshot"}).Observe(float64(time.Since(t).Milliseconds()))
+
 	}
 
 	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
