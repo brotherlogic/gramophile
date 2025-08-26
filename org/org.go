@@ -57,7 +57,19 @@ func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation, ws
 }
 
 func (o *Org) getArtistYear(ctx context.Context, r *pb.Record) string {
-	return fmt.Sprintf("%v", r.GetRelease().GetInstanceId())
+
+	// Take the first artist
+	artistName := ""
+	if len(r.GetRelease().GetArtists()) > 0 {
+		artistName = r.GetRelease().GetArtists()[0].GetName()
+	}
+
+	// Flip the name if it begins with "The"
+	if strings.HasPrefix(artistName, "The ") {
+		artistName = artistName[4:] + ", The"
+	}
+
+	return artistName
 }
 
 func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation, ws []*pb.LabelWeight) string {
