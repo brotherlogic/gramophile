@@ -68,8 +68,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return err
-
+					log.Printf("Unable to validate collection: %v", err)
 				}
 			}
 
