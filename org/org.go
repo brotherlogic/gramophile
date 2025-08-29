@@ -290,6 +290,16 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		}
 	}
 
+	// Validate here
+	seen := make(map[int64]bool)
+	for _, entry := range ordList {
+		if seen[entry.id] {
+			log.Printf("ID CLASH")
+		} else {
+			seen[entry.id] = true
+		}
+	}
+
 	log.Printf("ORDLIST: %v", len(ordList))
 
 	defaultWidth := float32(0.0)
