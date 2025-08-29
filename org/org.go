@@ -282,11 +282,13 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 			ordList = append(ordList, currElement)
 		}
 	} else {
+		nid := int64(1)
 		for _, r := range records {
 			ordList = append(ordList, &groupingElement{
 				records: []*pb.Record{r.record},
-				id:      time.Now().UnixNano(),
+				id:      nid,
 			})
+			nid++
 		}
 	}
 
