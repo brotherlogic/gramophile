@@ -290,6 +290,8 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		}
 	}
 
+	log.Printf("ORDLIST: %v", len(ordList))
+
 	defaultWidth := float32(0.0)
 	defaultCount := float32(0.0)
 	for _, element := range ordList {
@@ -303,6 +305,8 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 	if defaultCount > 0 && org.GetMissingWidthHandling() == pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE {
 		defaultWidth /= defaultCount
 	}
+
+	log.Printf("FOUND DEFAULT WIDHT: %v", defaultWidth)
 
 	// Let's run a check that these groups will actually fit on the shelves
 	var nordList []*groupingElement
@@ -327,11 +331,15 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 	}
 	ordList = nordList
 
+	log.Printf("NOW ORDLIST %v", len(ordList))
+
 	ordMap := make(map[int64]*groupingElement)
 	for _, entry := range ordList {
 		log.Printf("ENTRY: %+v", entry)
 		ordMap[entry.id] = entry
 	}
+
+	log.Printf("ORD MAP %v", len(ordMap))
 
 	placed := make(map[int64]bool)
 	i := 0
