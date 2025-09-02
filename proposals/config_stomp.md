@@ -55,4 +55,4 @@ which makes finding versions a little easier.
 1. Have config save increment the version number
 1. Server builds out diff if the version is out of whack
 1. Gram handles diff exchange with user
-1. Server applies diff given chosen change.
+1. Server applies diff given chosen change
