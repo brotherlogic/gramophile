@@ -7,6 +7,7 @@ option go_package = "github.com/brotherlogic/gramophile/proto";
 import "classification.proto";
 import "moving.proto";
 import "organisation.proto";
+import "enabled.proto";
 import "github.com/brotherlogic/discogs/proto/discogs.proto";
 
 message Filter {
@@ -20,11 +21,6 @@ enum Basis {
     GRAMOPHILE = 1;
 }
 
-enum Enabled {
-    ENABLED_UNKNOWN = 0;
-    ENABLED_DISABLED = 1;
-    ENABLED_ENABLED = 2;
-}
 
 enum Bool {
     UNKNOWN = 0;
@@ -145,47 +141,52 @@ message UserConfig {
 }
 
 message GramophileConfig {
-    Basis basis = 2;
-    CleaningConfig cleaning_config = 1;
-    ListenConfig listen_config = 3;
-    WidthConfig width_config = 4;
-    OrganisationConfig organisation_config = 5;
-    WeightConfig weight_config = 6;
-    GoalFolderConfig goal_folder_config = 7;
-    SleeveConfig sleeve_config = 8;
-    ArrivedConfig arrived_config = 9;
-    SaleConfig sale_config = 10;
-    KeepConfig keep_config = 11;
-    WantsConfig wants_config = 16;
-    PrintMoveConfig print_move_config = 17;
-    MintUpConfig mint_up_config = 18;
-    WantslistConfig wants_list_config = 19;
-    ScoreConfig score_config = 20;
-    ClassificationConfig classification_config = 21;
-    MovingConfig moving_config = 22;
-    UserConfig user_config = 23;
-    AddConfig add_config = 24;
+  Basis basis = 2;
+  CleaningConfig cleaning_config = 1;
+  ListenConfig listen_config = 3;
+  WidthConfig width_config = 4;
+  OrganisationConfig organisation_config = 5;
+  WeightConfig weight_config = 6;
+  GoalFolderConfig goal_folder_config = 7;
+  SleeveConfig sleeve_config = 8;
+  ArrivedConfig arrived_config = 9;
+  SaleConfig sale_config = 10;
+  KeepConfig keep_config = 11;
+  WantsConfig wants_config = 16;
+  PrintMoveConfig print_move_config = 17;
+  MintUpConfig mint_up_config = 18;
+  WantslistConfig wants_list_config = 19;
+  ScoreConfig score_config = 20;
+  ClassificationConfig classification_config = 21;
+  MovingConfig moving_config = 22;
+  UserConfig user_config = 23;
+  AddConfig add_config = 24;
 
-    Create create_folders = 12;
-    Create create_moves = 13;
+  Create create_folders = 12;
+  Create create_moves = 13;
 
-    repeated FolderMove moves = 14;
-    repeated ValidationRule validations = 15;
+  repeated FolderMove moves = 14;
+  repeated ValidationRule validations = 15;
+
+  Enabled organisation_enabled = 25;
+  Enabled classification_enabled = 26;
 }
 
 message AddConfig {
     string default_folder = 1;
 
     reserved 2; // Depreated 'mallow_adds'
-    Enabled adds = 4;
+    Enabled enabled = 4;
 
     reserved 3; // Depreated 'allow_delete'
-    Enabled deletes = 5;
+    reserved 5; // Deprectated 'deletes'
 }
 
 message ScoreConfig {
     int32 bottom_range = 1;
     int32 top_range = 2;
+
+    Enabled enabled = 3;
 }
 
 message MintUpConfig {
@@ -193,6 +194,8 @@ message MintUpConfig {
     int32 period_in_seconds = 1;
     string print_target = 2;
     int64 last_mint_up_delivery = 3;
+
+    Enabled enabled = 4;
 }
 
 message PrintMoveConfig {
@@ -323,6 +326,8 @@ message WantsConfig {
 
     bool mint_up_want_list = 7;
     bool digital_want_list = 8;
+
+    Enabled enabled = 9;
 }
 
 message WantslistConfig {
@@ -332,6 +337,8 @@ message WantslistConfig {
     int32 listening_threshold = 3;
 
     repeated StoredWantlist wantlists = 4;
+
+    Enabled enabled = 5;
 }
 
 enum WantlistType {
