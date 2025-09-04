@@ -14,8 +14,26 @@ import (
 )
 
 var (
-	standardPaths []string = []string{}
-	betaPaths     []string = []string{"cleaning_config.enabled"}
+	betaPaths []string = []string{
+		"listen_config.enabled",
+		"cleaning_config.enabled",
+		"listen_config.enabled",
+		"organisation_config.enabled",
+		"weight_config.enabled",
+		"goal_folder_config.enabled",
+		"sleeve_config.enabled",
+		"arrived_config.enabled",
+		"sale_config.enabled",
+		"keep_config.enabled",
+		"wants_config.enabled",
+		"print_move_config.enabled",
+		"mint_up_config.enabled",
+		"wants_list_config.enabled",
+		"score_config.enabled",
+		"classification_config.enabled",
+		"moving_config.enabled",
+		"add_config.enabled"}
+	standardPaths []string = []string{"width_config.enabled"}
 )
 
 func setToDefault(c *pb.GramophileConfig, path string) error {
@@ -73,7 +91,7 @@ func (*userConfig) PostProcess(c *pb.GramophileConfig) (*pb.GramophileConfig, er
 	for _, rule := range betaPaths {
 		err := setToDefault(c, rule)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to apply rule %v -> %w", rule, err)
 		}
 	}
 	if c.GetUserConfig().GetUserLevel() == pb.UserConfig_USER_LEVEL_BETA {

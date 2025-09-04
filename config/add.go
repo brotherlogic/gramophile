@@ -25,7 +25,7 @@ func (*add) GetClassification(c *pb.GramophileConfig) []*pb.Classifier {
 }
 
 func (*add) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser) error {
-	if u.GetConfig().GetAddConfig().GetAdds() == pb.Enabled_ENABLED_ENABLED {
+	if u.GetConfig().GetAddConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED {
 		foundp := false
 		foundl := false
 		for _, field := range fields {

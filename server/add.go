@@ -19,7 +19,7 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 		return nil, err
 	}
 
-	if user.GetConfig().GetAddConfig().GetAdds() != pb.Enabled_ENABLED_ENABLED {
+	if user.GetConfig().GetAddConfig().GetEnabled() != pb.Enabled_ENABLED_ENABLED {
 		return nil, status.Errorf(codes.FailedPrecondition, "Adding is disabled")
 	}
 

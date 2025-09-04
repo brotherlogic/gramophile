@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+
+enum Enabled {
+    ENABLED_UNKNOWN = 0;
+    ENABLED_DISABLED = 1;
+    ENABLED_ENABLED = 2;
+}

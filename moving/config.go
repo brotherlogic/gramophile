@@ -38,7 +38,7 @@ func (*Moving) Validate(ctx context.Context, fields []*pbd.Field, user *pb.Store
 func (*Moving) PostProcess(config *pb.GramophileConfig) (*pb.GramophileConfig, error) {
 	existing := int32(len(config.GetMovingConfig().GetFormatClassifier().GetFormats()))
 
-	if config.GetMovingConfig().GetEnabled() {
+	if config.GetMovingConfig().GetEnabled() == pb.Enabled_ENABLED_DISABLED {
 		// Apply our default rules over the top of the existing
 		config.GetMovingConfig().GetFormatClassifier().Formats = append(config.GetMovingConfig().GetFormatClassifier().GetFormats(),
 			&pb.FormatSelector{
