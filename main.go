@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"html"
 	"log"
 	"net"
 	"net/http"
@@ -27,7 +28,7 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("type") == "gramophile" {
 		w.Write([]byte("OK"))
 	} else {
-		w.Write([]byte(fmt.Sprintf("%v is not correct", r.URL.Query().Get("type"))))
+		w.Write([]byte(fmt.Sprintf("%v is not correct", html.EscapeString(r.URL.Query().Get("type")))))
 	}
 }
 
