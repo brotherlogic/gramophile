@@ -4,6 +4,8 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+import "enabled.proto";
+
 enum MissingWidthHandling {
     MISSING_WIDTH_IGNORE = 0;
     MISSING_WIDTH_AVERAGE = 1;
@@ -13,6 +15,8 @@ message OrganisationConfig {
     repeated ArtistTranslation artist_translation = 1;
     repeated Organisation organisations = 2;
     repeated LabelWeight label_ranking = 3;
+
+    Enabled enabled = 4;
 }
 
 message OrganisationSnapshot {

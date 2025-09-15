@@ -4,6 +4,8 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+import "enabled.proto";
+
 message FormatSelector {
     string format = 1;
     repeated string description = 2;
@@ -26,5 +28,5 @@ message RecordMove {
 message MovingConfig {
     FormatClassifier format_classifier = 1;
     repeated RecordMove moves = 2;
-    bool enabled = 3;
+    Enabled enabled = 3;
 }

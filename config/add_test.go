@@ -10,7 +10,7 @@ import (
 
 func TestAddConfigEnabled_NoPrice(t *testing.T) {
 	c := &pb.StoredUser{Config: &pb.GramophileConfig{AddConfig: &pb.AddConfig{
-		Adds: pb.Enabled_ENABLED_ENABLED}}}
+		Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	af := &add{}
 	err := af.Validate(context.Background(), []*pbd.Field{}, c)
@@ -21,7 +21,7 @@ func TestAddConfigEnabled_NoPrice(t *testing.T) {
 
 func TestAddConfigEnabled_Success(t *testing.T) {
 	c := &pb.StoredUser{Config: &pb.GramophileConfig{AddConfig: &pb.AddConfig{
-		Adds: pb.Enabled_ENABLED_ENABLED}}}
+		Enabled: pb.Enabled_ENABLED_ENABLED}}}
 
 	af := &add{}
 	err := af.Validate(context.Background(), []*pbd.Field{

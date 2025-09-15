@@ -42,7 +42,7 @@ func TestCreateDigitalWantlist(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -147,7 +147,7 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -284,7 +284,7 @@ func TestChangeKeepRemoveDigitalWantlist(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -406,7 +406,7 @@ func TestBadAddToDigitalWantlist(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -521,7 +521,7 @@ func TestWantlistCleanoutCorrect(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -656,7 +656,7 @@ func TestWantRemovedOnWantlistRemoval(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},
@@ -775,7 +775,7 @@ func TestHangingWantRemoved(t *testing.T) {
 				DigitalWantList: true,
 			},
 			AddConfig: &pb.AddConfig{
-				Adds:          pb.Enabled_ENABLED_ENABLED,
+				Enabled:       pb.Enabled_ENABLED_ENABLED,
 				DefaultFolder: "12 Inches",
 			},
 		},

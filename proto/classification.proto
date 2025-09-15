@@ -4,6 +4,8 @@ package gramophile;
 
 option go_package = "github.com/brotherlogic/gramophile/proto";
 
+import "enabled.proto";
+
 message BooleanSelector {
     string name = 1;
 }
@@ -51,4 +53,5 @@ message Classifier {
 
 message ClassificationConfig {
     repeated Classifier classifiers = 1;
+    Enabled enabled = 2;
 }
