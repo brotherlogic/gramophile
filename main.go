@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,7 +28,7 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("type") == "gramophile" {
 		w.Write([]byte("OK"))
 	} else {
-		w.Write([]byte(fmt.Sprintf("%v is not correct", r.URL.Query().Get("type"))))
+		w.Write([]byte(fmt.Sprintf("%v is not correct", url.QueryEscape(r.URL.Query().Get("type")))))
 	}
 }
 
