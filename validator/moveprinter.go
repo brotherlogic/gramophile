@@ -93,6 +93,8 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 				move.PrintId = resp.GetId()
 				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
 				log.Printf("Deleted print move for %v -> %v (%v)", move.GetIid(), err, move)
+			} else {
+				log.Printf("Failed to move %v %v", resp, err)
 			}
 		}
 	}
