@@ -631,6 +631,10 @@ message RecordResponse {
     string category = 4;
 }
 
+message RecordSet {
+    repeated Record records = 1;
+}
+
 message GetRecordWithId {
     int64 instance_id = 1;
     int64 release_id = 2;

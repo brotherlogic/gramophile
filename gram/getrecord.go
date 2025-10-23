@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	pbgd "github.com/brotherlogic/discogs/proto"
@@ -11,6 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 )
 
 func GetGetRecord() *CLIModule {
@@ -38,6 +40,9 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	var history = idSet.Bool("history", false, "Whether to get the history")
 	var debug = idSet.Bool("debug", false, "Show debug stuff")
 	var mintup = idSet.Bool("mintup", false, "Get records to mint up on")
+
+	var binary = idSet.Bool("binary", false, "Print a binary dump of the returned records")
+
 	if err := idSet.Parse(args); err == nil {
 		client := pb.NewGramophileEServiceClient(conn)
 
@@ -141,8 +146,20 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 		}
 
-		for _, record := range resp.GetRecords() {
-			printRecord(record, *debug)
+		if *binary {
+			rs := &pb.RecordSet{}
+			for _, r := range resp.GetRecords() {
+				rs.Records = append(rs.Records, r.GetRecord())
+			}
+			data, err := proto.Marshal(rs)
+			if err != nil {
+				log.Fatalf("Unable to marshal records: %v", err)
+			}
+			fmt.Printf("Result: %x\n", data)
+		} else {
+			for _, record := range resp.GetRecords() {
+				printRecord(record, *debug)
+			}
 		}
 	}
 	return err
