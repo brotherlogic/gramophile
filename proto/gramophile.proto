@@ -634,6 +634,7 @@ message RecordResponse {
 message GetRecordWithId {
     int64 instance_id = 1;
     int64 release_id = 2;
+    int32 label_id = 3;
 }
 
 message GetRecordWithIssue {}
