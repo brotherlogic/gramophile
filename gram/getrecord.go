@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"time"
 
 	pbgd "github.com/brotherlogic/discogs/proto"
@@ -153,7 +152,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			}
 			data, err := proto.Marshal(rs)
 			if err != nil {
-				log.Fatalf("Unable to marshal records: %v", err)
+				return fmt.Errorf("unable to marshal records: %w", err)
 			}
 			fmt.Printf("Result: %x\n", data)
 		} else {

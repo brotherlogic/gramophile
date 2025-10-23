@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -72,6 +73,16 @@ func (o *Org) getArtistYear(ctx context.Context, r *pb.Record) string {
 	return artistName
 }
 
+func cleanCatNo(cat string) string {
+	// Remove any non numer or letter
+	reg, err := regexp.Compile("[^0-9a-zA-Z]+")
+	if err != nil {
+		panic(err) // Handle the error if regex compilation fails
+	}
+
+	return reg.ReplaceAllLiteralString(cat, "")
+}
+
 func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisation, ws []*pb.LabelWeight) string {
 	// Release has no labels
 	if len(r.GetRelease().GetLabels()) == 0 {
@@ -96,7 +107,7 @@ func (o *Org) getLabelCatno(ctx context.Context, r *pb.Record, c *pb.Organisatio
 		}
 	}
 
-	return strings.ToLower(bestLabel.GetName() + "-" + bestLabel.GetCatno())
+	return strings.ToLower(bestLabel.GetName() + "-" + cleanCatNo(bestLabel.GetCatno()))
 }
 
 func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record, error) {
