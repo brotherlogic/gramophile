@@ -32,6 +32,8 @@ func executeGetRecord(ctx context.Context, args []string) error {
 	var id = idSet.Int("id", 0, "Id of record to get")
 	var iid = idSet.Int("iid", 0, "IId of record to get")
 	var sid = idSet.Int("sid", 0, "Sale ID")
+	var lid = idSet.Int("lid", 0, "Label ID")
+
 	var minmed = idSet.Int64("minmed", 0, "Minumum median seconds")
 	var history = idSet.Bool("history", false, "Whether to get the history")
 	var debug = idSet.Bool("debug", false, "Show debug stuff")
@@ -94,6 +96,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 				GetRecordWithId: &pb.GetRecordWithId{
 					InstanceId: int64(*iid),
 					ReleaseId:  int64(*id),
+					LabelId:    int32(*lid),
 				},
 			}})
 		if err != nil {

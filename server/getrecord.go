@@ -123,6 +123,27 @@ func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *p
 			}
 		}
 		return &pb.GetRecordResponse{Records: records}, nil
+	} else if req.GetGetRecordWithId().GetLabelId() > 0 {
+		var records []*pb.RecordResponse
+		rids, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, r := range rids {
+			r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, l := range r.GetRelease().GetLabels() {
+				if l.GetId() == req.GetGetRecordWithId().GetLabelId() {
+					records = append(records, &pb.RecordResponse{Record: r})
+				}
+				break
+			}
+		}
+		return &pb.GetRecordResponse{Records: records}, nil
 	}
 
 	if req.GetGetRecordToListenTo() != nil && req.GetGetRecordToListenTo().GetFilter() != "" {
