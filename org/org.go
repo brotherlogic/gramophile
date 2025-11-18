@@ -197,17 +197,29 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 
 	log.Printf("ORG found %v records overall", len(allRecords))
 
+	// Find the max index in the group of foldersets
+	maxIndex := int32(1)
+	for _, fs := range org.GetFoldersets() {
+		if fs.GetIndex() > maxIndex {
+			maxIndex = fs.GetIndex()
+		}
+	}
+
 	// First sort the records into order
 	var records []*sortingElement
-	for _, folderset := range org.GetFoldersets() {
+	for index := int32(0); index <= maxIndex; index++ {
+		var s pb.Sort
 		var recs []*sortingElement
-		for _, record := range allRecords {
-			if record.GetRelease().GetFolderId() == folderset.GetFolder() {
-				recs = append(recs, &sortingElement{record: record, sort: folderset.GetSort()})
+		for _, folderset := range org.GetFoldersets() {
+			for _, record := range allRecords {
+				if record.GetRelease().GetFolderId() == folderset.GetFolder() && folderset.GetIndex() == index {
+					s = folderset.GetSort()
+					recs = append(recs, &sortingElement{record: record, sort: folderset.GetSort()})
+				}
 			}
 		}
 
-		switch folderset.GetSort() {
+		switch s {
 		case pb.Sort_ADDITION_DATE:
 			sort.SliceStable(recs, func(i, j int) bool {
 				return recs[i].record.GetRelease().GetDateAdded() < recs[j].record.GetRelease().GetDateAdded()
