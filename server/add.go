@@ -99,6 +99,21 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 		},
 	})
 
+	// Enqueue a record cache
+	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  time.Now().UnixNano(),
+			Auth:     user.GetAuth().GetToken(),
+			Priority: pb.QueueElement_PRIORITY_HIGH,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       iid,
+					Intention: "Refreshing from addition",
+				},
+			},
+		},
+	})
+
 	s.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
