@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"html"
 	"log"
 	"net"
 	"net/http"
@@ -22,6 +23,14 @@ var (
 	httpPort     = flag.Int("http_port", 8082, "Port to serve regular http traffic")
 	internalPort = flag.Int("internal_port", 8083, "Port to serve internal grpc traffic")
 )
+
+func healthz(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("type") == "gramophile" {
+		w.Write([]byte("OK"))
+	} else {
+		w.Write([]byte(fmt.Sprintf("%v is not correct", html.EscapeString(r.URL.Query().Get("type")))))
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -64,6 +73,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/callback", s)
+	mux.Handle("/healthz", http.HandlerFunc(healthz))
+
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *httpPort), mux)
 	log.Fatalf("gramophile is unable to serve http: %v", err)
 }

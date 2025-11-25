@@ -60,7 +60,14 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 		return err
 	}
 
-	log.Printf("Found %v moves", len(moves))
+	count := 0
+	for _, move := range moves {
+		if !move.Printed {
+			count++
+		}
+	}
+
+	log.Printf("Found %v moves (%v unprinted)", len(moves), count)
 
 	printQueueLen.Set(float64(len(moves)))
 
@@ -86,6 +93,8 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 				move.PrintId = resp.GetId()
 				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
 				log.Printf("Deleted print move for %v -> %v (%v)", move.GetIid(), err, move)
+			} else {
+				log.Printf("Failed to move %v %v", resp, err)
 			}
 		}
 	}
