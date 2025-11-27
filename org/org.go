@@ -22,14 +22,19 @@ import (
 	kbpb "github.com/brotherlogic/kubebrainz/proto"
 )
 
-func GetOrg(d db.Database) (*Org, error) {
-	conn, err := grpc.NewClient("kubebrain.musicbrainz:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get kubebrainz client: %w", err)
+func GetOrg(d db.Database, c ...kbpb.KubeBrainzServiceClient) (*Org, error) {
+	var nc kbpb.KubeBrainzServiceClient
+	if len(c) == 0 {
+		conn, err := grpc.NewClient("kubebrain.musicbrainz:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("Unable to get kubebrainz client: %w", err)
+		}
+		nc = kbpb.NewKubeBrainzServiceClient(conn)
+	} else {
+		nc = c[0]
 	}
-	c := kbpb.NewKubeBrainzServiceClient(conn)
 
-	return &Org{d: d, c: c}, nil
+	return &Org{d: d, c: nc}, nil
 }
 
 func GetOrgSwallow(d db.Database) *Org {
