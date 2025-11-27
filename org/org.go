@@ -15,15 +15,36 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
+
+	kbpb "github.com/brotherlogic/kubebrainz/proto"
 )
 
-func GetOrg(d db.Database) *Org {
-	return &Org{d: d}
+func GetOrg(d db.Database, c ...kbpb.KubeBrainzServiceClient) (*Org, error) {
+	var nc kbpb.KubeBrainzServiceClient
+	if len(c) == 0 {
+		conn, err := grpc.NewClient("kubebrain.musicbrainz:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("Unable to get kubebrainz client: %w", err)
+		}
+		nc = kbpb.NewKubeBrainzServiceClient(conn)
+	} else {
+		nc = c[0]
+	}
+
+	return &Org{d: d, c: nc}, nil
+}
+
+func GetOrgSwallow(d db.Database) *Org {
+	org, _ := GetOrg(d)
+	return org
 }
 
 type Org struct {
 	d db.Database
+	c kbpb.KubeBrainzServiceClient
 }
 
 type groupingElement struct {
@@ -58,14 +79,24 @@ func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation, ws
 }
 
 func (o *Org) getArtistYear(ctx context.Context, r *pb.Record) string {
-
 	// Take the first artist
 	artistName := ""
 	if len(r.GetRelease().GetArtists()) > 0 {
 		artistName = r.GetRelease().GetArtists()[0].GetName()
+	} else {
+		return "Various Artists"
 	}
 
-	// Flip the name if it begins with "The"
+	// Call out to kubebrainz first
+	res, err := o.c.GetArtist(ctx, &kbpb.GetArtistRequest{
+		Artist: artistName,
+	})
+	if err == nil {
+		return res.GetArtistSort()
+	}
+	log.Printf("Unable to get artist %v: %v", artistName, err)
+
+	// Basic resolution
 	if strings.HasPrefix(artistName, "The ") {
 		artistName = artistName[4:] + ", The"
 	}

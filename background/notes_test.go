@@ -50,7 +50,7 @@ func TestMovePrint(t *testing.T) {
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "d", Artists: []*pbd.Artist{{Name: "artd"}}, InstanceId: 4, FolderId: 2, Labels: []*pbd.Label{{Name: "aaa"}}}}, &db.SaveOptions{})
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "e", Artists: []*pbd.Artist{{Name: "arte"}}, InstanceId: 5, FolderId: 2, Labels: []*pbd.Label{{Name: "ccc"}}}}, &db.SaveOptions{})
 
-	org1, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+	org1, err := org.GetOrgSwallow(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
 		Name:       "First",
 		Foldersets: []*pb.FolderSet{{Folder: 1}},
 	}, su.GetConfig().GetOrganisationConfig())
@@ -59,7 +59,7 @@ func TestMovePrint(t *testing.T) {
 	}
 	b.db.SaveSnapshot(ctx, su, "First", org1)
 
-	org2, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+	org2, err := org.GetOrgSwallow(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
 		Name:       "Second",
 		Foldersets: []*pb.FolderSet{{Folder: 2}},
 	}, su.GetConfig().GetOrganisationConfig())
@@ -149,7 +149,7 @@ func TestMovePrint_MissingOrgorigin(t *testing.T) {
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "d", Artists: []*pbd.Artist{{Name: "artd"}}, InstanceId: 4, FolderId: 2, Labels: []*pbd.Label{{Name: "aaa"}}}}, &db.SaveOptions{})
 	b.db.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{Title: "e", Artists: []*pbd.Artist{{Name: "arte"}}, InstanceId: 5, FolderId: 2, Labels: []*pbd.Label{{Name: "ccc"}}}}, &db.SaveOptions{})
 
-	org1, err := org.GetOrg(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
+	org1, err := org.GetOrgSwallow(b.db).BuildSnapshot(ctx, su, &pb.Organisation{
 		Name:       "First",
 		Foldersets: []*pb.FolderSet{{Folder: 1}},
 	}, su.GetConfig().GetOrganisationConfig())

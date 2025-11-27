@@ -4,17 +4,18 @@ go 1.24.5
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20250729214233-806b1a4864d8
-	github.com/brotherlogic/githubridge v0.2872.0
+	github.com/brotherlogic/githubridge v0.2874.0
 	github.com/brotherlogic/godiscogs v0.0.0-20250429182651-404c7473edf8
-	github.com/brotherlogic/pstore v0.33.0
-	github.com/brotherlogic/recordcollection v0.0.0-20250722141022-d09a67a16bb5
+	github.com/brotherlogic/kubebrainz v0.36.0
+	github.com/brotherlogic/pstore v0.58.0
+	github.com/brotherlogic/recordcollection v0.0.0-20251015143532-3776574ed3ee
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	github.com/prometheus/client_golang v1.23.0
-	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.8
+	github.com/prometheus/client_golang v1.23.2
+	google.golang.org/grpc v1.77.0
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -22,11 +23,12 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.65.0 // indirect
-	github.com/prometheus/procfs v0.17.0 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
+	github.com/prometheus/common v0.67.4 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
 )

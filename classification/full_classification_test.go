@@ -102,7 +102,7 @@ func TestClassification(t *testing.T) {
 		user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 12}}
 		db.SaveRecord(context.Background(), 12, tc.record)
 
-		o := org.GetOrg(db)
+		o, _ := org.GetOrg(db)
 		snap, err := o.BuildSnapshot(context.Background(), user, lpOrg, orgConfig)
 		if err != nil {
 			t.Fatalf("Bad org: %v", err)

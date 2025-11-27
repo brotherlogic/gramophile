@@ -227,7 +227,10 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 	}
 
 	// Run a preorg since this might be a new record
-	orglogic := org.GetOrg(b.db)
+	orglogic, err := org.GetOrg(b.db)
+	if err != nil {
+		return err
+	}
 	var oldLoc *pb.Location
 	if r.GetRelease().GetFolderId() == 0 {
 		oldLoc = &pb.Location{
