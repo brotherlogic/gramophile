@@ -52,7 +52,7 @@ var sortTable = []struct {
 }
 
 func TestOrdering(t *testing.T) {
-	o := GetOrg(db.NewTestDB(pstore_client.GetTestClient()))
+	o, _ := GetOrg(db.NewTestDB(pstore_client.GetTestClient()))
 
 	for _, table := range sortTable {
 		rs := &pb.RecordSet{}

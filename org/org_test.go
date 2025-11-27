@@ -38,7 +38,7 @@ func TestJoinOrdering(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{
@@ -106,7 +106,7 @@ func TestLabelRanking(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{
@@ -172,7 +172,7 @@ func TestOrderByArtist(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{

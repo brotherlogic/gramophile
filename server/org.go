@@ -97,7 +97,10 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 	}
 
 	t = time.Now()
-	org := orglogic.GetOrg(s.d)
+	org, err := orglogic.GetOrg(s.d)
+	if err != nil {
+		return nil, err
+	}
 	orgLatency.With(prometheus.Labels{"stage": "getorg"}).Observe(float64(time.Since(t).Milliseconds()))
 
 	t = time.Now()
