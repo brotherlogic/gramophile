@@ -6,10 +6,14 @@ import (
 	"testing"
 
 	"github.com/brotherlogic/gramophile/db"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	kbpb "github.com/brotherlogic/kubebrainz/proto"
 
 	pstore_client "github.com/brotherlogic/pstore/client"
 )
@@ -38,7 +42,7 @@ func TestJoinOrdering(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{
@@ -106,7 +110,7 @@ func TestLabelRanking(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{
@@ -134,6 +138,20 @@ func TestLabelRanking(t *testing.T) {
 	if snap.GetPlacements()[0].GetIid() == 1234 {
 		t.Errorf("1234 should come after 1235: %v", snap)
 	}
+}
+
+type fakeOrgClient struct{}
+
+func (f *fakeOrgClient) GetArtist(ctx context.Context, req *kbpb.GetArtistRequest, _ ...grpc.CallOption) (*kbpb.GetArtistResponse, error) {
+	switch req.GetArtist() {
+	case "The Beatles":
+		return &kbpb.GetArtistResponse{}, nil
+	}
+	return nil, status.Errorf(codes.NotFound, "could not find %v", req)
+}
+
+func (f *fakeOrgClient) GetStatus(ctx context.Context, req *kbpb.GetStatusRequest, _ ...grpc.CallOption) (*kbpb.GetStatusResponse, error) {
+	return &kbpb.GetStatusResponse{}, nil
 }
 
 func TestOrderByArtist(t *testing.T) {
@@ -172,7 +190,7 @@ func TestOrderByArtist(t *testing.T) {
 
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
-	orglogic := GetOrg(d)
+	orglogic, _ := GetOrg(d, &fakeOrgClient{})
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
 		Name: "testing",
 		Foldersets: []*pb.FolderSet{
