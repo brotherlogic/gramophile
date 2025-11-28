@@ -28,8 +28,10 @@ func TestAdd_FillsInRecordDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
-	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Purcahse Price"}}}
-	di.AddCollectionRelease(&pbd.Release{Id: 123, InstanceId: 1234, Title: "test-title"})
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{
+		{Id: 10, Name: "Purchase Price"},
+		{Id: 11, Name: "Purchase Location"}}}
+	di.AddCollectionRelease(&pbd.Release{Id: 123, InstanceId: 123, Title: "test-title"})
 
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
 	s := server.BuildServer(d, di, qc)
