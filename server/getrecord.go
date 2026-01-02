@@ -92,7 +92,9 @@ func (s *Server) getRecordsPurchasedBetween(ctx context.Context, u *pb.StoredUse
 		if err != nil {
 			return nil, err
 		}
-		recs = append(recs, &pb.RecordResponse{Record: rec})
+		if rec.GetRelease().GetDateAdded() >= req.GetStartDate() && rec.GetRelease().GetDateAdded() <= req.GetEndDate() {
+			recs = append(recs, &pb.RecordResponse{Record: rec})
+		}
 	}
 
 	return &pb.GetRecordResponse{Records: recs}, nil
