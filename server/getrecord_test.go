@@ -163,3 +163,43 @@ func TestGetByLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestGetByDate(t *testing.T) {
+	ctx := getTestContext(123)
+
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{DateAdded: 100, InstanceId: 1, Labels: []*pbd.Label{{Id: 12}}}})
+	if err != nil {
+		t.Fatalf("Can't save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{DateAdded: 1000, InstanceId: 2, Labels: []*pbd.Label{{Id: 12}}}})
+	if err != nil {
+		t.Fatalf("Can't save record: %v", err)
+	}
+
+	s := Server{d: d}
+
+	rs, err := s.GetRecord(ctx, &pb.GetRecordRequest{Request: &pb.GetRecordRequest_GetRecordsPurchasedBetween{
+		GetRecordsPurchasedBetween: &pb.GetRecordsPurchasedBetween{
+			StartDate: 100,
+			EndDate:   999,
+		},
+	}})
+	if err != nil {
+		t.Fatalf("Bad sale return %v", err)
+	}
+
+	if len(rs.GetRecords()) != 1 {
+		t.Errorf("Wrong number of records returned: %v; should have been 2", len(rs.GetRecords()))
+	}
+
+	for _, r := range rs.GetRecords() {
+		if r.GetRecord().GetRelease().GetInstanceId() > 1 {
+			t.Errorf("Bad record returned: %v", r)
+		}
+	}
+}

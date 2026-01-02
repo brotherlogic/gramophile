@@ -80,7 +80,31 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 	return resp, err
 }
 
+func (s *Server) getRecordsPurchasedBetween(ctx context.Context, u *pb.StoredUser, req *pb.GetRecordsPurchasedBetween) (*pb.GetRecordResponse, error) {
+	rs, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
+	if err != nil {
+		return nil, err
+	}
+
+	var recs []*pb.RecordResponse
+	for _, r := range rs {
+		rec, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
+		if err != nil {
+			return nil, err
+		}
+		if rec.GetRelease().GetDateAdded() >= req.GetStartDate() && rec.GetRelease().GetDateAdded() <= req.GetEndDate() {
+			recs = append(recs, &pb.RecordResponse{Record: rec})
+		}
+	}
+
+	return &pb.GetRecordResponse{Records: recs}, nil
+}
+
 func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+	if req.GetGetRecordsPurchasedBetween() != nil {
+		return s.getRecordsPurchasedBetween(ctx, u, req.GetGetRecordsPurchasedBetween())
+	}
+
 	if req.GetGetRecordWithId() != nil && req.GetGetRecordWithId().GetInstanceId() > 0 {
 		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), req.GetGetRecordWithId().GetInstanceId())
 		log.Printf("DataB RETURN %v, %v", r, err)

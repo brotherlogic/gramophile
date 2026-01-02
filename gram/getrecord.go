@@ -23,6 +23,10 @@ func GetGetRecord() *CLIModule {
 	}
 }
 
+func lightPrint(r *pb.Record) {
+	fmt.Printf("%v [%v]\n", r.GetRelease().GetTitle(), r.GetRelease().GetInstanceId())
+}
+
 func executeGetRecord(ctx context.Context, args []string) error {
 	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -42,8 +46,40 @@ func executeGetRecord(ctx context.Context, args []string) error {
 
 	var binary = idSet.Bool("binary", false, "Print a binary dump of the returned records")
 
+	var start = idSet.String("start", "", "Start Date")
+	var end = idSet.String("end", "", "End Date")
+
 	if err := idSet.Parse(args); err == nil {
 		client := pb.NewGramophileEServiceClient(conn)
+
+		if *start != "" {
+			sd, err := time.Parse("2006-01-02", *start)
+			if err != nil {
+				return err
+			}
+			ed, err := time.Parse("2006-01-02", *end)
+			if err != nil {
+				return err
+			}
+
+			resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{
+				Request: &pb.GetRecordRequest_GetRecordsPurchasedBetween{
+					GetRecordsPurchasedBetween: &pb.GetRecordsPurchasedBetween{
+						StartDate: sd.UnixNano(),
+						EndDate:   ed.UnixNano(),
+					},
+				},
+			})
+
+			if err != nil {
+				return err
+			}
+
+			for _, r := range resp.GetRecords() {
+				lightPrint(r.GetRecord())
+			}
+
+		}
 
 		if *mintup {
 			resp, err := client.GetRecord(ctx, &pb.GetRecordRequest{
