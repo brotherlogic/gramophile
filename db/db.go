@@ -889,10 +889,11 @@ func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.
 				return nil, err
 			}
 			err = proto.Unmarshal(resp.GetValue().GetValue(), update)
-			if err != nil {
-				return nil, fmt.Errorf("unmarshaling error: %w", err)
+			if err == nil {
+				updates = append(updates, update)
+			} else {
+				log.Printf("Skipping unmarshal %v -> %v", key, err)
 			}
-			updates = append(updates, update)
 		}
 	}
 	return updates, nil
