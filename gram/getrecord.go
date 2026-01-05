@@ -24,7 +24,10 @@ func GetGetRecord() *CLIModule {
 }
 
 func lightPrint(r *pb.Record) {
-	fmt.Printf("%v [%v]\n", r.GetRelease().GetTitle(), r.GetRelease().GetInstanceId())
+	fmt.Printf("%v %v [%v]\n",
+		r.GetRelease().GetInstanceId(),
+		r.GetRelease().GetTitle(),
+		r.GetRelease().GetFormats())
 }
 
 func executeGetRecord(ctx context.Context, args []string) error {
@@ -79,6 +82,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 				lightPrint(r.GetRecord())
 			}
 
+			return nil
 		}
 
 		if *mintup {

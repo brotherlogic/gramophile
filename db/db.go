@@ -890,7 +890,7 @@ func (d *DB) GetUpdates(ctx context.Context, userid int32, r *pb.Record) ([]*pb.
 			}
 			err = proto.Unmarshal(resp.GetValue().GetValue(), update)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("unmarshaling error: %w", err)
 			}
 			updates = append(updates, update)
 		}
