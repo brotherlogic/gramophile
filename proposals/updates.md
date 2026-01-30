@@ -31,11 +31,24 @@ this means that as we add new forms of update, we are unable to backfill, instea
 we'll build each from scratch. We belive this drawback is far outweighed by the more
 positive parts to this proposal.
 
+## Amendment
+
+The problem with this process is that we're adding overhead to cover the cost of
+storage and retrieval. Instead we should take a path which mirrors this approach but
+gives us recourse to cover updates which we currently don't consider rather than backfilling.
+
+So we should (a) store the proto diff between the old record and the new record on a save.
+If the proto diff is empty, we don't save. We then have a process that in the background (or
+when needed), pulls the diffs and builds a readable timeline of updates. This should support
+dynamic backfill - so if we add new details in the readable timeline, it should automatically
+update.
+
 ## Tasks
 
-1. Define basic update proto
-1. Write update remover to remove old updates on change
-1. Write update alongside old record change code
-1. Add ability to store score updates
-1. Add ability to store folder moves
-1. Support retrieval of updates in gram get record
+1. Build / Research a proto differ
+   1. This will probably need to be custom
+1. Apply the differ to record updates
+1. Have a seperate process convert the set of diffs into readable changes
+1. Ensure these are versioned in code
+1. Have a gram get process which pulls updates
+1. This should refresh the readable changes if we find a version mismatch
