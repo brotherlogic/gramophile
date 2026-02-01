@@ -87,8 +87,9 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 			if nfolder != "" {
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
-						Auth:    user.GetAuth().GetToken(),
+						Intention: "From Run Moves",
+						RunDate:   time.Now().UnixNano(),
+						Auth:      user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_MoveRecord{
 							MoveRecord: &pb.MoveRecord{
 								RecordIid:  iid,

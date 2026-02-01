@@ -54,8 +54,9 @@ func TestCreateDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -64,9 +65,10 @@ func TestCreateDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -159,8 +161,9 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -179,9 +182,10 @@ func TestRemoveFromDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -296,8 +300,9 @@ func TestChangeKeepRemoveDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -316,9 +321,10 @@ func TestChangeKeepRemoveDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -360,9 +366,10 @@ func TestChangeKeepRemoveDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: 12345,
-			Entry:   &pb.QueueElement_RefreshWantlists{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   12345,
+			Entry:     &pb.QueueElement_RefreshWantlists{},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -418,8 +425,9 @@ func TestBadAddToDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -438,9 +446,10 @@ func TestBadAddToDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -533,8 +542,9 @@ func TestWantlistCleanoutCorrect(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -553,9 +563,10 @@ func TestWantlistCleanoutCorrect(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -611,9 +622,10 @@ func TestWantlistCleanoutCorrect(t *testing.T) {
 	// Now run a wantlist sync
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: 12345,
-			Entry:   &pb.QueueElement_RefreshWantlists{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   12345,
+			Entry:     &pb.QueueElement_RefreshWantlists{},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -668,8 +680,9 @@ func TestWantRemovedOnWantlistRemoval(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -688,9 +701,10 @@ func TestWantRemovedOnWantlistRemoval(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -732,9 +746,10 @@ func TestWantRemovedOnWantlistRemoval(t *testing.T) {
 	// Now run a want sync
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: 12345,
-			Entry:   &pb.QueueElement_RefreshWants{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   12345,
+			Entry:     &pb.QueueElement_RefreshWants{},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -796,8 +811,9 @@ func TestHangingWantRemoved(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{}},
 		},

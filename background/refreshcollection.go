@@ -37,8 +37,9 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		if rec.GetHighPrice().GetValue() == 0 || time.Since(time.Unix(0, rec.GetLastUpdateTime())) > RefreshReleasePeriod {
 			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano(),
-					Auth:    authToken,
+					Intention: "From refresh collection",
+					RunDate:   time.Now().UnixNano(),
+					Auth:      authToken,
 					Entry: &pb.QueueElement_RefreshRelease{
 						RefreshRelease: &pb.RefreshRelease{
 							Iid:       id,
@@ -56,8 +57,9 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > RefreshReleaseDatesPeriod {
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
-						Auth:    authToken,
+						Intention: "From refresh collection",
+						RunDate:   time.Now().UnixNano(),
+						Auth:      authToken,
 						Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
 							RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
 								Iid:      id,

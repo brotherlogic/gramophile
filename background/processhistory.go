@@ -18,8 +18,9 @@ func (b *BackgroundRunner) FanoutHistory(ctx context.Context, typ pb.UpdateType,
 	for _, record := range records {
 		enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				Auth:    auth,
-				RunDate: time.Now().UnixNano(),
+				Intention: "From Fanout History",
+				Auth:      auth,
+				RunDate:   time.Now().UnixNano(),
 				Entry: &pb.QueueElement_RecordHistory{
 					RecordHistory: &pb.RecordHistory{
 						InstanceId: record,

@@ -46,8 +46,9 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 	// Run a full update
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -59,8 +60,9 @@ func TestRecordUpdatedPostSync(t *testing.T) {
 	// Run a notherfull update in order to update the other record
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 

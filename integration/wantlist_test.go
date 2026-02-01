@@ -236,25 +236,28 @@ func TestWantlistLifecycle(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshCollectionEntry{RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 3,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			Intention: "From Test",
+			RunDate:   3,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -274,17 +277,19 @@ func TestWantlistLifecycle(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 3,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			Intention: "From Test",
+			RunDate:   3,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -351,17 +356,19 @@ func TestEnMasseWantlistUpdatedOnSync(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -451,17 +458,19 @@ func TestWantlistScoreUpdatedOnSync(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -548,17 +557,19 @@ func TestWantlistUpdatedOnSync(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
 		},
 	})
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 2,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
 		},
 	})
 	qc.FlushQueue(ctx)
@@ -619,8 +630,9 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},
@@ -641,9 +653,10 @@ func TestBuildDigitalWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
-			Entry:   &pb.QueueElement_RefreshCollection{},
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
+			Entry:     &pb.QueueElement_RefreshCollection{},
 		},
 	})
 
@@ -696,8 +709,9 @@ func TestBuildMintUplWantlist(t *testing.T) {
 	// Queue up a collection refresh
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_RefreshCollectionEntry{
 				RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}},
 		},

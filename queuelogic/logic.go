@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -499,6 +500,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			Body:  fmt.Sprintf("Entry %v has no intention", entry),
 			Title: "Entry Missing Intention",
 		})
+		qlog(ctx, "DROPPING %v", entry)
+
 		return nil
 	}
 
@@ -736,8 +739,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if entry.GetRefreshSales().GetPage() == 1 {
 			for i := int32(2); i <= pages.GetPages(); i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano() + int64(i),
-					Force:   entry.GetForce(),
+					Intention: entry.GetIntention(),
+					RunDate:   time.Now().UnixNano() + int64(i),
+					Force:     entry.GetForce(),
 					Entry: &pb.QueueElement_RefreshSales{
 
 						RefreshSales: &pb.RefreshSales{
@@ -750,7 +754,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			}
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano() + int64(pages.GetPages()) + 10,
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano() + int64(pages.GetPages()) + 10,
 				Entry: &pb.QueueElement_LinkSales{
 					LinkSales: &pb.LinkSales{
 						RefreshId: entry.GetRefreshSales().GetRefreshId()}},
@@ -952,6 +957,10 @@ var (
 
 func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 	qlog(ctx, "Enqueue: %v", req)
+	if req.GetElement().GetIntention() == "" {
+		stack := debug.Stack()
+		fmt.Println(string(stack))
+	}
 
 	if len(q.keys) > 100000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
 		enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.ResourceExhausted)}).Inc()

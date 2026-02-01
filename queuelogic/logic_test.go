@@ -60,7 +60,8 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 0,
+			Intention: "From Test",
+			RunDate:   0,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
@@ -77,7 +78,8 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 0,
+			Intention: "From Test",
+			RunDate:   0,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
@@ -96,7 +98,8 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 0,
+			Intention: "From Test",
+			RunDate:   0,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
@@ -120,6 +123,7 @@ func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
 
 	res, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Intention: "From Test",
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid: 1234,
@@ -139,6 +143,7 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 
 	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Intention: "From TEst",
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
@@ -159,8 +164,9 @@ func TestEnqueuePriority(t *testing.T) {
 
 	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:  200,
-			Priority: pb.QueueElement_PRIORITY_LOW,
+			Intention: "From Test",
+			RunDate:   200,
+			Priority:  pb.QueueElement_PRIORITY_LOW,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       1234,
@@ -173,8 +179,9 @@ func TestEnqueuePriority(t *testing.T) {
 
 	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:  400,
-			Priority: pb.QueueElement_PRIORITY_HIGH,
+			Intention: "From TEst",
+			RunDate:   400,
+			Priority:  pb.QueueElement_PRIORITY_HIGH,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       12345,
@@ -213,7 +220,8 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth: "123",
+			Intention: "From Test",
+			Auth:      "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})
@@ -224,7 +232,8 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth: "123",
+			Intention: "From Test",
+			Auth:      "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})
@@ -238,7 +247,8 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth: "123",
+			Intention: "From Test",
+			Auth:      "123",
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			}}})

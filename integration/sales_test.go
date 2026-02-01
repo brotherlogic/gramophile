@@ -63,8 +63,9 @@ func TestSyncSales_Success(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
 		},
 	})
 
@@ -116,8 +117,9 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
 		},
 	})
 
@@ -151,9 +153,10 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Force: true, // Forcing a sale refresh here
-			Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+			Intention: "From Test",
+			Auth:      "123",
+			Force:     true, // Forcing a sale refresh here
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
 		},
 	})
 
@@ -223,8 +226,9 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -311,8 +315,9 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -324,8 +329,9 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -416,8 +422,9 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -429,8 +436,9 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -524,8 +532,9 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -537,8 +546,9 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -632,8 +642,9 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -645,8 +656,9 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -740,8 +752,9 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -753,8 +766,9 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -848,8 +862,9 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -861,8 +876,9 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -961,8 +977,9 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 	// Run a sale update loop
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_LinkSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_LinkSales{},
 		},
 	})
 	if err != nil {
@@ -974,8 +991,9 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 	}
 	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:  "123",
-			Entry: &pb.QueueElement_RefreshSales{},
+			Intention: "From Test",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{},
 		},
 	})
 	if err != nil {
@@ -1053,8 +1071,9 @@ func TestAddSale(t *testing.T) {
 	// Link sales and valiate that the record has a sale linked
 	q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_LinkSales{
 				LinkSales: &pb.LinkSales{RefreshId: 12},
 			},
@@ -1123,8 +1142,9 @@ func TestAddSale_WithPriceStrategy(t *testing.T) {
 	// Link sales and valiate that the record has a sale linked
 	q.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_LinkSales{
 				LinkSales: &pb.LinkSales{RefreshId: 12},
 			},

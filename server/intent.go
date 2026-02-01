@@ -75,10 +75,11 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 			irefresh.With(prometheus.Labels{"iid": fmt.Sprintf("%v", req.GetInstanceId())}).Inc()
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					Priority: pb.QueueElement_PRIORITY_HIGH,
-					Force:    true,
-					RunDate:  time.Now().UnixNano(),
-					Auth:     user.GetAuth().GetToken(),
+					Intention: "Triggered from miss on SetIntent",
+					Priority:  pb.QueueElement_PRIORITY_HIGH,
+					Force:     true,
+					RunDate:   time.Now().UnixNano(),
+					Auth:      user.GetAuth().GetToken(),
 					Entry: &pb.QueueElement_RefreshCollectionEntry{
 						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1}}}})
 		}
@@ -142,6 +143,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Intention:        "Picking up new intents",
 			RunDate:          time.Now().UnixNano(), // We want intents to run before anything else
 			Priority:         pb.QueueElement_PRIORITY_HIGH,
 			Auth:             user.GetAuth().GetToken(),

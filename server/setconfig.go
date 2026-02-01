@@ -152,6 +152,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	for _, folder := range folders {
 		s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
+				Intention:        "From New Config",
 				RunDate:          time.Now().UnixNano(),
 				Auth:             u.GetAuth().GetToken(),
 				BackoffInSeconds: 60,
@@ -255,6 +256,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Intention:        "From new config",
 			RunDate:          time.Now().UnixNano(),
 			Auth:             u.GetAuth().GetToken(),
 			BackoffInSeconds: 60,
@@ -269,6 +271,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	s.handleWantslists(ctx, u, u.GetConfig().WantsListConfig.GetWantlists())
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
+			Intention:        "From new config",
 			RunDate:          time.Now().UnixNano(),
 			Auth:             u.GetAuth().GetToken(),
 			BackoffInSeconds: 60,

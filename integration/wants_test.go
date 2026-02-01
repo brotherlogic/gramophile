@@ -45,9 +45,10 @@ func TestSync_WantAddedToFloat(t *testing.T) {
 
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: 1,
-			Auth:    "123",
-			Entry:   &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_SyncWants{SyncWants: &pb.SyncWants{Page: 1}},
 		},
 	})
 
