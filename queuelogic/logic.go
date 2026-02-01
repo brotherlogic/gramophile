@@ -492,6 +492,16 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
 
+	if entry.GetIntention() == "" {
+		q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+			User:  "brotherlogic",
+			Repo:  "gramophile",
+			Body:  fmt.Sprintf("Entry %v has no intention", entry),
+			Title: "Entry Missing Intention",
+		})
+		return nil
+	}
+
 	queueBacklogTime.With(prometheus.Labels{
 		"type":     fmt.Sprintf("%T", entry.Entry),
 		"priority": fmt.Sprintf("%v", entry.GetPriority())}).Observe(float64(time.Since(time.Unix(0, entry.GetAdditionDate())).Milliseconds()))
