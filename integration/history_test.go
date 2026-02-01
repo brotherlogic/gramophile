@@ -56,8 +56,9 @@ func TestHistoryBackfill(t *testing.T) {
 	// Run the backfill
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Auth:    "123",
-			RunDate: time.Now().UnixNano(),
+			Intention: "From Test",
+			Auth:      "123",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_FanoutHistory{
 				FanoutHistory: &pb.FanoutHistory{
 					Userid: int64(123),

@@ -361,8 +361,9 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 				_, err = enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano(),
-						Auth:    user.GetAuth().GetToken(),
+						Intention: "From Adjust Sales",
+						RunDate:   time.Now().UnixNano(),
+						Auth:      user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_UpdateSale{
 							UpdateSale: &pb.UpdateSale{
 								SaleId:     sid,

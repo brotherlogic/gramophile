@@ -61,9 +61,10 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 	for _, pwant := range master {
 		_, err = enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				Auth:    authToken,
-				RunDate: time.Now().UnixNano(),
-				Entry:   &pb.QueueElement_AddMasterWant{AddMasterWant: &pb.AddMasterWant{Want: &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId(), MasterFilter: want.GetMasterFilter()}}},
+				Intention: "From Master Want",
+				Auth:      authToken,
+				RunDate:   time.Now().UnixNano(),
+				Entry:     &pb.QueueElement_AddMasterWant{AddMasterWant: &pb.AddMasterWant{Want: &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId(), MasterFilter: want.GetMasterFilter()}}},
 			}})
 	}
 
@@ -71,9 +72,10 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 	if len(master) > 0 {
 		_, err := enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				Auth:    authToken,
-				RunDate: time.Now().UnixNano(),
-				Entry:   &pb.QueueElement_SyncWants{},
+				Intention: "From Master Want",
+				Auth:      authToken,
+				RunDate:   time.Now().UnixNano(),
+				Entry:     &pb.QueueElement_SyncWants{},
 			},
 		})
 		return err
@@ -224,8 +226,9 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 				}
 				enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						Auth:    auth,
-						RunDate: time.Now().UnixNano(),
+						Intention: "From Refresh Wants",
+						Auth:      auth,
+						RunDate:   time.Now().UnixNano(),
 						Entry: &pb.QueueElement_RefreshWant{
 							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 						},
@@ -251,8 +254,9 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 				}
 				enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						Auth:    auth,
-						RunDate: time.Now().UnixNano(),
+						Intention: "From Refresh Wants",
+						Auth:      auth,
+						RunDate:   time.Now().UnixNano(),
 						Entry: &pb.QueueElement_RefreshWant{
 							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 						},

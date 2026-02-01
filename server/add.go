@@ -78,8 +78,9 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 			// Trigger a want update to ensure we capture wantlist changes
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano(),
-					Auth:    user.GetAuth().GetToken(),
+					Intention: "Refreshing wants post addition",
+					RunDate:   time.Now().UnixNano(),
+					Auth:      user.GetAuth().GetToken(),
 					Entry: &pb.QueueElement_RefreshWant{
 						RefreshWant: &pb.RefreshWant{Want: want},
 					},
@@ -91,8 +92,9 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	// Trigger a wantlist update to ensure we capture wantlist changes
 	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: time.Now().UnixNano(),
-			Auth:    user.GetAuth().GetToken(),
+			Intention: "Refreshing wantlists post addition",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
 			},
@@ -102,9 +104,10 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	// Enqueue a record cache
 	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:  time.Now().UnixNano(),
-			Auth:     user.GetAuth().GetToken(),
-			Priority: pb.QueueElement_PRIORITY_HIGH,
+			Intention: "Refreshing release post addition",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      user.GetAuth().GetToken(),
+			Priority:  pb.QueueElement_PRIORITY_HIGH,
 			Entry: &pb.QueueElement_RefreshRelease{
 				RefreshRelease: &pb.RefreshRelease{
 					Iid:       iid,

@@ -370,8 +370,9 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 			want.Clean = false
 			err = b.db.SaveWant(ctx, userid, want, "Saving from wantlist update")
 			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				Auth:    token,
-				RunDate: time.Now().UnixNano(),
+				Intention: "From Wantlist refresh",
+				Auth:      token,
+				RunDate:   time.Now().UnixNano(),
 				Entry: &pb.QueueElement_RefreshWant{
 					RefreshWant: &pb.RefreshWant{
 						Want: &pb.Want{
@@ -405,8 +406,9 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 			if countWanted < intendedWants {
 				qlog(ctx, "ENQUEUE %v", entry.GetId())
 				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Auth:    token,
-					RunDate: time.Now().UnixNano(),
+					Intention: "From wantlist upodate",
+					Auth:      token,
+					RunDate:   time.Now().UnixNano(),
 					Entry: &pb.QueueElement_RefreshWant{
 						RefreshWant: &pb.RefreshWant{
 							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_WANTED},
@@ -450,8 +452,9 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			if entry.GetState() != pb.WantState_PENDING {
 				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING}, list.GetName())
 				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Auth:    token,
-					RunDate: time.Now().UnixNano(),
+					Auth:      token,
+					Intention: "From Wantlist",
+					RunDate:   time.Now().UnixNano(),
 					Entry: &pb.QueueElement_RefreshWant{
 						RefreshWant: &pb.RefreshWant{
 							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING},
@@ -487,8 +490,9 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 				return false, err
 			}
 			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				Auth:    token,
-				RunDate: time.Now().UnixNano(),
+				Intention: "From Wantlist",
+				Auth:      token,
+				RunDate:   time.Now().UnixNano(),
 				Entry: &pb.QueueElement_RefreshWant{
 					RefreshWant: &pb.RefreshWant{
 						Want: &pb.Want{Id: entry.GetId(), State: entry.GetState()},

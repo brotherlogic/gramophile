@@ -38,8 +38,9 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 	for _, m := range masters {
 		_, err = enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano(),
-				Auth:    token,
+				Intention: "From refresh release dates",
+				RunDate:   time.Now().UnixNano(),
+				Auth:      token,
 				Entry: &pb.QueueElement_RefreshEarliestReleaseDate{
 					RefreshEarliestReleaseDate: &pb.RefreshEarliestReleaseDate{
 						Iid:                   iid,
@@ -122,9 +123,10 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, u *pb.StoredU
 			// Since we updated the wants, we should also trigger a wants sync
 			_, err = enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano(),
-					Auth:    token,
-					Entry:   &pb.QueueElement_RefreshWantlists{},
+					Intention: "From refresh release date",
+					RunDate:   time.Now().UnixNano(),
+					Auth:      token,
+					Entry:     &pb.QueueElement_RefreshWantlists{},
 				},
 			})
 		}

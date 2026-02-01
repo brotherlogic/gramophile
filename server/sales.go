@@ -91,9 +91,10 @@ func (s *Server) AddSale(ctx context.Context, req *pb.AddSaleRequest) (*pb.AddSa
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate:  time.Now().UnixNano(),
-			Auth:     user.GetAuth().GetToken(),
-			Priority: pb.QueueElement_PRIORITY_LOW,
+			Intention: "From AddSale",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      user.GetAuth().GetToken(),
+			Priority:  pb.QueueElement_PRIORITY_LOW,
 			Entry: &pb.QueueElement_AddSale{
 				AddSale: &pb.AddSale{
 					InstanceId: foundRecord.GetRelease().GetInstanceId(),
