@@ -40,6 +40,7 @@ func runValidationLoop(ctx context.Context) error {
 			if time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
 				_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Intention:        "From Validator",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 10,
@@ -57,6 +58,7 @@ func runValidationLoop(ctx context.Context) error {
 			if time.Since(time.Unix(0, user.GetLastCollectionCheck())) > queuelogic.CollectionCheck {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Intention:        "From Validator",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
@@ -94,6 +96,7 @@ func runValidationLoop(ctx context.Context) error {
 			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Intention:        "From Validator",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
@@ -111,6 +114,7 @@ func runValidationLoop(ctx context.Context) error {
 			if time.Since(time.Unix(0, user.GetLastWantRefresh())) > time.Hour*24 {
 				_, err = queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Intention:        "From Validator",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,

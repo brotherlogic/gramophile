@@ -8,7 +8,7 @@ require (
 	github.com/brotherlogic/godiscogs v0.0.0-20250429182651-404c7473edf8
 	github.com/brotherlogic/kubebrainz v0.37.0
 	github.com/brotherlogic/pstore v0.62.0
-	github.com/brotherlogic/recordcollection v0.0.0-20251015143532-3776574ed3ee
+	github.com/brotherlogic/recordcollection v0.0.0-20260131000040-64bb69bb4b10
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
