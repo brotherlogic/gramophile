@@ -23,9 +23,10 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 	if !req.JustState {
 		_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				Force:   true,
-				RunDate: time.Now().UnixNano(),
-				Auth:    user.GetAuth().GetToken(),
+				Force:     true,
+				RunDate:   time.Now().UnixNano(),
+				Intention: "Running from RefreshRecord",
+				Auth:      user.GetAuth().GetToken(),
 				Entry: &pb.QueueElement_RefreshRelease{
 					RefreshRelease: &pb.RefreshRelease{
 						Iid:       req.GetInstanceId(),
@@ -40,9 +41,10 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			Force:   true,
-			RunDate: time.Now().UnixNano(),
-			Auth:    user.GetAuth().GetToken(),
+			Force:     true,
+			RunDate:   time.Now().UnixNano(),
+			Intention: "Running from RefreshRecord",
+			Auth:      user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshState{
 				RefreshState: &pb.RefreshState{
 					Iid: req.GetInstanceId(),
