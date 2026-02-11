@@ -582,7 +582,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano(),
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano(),
 				Entry: &pb.QueueElement_MoveRecords{
 					MoveRecords: &pb.MoveRecords{},
 				},
@@ -806,7 +807,8 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		//Move records
 		q.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
-				RunDate: time.Now().UnixNano(),
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano(),
 				Entry: &pb.QueueElement_MoveRecords{
 					MoveRecords: &pb.MoveRecords{}},
 				Auth: entry.GetAuth(),
@@ -899,8 +901,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					Force:   entry.GetForce(),
-					RunDate: time.Now().UnixNano() + int64(rval) + 10,
+					Intention: entry.GetIntention(),
+					Force:     entry.GetForce(),
+					RunDate:   time.Now().UnixNano() + int64(rval) + 10,
 					Entry: &pb.QueueElement_MoveRecords{
 						MoveRecords: &pb.MoveRecords{}},
 					Auth: entry.GetAuth(),

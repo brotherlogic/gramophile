@@ -6,11 +6,11 @@
 	"image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		"ghcr.io/devcontainers/features/common-utils:1": {
+		"ghcr.io/devcontainers/features/common-utils:2": {
 			"installOhMyZsh": true,
 			"upgradePackages": true,
 			"installZsh": true,
-			"changeDefaultShellToZsh": true
+			"configureZshAsDefaultShell": true
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
