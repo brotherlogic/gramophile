@@ -174,7 +174,7 @@ func main() {
 		for {
 			t1 := time.Now()
 			mContext := metadata.AppendToOutgoingContext(context.Background(), "auth-token", os.Getenv("token"))
-			ctx, cancel := context.WithTimeout(mContext, time.Minute)
+			ctx, cancel := context.WithTimeout(mContext, time.Minute*10)
 			err := runLoop(ctx)
 			log.Printf("Ran loop: %v", err)
 			cancel()
