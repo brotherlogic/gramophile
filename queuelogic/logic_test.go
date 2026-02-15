@@ -202,6 +202,52 @@ func TestEnqueuePriority(t *testing.T) {
 	}
 }
 
+func TestEnqueuePriority_Normal(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	_, err := q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   200,
+			Priority:  pb.QueueElement_PRIORITY_LOW,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       1234,
+					Intention: "Just Testing LOW",
+				},
+			}}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue: %v", err)
+	}
+
+	_, err = q.Enqueue(context.Background(), &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From TEst",
+			RunDate:   400,
+			Priority:  pb.QueueElement_PRIORITY_NORMAL,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       12345,
+					Intention: "Just Testing NORMAL",
+				},
+			}}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue: %v", err)
+	}
+
+	entry, err := q.getNextEntry(context.Background())
+	if err != nil {
+		t.Fatalf("Unable to get next entry: %v", err)
+	}
+
+	if entry.GetPriority() != pb.QueueElement_PRIORITY_NORMAL || entry.GetRefreshRelease().GetIntention() != "Just Testing NORMAL" {
+		t.Errorf("Bad element returned: %v", entry)
+	}
+}
+
 func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 	ctx := getTestContext(123)
 

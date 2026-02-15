@@ -11,12 +11,13 @@
 			"upgradePackages": true,
 			"installZsh": true,
 			"configureZshAsDefaultShell": true
-		}
+		},
+		"ghcr.io/devcontainers-extra/features/protoc:1": {}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "go version"
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y protobuf-compiler && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest && mkdir -p /go/src/github.com/brotherlogic && git clone http://github.com/brotherlogic/discogs /go/src/github.com/brotherlogic/discogs",
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
