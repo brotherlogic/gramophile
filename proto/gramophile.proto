@@ -366,6 +366,7 @@ message QueueElement {
         PRIORITY_UNKNOWN = 0;
         PRIORITY_LOW = 1;
         PRIORITY_HIGH = 2;
+        PRIORITY_NORMAL = 3;
     }
     Priority priority = 29;
 
