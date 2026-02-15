@@ -21,7 +21,7 @@ func (s *Server) GetUser(ctx context.Context, _ *pb.GetUserRequest) (*pb.GetUser
 	return &pb.GetUserResponse{User: user}, nil
 }
 
-func (s *Server) GetUsers(ctx context.Context, _ *pb.GetUsersRequest) (*pb.GetUsersResponse, error) {
+func (s *Server) GetUsers(ctx context.Context, req *pb.GetUsersRequest) (*pb.GetUsersResponse, error) {
 	keys, err := s.d.GetUsers(ctx)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,9 @@ func (s *Server) GetUsers(ctx context.Context, _ *pb.GetUsersRequest) (*pb.GetUs
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, user)
+		if req.GetState() == pb.StoredUser_USER_STATE_UNKNOWN || user.GetState() != req.GetState() {
+			users = append(users, user)
+		}
 	}
 
 	return &pb.GetUsersResponse{Users: users}, nil

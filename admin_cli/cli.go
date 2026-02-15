@@ -71,6 +71,15 @@ func main() {
 		for _, user := range users.GetUsers() {
 			fmt.Printf("%v\n", user)
 		}
+	case "waitlist":
+		users, err := sclient.GetUsers(ctx, &pb.GetUsersRequest{State: pb.StoredUser_USER_STATE_IN_WAITLIST})
+		if err != nil {
+			log.Fatalf("Error getting users: %v", err)
+		}
+		fmt.Printf("%v users\n", len(users.GetUsers()))
+		for _, user := range users.GetUsers() {
+			fmt.Printf("%v\n", user)
+		}
 	case "refresh":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
 			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshUser{RefreshUser: &pb.RefreshUserEntry{Auth: os.Args[3]}}},
