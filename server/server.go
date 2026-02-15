@@ -168,3 +168,15 @@ func (s *Server) updateRecord(ctx context.Context, iid int32, id int32) error {
 	})
 	return err
 }
+
+func (s *Server) AuthCheck(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	// Always allow login or url requests
+	if info.FullMethod != "GramophileEService/GetLogin" && info.FullMethod == "GramophileEService/GetURL" {
+		user, err := s.getUser(ctx)
+		if err != nil || user.GetState() != pb.StoredUser_USER_STATE_LIVE {
+			return nil, status.Errorf(codes.Unauthenticated, "User is still in waitlst")
+		}
+	}
+
+	return handler(ctx, req)
+}
