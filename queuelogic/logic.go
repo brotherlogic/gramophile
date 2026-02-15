@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"math/rand"
 	"runtime/debug"
 	"sort"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -29,8 +31,10 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
+	pbgd "github.com/brotherlogic/godiscogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/pstore/proto"
+	pbrc "github.com/brotherlogic/recordcollection/proto"
 )
 
 var (
@@ -490,6 +494,34 @@ func (q *Queue) Execute(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	return &pb.EnqueueResponse{}, err
 }
 
+func generateContext(ctx context.Context, origin string) context.Context {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	hostname := "kubernetes"
+	tracev := fmt.Sprintf("%v-%v-%v-%v", origin, time.Now().UnixNano(), r.Int63(), hostname)
+	mContext := metadata.AppendToOutgoingContext(ctx, "trace-id", tracev)
+	return mContext
+}
+
+func (q *Queue) updateRecord(ctx context.Context, iid int32, id int32) error {
+	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := pbrc.NewRecordCollectionServiceClient(conn)
+	nctx := generateContext(ctx, "gramophile")
+	_, err = client.UpdateRecord(nctx, &pbrc.UpdateRecordRequest{
+		Reason: "ping_from_gramophile",
+		Update: &pbrc.Record{
+			Release:  &pbgd.Release{Id: id, InstanceId: iid},
+			Metadata: &pbrc.ReleaseMetadata{NeedsGramUpdate: true},
+		},
+	})
+	return err
+}
+
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
 
@@ -813,6 +845,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					MoveRecords: &pb.MoveRecords{}},
 				Auth: entry.GetAuth(),
 			}})
+		if d.GetUserId() == 150295 {
+			nerr := q.updateRecord(ctx, int32(entry.GetRefreshIntents().GetInstanceId()), int32(r.GetRelease().GetId()))
+			if nerr != nil {
+				log.Printf("error on record update: %v", nerr)
+			}
+		}
 
 		return q.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
 	case *pb.QueueElement_RefreshUser:
