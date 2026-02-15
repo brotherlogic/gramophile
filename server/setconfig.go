@@ -232,28 +232,6 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 		log.Printf("Added digital wantlist: %v", u.GetConfig().GetWantsListConfig())
 	}
 
-	// Apply the config
-	keys, err := s.d.GetRecords(ctx, u.GetUser().GetDiscogsUserId())
-	if err != nil {
-		return nil, fmt.Errorf("error getting records: %w", err)
-	}
-	for _, key := range keys {
-		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), key)
-		if err != nil {
-			return nil, fmt.Errorf("error getting record from key: %v -> %w", key, err)
-		}
-
-		err = config.Apply(u.Config, r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to apply config: %w", err)
-		}
-
-		err = s.d.SaveRecord(ctx, u.GetUser().GetDiscogsUserId(), r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to save record: %w", err)
-		}
-	}
-
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention:        "From new config",
