@@ -57,6 +57,20 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 			}
 			user.User = duser
 
+			// Trigger a low-pri collection update
+			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 15,
+					Priority:         pb.QueueElement_PRIORITY_LOW,
+					Intention:        "New User Refresh",
+					Entry: &pb.QueueElement_RefreshCollectionEntry{
+						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+					},
+				},
+			})
+
 			return &pb.GetLoginResponse{Auth: user.GetAuth()}, s.d.SaveUser(ctx, user)
 		}
 	}
