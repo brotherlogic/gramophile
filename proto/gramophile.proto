@@ -554,6 +554,14 @@ message StoredUser {
     repeated FolderMove moves = 10;
 
     UpdateControl updates = 13;
+
+    enum UserState {
+        USER_STATE_UNKNOWN = 0;
+        USER_STATE_REFRESHING = 1;
+        USER_STATE_IN_WAITLIST = 2;
+        USER_STATE_LIVE = 3;
+    }
+    UserState state = 16;
 }
 
 message GramophileAuth {

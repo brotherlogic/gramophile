@@ -909,6 +909,13 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 					Auth: entry.GetAuth(),
 				}})
 			qlog(ctx, "Found %v", err)
+			if user.GetState() == pb.StoredUser_USER_STATE_REFRESHING {
+				user.State = pb.StoredUser_USER_STATE_IN_WAITLIST
+				err = q.db.SaveUser(ctx, user)
+				if err != nil {
+					return fmt.Errorf("unable to save user: %w", err)
+				}
+			}
 			if err != nil {
 				return err
 			}

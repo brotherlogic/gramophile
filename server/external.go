@@ -56,6 +56,7 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 				return nil, err
 			}
 			user.User = duser
+			user.State = pb.StoredUser_USER_STATE_REFRESHING
 
 			// Trigger a low-pri collection update
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
