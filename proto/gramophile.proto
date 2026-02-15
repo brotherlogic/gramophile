@@ -824,7 +824,9 @@ message GetUserResponse {
    StoredUser user = 1;
 }
 
-message GetUsersRequest {}
+message GetUsersRequest {
+    StoredUser.UserState state = 1;
+}
 message GetUsersResponse {
     repeated StoredUser users = 1;
 }
