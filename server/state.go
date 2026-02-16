@@ -6,11 +6,21 @@ import (
 	"sync"
 
 	"github.com/brotherlogic/gramophile/config"
+	"go.opentelemetry.io/otel"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+const name = "github.com/brotherlogic/gramophile/server"
+
+var (
+	tracer = otel.Tracer(name)
+)
+
 func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.GetStateResponse, error) {
+	ctx, span := tracer.Start(ctx, "get-state")
+	defer span.End()
+
 	key, err := s.getUser(ctx)
 	if err != nil {
 		return nil, err
