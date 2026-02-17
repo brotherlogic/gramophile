@@ -680,7 +680,7 @@ func (x CleanRequest_CleanType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CleanRequest_CleanType.Descriptor instead.
 func (CleanRequest_CleanType) EnumDescriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{114, 0}
+	return file_gramophile_proto_rawDescGZIP(), []int{116, 0}
 }
 
 type DBChange struct {
@@ -7722,6 +7722,94 @@ func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
 	return file_gramophile_proto_rawDescGZIP(), []int{113}
 }
 
+type UpgradeUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	NewState      StoredUser_UserState   `protobuf:"varint,2,opt,name=new_state,json=newState,proto3,enum=gramophile.StoredUser_UserState" json:"new_state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpgradeUserRequest) Reset() {
+	*x = UpgradeUserRequest{}
+	mi := &file_gramophile_proto_msgTypes[114]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpgradeUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpgradeUserRequest) ProtoMessage() {}
+
+func (x *UpgradeUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gramophile_proto_msgTypes[114]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpgradeUserRequest.ProtoReflect.Descriptor instead.
+func (*UpgradeUserRequest) Descriptor() ([]byte, []int) {
+	return file_gramophile_proto_rawDescGZIP(), []int{114}
+}
+
+func (x *UpgradeUserRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *UpgradeUserRequest) GetNewState() StoredUser_UserState {
+	if x != nil {
+		return x.NewState
+	}
+	return StoredUser_USER_STATE_UNKNOWN
+}
+
+type UpgradeUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpgradeUserResponse) Reset() {
+	*x = UpgradeUserResponse{}
+	mi := &file_gramophile_proto_msgTypes[115]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpgradeUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpgradeUserResponse) ProtoMessage() {}
+
+func (x *UpgradeUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gramophile_proto_msgTypes[115]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpgradeUserResponse.ProtoReflect.Descriptor instead.
+func (*UpgradeUserResponse) Descriptor() ([]byte, []int) {
+	return file_gramophile_proto_rawDescGZIP(), []int{115}
+}
+
 type CleanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          CleanRequest_CleanType `protobuf:"varint,1,opt,name=type,proto3,enum=gramophile.CleanRequest_CleanType" json:"type,omitempty"`
@@ -7731,7 +7819,7 @@ type CleanRequest struct {
 
 func (x *CleanRequest) Reset() {
 	*x = CleanRequest{}
-	mi := &file_gramophile_proto_msgTypes[114]
+	mi := &file_gramophile_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7743,7 +7831,7 @@ func (x *CleanRequest) String() string {
 func (*CleanRequest) ProtoMessage() {}
 
 func (x *CleanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[114]
+	mi := &file_gramophile_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7756,7 +7844,7 @@ func (x *CleanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanRequest.ProtoReflect.Descriptor instead.
 func (*CleanRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{114}
+	return file_gramophile_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *CleanRequest) GetType() CleanRequest_CleanType {
@@ -7774,7 +7862,7 @@ type CleanResponse struct {
 
 func (x *CleanResponse) Reset() {
 	*x = CleanResponse{}
-	mi := &file_gramophile_proto_msgTypes[115]
+	mi := &file_gramophile_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7786,7 +7874,7 @@ func (x *CleanResponse) String() string {
 func (*CleanResponse) ProtoMessage() {}
 
 func (x *CleanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[115]
+	mi := &file_gramophile_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7799,7 +7887,7 @@ func (x *CleanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanResponse.ProtoReflect.Descriptor instead.
 func (*CleanResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{115}
+	return file_gramophile_proto_rawDescGZIP(), []int{117}
 }
 
 var File_gramophile_proto protoreflect.FileDescriptor
@@ -8367,7 +8455,11 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x05users\x18\x01 \x03(\v2\x16.gramophile.StoredUserR\x05users\"#\n" +
 	"\x11DeleteUserRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x14\n" +
-	"\x12DeleteUserResponse\"\x8e\x01\n" +
+	"\x12DeleteUserResponse\"o\n" +
+	"\x12UpgradeUserRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12=\n" +
+	"\tnew_state\x18\x02 \x01(\x0e2 .gramophile.StoredUser.UserStateR\bnewState\"\x15\n" +
+	"\x13UpgradeUserResponse\"\x8e\x01\n" +
 	"\fCleanRequest\x126\n" +
 	"\x04type\x18\x01 \x01(\x0e2\".gramophile.CleanRequest.CleanTypeR\x04type\"F\n" +
 	"\tCleanType\x12\f\n" +
@@ -8428,12 +8520,13 @@ const file_gramophile_proto_rawDesc = "" +
 	"\aGetSale\x12\x1a.gramophile.GetSaleRequest\x1a\x1b.gramophile.GetSaleResponse\"\x00\x12D\n" +
 	"\aAddSale\x12\x1a.gramophile.AddSaleRequest\x1a\x1b.gramophile.AddSaleResponse\"\x00\x12G\n" +
 	"\bGetStats\x12\x1b.gramophile.GetStatsRequest\x1a\x1c.gramophile.GetStatsResponse\"\x00\x12J\n" +
-	"\tAddRecord\x12\x1c.gramophile.AddRecordRequest\x1a\x1d.gramophile.AddRecordResponse\"\x002\xeb\x01\n" +
+	"\tAddRecord\x12\x1c.gramophile.AddRecordRequest\x1a\x1d.gramophile.AddRecordResponse\"\x002\xbd\x02\n" +
 	"\x11GramophileService\x12G\n" +
 	"\bGetUsers\x12\x1b.gramophile.GetUsersRequest\x1a\x1c.gramophile.GetUsersResponse\"\x00\x12M\n" +
 	"\n" +
 	"DeleteUser\x12\x1d.gramophile.DeleteUserRequest\x1a\x1e.gramophile.DeleteUserResponse\"\x00\x12>\n" +
-	"\x05Clean\x12\x18.gramophile.CleanRequest\x1a\x19.gramophile.CleanResponse\"\x00B*Z(github.com/brotherlogic/gramophile/protob\x06proto3"
+	"\x05Clean\x12\x18.gramophile.CleanRequest\x1a\x19.gramophile.CleanResponse\"\x00\x12P\n" +
+	"\vUpgradeUser\x12\x1e.gramophile.UpgradeUserRequest\x1a\x1f.gramophile.UpgradeUserResponse\"\x00B*Z(github.com/brotherlogic/gramophile/protob\x06proto3"
 
 var (
 	file_gramophile_proto_rawDescOnce sync.Once
@@ -8448,7 +8541,7 @@ func file_gramophile_proto_rawDescGZIP() []byte {
 }
 
 var file_gramophile_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 117)
+var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 119)
 var file_gramophile_proto_goTypes = []any{
 	(WantState)(0),                           // 0: gramophile.WantState
 	(NoncomplianceIssue)(0),                  // 1: gramophile.NoncomplianceIssue
@@ -8577,22 +8670,24 @@ var file_gramophile_proto_goTypes = []any{
 	(*GetUsersResponse)(nil),                 // 124: gramophile.GetUsersResponse
 	(*DeleteUserRequest)(nil),                // 125: gramophile.DeleteUserRequest
 	(*DeleteUserResponse)(nil),               // 126: gramophile.DeleteUserResponse
-	(*CleanRequest)(nil),                     // 127: gramophile.CleanRequest
-	(*CleanResponse)(nil),                    // 128: gramophile.CleanResponse
-	nil,                                      // 129: gramophile.UpdateControl.LastBackfillEntry
-	(WantlistType)(0),                        // 130: gramophile.WantlistType
-	(*proto.Release)(nil),                    // 131: discogs.Release
-	(*proto.Price)(nil),                      // 132: discogs.Price
-	(proto.SaleStatus)(0),                    // 133: discogs.SaleStatus
-	(SaleUpdateType)(0),                      // 134: gramophile.SaleUpdateType
-	(*proto.SaleParams)(nil),                 // 135: discogs.SaleParams
-	(*proto.User)(nil),                       // 136: discogs.User
-	(*GramophileConfig)(nil),                 // 137: gramophile.GramophileConfig
-	(*proto.Folder)(nil),                     // 138: discogs.Folder
-	(*FolderMove)(nil),                       // 139: gramophile.FolderMove
-	(*OrganisationSnapshot)(nil),             // 140: gramophile.OrganisationSnapshot
-	(*CollectionStats)(nil),                  // 141: gramophile.CollectionStats
-	(*SaleStats)(nil),                        // 142: gramophile.SaleStats
+	(*UpgradeUserRequest)(nil),               // 127: gramophile.UpgradeUserRequest
+	(*UpgradeUserResponse)(nil),              // 128: gramophile.UpgradeUserResponse
+	(*CleanRequest)(nil),                     // 129: gramophile.CleanRequest
+	(*CleanResponse)(nil),                    // 130: gramophile.CleanResponse
+	nil,                                      // 131: gramophile.UpdateControl.LastBackfillEntry
+	(WantlistType)(0),                        // 132: gramophile.WantlistType
+	(*proto.Release)(nil),                    // 133: discogs.Release
+	(*proto.Price)(nil),                      // 134: discogs.Price
+	(proto.SaleStatus)(0),                    // 135: discogs.SaleStatus
+	(SaleUpdateType)(0),                      // 136: gramophile.SaleUpdateType
+	(*proto.SaleParams)(nil),                 // 137: discogs.SaleParams
+	(*proto.User)(nil),                       // 138: discogs.User
+	(*GramophileConfig)(nil),                 // 139: gramophile.GramophileConfig
+	(*proto.Folder)(nil),                     // 140: discogs.Folder
+	(*FolderMove)(nil),                       // 141: gramophile.FolderMove
+	(*OrganisationSnapshot)(nil),             // 142: gramophile.OrganisationSnapshot
+	(*CollectionStats)(nil),                  // 143: gramophile.CollectionStats
+	(*SaleStats)(nil),                        // 144: gramophile.SaleStats
 }
 var file_gramophile_proto_depIdxs = []int32{
 	5,   // 0: gramophile.DBChange.type:type_name -> gramophile.DBChange.Type
@@ -8604,37 +8699,37 @@ var file_gramophile_proto_depIdxs = []int32{
 	15,  // 6: gramophile.PrintMove.destination:type_name -> gramophile.Location
 	16,  // 7: gramophile.Location.before:type_name -> gramophile.Context
 	16,  // 8: gramophile.Location.after:type_name -> gramophile.Context
-	130, // 9: gramophile.Wantlist.type:type_name -> gramophile.WantlistType
+	132, // 9: gramophile.Wantlist.type:type_name -> gramophile.WantlistType
 	18,  // 10: gramophile.Wantlist.entries:type_name -> gramophile.WantlistEntry
 	19,  // 11: gramophile.Wantlist.global_filter:type_name -> gramophile.WantFilter
 	0,   // 12: gramophile.WantlistEntry.state:type_name -> gramophile.WantState
 	0,   // 13: gramophile.Want.state:type_name -> gramophile.WantState
 	0,   // 14: gramophile.Want.intended_state:type_name -> gramophile.WantState
 	19,  // 15: gramophile.Want.master_filter:type_name -> gramophile.WantFilter
-	129, // 16: gramophile.UpdateControl.lastBackfill:type_name -> gramophile.UpdateControl.LastBackfillEntry
+	131, // 16: gramophile.UpdateControl.lastBackfill:type_name -> gramophile.UpdateControl.LastBackfillEntry
 	23,  // 17: gramophile.RecordUpdates.updates:type_name -> gramophile.RecordUpdate
 	2,   // 18: gramophile.RecordUpdate.type:type_name -> gramophile.UpdateType
 	25,  // 19: gramophile.WantUpdate.updates:type_name -> gramophile.Update
 	26,  // 20: gramophile.Update.changes:type_name -> gramophile.Change
 	6,   // 21: gramophile.Change.type:type_name -> gramophile.Change.ChangeType
-	131, // 22: gramophile.Record.release:type_name -> discogs.Release
+	133, // 22: gramophile.Record.release:type_name -> discogs.Release
 	1,   // 23: gramophile.Record.issues:type_name -> gramophile.NoncomplianceIssue
 	3,   // 24: gramophile.Record.keep_status:type_name -> gramophile.KeepStatus
-	132, // 25: gramophile.Record.median_price:type_name -> discogs.Price
-	132, // 26: gramophile.Record.low_price:type_name -> discogs.Price
-	132, // 27: gramophile.Record.high_price:type_name -> discogs.Price
+	134, // 25: gramophile.Record.median_price:type_name -> discogs.Price
+	134, // 26: gramophile.Record.low_price:type_name -> discogs.Price
+	134, // 27: gramophile.Record.high_price:type_name -> discogs.Price
 	28,  // 28: gramophile.Record.digital_versions:type_name -> gramophile.DigitalVersion
 	29,  // 29: gramophile.Record.score_history:type_name -> gramophile.Score
 	7,   // 30: gramophile.DigitalVersion.digital_version_source:type_name -> gramophile.DigitalVersion.DigitalVersionSource
 	4,   // 31: gramophile.Score.listen_status:type_name -> gramophile.ListenStatus
-	133, // 32: gramophile.SaleInfo.sale_state:type_name -> discogs.SaleStatus
-	132, // 33: gramophile.SaleInfo.current_price:type_name -> discogs.Price
-	132, // 34: gramophile.SaleInfo.initial_price:type_name -> discogs.Price
-	132, // 35: gramophile.SaleInfo.median_price:type_name -> discogs.Price
-	132, // 36: gramophile.SaleInfo.low_price:type_name -> discogs.Price
+	135, // 32: gramophile.SaleInfo.sale_state:type_name -> discogs.SaleStatus
+	134, // 33: gramophile.SaleInfo.current_price:type_name -> discogs.Price
+	134, // 34: gramophile.SaleInfo.initial_price:type_name -> discogs.Price
+	134, // 35: gramophile.SaleInfo.median_price:type_name -> discogs.Price
+	134, // 36: gramophile.SaleInfo.low_price:type_name -> discogs.Price
 	31,  // 37: gramophile.SaleInfo.updates:type_name -> gramophile.PriceUpdate
-	134, // 38: gramophile.SaleInfo.sale_update_override:type_name -> gramophile.SaleUpdateType
-	132, // 39: gramophile.PriceUpdate.set_price:type_name -> discogs.Price
+	136, // 38: gramophile.SaleInfo.sale_update_override:type_name -> gramophile.SaleUpdateType
+	134, // 39: gramophile.PriceUpdate.set_price:type_name -> discogs.Price
 	3,   // 40: gramophile.Intent.keep:type_name -> gramophile.KeepStatus
 	4,   // 41: gramophile.Intent.new_score_listen:type_name -> gramophile.ListenStatus
 	8,   // 42: gramophile.Intent.set_oversize:type_name -> gramophile.Intent.SetOversize
@@ -8665,7 +8760,7 @@ var file_gramophile_proto_depIdxs = []int32{
 	38,  // 67: gramophile.QueueElement.record_history:type_name -> gramophile.RecordHistory
 	36,  // 68: gramophile.QueueElement.add_sale:type_name -> gramophile.AddSale
 	9,   // 69: gramophile.QueueElement.priority:type_name -> gramophile.QueueElement.Priority
-	135, // 70: gramophile.AddSale.saleParams:type_name -> discogs.SaleParams
+	137, // 70: gramophile.AddSale.saleParams:type_name -> discogs.SaleParams
 	2,   // 71: gramophile.FanoutHistory.type:type_name -> gramophile.UpdateType
 	2,   // 72: gramophile.RecordHistory.type:type_name -> gramophile.UpdateType
 	20,  // 73: gramophile.AddMasterWant.want:type_name -> gramophile.Want
@@ -8677,15 +8772,15 @@ var file_gramophile_proto_depIdxs = []int32{
 	35,  // 79: gramophile.ListResponse.elements:type_name -> gramophile.QueueElement
 	10,  // 80: gramophile.DrainRequest.drain_type:type_name -> gramophile.DrainRequest.DrainType
 	69,  // 81: gramophile.StoredUser.auth:type_name -> gramophile.GramophileAuth
-	136, // 82: gramophile.StoredUser.user:type_name -> discogs.User
-	137, // 83: gramophile.StoredUser.config:type_name -> gramophile.GramophileConfig
-	138, // 84: gramophile.StoredUser.folders:type_name -> discogs.Folder
-	139, // 85: gramophile.StoredUser.moves:type_name -> gramophile.FolderMove
+	138, // 82: gramophile.StoredUser.user:type_name -> discogs.User
+	139, // 83: gramophile.StoredUser.config:type_name -> gramophile.GramophileConfig
+	140, // 84: gramophile.StoredUser.folders:type_name -> discogs.Folder
+	141, // 85: gramophile.StoredUser.moves:type_name -> gramophile.FolderMove
 	21,  // 86: gramophile.StoredUser.updates:type_name -> gramophile.UpdateControl
 	11,  // 87: gramophile.StoredUser.state:type_name -> gramophile.StoredUser.UserState
 	71,  // 88: gramophile.UserLoginAttempts.attempts:type_name -> gramophile.UserLoginAttempt
 	69,  // 89: gramophile.GetLoginResponse.auth:type_name -> gramophile.GramophileAuth
-	137, // 90: gramophile.SetConfigRequest.config:type_name -> gramophile.GramophileConfig
+	139, // 90: gramophile.SetConfigRequest.config:type_name -> gramophile.GramophileConfig
 	32,  // 91: gramophile.SetIntentRequest.intent:type_name -> gramophile.Intent
 	87,  // 92: gramophile.GetRecordRequest.get_record_with_issue:type_name -> gramophile.GetRecordWithIssue
 	88,  // 93: gramophile.GetRecordRequest.get_record_to_listen_to:type_name -> gramophile.GetRecordToListenTo
@@ -8696,14 +8791,14 @@ var file_gramophile_proto_depIdxs = []int32{
 	30,  // 98: gramophile.RecordResponse.sale_info:type_name -> gramophile.SaleInfo
 	27,  // 99: gramophile.RecordSet.records:type_name -> gramophile.Record
 	84,  // 100: gramophile.GetRecordResponse.records:type_name -> gramophile.RecordResponse
-	140, // 101: gramophile.GetOrgResponse.snapshot:type_name -> gramophile.OrganisationSnapshot
-	130, // 102: gramophile.AddWantlistRequest.type:type_name -> gramophile.WantlistType
-	141, // 103: gramophile.GetStatsResponse.collection_stats:type_name -> gramophile.CollectionStats
-	142, // 104: gramophile.GetStatsResponse.sale_stats:type_name -> gramophile.SaleStats
-	135, // 105: gramophile.AddSaleRequest.params:type_name -> discogs.SaleParams
+	142, // 101: gramophile.GetOrgResponse.snapshot:type_name -> gramophile.OrganisationSnapshot
+	132, // 102: gramophile.AddWantlistRequest.type:type_name -> gramophile.WantlistType
+	143, // 103: gramophile.GetStatsResponse.collection_stats:type_name -> gramophile.CollectionStats
+	144, // 104: gramophile.GetStatsResponse.sale_stats:type_name -> gramophile.SaleStats
+	137, // 105: gramophile.AddSaleRequest.params:type_name -> discogs.SaleParams
 	30,  // 106: gramophile.GetSaleResponse.sales:type_name -> gramophile.SaleInfo
 	17,  // 107: gramophile.ListWantlistsResponse.lists:type_name -> gramophile.Wantlist
-	130, // 108: gramophile.UpdateWantlistRequest.new_type:type_name -> gramophile.WantlistType
+	132, // 108: gramophile.UpdateWantlistRequest.new_type:type_name -> gramophile.WantlistType
 	112, // 109: gramophile.GetWantsResponse.wants:type_name -> gramophile.WantResponse
 	20,  // 110: gramophile.WantResponse.want:type_name -> gramophile.Want
 	25,  // 111: gramophile.WantResponse.updates:type_name -> gramophile.Update
@@ -8712,64 +8807,67 @@ var file_gramophile_proto_depIdxs = []int32{
 	68,  // 114: gramophile.GetUserResponse.user:type_name -> gramophile.StoredUser
 	11,  // 115: gramophile.GetUsersRequest.state:type_name -> gramophile.StoredUser.UserState
 	68,  // 116: gramophile.GetUsersResponse.users:type_name -> gramophile.StoredUser
-	12,  // 117: gramophile.CleanRequest.type:type_name -> gramophile.CleanRequest.CleanType
-	62,  // 118: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
-	62,  // 119: gramophile.QueueService.Execute:input_type -> gramophile.EnqueueRequest
-	64,  // 120: gramophile.QueueService.List:input_type -> gramophile.ListRequest
-	66,  // 121: gramophile.QueueService.Drain:input_type -> gramophile.DrainRequest
-	72,  // 122: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
-	74,  // 123: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
-	121, // 124: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
-	76,  // 125: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
-	78,  // 126: gramophile.GramophileEService.SetConfig:input_type -> gramophile.SetConfigRequest
-	80,  // 127: gramophile.GramophileEService.SetIntent:input_type -> gramophile.SetIntentRequest
-	82,  // 128: gramophile.GramophileEService.GetRecord:input_type -> gramophile.GetRecordRequest
-	96,  // 129: gramophile.GramophileEService.RefreshRecord:input_type -> gramophile.RefreshRecordRequest
-	90,  // 130: gramophile.GramophileEService.GetOrg:input_type -> gramophile.GetOrgRequest
-	92,  // 131: gramophile.GramophileEService.SetOrgSnapshot:input_type -> gramophile.SetOrgSnapshotRequest
-	115, // 132: gramophile.GramophileEService.AddWant:input_type -> gramophile.AddWantRequest
-	110, // 133: gramophile.GramophileEService.GetWants:input_type -> gramophile.GetWantsRequest
-	113, // 134: gramophile.GramophileEService.RefreshWant:input_type -> gramophile.RefreshWantRequest
-	119, // 135: gramophile.GramophileEService.GetWantlist:input_type -> gramophile.GetWantlistRequest
-	106, // 136: gramophile.GramophileEService.ListWantlists:input_type -> gramophile.ListWantlistsRequest
-	104, // 137: gramophile.GramophileEService.GetSale:input_type -> gramophile.GetSaleRequest
-	100, // 138: gramophile.GramophileEService.AddSale:input_type -> gramophile.AddSaleRequest
-	98,  // 139: gramophile.GramophileEService.GetStats:input_type -> gramophile.GetStatsRequest
-	102, // 140: gramophile.GramophileEService.AddRecord:input_type -> gramophile.AddRecordRequest
-	123, // 141: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
-	125, // 142: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
-	127, // 143: gramophile.GramophileService.Clean:input_type -> gramophile.CleanRequest
-	63,  // 144: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
-	63,  // 145: gramophile.QueueService.Execute:output_type -> gramophile.EnqueueResponse
-	65,  // 146: gramophile.QueueService.List:output_type -> gramophile.ListResponse
-	67,  // 147: gramophile.QueueService.Drain:output_type -> gramophile.DrainResponse
-	73,  // 148: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
-	75,  // 149: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
-	122, // 150: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
-	77,  // 151: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
-	79,  // 152: gramophile.GramophileEService.SetConfig:output_type -> gramophile.SetConfigResponse
-	81,  // 153: gramophile.GramophileEService.SetIntent:output_type -> gramophile.SetIntentResponse
-	89,  // 154: gramophile.GramophileEService.GetRecord:output_type -> gramophile.GetRecordResponse
-	97,  // 155: gramophile.GramophileEService.RefreshRecord:output_type -> gramophile.RefreshRecordResponse
-	91,  // 156: gramophile.GramophileEService.GetOrg:output_type -> gramophile.GetOrgResponse
-	93,  // 157: gramophile.GramophileEService.SetOrgSnapshot:output_type -> gramophile.SetOrgSnapshotResponse
-	116, // 158: gramophile.GramophileEService.AddWant:output_type -> gramophile.AddWantResponse
-	111, // 159: gramophile.GramophileEService.GetWants:output_type -> gramophile.GetWantsResponse
-	114, // 160: gramophile.GramophileEService.RefreshWant:output_type -> gramophile.RefreshWantResponse
-	120, // 161: gramophile.GramophileEService.GetWantlist:output_type -> gramophile.GetWantlistResponse
-	107, // 162: gramophile.GramophileEService.ListWantlists:output_type -> gramophile.ListWantlistsResponse
-	105, // 163: gramophile.GramophileEService.GetSale:output_type -> gramophile.GetSaleResponse
-	101, // 164: gramophile.GramophileEService.AddSale:output_type -> gramophile.AddSaleResponse
-	99,  // 165: gramophile.GramophileEService.GetStats:output_type -> gramophile.GetStatsResponse
-	103, // 166: gramophile.GramophileEService.AddRecord:output_type -> gramophile.AddRecordResponse
-	124, // 167: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
-	126, // 168: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
-	128, // 169: gramophile.GramophileService.Clean:output_type -> gramophile.CleanResponse
-	144, // [144:170] is the sub-list for method output_type
-	118, // [118:144] is the sub-list for method input_type
-	118, // [118:118] is the sub-list for extension type_name
-	118, // [118:118] is the sub-list for extension extendee
-	0,   // [0:118] is the sub-list for field type_name
+	11,  // 117: gramophile.UpgradeUserRequest.new_state:type_name -> gramophile.StoredUser.UserState
+	12,  // 118: gramophile.CleanRequest.type:type_name -> gramophile.CleanRequest.CleanType
+	62,  // 119: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
+	62,  // 120: gramophile.QueueService.Execute:input_type -> gramophile.EnqueueRequest
+	64,  // 121: gramophile.QueueService.List:input_type -> gramophile.ListRequest
+	66,  // 122: gramophile.QueueService.Drain:input_type -> gramophile.DrainRequest
+	72,  // 123: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
+	74,  // 124: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
+	121, // 125: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
+	76,  // 126: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
+	78,  // 127: gramophile.GramophileEService.SetConfig:input_type -> gramophile.SetConfigRequest
+	80,  // 128: gramophile.GramophileEService.SetIntent:input_type -> gramophile.SetIntentRequest
+	82,  // 129: gramophile.GramophileEService.GetRecord:input_type -> gramophile.GetRecordRequest
+	96,  // 130: gramophile.GramophileEService.RefreshRecord:input_type -> gramophile.RefreshRecordRequest
+	90,  // 131: gramophile.GramophileEService.GetOrg:input_type -> gramophile.GetOrgRequest
+	92,  // 132: gramophile.GramophileEService.SetOrgSnapshot:input_type -> gramophile.SetOrgSnapshotRequest
+	115, // 133: gramophile.GramophileEService.AddWant:input_type -> gramophile.AddWantRequest
+	110, // 134: gramophile.GramophileEService.GetWants:input_type -> gramophile.GetWantsRequest
+	113, // 135: gramophile.GramophileEService.RefreshWant:input_type -> gramophile.RefreshWantRequest
+	119, // 136: gramophile.GramophileEService.GetWantlist:input_type -> gramophile.GetWantlistRequest
+	106, // 137: gramophile.GramophileEService.ListWantlists:input_type -> gramophile.ListWantlistsRequest
+	104, // 138: gramophile.GramophileEService.GetSale:input_type -> gramophile.GetSaleRequest
+	100, // 139: gramophile.GramophileEService.AddSale:input_type -> gramophile.AddSaleRequest
+	98,  // 140: gramophile.GramophileEService.GetStats:input_type -> gramophile.GetStatsRequest
+	102, // 141: gramophile.GramophileEService.AddRecord:input_type -> gramophile.AddRecordRequest
+	123, // 142: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
+	125, // 143: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
+	129, // 144: gramophile.GramophileService.Clean:input_type -> gramophile.CleanRequest
+	127, // 145: gramophile.GramophileService.UpgradeUser:input_type -> gramophile.UpgradeUserRequest
+	63,  // 146: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
+	63,  // 147: gramophile.QueueService.Execute:output_type -> gramophile.EnqueueResponse
+	65,  // 148: gramophile.QueueService.List:output_type -> gramophile.ListResponse
+	67,  // 149: gramophile.QueueService.Drain:output_type -> gramophile.DrainResponse
+	73,  // 150: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
+	75,  // 151: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
+	122, // 152: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
+	77,  // 153: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
+	79,  // 154: gramophile.GramophileEService.SetConfig:output_type -> gramophile.SetConfigResponse
+	81,  // 155: gramophile.GramophileEService.SetIntent:output_type -> gramophile.SetIntentResponse
+	89,  // 156: gramophile.GramophileEService.GetRecord:output_type -> gramophile.GetRecordResponse
+	97,  // 157: gramophile.GramophileEService.RefreshRecord:output_type -> gramophile.RefreshRecordResponse
+	91,  // 158: gramophile.GramophileEService.GetOrg:output_type -> gramophile.GetOrgResponse
+	93,  // 159: gramophile.GramophileEService.SetOrgSnapshot:output_type -> gramophile.SetOrgSnapshotResponse
+	116, // 160: gramophile.GramophileEService.AddWant:output_type -> gramophile.AddWantResponse
+	111, // 161: gramophile.GramophileEService.GetWants:output_type -> gramophile.GetWantsResponse
+	114, // 162: gramophile.GramophileEService.RefreshWant:output_type -> gramophile.RefreshWantResponse
+	120, // 163: gramophile.GramophileEService.GetWantlist:output_type -> gramophile.GetWantlistResponse
+	107, // 164: gramophile.GramophileEService.ListWantlists:output_type -> gramophile.ListWantlistsResponse
+	105, // 165: gramophile.GramophileEService.GetSale:output_type -> gramophile.GetSaleResponse
+	101, // 166: gramophile.GramophileEService.AddSale:output_type -> gramophile.AddSaleResponse
+	99,  // 167: gramophile.GramophileEService.GetStats:output_type -> gramophile.GetStatsResponse
+	103, // 168: gramophile.GramophileEService.AddRecord:output_type -> gramophile.AddRecordResponse
+	124, // 169: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
+	126, // 170: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
+	130, // 171: gramophile.GramophileService.Clean:output_type -> gramophile.CleanResponse
+	128, // 172: gramophile.GramophileService.UpgradeUser:output_type -> gramophile.UpgradeUserResponse
+	146, // [146:173] is the sub-list for method output_type
+	119, // [119:146] is the sub-list for method input_type
+	119, // [119:119] is the sub-list for extension type_name
+	119, // [119:119] is the sub-list for extension extendee
+	0,   // [0:119] is the sub-list for field type_name
 }
 
 func init() { file_gramophile_proto_init() }
@@ -8819,7 +8917,7 @@ func file_gramophile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gramophile_proto_rawDesc), len(file_gramophile_proto_rawDesc)),
 			NumEnums:      13,
-			NumMessages:   117,
+			NumMessages:   119,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

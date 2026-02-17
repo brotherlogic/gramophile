@@ -9,6 +9,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func (s *Server) UpgradeUser(ctx context.Context, req *pb.UpgradeUserRequest) (*pb.UpgradeUserResponse, error) {
+	resp, err := s.GetUsers(ctx, &pb.GetUsersRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range resp.GetUsers() {
+		if user.GetUser().GetUsername() == req.GetUsername() {
+			user.State = req.GetNewState()
+			return &pb.UpgradeUserResponse{}, s.d.SaveUser(ctx, user)
+		}
+	}
+
+	return &pb.UpgradeUserResponse{}, status.Errorf(codes.NotFound, "User %v was not found", req.GetUsername())
+}
+
 func (s *Server) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
 	return &pb.DeleteUserResponse{}, s.d.DeleteUser(ctx, req.GetId())
 }
