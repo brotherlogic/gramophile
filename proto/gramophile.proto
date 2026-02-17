@@ -836,6 +836,13 @@ message DeleteUserRequest {
 }
 message DeleteUserResponse {}
 
+message UpgradeUserRequest {
+  string username = 1;
+  StoredUser.UserState new_state = 2;
+}
+
+message UpgradeUserResponse {}
+
 message CleanRequest {
     enum CleanType {
         NO_CLEAN = 0;
@@ -851,4 +858,5 @@ service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {};
     rpc Clean(CleanRequest) returns (CleanResponse) {};
+    rpc UpgradeUser(UpgradeUserRequest) returns (UpgradeUserResponse) {};
 }

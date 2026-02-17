@@ -32,6 +32,15 @@ func main() {
 	sclient := pb.NewGramophileServiceClient(sconn)
 
 	switch os.Args[2] {
+	case "upgrade_user":
+		resp, err := sclient.UpgradeUser(ctx, &pb.UpgradeUserRequest{
+			Username: os.Args[3],
+			NewState: pb.StoredUser_USER_STATE_LIVE,
+		})
+		if err != nil {
+			log.Fatalf("Unable to upgrade user: %v", err)
+		}
+		fmt.Printf("Upgrded: %v", resp)
 	case "tdrain":
 		resp, err := client.Drain(ctx, &pb.DrainRequest{
 			DrainType: pb.DrainRequest_JUST_RELEASE_DATES,

@@ -111,8 +111,9 @@ func (s *Server) AddWant(ctx context.Context, req *pb.AddWantRequest) (*pb.AddWa
 
 	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: time.Now().UnixNano(),
-			Auth:    user.GetAuth().GetToken(),
+			Intention: "AddWant",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshWant{
 				RefreshWant: &pb.RefreshWant{
 					Want: want,
@@ -142,8 +143,9 @@ func (s *Server) RefreshWant(ctx context.Context, req *pb.RefreshWantRequest) (*
 
 	s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: time.Now().UnixNano(),
-			Auth:    user.GetAuth().GetToken(),
+			Intention: "RefreshWants",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      user.GetAuth().GetToken(),
 			Entry: &pb.QueueElement_RefreshWant{
 				RefreshWant: &pb.RefreshWant{
 					Want: want,
