@@ -113,6 +113,7 @@ func main() {
 			log.Fatalf("%v", err)
 		}
 
+		log.Printf("Creating issue because %v", err)
 		gclient.CreateIssue(ctx, &ghpb.CreateIssueRequest{
 			User:  "brotherlogic",
 			Repo:  "gramophile",
