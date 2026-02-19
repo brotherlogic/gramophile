@@ -108,8 +108,8 @@ func main() {
 
 	if err != nil {
 		// Raise a ticket with this error
-		gclient, err := ghb_client.GetClientInternal()
-		if err != nil {
+		gclient, gerr := ghb_client.GetClientInternal()
+		if gerr != nil {
 			log.Fatalf("%v", err)
 		}
 
