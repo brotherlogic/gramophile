@@ -303,7 +303,7 @@ func (d *DB) LoadWantlist(ctx context.Context, userId int32, wantlist string) (*
 func (d *DB) LoadProberState(ctx context.Context) (*pb.ProberState, error) {
 	data, err := d.load(ctx, "gramophile/prober")
 	if err != nil {
-		if status.Code(err) == codes.OutOfRange {
+		if status.Code(err) == codes.NotFound {
 			return &pb.ProberState{}, nil
 		}
 		return nil, err
