@@ -113,6 +113,9 @@ type Database interface {
 
 	GetDiff(r1, r2 *pb.Record, typ pb.UpdateType) *pb.RecordUpdate
 	GetRecordHistory(ctx context.Context, userId int32, iid int64) ([]int64, error)
+
+	LoadProberState(ctx context.Context) (*pb.ProberState, error)
+	SaveProberState(ctx context.Context, state *pb.ProberState) error
 }
 
 func NewDatabase(ctx context.Context) Database {
@@ -295,6 +298,24 @@ func (d *DB) LoadWantlist(ctx context.Context, userId int32, wantlist string) (*
 	wl := &pb.Wantlist{}
 	err = proto.Unmarshal(data, wl)
 	return wl, err
+}
+
+func (d *DB) LoadProberState(ctx context.Context) (*pb.ProberState, error) {
+	data, err := d.load(ctx, "gramophile/prober")
+	if err != nil {
+		if status.Code(err) == codes.OutOfRange {
+			return &pb.ProberState{}, nil
+		}
+		return nil, err
+	}
+
+	wl := &pb.ProberState{}
+	err = proto.Unmarshal(data, wl)
+	return wl, err
+}
+
+func (d *DB) SaveProberState(ctx context.Context, state *pb.ProberState) error {
+	return d.save(ctx, "gramophile/prober", state)
 }
 
 func (d *DB) SaveSale(ctx context.Context, userid int32, sale *pb.SaleInfo) error {
