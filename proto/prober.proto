@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package gramophile;
+
+option go_package = "github.com/brotherlogic/gramophile/proto";
+
+message ProberState {
+    map<string, int64> last_run = 1;
+}

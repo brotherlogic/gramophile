@@ -7645,6 +7645,7 @@ func (x *GetUsersResponse) GetUsers() []*StoredUser {
 type DeleteUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SoftDelete    bool                   `protobuf:"varint,2,opt,name=soft_delete,json=softDelete,proto3" json:"soft_delete,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7684,6 +7685,13 @@ func (x *DeleteUserRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *DeleteUserRequest) GetSoftDelete() bool {
+	if x != nil {
+		return x.SoftDelete
+	}
+	return false
 }
 
 type DeleteUserResponse struct {
@@ -7726,6 +7734,7 @@ type UpgradeUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	NewState      StoredUser_UserState   `protobuf:"varint,2,opt,name=new_state,json=newState,proto3,enum=gramophile.StoredUser_UserState" json:"new_state,omitempty"`
+	Token         string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7772,6 +7781,13 @@ func (x *UpgradeUserRequest) GetNewState() StoredUser_UserState {
 		return x.NewState
 	}
 	return StoredUser_USER_STATE_UNKNOWN
+}
+
+func (x *UpgradeUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 type UpgradeUserResponse struct {
@@ -8452,13 +8468,16 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x0fGetUsersRequest\x126\n" +
 	"\x05state\x18\x01 \x01(\x0e2 .gramophile.StoredUser.UserStateR\x05state\"@\n" +
 	"\x10GetUsersResponse\x12,\n" +
-	"\x05users\x18\x01 \x03(\v2\x16.gramophile.StoredUserR\x05users\"#\n" +
+	"\x05users\x18\x01 \x03(\v2\x16.gramophile.StoredUserR\x05users\"D\n" +
 	"\x11DeleteUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x14\n" +
-	"\x12DeleteUserResponse\"o\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vsoft_delete\x18\x02 \x01(\bR\n" +
+	"softDelete\"\x14\n" +
+	"\x12DeleteUserResponse\"\x85\x01\n" +
 	"\x12UpgradeUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12=\n" +
-	"\tnew_state\x18\x02 \x01(\x0e2 .gramophile.StoredUser.UserStateR\bnewState\"\x15\n" +
+	"\tnew_state\x18\x02 \x01(\x0e2 .gramophile.StoredUser.UserStateR\bnewState\x12\x14\n" +
+	"\x05token\x18\x03 \x01(\tR\x05token\"\x15\n" +
 	"\x13UpgradeUserResponse\"\x8e\x01\n" +
 	"\fCleanRequest\x126\n" +
 	"\x04type\x18\x01 \x01(\x0e2\".gramophile.CleanRequest.CleanTypeR\x04type\"F\n" +
