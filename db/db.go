@@ -78,6 +78,7 @@ type Database interface {
 
 	SaveUser(ctx context.Context, user *pb.StoredUser) error
 	DeleteUser(ctx context.Context, id string) error
+	DeleteUserData(ctx context.Context, id string) error
 	GetUser(ctx context.Context, user string) (*pb.StoredUser, error)
 	GetUsers(ctx context.Context) ([]string, error)
 
@@ -647,6 +648,27 @@ func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
 	})
 
 	return err
+}
+
+func (d *DB) DeleteUserData(ctx context.Context, id string) error {
+	conn, err := grpc.Dial("pstore.pstore:8080", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+
+	client := rspb.NewPStoreServiceClient(conn)
+	keys, err := client.GetKeys(ctx, &rspb.GetKeysRequest{
+		Prefix: fmt.Sprintf("%v%v", USER_PREFIX, id),
+	})
+
+	for _, key := range keys.GetKeys() {
+		_, err = client.Delete(ctx, &rspb.DeleteRequest{Key: key})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (d *DB) DeleteUser(ctx context.Context, id string) error {
