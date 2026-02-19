@@ -118,7 +118,7 @@ func main() {
 			User:  "brotherlogic",
 			Repo:  "gramophile",
 			Title: "Prober Error",
-			Body:  fmt.Sprintf("%v", err),
+			Body:  fmt.Sprintf("Error message: %v", err),
 		})
 	}
 }
