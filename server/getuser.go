@@ -26,6 +26,9 @@ func (s *Server) UpgradeUser(ctx context.Context, req *pb.UpgradeUserRequest) (*
 }
 
 func (s *Server) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
+	if req.GetSoftDelete() {
+		return &pb.DeleteUserResponse{}, s.d.DeleteUserData(ctx, req.GetId())
+	}
 	return &pb.DeleteUserResponse{}, s.d.DeleteUser(ctx, req.GetId())
 }
 

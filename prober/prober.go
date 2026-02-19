@@ -75,7 +75,7 @@ func runProber(ctx context.Context) error {
 	d := db.NewDatabase(ctx)
 	probeState, err := d.LoadProberState(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to load prober state: %w", err)
 	}
 
 	first := ""
