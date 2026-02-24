@@ -720,6 +720,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
+					Intention:        "From SyncWants",
 					RunDate:          time.Now().UnixNano(),
 					Auth:             user.GetAuth().GetToken(),
 					BackoffInSeconds: 60,
