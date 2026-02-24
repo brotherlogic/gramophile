@@ -12,7 +12,9 @@
 			"installZsh": true,
 			"configureZshAsDefaultShell": true
 		},
-		"ghcr.io/devcontainers-extra/features/protoc:1": {}
+		"ghcr.io/devcontainers-extra/features/protoc:1": {},
+		"ghcr.io/siri404/devcontainer-ai-features/gemini-cli:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],

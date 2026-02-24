@@ -286,8 +286,9 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 					return false, err
 				}
 				_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Auth:    token,
-					RunDate: time.Now().UnixNano(),
+					Intention: "From Refresh Wantlist",
+					Auth:      token,
+					RunDate:   time.Now().UnixNano(),
 					Entry: &pb.QueueElement_RefreshWant{
 						RefreshWant: &pb.RefreshWant{
 							Want: &pb.Want{Id: entry.GetId()},
