@@ -2,7 +2,7 @@
 
 FROM golang:1.25 AS build
 
-WORKDIR $GOPATH/src/github.com/brotherlogic/
+WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile
 
 COPY go.mod ./
 COPY go.sum ./
