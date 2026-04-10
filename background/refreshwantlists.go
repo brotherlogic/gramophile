@@ -171,12 +171,14 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 	list.Entries = nentries
 
 	idMap := make(map[int64]int32)
+	recordMap := make(map[int64]*pb.Record)
 	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
 	if err != nil {
 		return err
 	}
 	for _, record := range records {
 		idMap[record.GetRelease().GetId()] = record.GetRelease().GetRating()
+		recordMap[record.GetRelease().GetId()] = record
 	}
 
 	for _, entry := range list.GetEntries() {
@@ -215,11 +217,20 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 			}
 		}
 
+		// Fast-path for already owned items
+		if val, ok := recordMap[entry.GetId()]; ok {
+			if val.GetArrived() > 0 {
+				entry.State = pb.WantState_PURCHASED
+			}
+		}
+
 		// Update the want
 		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
-			qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
-			entry.State = want.GetState()
-			list.LastPurchaseDate = time.Now().UnixNano()
+			if entry.GetState() != pb.WantState_PURCHASED || want.GetState() == pb.WantState_PURCHASED {
+				qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
+				entry.State = want.GetState()
+				list.LastPurchaseDate = time.Now().UnixNano()
+			}
 		}
 
 		if want.GetId() == entry.GetId() && want.GetScore() != entry.GetScore() {
@@ -228,6 +239,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 	}
 
 	// Should we deactivate this list
+	list.Active = true
 	score := float32(0)
 	count := float32(0)
 	if config.GetMinCount() > 0 || config.GetMinScore() > 0 {
@@ -246,7 +258,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 		}
 
 		qlog(ctx, "Found Score %v / %v", score, count)
-		if count >= float32(config.GetMinCount()) {
+		if count >= float32(config.GetMinCount()) && count > 0 {
 			list.Active = score/count >= config.GetMinScore()
 			qlog(ctx, "Set active: %v (%v vs %v)", list.Active, score/count, config.GetMinScore())
 		} else {
@@ -510,7 +522,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb.Want, list string) error {
 	val, err := b.db.GetWant(ctx, userid, want.GetId())
 	if err != nil {
-		if status.Code(err) != codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			val = want
 		} else {
 			return err

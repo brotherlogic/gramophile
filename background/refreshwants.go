@@ -207,42 +207,54 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 
 	for _, want := range wants {
 		// Validate in wants
+		foundInAnyList := false
+		if len(want.GetFromWantlist()) == 0 {
+			foundInAnyList = true
+		}
 		for _, listname := range want.GetFromWantlist() {
 			list, err := b.db.LoadWantlist(ctx, d.GetUserId(), listname)
 			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					continue
+				}
 				return fmt.Errorf("unable to load wantlist: %w", err)
 			}
-			found := false
 			for _, entry := range list.GetEntries() {
 				if entry.GetId() == want.GetId() {
-					found = true
+					foundInAnyList = true
+					break
 				}
 			}
-			if !found {
-				want.IntendedState = pb.WantState_RETIRED
-				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Not in wantlist, retiring")
-				if err != nil {
-					return fmt.Errorf("unable to save want: %w", err)
-				}
-				enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						Intention: "From Refresh Wants",
-						Auth:      auth,
-						RunDate:   time.Now().UnixNano(),
-						Entry: &pb.QueueElement_RefreshWant{
-							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
-						},
+			if foundInAnyList {
+				break
+			}
+		}
+
+		if !foundInAnyList {
+			want.IntendedState = pb.WantState_RETIRED
+			err := b.db.SaveWant(ctx, d.GetUserId(), want, "Not in wantlist, retiring")
+			if err != nil {
+				return fmt.Errorf("unable to save want: %w", err)
+			}
+			enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention: "From Refresh Wants",
+					Auth:      auth,
+					RunDate:   time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 					},
-				})
-			}
+				},
+			})
 		}
 
 		for _, rec := range recs {
 			if want.GetId() == rec.GetRelease().GetId() {
 				log.Printf("Refreshing Want %v -> %v", want, rec)
-				want.IntendedState = pb.WantState_IN_TRANSIT
 				if rec.GetArrived() > 0 {
 					want.IntendedState = pb.WantState_PURCHASED
+				} else if want.IntendedState != pb.WantState_PURCHASED {
+					want.IntendedState = pb.WantState_IN_TRANSIT
 				}
 				if rec.GetRelease().GetRating() > 0 {
 					want.Score = rec.GetRelease().GetRating()

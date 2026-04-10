@@ -65,6 +65,14 @@ func main() {
 			log.Fatalf("Unable to drain queue: %v", err)
 		}
 		fmt.Printf("Drained %v items\n", resp.GetCount())
+	case "sdrain":
+		resp, err := client.Drain(ctx, &pb.DrainRequest{
+			DrainType: pb.DrainRequest_JUST_SALES,
+		})
+		if err != nil {
+			log.Fatalf("Unable to drain queue: %v", err)
+		}
+		fmt.Printf("Drained %v items\n", resp.GetCount())
 	case "drain":
 		resp, err := client.Drain(ctx, &pb.DrainRequest{})
 		if err != nil {
