@@ -2,12 +2,12 @@
 
 FROM golang:1.25 AS build
 
-WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile-queue
+WORKDIR $GOPATH/src/github.com/brotherlogic/
 
 COPY go.mod ./
 COPY go.sum ./
 
-COPY *.go ./
+COPY queue/*.go ./
 
 RUN CGO_ENABLED=0 go build -o /gramophile-queue
 
