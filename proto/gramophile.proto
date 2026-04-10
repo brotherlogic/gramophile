@@ -519,6 +519,7 @@ message DrainRequest{
         JUST_RELEASE_DATES = 1;
         JUST_WANTS = 2;
         JUST_REFRESH = 3;
+        JUST_SALES = 4;
     }
     DrainType drain_type = 1;
 }

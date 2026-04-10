@@ -8,6 +8,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -21,7 +22,8 @@ func TestZeroEntriesInWantlist(t *testing.T) {
 	}
 
 	wl := &pb.Wantlist{
-		Name: "digital_wantlist",
+		Name: "test_clearing_list",
+		Type: pb.WantlistType_EN_MASSE,
 		Entries: []*pb.WantlistEntry{
 			{Id: 0},
 			{Id: 12},
@@ -177,5 +179,42 @@ func TestTimedWantlist(t *testing.T) {
 		if counted != tc.expectedCount {
 			t.Errorf("Wrong number of additions to the wantlist: %v  -> %v (for %v)", counted, tc.expectedCount, tc.name)
 		}
+	}
+}
+
+func TestFastPathPurchased(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Errorf("Bad user save: %v", err)
+	}
+
+	// Seed a record as arrived
+	b.db.SaveRecord(context.Background(), 123, &pb.Record{
+		Arrived: 12345,
+		Release: &pbd.Release{Id: 730165, InstanceId: 100},
+	}, &db.SaveOptions{})
+
+	wl := &pb.Wantlist{
+		Name: "test-wantlist",
+		Type: pb.WantlistType_ONE_BY_ONE,
+		Entries: []*pb.WantlistEntry{
+			{Id: 730165, State: pb.WantState_WANTED},
+		}}
+
+	// Seed the want as WANTED (so the fast-path is needed to override)
+	b.db.SaveWant(context.Background(), 123, &pb.Want{Id: 730165, State: pb.WantState_WANTED}, "testing")
+
+	err = b.processWantlist(context.Background(), &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, di, &pb.WantslistConfig{}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("Unable to process wantlist: %v", err)
+	}
+
+	if wl.GetEntries()[0].GetState() != pb.WantState_PURCHASED {
+		t.Errorf("Fast-path failed: entry state is %v, expected PURCHASED", wl.GetEntries()[0].GetState())
 	}
 }
