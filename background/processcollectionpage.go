@@ -30,13 +30,13 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 					if err != nil {
 						return nil, fmt.Errorf("unable to parse %v as date: %w", value, err)
 					}
-					r.LastCleanTime = val.Unix()
+					r.LastCleanTime = val.UnixNano()
 				case config.ARRIVED_FIELD:
 					val, err := time.Parse("2006-01-02", value)
 					if err != nil {
 						return nil, err
 					}
-					r.LastCleanTime = val.Unix()
+					r.Arrived = val.UnixNano()
 				case config.WIDTH_FIELD:
 					val, err := strconv.ParseFloat(value, 32)
 					if err != nil {

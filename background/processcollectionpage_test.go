@@ -95,7 +95,7 @@ func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 		t.Errorf("Stored record is not quite right: %v", record)
 	}
 
-	if record.GetLastCleanTime() != ti.Unix() {
+	if record.GetLastCleanTime() != ti.UnixNano() {
 		t.Errorf("Unable to retrieve clean time: %v (%v vs %v)", record, time.Unix(0, record.GetLastCleanTime()), ti)
 	}
 
@@ -130,5 +130,32 @@ func TestGetCollectionPage_NotClobberingDateAdded(t *testing.T) {
 
 	if len(record.GetRelease().GetLabels()) != 1 {
 		t.Errorf("Overadded the labels: %v", record)
+	}
+}
+
+func TestGetCollectionPage_WithArrivedUpdates(t *testing.T) {
+	b := GetTestBackgroundRunner()
+
+	ti := time.Date(2012, time.April, 10, 0, 0, 0, 0, time.UTC)
+
+	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: ti.Format("2006-01-02")}})
+
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	if err != nil {
+		t.Errorf("Bad collection pull: %v", err)
+	}
+
+	record, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
+	if err != nil {
+		t.Errorf("Bad get: %v", err)
+	}
+
+	if record.GetArrived() != ti.UnixNano() {
+		t.Errorf("Unable to retrieve arrived time: %v (%v vs %v)", record, time.Unix(0, record.GetArrived()), ti)
+	}
+
+	if record.GetLastCleanTime() != 0 {
+		t.Errorf("Last clean time should be zero, but is: %v", record.GetLastCleanTime())
 	}
 }
