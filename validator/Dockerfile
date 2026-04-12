@@ -1,15 +1,17 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.23 AS build
+FROM golang:1.25 AS build
 
 WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile/
 
 COPY go.mod ./
 COPY go.sum ./
 
-COPY validator/*.go ./
+RUN go mod download
 
-RUN CGO_ENABLED=0 go build -o /gramophile-validator
+COPY . .
+
+RUN CGO_ENABLED=0 go build -o /gramophile-validator ./validator
 
 ##
 ## Deploy
