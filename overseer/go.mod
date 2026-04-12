@@ -6,14 +6,14 @@ require (
 	github.com/brotherlogic/githubridge v0.2874.0
 	github.com/brotherlogic/gramophile v0.1345.0
 	github.com/prometheus/client_golang v1.23.2
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.79.3
 )
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/brotherlogic/discogs v0.0.0-20250729214233-806b1a4864d8 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
