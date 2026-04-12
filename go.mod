@@ -7,12 +7,12 @@ require (
 	github.com/brotherlogic/githubridge v0.2874.0
 	github.com/brotherlogic/godiscogs v0.0.0-20250429182651-404c7473edf8
 	github.com/brotherlogic/kubebrainz v0.37.0
+	github.com/brotherlogic/printqueue v0.42.0
 	github.com/brotherlogic/pstore v0.66.0
 	github.com/brotherlogic/recordcollection v0.0.0-20260131000040-64bb69bb4b10
 	github.com/brotherlogic/scraper v0.79.0
 	github.com/dghubble/oauth1 v0.7.3
 	github.com/golang/protobuf v1.5.4
-	github.com/google/go-cmp v0.7.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.23.2
 	go.opentelemetry.io/otel v1.40.0

@@ -50,7 +50,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return fmt.Errorf("unable to enqueu: %w", err)s``
+					return fmt.Errorf("unable to enqueue: %w", err)
 				}
 			}
 
@@ -88,7 +88,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return fmt.Errorf("unable to enqueue: %w", 	err)
+					return fmt.Errorf("unable to enqueue: %w", err)
 				}
 			}
 
