@@ -28,7 +28,7 @@ func runValidationLoop(ctx context.Context) error {
 	queue := pb.NewQueueServiceClient(qconn)
 	users, err := client.GetUsers(ctx, &pb.GetUsersRequest{})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get users: %v",err)
 	}
 
 	for _, user := range users.GetUsers() {
@@ -50,7 +50,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to enqueu: %w", err)s``
 				}
 			}
 
@@ -88,7 +88,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to enqueue: %w", 	err)
 				}
 			}
 
@@ -106,7 +106,7 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to enqueue: %w", err)
 				}
 			}
 
@@ -124,20 +124,20 @@ func runValidationLoop(ctx context.Context) error {
 					},
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to enqueue: %w", err)
 				}
 			}
 
 			log.Printf("Running print loop")
 			err = runPrintLoop(ctx, user)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to run print loop: %w", err)
 			}
 
 			log.Printf("Running mint printer")
 			err = runMintPrinter(ctx, user)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to run mint printer: %w", err)
 			}
 		}
 	}

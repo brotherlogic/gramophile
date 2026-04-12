@@ -2,12 +2,12 @@
 
 FROM golang:1.23 AS build
 
-WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile-validator
+WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile
 
 COPY go.mod ./
 COPY go.sum ./
 
-COPY *.go ./
+COPY validator/*.go ./
 
 RUN CGO_ENABLED=0 go build -o /gramophile-validator
 
