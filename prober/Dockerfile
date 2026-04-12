@@ -2,13 +2,11 @@
 
 FROM golang:1.25 AS build
 
-WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile-prober
+WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile/
+COPY . .
 
-COPY go.mod ./
-COPY go.sum ./
-
-COPY *.go ./
-
+WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile/prober
+RUN go mod download
 RUN CGO_ENABLED=0 go build -o /gramophile-prober
 
 ##

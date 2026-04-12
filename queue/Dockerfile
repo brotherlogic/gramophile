@@ -7,9 +7,11 @@ WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile
 COPY go.mod ./
 COPY go.sum ./
 
-COPY queue/*.go ./
+RUN go mod download
 
-RUN CGO_ENABLED=0 go build -o /gramophile-queue
+COPY . .
+
+RUN CGO_ENABLED=0 go build -o /gramophile-queue ./queue
 
 ##
 ## Deploy

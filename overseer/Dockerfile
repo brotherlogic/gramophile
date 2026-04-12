@@ -2,13 +2,11 @@
 
 FROM golang:1.25 AS build
 
+WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile/
+COPY . .
+
 WORKDIR $GOPATH/src/github.com/brotherlogic/gramophile/overseer
-
-COPY go.mod ./
-COPY go.sum ./
-
-COPY *.go ./
-
+RUN go mod download
 RUN CGO_ENABLED=0 go build -o /overseer
 
 ##
