@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1049,7 +1051,8 @@ func (d *DB) GetSale(ctx context.Context, userid int32, saleid int64) (*pb.SaleI
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix: USER_PREFIX,
+		Prefix:      USER_PREFIX,
+		AvoidSuffix: []string{"release"},
 	})
 	if err != nil {
 		return nil, err
@@ -1058,12 +1061,15 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	users.Set(float64(len(resp.GetKeys())))
 
 	// Trim out the prefix from the returned keys
-	var rusers []string
+	rusers := make(map[string]bool)
 	for _, key := range resp.GetKeys() {
-		rusers = append(rusers, key[len(USER_PREFIX):])
+		elems := strings.Split(key, "/")
+		if len(elems) >= 3 {
+			rusers[elems[2]] = true
+		}
 	}
 
-	return rusers, err
+	return slices.Collect(maps.Keys(rusers)), err
 }
 
 func (d *DB) Clean(ctx context.Context, ctype pb.CleanRequest_CleanType) error {
