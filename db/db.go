@@ -1051,8 +1051,7 @@ func (d *DB) GetSale(ctx context.Context, userid int32, saleid int64) (*pb.SaleI
 
 func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	resp, err := d.client.GetKeys(ctx, &rspb.GetKeysRequest{
-		Prefix:      USER_PREFIX,
-		AvoidSuffix: []string{"release"},
+		Prefix: USER_PREFIX,
 	})
 	if err != nil {
 		return nil, err
@@ -1064,7 +1063,7 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	rusers := make(map[string]bool)
 	for _, key := range resp.GetKeys() {
 		elems := strings.Split(key, "/")
-		if len(elems) >= 3 {
+		if len(elems) == 3 {
 			rusers[elems[2]] = true
 		}
 	}
