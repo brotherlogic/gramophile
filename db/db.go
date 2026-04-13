@@ -1064,7 +1064,9 @@ func (d *DB) GetUsers(ctx context.Context) ([]string, error) {
 	rusers := make(map[string]bool)
 	for _, key := range resp.GetKeys() {
 		elems := strings.Split(key, "/")
-		rusers[elems[3]] = true
+		if len(elems) >= 3 {
+			rusers[elems[2]] = true
+		}
 	}
 
 	return slices.Collect(maps.Keys(rusers)), err
