@@ -27,7 +27,8 @@
     	"containerEnv": {
 		"GH_GIT_PROTOCOL": "ssh"
 	},
-    	"runArgs": [
+    "runArgs": [
+		"--network=host",
 		"--security-opt",
 		"label=disable"
 	],
