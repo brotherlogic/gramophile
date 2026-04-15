@@ -22,6 +22,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type Server struct {
@@ -57,6 +60,7 @@ func NewServer(ctx context.Context, token, secret, callback string) *Server {
 		log.Fatalf("unable to reach queue: %v", err)
 	}
 
+	initMetrics()
 	return BuildServer(d, di, qc)
 }
 
@@ -140,10 +144,25 @@ func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.U
 		timings: []*timing{{timestamp: time.Now(), desc: "RPCStart"}},
 	}
 	resp, err = handler(ctx, req)
-	log.Printf("Processing Time: (%v) %v", info.FullMethod, time.Since(stime))
+	elapsed := time.Since(stime)
+	log.Printf("Processing Time: (%v) %v", info.FullMethod, elapsed)
+
+	// Record metrics
+	if grpcServerHandledTotal != nil {
+		grpcServerHandledTotal.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("grpc.method", info.FullMethod),
+			attribute.String("grpc.code", status.Code(err).String()),
+		))
+	}
+	if grpcServerHandlingSeconds != nil {
+		grpcServerHandlingSeconds.Record(ctx, elapsed.Seconds(), metric.WithAttributes(
+			attribute.String("grpc.method", info.FullMethod),
+			attribute.String("grpc.code", status.Code(err).String()),
+		))
+	}
 
 	// Place the processing time into the context
-	metadata.AppendToOutgoingContext(ctx, "backend-time", fmt.Sprintf("%v", time.Since(stime).Milliseconds()))
+	metadata.AppendToOutgoingContext(ctx, "backend-time", fmt.Sprintf("%v", elapsed.Milliseconds()))
 
 	delete(s.trackings, uuid)
 
