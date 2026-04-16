@@ -175,6 +175,7 @@ func executeGetRecord(ctx context.Context, args []string) error {
 			fmt.Printf("Classified to %v\n", r.GetCategory())
 			fmt.Printf("There are %v digital versions\n", len(r.GetRecord().GetDigitalIds()))
 			fmt.Printf("ERD: %v\n", r.GetRecord().GetEarliestReleaseDate())
+			fmt.Printf("Arrived: %v\n", time.Unix(0, r.GetRecord().GetArrived()))
 
 			if debug {
 				fmt.Printf("%v\n", r.GetRecord())
