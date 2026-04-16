@@ -370,6 +370,10 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 	}
 	if defaultCount > 0 && org.GetMissingWidthHandling() == pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE {
 		defaultWidth /= defaultCount
+	} else if org.GetMissingWidthHandling() == pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE {
+		defaultWidth = 1.0
+	} else {
+		defaultWidth = 0
 	}
 
 	log.Printf("FOUND DEFAULT WIDHT: %v", defaultWidth)

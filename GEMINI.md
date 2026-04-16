@@ -48,3 +48,7 @@ The system is built as a set of gRPC and HTTP services supported by a custom per
 ## Observability & Maintenance
 
 The system is designed for high observability. It exposes a `/metrics` endpoint for Prometheus and uses OpenTelemetry to provide detailed traces of request execution across the server and background workers. The `admin_cli` provides a powerful toolset for manual intervention and state inspection.
+
+## Workflow
+
+It's key that after finishing any change, you follow the finish.md workflow

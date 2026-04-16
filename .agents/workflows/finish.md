@@ -24,7 +24,7 @@ description: Automatically create a feature branch (if on main), commit with a g
       ```
 
 4.  **Generate Commit Message**:
-    - Create a concise and descriptive commit message that summarizes the work done (e.g., "Add GitHub workflow for Docker publishing and auto-tagging").
+    - Create a concise and descriptive commit message that summarizes the work done (e.g., "Add GitHub workflow for Docker publishing and auto-tagging"). If we're on a bug branch ('bug/xxxxx'), the commit message should end with "This closes #xxxx" where the number is the bug number.
     - Commit the changes:
       ```bash
       git commit -m "<your-generated-message>"
