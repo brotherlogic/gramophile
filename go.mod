@@ -1,6 +1,6 @@
 module github.com/brotherlogic/gramophile
 
-go 1.25.8
+go 1.26.2
 
 require (
 	github.com/brotherlogic/discogs v0.0.0-20250729214233-806b1a4864d8

@@ -3,7 +3,7 @@
 {
 	"name": "Go",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
+	"image": "mcr.microsoft.com/devcontainers/go:1.26-trixie",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {
@@ -14,20 +14,21 @@
 		},
 		"ghcr.io/devcontainers-extra/features/protoc:1": {},
 		"ghcr.io/siri404/devcontainer-ai-features/gemini-cli:1": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {}
+		"ghcr.io/devcontainers/features/github-cli:1": {},
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "./postCreate.sh",
+	"initializeCommand": "echo \"GH_TOKEN=$(gh auth token)\" > .devcontainer/.env.auth",
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-    // "remoteUser": "root"
-    	"containerEnv": {
+	// "remoteUser": "root"
+	"containerEnv": {
 		"GH_GIT_PROTOCOL": "ssh"
 	},
-    "runArgs": [
+	"runArgs": [
 		"--network=host",
 		"--security-opt",
 		"label=disable"

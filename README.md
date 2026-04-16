@@ -6,3 +6,8 @@ Gramophile is not a system to support business selling. It is still under develo
 ## Prober
 
 Probers validate the login process and rebuild the user db.
+
+## Development
+
+Gramophile is built with Go.
+Current Go version: 1.26.2
