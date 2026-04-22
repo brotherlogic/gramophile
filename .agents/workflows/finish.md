@@ -37,7 +37,7 @@ description: Automatically create a feature branch (if on main), commit with a g
       ```
 
 6.  **Locate Pull Request**:
-    - Find the Pull Request associated with the newly pushed branch using the `gh` tool. This may require retries if the PR is still being processed.
+    - The Pull Request is created automatically upon pushing to a feature branch. Find the Pull Request associated with the newly pushed branch using the `gh` tool. This may require retries if the PR is still being processed.
       ```bash
       gh pr list --head $(git branch --show-current)
       ```
