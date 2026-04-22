@@ -31,6 +31,16 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
 
+          echo "Checking if all changed files are excluded from review..."
+          FILES=$(gh pr view $PR_NUMBER --json files --jq '.files[].path')
+          # Patterns: .md, .txt, .yml, .yaml, .json, .log, package-lock.json, yarn.lock
+          NON_EXCLUDED_FILES=$(echo "$FILES" | grep -vE '\.(md|txt|yml|yaml|json|log)$|package-lock\.json$|yarn\.lock$' || true)
+
+          if [ -z "$NON_EXCLUDED_FILES" ]; then
+            echo "All changed files are excluded from Gemini AI review. Skipping review check."
+            exit 0
+          fi
+
           echo "Fetching latest commit timestamp..."
           LATEST_COMMIT_DATE=$(gh api repos/$REPO/pulls/$PR_NUMBER/commits --jq '.[-1].commit.committer.date')
           echo "Latest commit date: $LATEST_COMMIT_DATE"
