@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/brotherlogic/githubridge v0.2874.0
 	github.com/brotherlogic/gramophile v0.1363.0
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.3
 )
 
 require (
