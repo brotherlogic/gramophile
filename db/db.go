@@ -1003,7 +1003,7 @@ func (d *DB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
 func (d *DB) LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, error) {
 	iids, err := d.GetRecords(ctx, userid)
 	if err != nil {
-		fmt.Errorf("unable to get records: %w", err)
+		return nil, fmt.Errorf("unable to get records: %w", err)
 	}
 
 	var records []*pb.Record
