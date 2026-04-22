@@ -31,7 +31,9 @@
 	"runArgs": [
 		"--network=host",
 		"--security-opt",
-		"label=disable"
+	    "label=disable",
+	    		"--env-file",
+		"${localWorkspaceFolder}/.devcontainer/.env.auth"
 	],
 	"mounts": [
 		{
