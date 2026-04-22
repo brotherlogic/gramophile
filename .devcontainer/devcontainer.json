@@ -37,8 +37,10 @@
 		{
 			"source": "${localEnv:HOME}/.ssh",
 			"target": "/home/vscode/.ssh", // Adjust "vscode" to your container's non-root user (e.g., "node", "user")
-			"type": "bind"
-		}
+		    "type": "bind"
+		},
+	    		"source=${localEnv:HOME}/.gemini,target=/home/vscode/.gemini,type=bind"
+	    
 	],
 	"workspaceFolder": "/workspaces/gramophile"
 }
