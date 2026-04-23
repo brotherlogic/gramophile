@@ -71,8 +71,8 @@ jobs:
           echo "Latest commit date: $LATEST_COMMIT_DATE"
 
           echo "Fetching latest Gemini AI Code Review timestamp..."
-          # Fetch reviews, filter for github-actions and the specific comment string, get the last one's submitted_at
-          LATEST_REVIEW_DATE=$(gh api repos/$REPO/pulls/$PR_NUMBER/reviews --jq '[.[] | select(.user?.login == "github-actions" and (.body != null) and (.body | contains("Gemini AI Code Review")))] | last | .submitted_at')
+          # Fetch reviews, filter for github-actions[bot] and the specific comment string, get the last one's submitted_at
+          LATEST_REVIEW_DATE=$(gh api repos/$REPO/pulls/$PR_NUMBER/reviews --jq '[.[] | select(.user?.login == "github-actions[bot]" and (.body != null) and (.body | contains("Gemini AI Code Review")))] | last | .submitted_at')
           
           if [ -z "$LATEST_REVIEW_DATE" ] || [ "$LATEST_REVIEW_DATE" = "null" ]; then
             echo "No Gemini AI Code Review found. Failing validation."
