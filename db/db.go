@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	"golang.org/x/sync/errgroup"
 	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -1006,14 +1007,24 @@ func (d *DB) LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, er
 		return nil, fmt.Errorf("unable to get records: %w", err)
 	}
 
-	var records []*pb.Record
-	for _, iid := range iids {
-		rec, err := d.GetRecord(ctx, userid, iid)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read (%v) -> %w", iid, err)
-		}
+	records := make([]*pb.Record, len(iids))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(100)
 
-		records = append(records, rec)
+	for i, iid := range iids {
+		i, iid := i, iid
+		g.Go(func() error {
+			rec, err := d.GetRecord(gctx, userid, iid)
+			if err != nil {
+				return fmt.Errorf("unable to read (%v) -> %w", iid, err)
+			}
+			records[i] = rec
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	return records, nil

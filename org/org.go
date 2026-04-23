@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/prometheus/client_golang/prometheus"
@@ -154,13 +156,23 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	log.Printf("Ran db_read_records (%v) in %v", len(ids), time.Since(t1))
 
 	t2 := time.Now()
-	var records []*pb.Record
-	for _, id := range ids {
-		rec, err := o.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), id)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load record %v -> %w", id, err)
-		}
-		records = append(records, rec)
+	records := make([]*pb.Record, len(ids))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(100)
+
+	for i, id := range ids {
+		i, id := i, id
+		g.Go(func() error {
+			rec, err := o.d.GetRecord(gctx, user.GetUser().GetDiscogsUserId(), id)
+			if err != nil {
+				return fmt.Errorf("unable to load record %v -> %w", id, err)
+			}
+			records[i] = rec
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	log.Printf("Ran read_records (%v) in %v", len(ids), time.Since(t2))
 
