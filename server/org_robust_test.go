@@ -116,13 +116,35 @@ func TestSnapshotDiffRobust_PartialOverlap(t *testing.T) {
 	}
 
 	moves := getSnapshotDiff(start, end)
-	// Should only have move for Iid 2
+	
+	foundAddition := false
+	foundDeletion := false
+	foundMove := false
+
 	for _, m := range moves {
-		if m.Start.Iid == 1 {
-			t.Errorf("Should not have moves for record 1 (removed)")
+		if m.GetStart() == nil && m.GetEnd().GetIid() == 3 {
+			foundAddition = true
 		}
-		if m.End.Iid == 3 {
-			t.Errorf("Should not have moves for record 3 (newly added)")
+		if m.GetEnd() == nil && m.GetStart().GetIid() == 1 {
+			foundDeletion = true
 		}
+		if m.GetStart() != nil && m.GetEnd() != nil && m.GetStart().GetIid() == 2 {
+			foundMove = true
+		}
+	}
+
+	if !foundAddition {
+		t.Errorf("Did not find expected addition move for Iid 3")
+	}
+	if !foundDeletion {
+		t.Errorf("Did not find expected deletion move for Iid 1")
+	}
+	if !foundMove {
+		t.Errorf("Did not find expected move for Iid 2")
+	}
+
+	nsnap := applyMoves(start, moves)
+	if tgetHash(end.GetPlacements()) != tgetHash(nsnap.GetPlacements()) {
+		t.Errorf("Partial overlap moves failed to result in correct end state")
 	}
 }

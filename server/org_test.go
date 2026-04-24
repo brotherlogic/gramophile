@@ -1807,11 +1807,26 @@ func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.Organis
 	}
 
 	for _, m := range moves {
-		for _, p := range placements {
-			if p.GetIid() == m.GetStart().GetIid() {
-				p.Space = m.GetEnd().GetSpace()
-				p.Unit = m.GetEnd().GetUnit()
-				p.Index = m.GetEnd().GetIndex()
+		if m.GetStart() == nil {
+			// Addition
+			placements = append(placements, proto.Clone(m.GetEnd()).(*pb.Placement))
+		} else if m.GetEnd() == nil {
+			// Deletion
+			var nPlacements []*pb.Placement
+			for _, p := range placements {
+				if p.GetIid() != m.GetStart().GetIid() {
+					nPlacements = append(nPlacements, p)
+				}
+			}
+			placements = nPlacements
+		} else {
+			// Move
+			for _, p := range placements {
+				if p.GetIid() == m.GetStart().GetIid() {
+					p.Space = m.GetEnd().GetSpace()
+					p.Unit = m.GetEnd().GetUnit()
+					p.Index = m.GetEnd().GetIndex()
+				}
 			}
 		}
 	}

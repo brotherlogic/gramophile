@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -134,16 +135,37 @@ func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
 		startMap[p.GetIid()] = p
 	}
 
+	endMap := make(map[int64]*pb.Placement)
+	for _, p := range end.GetPlacements() {
+		endMap[p.GetIid()] = p
+	}
+
 	var moves []*pb.Move
-	for _, endP := range end.GetPlacements() {
-		startP, ok := startMap[endP.GetIid()]
-		if ok {
-			if startP.GetSpace() != endP.GetSpace() || startP.GetUnit() != endP.GetUnit() || startP.GetIndex() != endP.GetIndex() {
-				moves = append(moves, &pb.Move{
-					Start: startP,
-					End:   endP,
-				})
-			}
+	// Check for moves and deletions
+	for iid, startP := range startMap {
+		endP, ok := endMap[iid]
+		if !ok {
+			// Deletion
+			moves = append(moves, &pb.Move{
+				Start: startP,
+				End:   nil,
+			})
+		} else if !proto.Equal(startP, endP) {
+			// Move
+			moves = append(moves, &pb.Move{
+				Start: startP,
+				End:   endP,
+			})
+		}
+	}
+
+	// Check for additions
+	for iid, endP := range endMap {
+		if _, ok := startMap[iid]; !ok {
+			moves = append(moves, &pb.Move{
+				Start: nil,
+				End:   endP,
+			})
 		}
 	}
 
