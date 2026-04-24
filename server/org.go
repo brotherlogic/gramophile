@@ -129,71 +129,43 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
 }
 
-type place struct {
-	iid   int64
-	unit  int32
-	space string
-	next  *place
-}
-
 func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
-	mapper := make(map[int32]*pb.Placement)
-	for _, place := range start.GetPlacements() {
-		mapper[place.GetIndex()] = proto.Clone(place).(*pb.Placement)
-	}
-	var cplace *place
-	for i := int32(len(mapper)); i > 0; i-- {
-		nplace := &place{
-			iid:   mapper[i].GetIid(),
-			unit:  mapper[i].GetUnit(),
-			space: mapper[i].GetSpace(),
-		}
-		if cplace != nil {
-			nplace.next = cplace
-		}
-		cplace = nplace
+	startMap := make(map[int64]*pb.Placement)
+	for _, p := range start.GetPlacements() {
+		startMap[p.GetIid()] = p
 	}
 
-	emapper := make(map[int32]*pb.Placement)
-	for _, place := range end.GetPlacements() {
-		emapper[place.GetIndex()] = place
+	endMap := make(map[int64]*pb.Placement)
+	for _, p := range end.GetPlacements() {
+		endMap[p.GetIid()] = p
 	}
 
 	var moves []*pb.Move
-	curr := cplace
-	var prev *place
-	for index := 1; index <= len(end.GetPlacements()); index++ {
-		if curr.iid != emapper[int32(index)].GetIid() {
-			// Search forwards and move this record to this slot
-			sstart := curr
-			cIndex := int32(index)
-			for {
-				if sstart.iid == emapper[int32(index)].GetIid() {
-					moves = append(moves, &pb.Move{
-						Start: &pb.Placement{
-							Iid:   sstart.iid,
-							Space: sstart.space,
-							Unit:  sstart.unit,
-							Index: cIndex,
-						},
-						End: &pb.Placement{
-							Iid:   sstart.iid,
-							Space: curr.space,
-							Unit:  curr.unit,
-							Index: int32(index),
-						},
-					})
-					if prev != nil {
-						prev.next = sstart
-						sstart.next = curr
-					}
-					break
-				} else {
-					sstart = sstart.next
-					cIndex++
-				}
-			}
+	// Check for moves and deletions
+	for iid, startP := range startMap {
+		endP, ok := endMap[iid]
+		if !ok {
+			// Deletion
+			moves = append(moves, &pb.Move{
+				Start: startP,
+				End:   nil,
+			})
+		} else if !proto.Equal(startP, endP) {
+			// Move
+			moves = append(moves, &pb.Move{
+				Start: startP,
+				End:   endP,
+			})
+		}
+	}
 
+	// Check for additions
+	for iid, endP := range endMap {
+		if _, ok := startMap[iid]; !ok {
+			moves = append(moves, &pb.Move{
+				Start: nil,
+				End:   endP,
+			})
 		}
 	}
 

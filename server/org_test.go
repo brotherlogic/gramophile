@@ -1800,37 +1800,36 @@ func TestGetSnapshotHash(t *testing.T) {
 }
 
 func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.OrganisationSnapshot {
-	// Copy orginal placements and ensure that they're sorted
-	placements := make([]*pb.Placement, len(snapshot.GetPlacements()))
+	// Copy orginal placements
+	placements := make([]*pb.Placement, 0)
 	for _, p := range snapshot.GetPlacements() {
 		placements = append(placements, proto.Clone(p).(*pb.Placement))
 	}
-	indexToRecord := make(map[int32]*pb.Placement)
-	for _, placement := range placements {
-		indexToRecord[placement.GetIndex()] = placement
-	}
 
 	for _, m := range moves {
-		if m.GetStart().GetIndex() != m.GetEnd().GetIndex() {
-			nIndex := make(map[int32]*pb.Placement)
-			found := indexToRecord[m.GetStart().GetIndex()]
-			if m.GetStart().GetIndex() > m.GetEnd().GetIndex() {
-				for index, placement := range indexToRecord {
-					if index >= m.GetEnd().GetIndex() && index < m.GetStart().GetIndex() {
-						placement.Index++
-						nIndex[index+1] = placement
-					}
+		if m.GetStart() == nil {
+			// Addition
+			placements = append(placements, proto.Clone(m.GetEnd()).(*pb.Placement))
+		} else if m.GetEnd() == nil {
+			// Deletion
+			var nPlacements []*pb.Placement
+			for _, p := range placements {
+				if p.GetIid() != m.GetStart().GetIid() {
+					nPlacements = append(nPlacements, p)
 				}
-				nIndex[m.GetEnd().GetIndex()] = found
-				found.Index = m.GetEnd().GetIndex()
-				indexToRecord = nIndex
+			}
+			placements = nPlacements
+		} else {
+			// Move
+			for _, p := range placements {
+				if p.GetIid() == m.GetStart().GetIid() {
+					p.Space = m.GetEnd().GetSpace()
+					p.Unit = m.GetEnd().GetUnit()
+					p.Index = m.GetEnd().GetIndex()
+				}
 			}
 		}
 	}
 
-	nPlacements := make([]*pb.Placement, len(indexToRecord))
-	for i := int32(1); i <= int32(len(indexToRecord)); i++ {
-		nPlacements[i-1] = indexToRecord[i]
-	}
-	return &pb.OrganisationSnapshot{Placements: nPlacements}
+	return &pb.OrganisationSnapshot{Placements: placements}
 }
