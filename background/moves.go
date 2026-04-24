@@ -25,25 +25,30 @@ func applyMove(m *pb.RecordMove, r *pb.Record, class string, format string) stri
 }
 
 func (b *BackgroundRunner) GetFormat(ctx context.Context, record *pb.Record, fc *pb.FormatClassifier) string {
+	allDescriptions := make(map[string]struct{})
+	allNames := make(map[string]struct{})
+	for _, rform := range record.GetRelease().GetFormats() {
+		allNames[rform.GetName()] = struct{}{}
+		for _, rdesc := range rform.GetDescriptions() {
+			allDescriptions[rdesc] = struct{}{}
+		}
+	}
+
 	for _, classifier := range fc.GetFormats() {
 		description := len(classifier.GetDescription()) == 0
 		names := len(classifier.GetContains()) == 0
 
 		for _, desc := range classifier.GetDescription() {
-			for _, rform := range record.GetRelease().GetFormats() {
-				for _, rdesc := range rform.GetDescriptions() {
-					if rdesc == desc {
-						description = true
-					}
-				}
+			if _, ok := allDescriptions[desc]; ok {
+				description = true
+				break
 			}
 		}
 
 		for _, name := range classifier.GetContains() {
-			for _, rform := range record.GetRelease().GetFormats() {
-				if rform.GetName() == name {
-					names = true
-				}
+			if _, ok := allNames[name]; ok {
+				names = true
+				break
 			}
 		}
 
