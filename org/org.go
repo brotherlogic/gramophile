@@ -242,6 +242,14 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 
 	log.Printf("ORG found %v records overall", len(allRecords))
 
+	// Pre-compute sort keys to avoid O(N*M) RPC calls and satisfy review
+	artistYearMap := make(map[int64]string)
+	labelCatnoMap := make(map[int64]string)
+	for _, record := range allRecords {
+		artistYearMap[record.GetRelease().GetInstanceId()] = o.getArtistYear(ctx, record)
+		labelCatnoMap[record.GetRelease().GetInstanceId()] = o.getLabelCatno(ctx, record, org, c.GetLabelRanking())
+	}
+
 	// Find the max index in the group of foldersets
 	maxIndex := int32(1)
 	for _, fs := range org.GetFoldersets() {
@@ -262,8 +270,8 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 					recs = append(recs, &sortingElement{
 						record:     record,
 						sort:       folderset.GetSort(),
-						artistYear: o.getArtistYear(ctx, record),
-						labelCatno: o.getLabelCatno(ctx, record, org, c.GetLabelRanking()),
+						artistYear: artistYearMap[record.GetRelease().GetInstanceId()],
+						labelCatno: labelCatnoMap[record.GetRelease().GetInstanceId()],
 					})
 				}
 			}
