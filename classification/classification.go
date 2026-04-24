@@ -52,11 +52,6 @@ func (c *Classifier) Classify(ctx context.Context, r *pb.Record) string {
 	return ""
 }
 
-func Classify(ctx context.Context, r *pb.Record, config *pb.ClassificationConfig, org *pb.OrganisationConfig, db db.Database, uid int32) string {
-	classifier := CreateClassifier(config, db, uid)
-	return classifier.Classify(ctx, r)
-}
-
 func validateDuration(d string) error {
 	_, err := time.ParseDuration(d)
 	if err != nil {
@@ -134,11 +129,6 @@ func (c *Classifier) ApplyRule(ctx context.Context, rule *pb.ClassificationRule,
 	return false
 }
 
-func ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Record, db db.Database, uid int32) bool {
-	classifier := &Classifier{db: db, uid: uid, locationCache: make(map[string]map[int64]bool)}
-	return classifier.ApplyRule(ctx, rule, record)
-}
-
 func (c *Classifier) ApplyLocationSelector(ctx context.Context, l string, record *pb.Record) bool {
 	if _, ok := c.locationCache[l]; !ok {
 		org, err := c.db.GetLatestSnapshot(ctx, c.uid, l)
@@ -154,11 +144,6 @@ func (c *Classifier) ApplyLocationSelector(ctx context.Context, l string, record
 	}
 
 	return c.locationCache[l][record.GetRelease().GetInstanceId()]
-}
-
-func ApplyLocationSelector(ctx context.Context, l string, record *pb.Record, db db.Database, userid int32) bool {
-	classifier := &Classifier{db: db, uid: userid, locationCache: make(map[string]map[int64]bool)}
-	return classifier.ApplyLocationSelector(ctx, l, record)
 }
 
 func ApplyBooleanSelector(b *pb.BooleanSelector, r *pb.Record) bool {

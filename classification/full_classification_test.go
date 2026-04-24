@@ -109,7 +109,8 @@ func TestClassification(t *testing.T) {
 		}
 		db.SaveSnapshot(context.Background(), user, "Listening Pile", snap)
 
-		classification := Classify(context.Background(), tc.record, classificationConfig, orgConfig, db, 12)
+		classifier := CreateClassifier(classificationConfig, db, 12)
+		classification := classifier.Classify(context.Background(), tc.record)
 		if classification != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v", tc.name, tc.result, classification)
 		}

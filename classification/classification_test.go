@@ -104,8 +104,9 @@ var applicationTestCases = []struct {
 }
 
 func TestClassificationApplication(t *testing.T) {
+	classifier := &Classifier{db: db.NewTestDB(pstore_client.GetTestClient()), uid: 12, locationCache: make(map[string]map[int64]bool)}
 	for _, tc := range applicationTestCases {
-		res := ApplyRule(context.Background(), tc.rule, tc.record, db.NewTestDB(pstore_client.GetTestClient()), 12)
+		res := classifier.ApplyRule(context.Background(), tc.rule, tc.record)
 		if res != tc.result {
 			t.Errorf("Failure in %v: expected %v, got %v", tc.name, tc.result, res)
 		}
