@@ -75,13 +75,14 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 
 	log.Printf("Running %v moves on %v records", len(moves), len(records))
 
+	classifier := classification.CreateClassifier(user.GetConfig().GetClassificationConfig(), b.db, user.GetUser().GetDiscogsUserId())
 	for _, iid := range records {
 		record, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
 		if err != nil {
 			return err
 		}
 		// Get record classification
-		class := classification.Classify(ctx, record, user.GetConfig().GetClassificationConfig(), user.GetConfig().GetOrganisationConfig(), b.db, user.GetUser().GetDiscogsUserId())
+		class := classifier.Classify(ctx, record)
 
 		format := b.GetFormat(ctx, record, user.GetConfig().GetMovingConfig().GetFormatClassifier())
 

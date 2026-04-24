@@ -73,8 +73,9 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 	}
 
 	// Classifiy out the records
+	classifier := classification.CreateClassifier(u.GetConfig().GetClassificationConfig(), s.d, u.GetUser().GetDiscogsUserId())
 	for _, r := range resp.GetRecords() {
-		r.Category = classification.Classify(ctx, r.GetRecord(), u.GetConfig().GetClassificationConfig(), u.GetConfig().GetOrganisationConfig(), s.d, u.GetUser().GetDiscogsUserId())
+		r.Category = classifier.Classify(ctx, r.GetRecord())
 	}
 
 	return resp, err
