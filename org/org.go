@@ -55,8 +55,10 @@ type groupingElement struct {
 }
 
 type sortingElement struct {
-	record *pb.Record
-	sort   pb.Sort
+	record     *pb.Record
+	sort       pb.Sort
+	artistYear string
+	labelCatno string
 }
 
 func (o *Org) getLabel(ctx context.Context, r *pb.Record, c *pb.Organisation, ws []*pb.LabelWeight) string {
@@ -240,6 +242,14 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 
 	log.Printf("ORG found %v records overall", len(allRecords))
 
+	// Pre-compute sort keys to avoid O(N*M) RPC calls and satisfy review
+	artistYearMap := make(map[int64]string)
+	labelCatnoMap := make(map[int64]string)
+	for _, record := range allRecords {
+		artistYearMap[record.GetRelease().GetInstanceId()] = o.getArtistYear(ctx, record)
+		labelCatnoMap[record.GetRelease().GetInstanceId()] = o.getLabelCatno(ctx, record, org, c.GetLabelRanking())
+	}
+
 	// Find the max index in the group of foldersets
 	maxIndex := int32(1)
 	for _, fs := range org.GetFoldersets() {
@@ -257,7 +267,12 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 			for _, record := range allRecords {
 				if record.GetRelease().GetFolderId() == folderset.GetFolder() && folderset.GetIndex() == index {
 					s = folderset.GetSort()
-					recs = append(recs, &sortingElement{record: record, sort: folderset.GetSort()})
+					recs = append(recs, &sortingElement{
+						record:     record,
+						sort:       folderset.GetSort(),
+						artistYear: artistYearMap[record.GetRelease().GetInstanceId()],
+						labelCatno: labelCatnoMap[record.GetRelease().GetInstanceId()],
+					})
 				}
 			}
 		}
@@ -269,11 +284,11 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 			})
 		case pb.Sort_ARTIST_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return o.getArtistYear(ctx, recs[i].record) < o.getArtistYear(ctx, recs[j].record)
+				return recs[i].artistYear < recs[j].artistYear
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return o.getLabelCatno(ctx, recs[i].record, org, c.GetLabelRanking()) < o.getLabelCatno(ctx, recs[j].record, org, c.GetLabelRanking())
+				return recs[i].labelCatno < recs[j].labelCatno
 			})
 		case pb.Sort_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
