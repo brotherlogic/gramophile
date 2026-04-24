@@ -26,24 +26,23 @@ func applyMove(m *pb.RecordMove, r *pb.Record, class string, format string) stri
 
 func (b *BackgroundRunner) GetFormat(ctx context.Context, record *pb.Record, fc *pb.FormatClassifier) string {
 	for _, classifier := range fc.GetFormats() {
-		description := false
-		names := false
+		description := len(classifier.GetDescription()) == 0
+		names := len(classifier.GetContains()) == 0
 
-		for _, form := range fc.GetFormats() {
-			for _, desc := range form.GetDescription() {
-				for _, rform := range record.GetRelease().GetFormats() {
-					for _, rdesc := range rform.GetDescriptions() {
-						if rdesc == desc {
-							description = true
-						}
+		for _, desc := range classifier.GetDescription() {
+			for _, rform := range record.GetRelease().GetFormats() {
+				for _, rdesc := range rform.GetDescriptions() {
+					if rdesc == desc {
+						description = true
 					}
 				}
 			}
-			for _, name := range form.GetContains() {
-				for _, rform := range record.GetRelease().GetFormats() {
-					if rform.GetName() == name {
-						names = true
-					}
+		}
+
+		for _, name := range classifier.GetContains() {
+			for _, rform := range record.GetRelease().GetFormats() {
+				if rform.GetName() == name {
+					names = true
 				}
 			}
 		}
