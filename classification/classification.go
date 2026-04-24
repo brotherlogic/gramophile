@@ -14,15 +14,32 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Classify(ctx context.Context, r *pb.Record, config *pb.ClassificationConfig, org *pb.OrganisationConfig, db db.Database, uid int32) string {
+type Classifier struct {
+	rules         []*pb.Classifier
+	locationCache map[string]map[int64]bool
+	db            db.Database
+	uid           int32
+}
+
+func CreateClassifier(config *pb.ClassificationConfig, db db.Database, uid int32) *Classifier {
 	rules := config.GetClassifiers()
 	sort.SliceStable(rules, func(i, j int) bool {
 		return rules[i].GetPriority() < rules[j].GetPriority()
 	})
-	for _, ruleSet := range rules {
+
+	return &Classifier{
+		rules:         rules,
+		locationCache: make(map[string]map[int64]bool),
+		db:            db,
+		uid:           uid,
+	}
+}
+
+func (c *Classifier) Classify(ctx context.Context, r *pb.Record) string {
+	for _, ruleSet := range c.rules {
 		pass := true
 		for _, rule := range ruleSet.GetRules() {
-			if !ApplyRule(ctx, rule, r, db, uid) {
+			if !c.ApplyRule(ctx, rule, r) {
 				pass = false
 				continue
 			}
@@ -33,6 +50,11 @@ func Classify(ctx context.Context, r *pb.Record, config *pb.ClassificationConfig
 	}
 
 	return ""
+}
+
+func Classify(ctx context.Context, r *pb.Record, config *pb.ClassificationConfig, org *pb.OrganisationConfig, db db.Database, uid int32) string {
+	classifier := CreateClassifier(config, db, uid)
+	return classifier.Classify(ctx, r)
 }
 
 func validateDuration(d string) error {
@@ -98,7 +120,7 @@ func ValidateSelector(s string, ty protoreflect.Kind) error {
 	return status.Errorf(codes.NotFound, "Boolean field %v not found in record proto", s)
 }
 
-func ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Record, db db.Database, uid int32) bool {
+func (c *Classifier) ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Record) bool {
 	switch rule.GetSelector().(type) {
 	case *pb.ClassificationRule_BooleanSelector:
 		return ApplyBooleanSelector(rule.GetBooleanSelector(), record)
@@ -107,25 +129,36 @@ func ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Reco
 	case *pb.ClassificationRule_DateSinceSelector:
 		return ApplyDateSinceSelector(rule.GetDateSinceSelector(), record)
 	case *pb.ClassificationRule_LocationSelector:
-		return ApplyLocationSelector(ctx, rule.GetLocationSelector().GetLocation(), record, db, uid)
+		return c.ApplyLocationSelector(ctx, rule.GetLocationSelector().GetLocation(), record)
 	}
 	return false
 }
 
-func ApplyLocationSelector(ctx context.Context, l string, record *pb.Record, db db.Database, userid int32) bool {
-	org, err := db.GetLatestSnapshot(ctx, userid, l)
-	if err != nil {
-		log.Printf("Unable to get latest snapshot for %v -> %v", l, err)
-	}
+func ApplyRule(ctx context.Context, rule *pb.ClassificationRule, record *pb.Record, db db.Database, uid int32) bool {
+	classifier := &Classifier{db: db, uid: uid, locationCache: make(map[string]map[int64]bool)}
+	return classifier.ApplyRule(ctx, rule, record)
+}
 
-	log.Printf("Placements: %v", org.GetPlacements())
-	for _, placement := range org.GetPlacements() {
-		if placement.GetIid() == record.GetRelease().GetInstanceId() {
-			return true
+func (c *Classifier) ApplyLocationSelector(ctx context.Context, l string, record *pb.Record) bool {
+	if _, ok := c.locationCache[l]; !ok {
+		org, err := c.db.GetLatestSnapshot(ctx, c.uid, l)
+		if err != nil {
+			log.Printf("Unable to get latest snapshot for %v -> %v", l, err)
+			return false
+		}
+
+		c.locationCache[l] = make(map[int64]bool)
+		for _, placement := range org.GetPlacements() {
+			c.locationCache[l][placement.GetIid()] = true
 		}
 	}
 
-	return false
+	return c.locationCache[l][record.GetRelease().GetInstanceId()]
+}
+
+func ApplyLocationSelector(ctx context.Context, l string, record *pb.Record, db db.Database, userid int32) bool {
+	classifier := &Classifier{db: db, uid: userid, locationCache: make(map[string]map[int64]bool)}
+	return classifier.ApplyLocationSelector(ctx, l, record)
 }
 
 func ApplyBooleanSelector(b *pb.BooleanSelector, r *pb.Record) bool {
