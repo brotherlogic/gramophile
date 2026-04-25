@@ -600,10 +600,11 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	now := time.Now().UnixNano()
 	_, err = enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention: "From Arrived",
-			RunDate:   time.Now().UnixNano(),
+			RunDate:   now,
 			Auth:      auth,
 			Entry: &pb.QueueElement_RefreshWants{
 				RefreshWants: &pb.RefreshWants{},
@@ -617,7 +618,7 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 	_, err = enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention: "From Arrived",
-			RunDate:   time.Now().UnixNano(),
+			RunDate:   now + 1,
 			Auth:      auth,
 			Entry: &pb.QueueElement_RefreshWantlists{
 				RefreshWantlists: &pb.RefreshWantlists{},
@@ -641,7 +642,7 @@ func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Dis
 
 }
 
-func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field, auth string, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Processing Keep")
 
 	// We don't zero out the clean time
