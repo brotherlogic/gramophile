@@ -201,9 +201,15 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		pMap[key] = entry.GetPriority()
 		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
 
-		switch entry.GetEntry().(type) {
+		switch t := entry.GetEntry().(type) {
 		case *pb.QueueElement_RefreshWantlists:
 			hMap["RefreshWantlists"] = true
+		case *pb.QueueElement_RefreshCollection:
+			hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = true
+		case *pb.QueueElement_RefreshCollectionEntry:
+			if t.RefreshCollectionEntry.GetPage() == 1 {
+				hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = true
+			}
 		}
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
@@ -885,9 +891,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshCollection:
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
-		if err != nil {
-			q.hMap["RefreshCollection"] = false
-		}
+		q.hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = false
 		return err
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
@@ -920,6 +924,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			return err
 		}
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+			q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = false
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
@@ -934,13 +939,15 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 				if err != nil {
 					return fmt.Errorf("unable to enqueue: %w", err)
 				}
-				user.LastCollectionRefresh = time.Now().UnixNano()
-				err = q.db.SaveUser(ctx, user)
-				if err != nil {
-					return fmt.Errorf("unable to sell user: %w", err)
-				}
 			}
-		} else if entry.GetRefreshCollectionEntry().GetPage() == rval {
+			user.LastCollectionRefresh = time.Now().UnixNano()
+			err = q.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to save user: %w", err)
+			}
+		}
+
+		if entry.GetRefreshCollectionEntry().GetPage() == rval {
 			qlog(ctx, "Writing collection refresh chip")
 			//Move records
 			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
@@ -1042,11 +1049,20 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			q.hMap["RefreshWantlists"] = true
 		}
 	case *pb.QueueElement_RefreshCollection:
-		if q.hMap["RefreshCollection"] {
+		if q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] {
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
-			q.hMap["RefreshCollection"] = true
+			q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] = true
+		}
+	case *pb.QueueElement_RefreshCollectionEntry:
+		if req.GetElement().GetRefreshCollectionEntry().GetPage() == 1 {
+			if q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] {
+				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+				return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+			} else {
+				q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] = true
+			}
 		}
 	case *pb.QueueElement_RefreshRelease:
 		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
