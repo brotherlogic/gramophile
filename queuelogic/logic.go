@@ -891,9 +891,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshCollection:
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
-		if err != nil {
-			q.hMap["RefreshCollection"] = false
-		}
+		q.hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = false
 		return err
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
