@@ -275,25 +275,6 @@ func TestWantlistLifecycle(t *testing.T) {
 	s.SetIntent(ctx, &pb.SetIntentRequest{InstanceId: 12345, Intent: &pb.Intent{Arrived: time.Now().UnixNano()}})
 	qc.FlushQueue(ctx)
 
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			RunDate:   2,
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
-		},
-	})
-
-	qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			RunDate:   3,
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
-		},
-	})
-	qc.FlushQueue(ctx)
-
 	wantlist, err = s.GetWantlist(ctx, &pb.GetWantlistRequest{Name: "test-wantlist"})
 	if err != nil {
 		t.Fatalf("Unable to get wantlist: %v", err)
