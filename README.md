@@ -26,3 +26,4 @@ Gramophile is built with Go.
 
 **Build:**
 Run `./build.sh` to generate Protobuf code.
+Adding a small change to trigger another workflow run
