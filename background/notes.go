@@ -58,7 +58,7 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	err = b.ProcessArrived(ctx, d, r, i, user, fields)
+	err = b.ProcessArrived(ctx, d, r, i, user, fields, auth, enqueue)
 	if err != nil {
 		return err
 	}
@@ -571,7 +571,7 @@ func (b *BackgroundRunner) ProcessSleeve(ctx context.Context, d discogs.Discogs,
 	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
 
-func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	// We don't zero out the clean time
 	if i.GetArrived() == 0 {
 		return nil
@@ -595,7 +595,36 @@ func (b *BackgroundRunner) ProcessArrived(ctx context.Context, d discogs.Discogs
 
 	r.Arrived = i.GetArrived()
 	config.Apply(user.GetConfig(), r)
-	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+	err = b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Arrived",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      auth,
+			Entry: &pb.QueueElement_RefreshWants{
+				RefreshWants: &pb.RefreshWants{},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Arrived",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      auth,
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			},
+		},
+	})
+	return err
 }
 
 func (b *BackgroundRunner) ProcessSetOversize(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
