@@ -43,8 +43,9 @@ description: Automatically create a feature branch (if on main), commit with a g
       ```
 
 7.  **Trigger Review**:
-    - Initiate an AI review by posting a comment on the Pull Request:
+    - Assign brotherlogic as a reviewer and initiate an AI review by posting a comment on the Pull Request:
       ```bash
+      gh pr edit $(git branch --show-current) --add-reviewer brotherlogic
       gh pr comment $(git branch --show-current) --body "/gemini-review"
       ```
 
