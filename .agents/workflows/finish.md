@@ -43,13 +43,18 @@ description: Automatically create a feature branch (if on main), commit with a g
       ```
 
 7.  **Trigger Review**:
-    - Initiate an AI review by posting a comment on the Pull Request:
+    - Assign brotherlogic as a reviewer and initiate an AI review by posting a comment on the Pull Request:
       ```bash
+      gh pr edit $(git branch --show-current) --add-reviewer brotherlogic
       gh pr comment $(git branch --show-current) --body "/gemini-review"
       ```
 
-8.  **Address Review**:
-    - Wait for the AI review to be posted, then make necessary adjustments to the code to address the feedback.
+8.  **Track and Address Review**:
+    - Monitor the Pull Request for feedback. You must actively fetch and read review comments once they are available.
+      ```bash
+      gh pr view $(git branch --show-current) --comments
+      ```
+    - Analyze the feedback and make necessary adjustments to the code to address the suggestions or requirements.
 
 9.  **Push Adjustments**:
     - Stage, commit, and push the updates to the same branch:
@@ -58,3 +63,4 @@ description: Automatically create a feature branch (if on main), commit with a g
       git commit -m "Address review feedback"
       git push origin $(git branch --show-current)
       ```
+    - Repeat steps 8 and 9 until the review is satisfied.
