@@ -923,6 +923,12 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
+
+		isSetIntentMiss := strings.HasPrefix(entry.GetIntention(), "Triggered from miss on SetIntent")
+		if isSetIntentMiss && rval > 2 {
+			rval = 2
+		}
+
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = false
 
@@ -970,7 +976,10 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return err
 			}
-			return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId())
+			if !isSetIntentMiss {
+				return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId())
+			}
+			return nil
 		}
 		return nil
 	}
