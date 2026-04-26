@@ -75,7 +75,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 			irefresh.With(prometheus.Labels{"iid": fmt.Sprintf("%v", req.GetInstanceId())}).Inc()
 			s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					Intention: "Triggered from miss on SetIntent",
+					Intention: fmt.Sprintf("Triggered from miss on SetIntent for %v", req.GetInstanceId()),
 					Priority:  pb.QueueElement_PRIORITY_HIGH,
 					Force:     true,
 					RunDate:   time.Now().UnixNano(),
