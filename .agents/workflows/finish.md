@@ -63,4 +63,10 @@ description: Automatically create a feature branch (if on main), commit with a g
       git commit -m "Address review feedback"
       git push origin $(git branch --show-current)
       ```
-    - Repeat steps 8 and 9 until the review is satisfied.
+    - Repeat steps 8 and 9 until the AI review is satisfied.
+
+10. **Human Review**:
+    - Once the AI review is satisfied, assign brotherlogic for the final human review:
+      ```bash
+      gh pr edit $(git branch --show-current) --add-reviewer brotherlogic
+      ```
