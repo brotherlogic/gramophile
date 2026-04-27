@@ -41,6 +41,9 @@ var (
 	QUEUE_PREFIX    = "gramophile/taskqueue/"
 	DL_QUEUE_PREFIX = "gramophile/dlq/"
 
+	RR_MARKER_PREFIX  = "gramophile/rr/"
+	RRD_MARKER_PREFIX = "gramophile/rrd/"
+
 	queueLen = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
 		Help: "The length of the working queue I think yes",
@@ -224,7 +227,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 
 func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
 	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id)})
+		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id)})
 
 	if err != nil {
 		return -1, err
@@ -235,7 +238,7 @@ func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (in
 
 func (q *Queue) getRefreshDateMarker(ctx context.Context, user string) (int64, error) {
 	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user)})
+		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user)})
 
 	if err != nil {
 		return -1, err
@@ -248,10 +251,10 @@ func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) err
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
 	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+		Key:   fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
 		Value: &anypb.Any{Value: b},
 	})
-	qlog(ctx, "Setting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
+	qlog(ctx, "Setting %v -> %v", fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id), err)
 
 	if err != nil {
 		return err
@@ -264,7 +267,7 @@ func (q *Queue) setRefreshDateMarker(ctx context.Context, user string) error {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
 	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user),
+		Key:   fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
 		Value: &anypb.Any{Value: b},
 	})
 
@@ -277,16 +280,16 @@ func (q *Queue) setRefreshDateMarker(ctx context.Context, user string) error {
 
 func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id),
+		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
 	})
-	qlog(ctx, "Deleting %v -> %v", fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release/%v-%v", user, id), err)
+	qlog(ctx, "Deleting %v -> %v", fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id), err)
 
 	return err
 }
 
 func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string) error {
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("github.com/brotherlogic/gramophile/refresh_release_date/%v", user),
+		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
 	})
 
 	return err
