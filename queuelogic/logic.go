@@ -970,9 +970,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 			if err != nil {
 				return err
 			}
-			return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId())
+			return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId(), entry.GetAuth(), q.Enqueue)
 		}
 		return nil
+	case *pb.QueueElement_DeleteRecord:
+		return q.b.DeleteRecord(ctx, d, entry.GetDeleteRecord().GetIid())
 	}
 
 	return status.Errorf(codes.NotFound, "Unable to this handle (%t), %v -> %v", entry.GetEntry(), entry, entry.Entry)

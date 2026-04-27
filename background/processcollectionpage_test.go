@@ -62,9 +62,22 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 		t.Fatalf("Bad collection pull (2); %v", err)
 	}
 
-	err = b.CleanCollection(context.Background(), d, 1234)
+	var enqueuedIid int64
+	err = b.CleanCollection(context.Background(), d, 1234, "", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedIid = req.GetElement().GetDeleteRecord().GetIid()
+		return &pb.EnqueueResponse{}, nil
+	})
 	if err != nil {
 		t.Fatalf("Clean failed: %v", err)
+	}
+
+	if enqueuedIid != 100 {
+		t.Errorf("Should have enqueued deletion of 100, got %v", enqueuedIid)
+	}
+
+	err = b.DeleteRecord(context.Background(), d, enqueuedIid)
+	if err != nil {
+		t.Fatalf("Delete record failed: %v", err)
 	}
 
 	rec, err := b.db.GetRecord(context.Background(), d.GetUserId(), 100)
