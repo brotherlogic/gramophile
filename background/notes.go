@@ -68,7 +68,7 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
-	err = b.ProcessScore(ctx, d, r, i, user, fields)
+	err = b.ProcessScore(ctx, d, r, i, user, fields, auth, enqueue)
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func mapDiscogsScore(score int32, config *pb.ScoreConfig) int32 {
 	return int32(math.Ceil(5 * (float64(score) / float64(rangeWidth))))
 }
 
-func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	// We don't zero out the listen time
 	if i.GetNewScore() == 0 {
 		return nil
@@ -391,6 +391,20 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 		return err
 	}
 
+	_, err = enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Score",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      auth,
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
 	if i.GetNewScore() > 0 {
 		// Update a want with the given score
 		want, err := b.db.GetWant(ctx, d.GetUserId(), r.GetRelease().GetId())
@@ -406,7 +420,6 @@ func (b *BackgroundRunner) ProcessScore(ctx context.Context, d discogs.Discogs, 
 	}
 
 	return nil
-
 }
 
 func (b *BackgroundRunner) ProcessGoalFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
@@ -819,5 +832,20 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 		}
 	}
 
-	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+	err = b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Keep",
+			RunDate:   time.Now().UnixNano(),
+			Auth:      auth,
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			},
+		},
+	})
+	return err
 }

@@ -304,3 +304,104 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 	}
 
 }
+
+type failDB struct {
+	db.Database
+}
+
+func (f *failDB) GetWantlists(ctx context.Context, userid int32) ([]*pb.Wantlist, error) {
+	return nil, fmt.Errorf("Builtin Failure")
+}
+
+func TestRefreshWantlists_Fails(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	fdb := &failDB{Database: d}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(fdb, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition: %v", err)
+	}
+
+	// This should fail to execute
+	q.FlushQueue(ctx)
+
+	// But we should be able to add it again because we clear the lock even on failure
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition (should have cleared lock): %v", err)
+	}
+}
+
+func TestRefreshWantlists_MultiUser(t *testing.T) {
+	ctx1 := getTestContext(123)
+	ctx2 := getTestContext(456)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx1, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+	err = d.SaveUser(ctx2, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 456},
+		Auth: &pb.GramophileAuth{Token: "456"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx1, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition: %v", err)
+	}
+
+	// This should NOT fail because it's a different user
+	_, err = q.Enqueue(ctx2, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			Auth:      "456",
+			Entry: &pb.QueueElement_RefreshWantlists{
+				RefreshWantlists: &pb.RefreshWantlists{},
+			}}})
+
+	if err != nil {
+		t.Errorf("Error on addition for user 2: %v", err)
+	}
+}

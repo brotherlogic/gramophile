@@ -206,7 +206,9 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 
 		switch t := entry.GetEntry().(type) {
 		case *pb.QueueElement_RefreshWantlists:
-			hMap["RefreshWantlists"] = true
+			hMap[fmt.Sprintf("RefreshWantlists-%v", entry.GetAuth())] = true
+		case *pb.QueueElement_LinkSales:
+			hMap[fmt.Sprintf("LinkSales-%v", entry.GetAuth())] = true
 		case *pb.QueueElement_RefreshCollection:
 			hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = true
 		case *pb.QueueElement_RefreshCollectionEntry:
@@ -751,16 +753,14 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		return nil
 	case *pb.QueueElement_RefreshWantlists:
 		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
-		if err == nil {
-			q.hMap["RefreshWantlists"] = false
-		}
+		q.hMap[fmt.Sprintf("RefreshWantlists-%v", entry.GetAuth())] = false
 		return err
 	case *pb.QueueElement_LinkSales:
 		err := q.b.LinkSales(ctx, u)
+		q.hMap[fmt.Sprintf("LinkSales-%v", entry.GetAuth())] = false
 		if err != nil {
 			return fmt.Errorf("unable to link sales: %w", err)
 		}
-		q.hMap["LinkSales"] = false
 		return nil
 	case *pb.QueueElement_RefreshSales:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
@@ -1047,20 +1047,20 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
 	case *pb.QueueElement_LinkSales:
-		if q.hMap["LinkSales"] {
+		if q.hMap[fmt.Sprintf("LinkSales-%v", req.GetElement().GetAuth())] {
 			// Silent fail since it's already in the queue
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
-			q.hMap["LinkSales"] = true
+			q.hMap[fmt.Sprintf("LinkSales-%v", req.GetElement().GetAuth())] = true
 		}
 	case *pb.QueueElement_RefreshWantlists:
-		if q.hMap["RefreshWantlists"] {
+		if q.hMap[fmt.Sprintf("RefreshWantlists-%v", req.GetElement().GetAuth())] {
 			// Silent fail since it's already in the queue
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
-			q.hMap["RefreshWantlists"] = true
+			q.hMap[fmt.Sprintf("RefreshWantlists-%v", req.GetElement().GetAuth())] = true
 		}
 	case *pb.QueueElement_RefreshCollection:
 		if q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] {
