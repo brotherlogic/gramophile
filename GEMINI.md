@@ -51,4 +51,4 @@ The system is designed for high observability. It exposes a `/metrics` endpoint 
 
 ## Workflow
 
-You MUST follow the [.agents/workflows/finish.md](.agents/workflows/finish.md) workflow for all changes. This workflow ensures that changes are committed to a feature branch, pushed, and reviewed correctly. Never push directly to main unless explicitly instructed to do so by the user.
+You MUST follow the [.agents/workflows/finish.md](.agents/workflows/finish.md) workflow for **EVERY** change, no matter how small. This workflow ensures that changes are committed to a feature branch, pushed, and reviewed correctly. Never push directly to main unless explicitly instructed to do so by the user. Failure to follow this workflow is a breach of project standards.
