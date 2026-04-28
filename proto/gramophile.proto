@@ -355,6 +355,7 @@ message QueueElement {
         FanoutHistory fanout_history = 31;
         RecordHistory record_history = 32;
         AddSale add_sale = 33;
+        DeleteRecord delete_record = 34;
     }
 
     int64 refresh_id = 7;
@@ -375,6 +376,10 @@ message QueueElement {
 message AddSale {
     discogs.SaleParams saleParams = 1;
     int64 instance_id = 2;
+}
+
+message DeleteRecord {
+    int64 iid = 1;
 }
 
 message FanoutHistory {
