@@ -160,7 +160,7 @@ func (o *Org) getRecords(ctx context.Context, user *pb.StoredUser) ([]*pb.Record
 	t2 := time.Now()
 	records := make([]*pb.Record, len(ids))
 	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(100)
+	g.SetLimit(10)
 
 	for i, id := range ids {
 		i, id := i, id
