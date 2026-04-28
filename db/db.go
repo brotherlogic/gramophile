@@ -1009,7 +1009,7 @@ func (d *DB) LoadAllRecords(ctx context.Context, userid int32) ([]*pb.Record, er
 
 	records := make([]*pb.Record, len(iids))
 	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(100)
+	g.SetLimit(10)
 
 	for i, iid := range iids {
 		i, iid := i, iid
