@@ -337,6 +337,15 @@ func (q *Queue) Run() {
 			continue
 		}
 
+		if err != nil {
+			qlog(ctx, "Error getting entry: %v", err)
+			time.Sleep(time.Second)
+			cancel()
+			continue
+		}
+
+		qlog(ctx, "Got Entry: %v (%v)", entry, time.Since(t1))
+
 		if err == nil {
 			// If the entry is in the future, wait for it
 			if entry.GetRunDate() > time.Now().UnixNano() {
@@ -768,7 +777,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshWantlists:
 		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
 		if err == nil {
+			q.queueMutex.Lock()
 			q.hMap["RefreshWantlists"] = false
+			q.queueMutex.Unlock()
 		}
 		return err
 	case *pb.QueueElement_LinkSales:
@@ -776,7 +787,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return fmt.Errorf("unable to link sales: %w", err)
 		}
+		q.queueMutex.Lock()
 		q.hMap["LinkSales"] = false
+		q.queueMutex.Unlock()
 		return nil
 	case *pb.QueueElement_RefreshSales:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
@@ -910,7 +923,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 	case *pb.QueueElement_RefreshCollection:
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
+		q.queueMutex.Lock()
 		q.hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = false
+		q.queueMutex.Unlock()
 		return err
 	case *pb.QueueElement_RefreshEarliestReleaseDates:
 		user, err := q.db.GetUser(ctx, entry.GetAuth())
@@ -949,7 +964,9 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+			q.queueMutex.Lock()
 			q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = false
+			q.queueMutex.Unlock()
 
 			for i := int32(2); i <= rval; i++ {
 				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
@@ -1063,35 +1080,47 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	// Validate entries
 	switch req.GetElement().GetEntry().(type) {
 	case *pb.QueueElement_LinkSales:
+		q.queueMutex.Lock()
 		if q.hMap["LinkSales"] {
+			q.queueMutex.Unlock()
 			// Silent fail since it's already in the queue
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
 			q.hMap["LinkSales"] = true
+			q.queueMutex.Unlock()
 		}
 	case *pb.QueueElement_RefreshWantlists:
+		q.queueMutex.Lock()
 		if q.hMap["RefreshWantlists"] {
+			q.queueMutex.Unlock()
 			// Silent fail since it's already in the queue
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
 			q.hMap["RefreshWantlists"] = true
+			q.queueMutex.Unlock()
 		}
 	case *pb.QueueElement_RefreshCollection:
+		q.queueMutex.Lock()
 		if q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] {
+			q.queueMutex.Unlock()
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 		} else {
 			q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] = true
+			q.queueMutex.Unlock()
 		}
 	case *pb.QueueElement_RefreshCollectionEntry:
 		if req.GetElement().GetRefreshCollectionEntry().GetPage() == 1 {
+			q.queueMutex.Lock()
 			if q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] {
+				q.queueMutex.Unlock()
 				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 				return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
 			} else {
 				q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] = true
+				q.queueMutex.Unlock()
 			}
 		}
 	case *pb.QueueElement_RefreshRelease:
