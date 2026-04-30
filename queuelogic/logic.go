@@ -105,7 +105,7 @@ type Queue struct {
 	d         discogs.Discogs
 	db        db.Database
 	keys      []int64
-	pMapMutex sync.Mutex
+	queueMutex sync.Mutex
 	pMap      map[int64]pb.QueueElement_Priority
 	gclient   ghb_client.GithubridgeClient
 	hMap      map[string]bool
@@ -220,7 +220,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 	return &Queue{
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
 		pMap:      pMap,
-		pMapMutex: sync.Mutex{},
+		queueMutex: sync.Mutex{},
 		hMap:      hMap,
 	}
 }
@@ -331,13 +331,26 @@ func (q *Queue) Run() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 		t1 := time.Now()
 		entry, err := q.getNextEntry(ctx)
-		if status.Code(err) != codes.NotFound {
-			qlog(ctx, "Got Entry: %v and %v (%v)", entry, err, time.Since(t1))
+		if status.Code(err) == codes.NotFound {
+			time.Sleep(time.Second * 2)
+			cancel()
+			continue
 		}
-		var erru error
+
 		if err == nil {
+			// If the entry is in the future, wait for it
+			if entry.GetRunDate() > time.Now().UnixNano() {
+				sleepTime := time.Duration(entry.GetRunDate() - time.Now().UnixNano())
+				if sleepTime > time.Minute {
+					sleepTime = time.Minute
+				}
+				qlog(ctx, "Sleeping for %v (until %v)", sleepTime, time.Unix(0, entry.GetRunDate()))
+				time.Sleep(sleepTime)
+			}
+
 			nctx, ncancel := buildContext(entry.GetRunDate(), time.Hour)
 			user, errv := q.db.GetUser(nctx, entry.GetAuth())
+			var erru error
 			err = errv
 			erru = errv
 			if err == nil {
@@ -355,44 +368,47 @@ func (q *Queue) Run() {
 				queueLast.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry()), "code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			}
 			ncancel()
-		}
 
-		if status.Code(err) != codes.NotFound || !strings.Contains(fmt.Sprintf("%v", err), "No queue entries") {
-			qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
-		}
+			if status.Code(err) != codes.NotFound || !strings.Contains(fmt.Sprintf("%v", err), "No queue entries") {
+				qlog(ctx, "Ran Entry: (%v) %v - %v [%v]", entry, err, erru, time.Since(t1))
+			}
 
-		// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
-		// Or because we've run an update on something that's not found
-		if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
-			q.delete(ctx, entry)
-			queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
-		} else {
-			// This is discogs throttling us
-			if status.Code(err) == codes.ResourceExhausted {
-				qlog(ctx, "Waiting for a minute to let our tokens regenerate")
-				time.Sleep(time.Minute)
-			} else if status.Code(err) == codes.Internal {
-				_, err = q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
-					User:  "brotherlogic",
-					Repo:  "gramophile",
-					Body:  fmt.Sprintf("Internal error on gramophile queue: %v -> %v", err, entry),
-					Title: "Queue Internal error",
-				})
-				log.Printf("Created issue -> %v", err)
-
-				entry.RunDate += (5 * time.Minute).Nanoseconds()
+			// Back off on any type of error - unless we failed to find the user (becuase they've been deleted)
+			// Or because we've run an update on something that's not found
+			if err == nil || status.Code(erru) == codes.NotFound || status.Code(err) == codes.NotFound {
+				q.delete(ctx, entry)
+				queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
 			} else {
-				// Move this over to the DLQ
-				data, err := proto.Marshal(entry)
-				if err == nil {
-					_, err = q.pstore.Write(ctx, &rspb.WriteRequest{
-						Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
-						Value: &anypb.Any{Value: data},
+				// This is discogs throttling us
+				if status.Code(err) == codes.ResourceExhausted {
+					qlog(ctx, "Waiting for a minute to let our tokens regenerate")
+					time.Sleep(time.Minute)
+				} else if status.Code(err) == codes.Internal {
+					_, err = q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+						User:  "brotherlogic",
+						Repo:  "gramophile",
+						Body:  fmt.Sprintf("Internal error on gramophile queue: %v -> %v", err, entry),
+						Title: "Queue Internal error",
 					})
-					dlQeueLen.Inc()
+					log.Printf("Created issue -> %v", err)
 
+					// Delete and re-enqueue with a backoff
+					q.delete(ctx, entry)
+					entry.RunDate = time.Now().UnixNano() + (5 * time.Minute).Nanoseconds()
+					q.Enqueue(ctx, &pb.EnqueueRequest{Element: entry})
+				} else {
+					// Move this over to the DLQ
+					data, err := proto.Marshal(entry)
 					if err == nil {
-						q.delete(ctx, entry)
+						_, err = q.pstore.Write(ctx, &rspb.WriteRequest{
+							Key:   fmt.Sprintf("%v%v", DL_QUEUE_PREFIX, entry.GetRunDate()),
+							Value: &anypb.Any{Value: data},
+						})
+						dlQeueLen.Inc()
+
+						if err == nil {
+							q.delete(ctx, entry)
+						}
 					}
 				}
 			}
@@ -997,6 +1013,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 		return nil
 	}
 
+	q.queueMutex.Lock()
 	var nkeys []int64
 	for _, key := range q.keys {
 		if key != entry.GetRunDate() {
@@ -1004,9 +1021,8 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 		}
 	}
 	q.keys = nkeys
-	q.pMapMutex.Lock()
 	delete(q.pMap, entry.GetRunDate())
-	q.pMapMutex.Unlock()
+	q.queueMutex.Unlock()
 	// Also delete the stored key
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
 	return err
@@ -1120,12 +1136,12 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	if err == nil {
 		queueLen.With(prometheus.Labels{"type": fmt.Sprintf("%v", req.GetElement().GetPriority())}).Inc()
 		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
+		q.queueMutex.Lock()
+		q.keys = append(q.keys, req.GetElement().GetRunDate())
+		q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
+		q.queueMutex.Unlock()
 	}
-	q.keys = append(q.keys, req.GetElement().GetRunDate())
 	qlog(ctx, "Adding %v", req)
-	q.pMapMutex.Lock()
-	q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
-	q.pMapMutex.Unlock()
 	qlog(ctx, "Appended %v -> %v [%v]", req.GetElement(), len(q.keys), req.GetElement().GetRunDate())
 
 	enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
@@ -1134,76 +1150,62 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 
 func (q *Queue) getNextEntry(ctx context.Context) (*pb.QueueElement, error) {
 	t := time.Now()
-	/*keys, err := q.pstore.GetKeys(ctx, &rspb.GetKeysRequest{Prefix: QUEUE_PREFIX})
-	if err != nil {
-		return nil, err
-	}
-
-	queueLen.Set(float64(len(keys.GetKeys())))
-
-	if len(keys.GetKeys()) == 0 {
-		return nil, status.Errorf(codes.NotFound, "No queue entries")
-	}
-
-	sort.SliceStable(keys.Keys, func(i, j int) bool {
-		return strings.Compare(keys.GetKeys()[i], keys.GetKeys()[j]) < 0
-	})*/
 	counts := make(map[string]float64)
-	q.pMapMutex.Lock()
+	q.queueMutex.Lock()
 	for _, val := range q.pMap {
 		counts[fmt.Sprintf("%v", val)]++
 	}
-	q.pMapMutex.Unlock()
 	for str, val := range counts {
 		queueLen.With(prometheus.Labels{"type": str}).Set(float64(val))
 	}
 	if len(q.keys) == 0 {
+		q.queueMutex.Unlock()
 		return nil, status.Errorf(codes.NotFound, "No queue entries")
 	}
 
-	keys := q.keys
+	keys := append([]int64(nil), q.keys...)
+	q.queueMutex.Unlock()
+
 	sort.SliceStable(keys, func(i, j int) bool {
 		return keys[i] < keys[j]
 	})
 
-	foundKey := keys[0]
-
-	q.pMapMutex.Lock()
-	if val, ok := q.pMap[foundKey]; ok && val != pb.QueueElement_PRIORITY_HIGH {
-		// Find a better one
-		for _, key := range keys {
-			if val, ok := q.pMap[key]; ok && val == pb.QueueElement_PRIORITY_HIGH {
-				log.Printf("Found a P_H entry: %v", key)
-				foundKey = key
-				break
-			}
+	q.queueMutex.Lock()
+	foundKey := int64(-1)
+	for _, key := range keys {
+		if val, ok := q.pMap[key]; ok && val == pb.QueueElement_PRIORITY_HIGH {
+			foundKey = key
+			break
 		}
-
-		log.Printf("Unable to locate P_H entry from %v entries", len(q.pMap))
-	} else {
-		log.Printf("pMasp error: %v", len(q.pMap))
 	}
 
-	if val, ok := q.pMap[foundKey]; ok && val != pb.QueueElement_PRIORITY_NORMAL {
-		// Find a better one
+	if foundKey == -1 {
 		for _, key := range keys {
 			if val, ok := q.pMap[key]; ok && val == pb.QueueElement_PRIORITY_NORMAL {
-				log.Printf("Found a P_N entry: %v", key)
 				foundKey = key
 				break
 			}
 		}
-
-		log.Printf("Unable to locate P_N entry from %v entries", len(q.pMap))
-	} else {
-		log.Printf("pMasp error: %v", len(q.pMap))
 	}
-	q.pMapMutex.Unlock()
+
+	if foundKey == -1 {
+		foundKey = keys[0]
+	}
+	q.queueMutex.Unlock()
 
 	data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, foundKey)})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			q.keys = keys[1:]
+			q.queueMutex.Lock()
+			var nkeys []int64
+			for _, key := range q.keys {
+				if key != foundKey {
+					nkeys = append(nkeys, key)
+				}
+			}
+			q.keys = nkeys
+			delete(q.pMap, foundKey)
+			q.queueMutex.Unlock()
 		}
 		return nil, err
 	}

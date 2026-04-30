@@ -248,6 +248,69 @@ func TestEnqueuePriority_Normal(t *testing.T) {
 	}
 }
 
+func TestPriorityOrdering(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	ctx := context.Background()
+
+	// Enqueue LOW
+	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  100,
+			Priority: pb.QueueElement_PRIORITY_LOW,
+			Entry:    &pb.QueueElement_RefreshWants{},
+		}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue LOW: %v", err)
+	}
+
+	// Enqueue NORMAL
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  200,
+			Priority: pb.QueueElement_PRIORITY_NORMAL,
+			Entry:    &pb.QueueElement_RefreshWantlists{},
+		}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue NORMAL: %v", err)
+	}
+
+	// Enqueue HIGH
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate:  300,
+			Priority: pb.QueueElement_PRIORITY_HIGH,
+			Entry:    &pb.QueueElement_RefreshCollection{},
+		}})
+	if err != nil {
+		t.Fatalf("Unable to enqueue HIGH: %v", err)
+	}
+
+	// Should get HIGH first
+	e1, err := q.getNextEntry(ctx)
+	if err != nil || e1.GetPriority() != pb.QueueElement_PRIORITY_HIGH {
+		t.Fatalf("Expected HIGH priority, got %v (err: %v)", e1.GetPriority(), err)
+	}
+	q.delete(ctx, e1)
+
+	// Should get NORMAL second
+	e2, err := q.getNextEntry(ctx)
+	if err != nil || e2.GetPriority() != pb.QueueElement_PRIORITY_NORMAL {
+		t.Fatalf("Expected NORMAL priority, got %v (err: %v)", e2.GetPriority(), err)
+	}
+	q.delete(ctx, e2)
+
+	// Should get LOW last
+	e3, err := q.getNextEntry(ctx)
+	if err != nil || e3.GetPriority() != pb.QueueElement_PRIORITY_LOW {
+		t.Fatalf("Expected LOW priority, got %v (err: %v)", e3.GetPriority(), err)
+	}
+	q.delete(ctx, e3)
+}
+
 func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 	ctx := getTestContext(123)
 
