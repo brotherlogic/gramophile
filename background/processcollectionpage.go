@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -62,6 +63,76 @@ var (
 		Help: "The length of the working queue I think yes",
 	})
 )
+
+func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+		entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
+	}
+
+	rval, err := b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollectionEntry().GetPage(), entry.GetRefreshCollectionEntry().GetRefreshId())
+	qlog(ctx, "Processed collection page: %v %v", rval, err)
+
+	if err != nil {
+		return err
+	}
+
+	isSetIntentMiss := strings.HasPrefix(entry.GetIntention(), "Triggered from miss on SetIntent")
+	if isSetIntentMiss && rval > 2 {
+		rval = 2
+	}
+
+	if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+		for i := int32(2); i <= rval; i++ {
+			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				Force:     entry.GetForce(),
+				RunDate:   time.Now().UnixNano() + int64(i),
+				Intention: entry.GetIntention(),
+				Entry: &pb.QueueElement_RefreshCollectionEntry{
+					RefreshCollectionEntry: &pb.RefreshCollectionEntry{
+						Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
+				Auth: entry.GetAuth(),
+			}})
+			if err != nil {
+				return fmt.Errorf("unable to enqueue: %w", err)
+			}
+		}
+		user.LastCollectionRefresh = time.Now().UnixNano()
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			return fmt.Errorf("unable to save user: %w", err)
+		}
+	}
+
+	if entry.GetRefreshCollectionEntry().GetPage() == rval {
+		qlog(ctx, "Writing collection refresh chip")
+		//Move records
+		_, err = enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: entry.GetIntention(),
+				Force:     entry.GetForce(),
+				RunDate:   time.Now().UnixNano() + int64(rval) + 10,
+				Entry: &pb.QueueElement_MoveRecords{
+					MoveRecords: &pb.MoveRecords{}},
+				Auth: entry.GetAuth(),
+			}})
+		qlog(ctx, "Found %v", err)
+		if user.GetState() == pb.StoredUser_USER_STATE_REFRESHING {
+			user.State = pb.StoredUser_USER_STATE_IN_WAITLIST
+			err = b.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to save user: %w", err)
+			}
+		}
+		if err != nil {
+			return err
+		}
+		if !isSetIntentMiss {
+			return b.CleanCollection(ctx, d, entry.GetRefreshCollectionEntry().GetRefreshId(), entry.GetAuth(), enqueue)
+		}
+		return nil
+	}
+	return nil
+}
 
 func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32, refreshId int64) (int32, error) {
 	crefresh.Set(float64(refreshId))

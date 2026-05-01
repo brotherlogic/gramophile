@@ -6,8 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/classification"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func applyMove(m *pb.RecordMove, r *pb.Record, class string, format string) string {
@@ -58,6 +61,57 @@ func (b *BackgroundRunner) GetFormat(ctx context.Context, record *pb.Record, fc 
 	}
 
 	return fc.GetDefaultFormat()
+}
+
+func (b *BackgroundRunner) MoveRecord(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.MoveRecord, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	rec, err := b.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetRecordIid())
+	if err != nil {
+		return fmt.Errorf("unable to get record: %w", err)
+	}
+
+	fNum := int32(-1)
+	for _, folder := range u.GetFolders() {
+		if folder.GetName() == entry.GetMoveFolder() {
+			fNum = folder.GetId()
+		}
+	}
+
+	log.Printf("Moving record from %v to %v", rec.GetRelease().GetFolderId(), fNum)
+
+	// Fast exit if we don't need to make this move
+	if rec.GetRelease().GetFolderId() == fNum {
+		return nil
+	}
+
+	if fNum < 0 {
+		return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveFolder())
+	}
+
+	err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), rec.GetRelease().GetFolderId(), fNum)
+	if err != nil {
+		return fmt.Errorf("unable to move record: %w", err)
+	}
+
+	qlog(ctx, "Setting folder: %v", fNum)
+
+	//Update and save record
+	rec.GetRelease().FolderId = int32(fNum)
+	err = b.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
+		Date: time.Now().UnixNano(),
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			RunDate: time.Now().UnixNano(),
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{},
+			},
+			Auth: auth,
+		}})
+	return err
 }
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {

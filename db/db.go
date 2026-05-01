@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"maps"
@@ -39,7 +40,9 @@ var (
 		Help: "The time to load a record",
 	})
 
-	USER_PREFIX = "gramophile/user/"
+	USER_PREFIX        = "gramophile/user/"
+	RR_MARKER_PREFIX   = "gramophile/rr/"
+	RRD_MARKER_PREFIX  = "gramophile/rrd/"
 )
 
 type ChangeProcessor interface {
@@ -101,6 +104,13 @@ type Database interface {
 	LoadWantlist(ctx context.Context, userid int32, name string) (*pb.Wantlist, error)
 	GetWantlists(ctx context.Context, userId int32) ([]*pb.Wantlist, error)
 	DeleteWantlist(ctx context.Context, userid int32, name string) error
+
+	GetRefreshMarker(ctx context.Context, user string, id int64) (int64, error)
+	GetRefreshDateMarker(ctx context.Context, user string) (int64, error)
+	SetRefreshMarker(ctx context.Context, user string, id int64) error
+	SetRefreshDateMarker(ctx context.Context, user string) error
+	DeleteRefreshMarker(ctx context.Context, user string, id int64) error
+	DeleteRefreshDateMarker(ctx context.Context, user string) error
 
 	SaveSale(ctx context.Context, userId int32, sale *pb.SaleInfo) error
 	DeleteSale(ctx context.Context, userId int32, saleid int64) error
@@ -1133,4 +1143,64 @@ func (d *DB) Clean(ctx context.Context, ctype pb.CleanRequest_CleanType) error {
 		}
 	}
 	return nil
+}
+
+func (d *DB) GetRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
+	entry, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (d *DB) GetRefreshDateMarker(ctx context.Context, user string) (int64, error) {
+	entry, err := d.client.Read(ctx, &rspb.ReadRequest{
+		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user)})
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
+}
+
+func (d *DB) SetRefreshMarker(ctx context.Context, user string, id int64) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
+		Value: &anypb.Any{Value: b},
+	})
+
+	return err
+}
+
+func (d *DB) SetRefreshDateMarker(ctx context.Context, user string) error {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+	_, err := d.client.Write(ctx, &rspb.WriteRequest{
+		Key:   fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
+		Value: &anypb.Any{Value: b},
+	})
+
+	return err
+}
+
+func (d *DB) DeleteRefreshMarker(ctx context.Context, user string, id int64) error {
+	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
+	})
+
+	return err
+}
+
+func (d *DB) DeleteRefreshDateMarker(ctx context.Context, user string) error {
+	_, err := d.client.Delete(ctx, &rspb.DeleteRequest{
+		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
+	})
+
+	return err
 }

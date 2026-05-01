@@ -2,7 +2,6 @@ package queuelogic
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"math/rand"
@@ -18,7 +17,6 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -31,18 +29,13 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
-	pbgd "github.com/brotherlogic/godiscogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	rspb "github.com/brotherlogic/pstore/proto"
-	pbrc "github.com/brotherlogic/recordcollection/proto"
 )
 
 var (
 	QUEUE_PREFIX    = "gramophile/taskqueue/"
 	DL_QUEUE_PREFIX = "gramophile/dlq/"
-
-	RR_MARKER_PREFIX  = "gramophile/rr/"
-	RRD_MARKER_PREFIX = "gramophile/rrd/"
 
 	queueLen = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "gramophile_qlen",
@@ -223,76 +216,6 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		queueMutex: sync.Mutex{},
 		hMap:      hMap,
 	}
-}
-
-func (q *Queue) getRefreshMarker(ctx context.Context, user string, id int64) (int64, error) {
-	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id)})
-
-	if err != nil {
-		return -1, err
-	}
-
-	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
-}
-
-func (q *Queue) getRefreshDateMarker(ctx context.Context, user string) (int64, error) {
-	entry, err := q.pstore.Read(ctx, &rspb.ReadRequest{
-		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user)})
-
-	if err != nil {
-		return -1, err
-	}
-
-	return int64(binary.BigEndian.Uint64(entry.GetValue().GetValue())), nil
-}
-
-func (q *Queue) setRefreshMarker(ctx context.Context, user string, id int64) error {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
-	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
-		Value: &anypb.Any{Value: b},
-	})
-	qlog(ctx, "Setting %v -> %v", fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id), err)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (q *Queue) setRefreshDateMarker(ctx context.Context, user string) error {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(time.Now().UnixNano()))
-	_, err := q.pstore.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
-		Value: &anypb.Any{Value: b},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (q *Queue) deleteRefreshMarker(ctx context.Context, user string, id int64) error {
-	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id),
-	})
-	qlog(ctx, "Deleting %v -> %v", fmt.Sprintf("%v%v-%v", RR_MARKER_PREFIX, user, id), err)
-
-	return err
-}
-
-func (q *Queue) deleteRefreshDateMarker(ctx context.Context, user string) error {
-	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{
-		Key: fmt.Sprintf("%v%v", RRD_MARKER_PREFIX, user),
-	})
-
-	return err
 }
 
 func (q *Queue) FlushQueue(ctx context.Context) error {
@@ -542,25 +465,6 @@ func generateContext(ctx context.Context, origin string) context.Context {
 	return mContext
 }
 
-func (q *Queue) updateRecord(ctx context.Context, iid int32, id int32) error {
-	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	client := pbrc.NewRecordCollectionServiceClient(conn)
-	nctx := generateContext(ctx, "gramophile")
-	_, err = client.UpdateRecord(nctx, &pbrc.UpdateRecordRequest{
-		Reason: "ping_from_gramophile",
-		Update: &pbrc.Record{
-			Release:  &pbgd.Release{Id: id, InstanceId: iid},
-			Metadata: &pbrc.ReleaseMetadata{NeedsGramUpdate: true},
-		},
-	})
-	return err
-}
-
 func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement) error {
 	qlog(ctx, "Queue entry start: [%v], %v", time.Since(time.Unix(0, entry.GetAdditionDate())), entry)
 
@@ -593,187 +497,21 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		err := q.b.RecordHistory(ctx, entry.GetRecordHistory().GetType(), int64(u.GetUser().GetDiscogsUserId()), entry.GetRecordHistory().GetInstanceId())
 		return err
 	case *pb.QueueElement_RefreshState:
-		err := q.b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
-		if err != nil {
-			if status.Code(err) == codes.NotFound {
-				q.Enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						Auth:      entry.GetAuth(),
-						Force:     true,
-						RunDate:   time.Now().UnixNano(),
-						Intention: fmt.Sprintf("Refreshing collection from release state %v", entry.GetRefreshState().GetIid()),
-						Entry: &pb.QueueElement_RefreshCollectionEntry{
-							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
-						},
-					},
-				})
-			}
-		}
-		return err
+		return q.b.ProcessRefreshState(ctx, d, entry, q.Enqueue)
 	case *pb.QueueElement_MoveRecord:
-		rec, err := q.db.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), entry.GetMoveRecord().GetRecordIid())
-		if err != nil {
-			return fmt.Errorf("unable to get record: %w", err)
-		}
-
-		fNum := int32(-1)
-		for _, folder := range u.GetFolders() {
-			if folder.GetName() == entry.GetMoveRecord().GetMoveFolder() {
-				fNum = folder.GetId()
-			}
-		}
-
-		log.Printf("Moving record from %v to %v", rec.GetRelease().GetFolderId(), fNum)
-
-		// Fast exit if we don't need to make this move
-		if rec.GetRelease().GetFolderId() == fNum {
-			return nil
-		}
-
-		if fNum < 0 {
-			return status.Errorf(codes.NotFound, "folder %v was not found", entry.GetMoveRecord().GetMoveFolder())
-		}
-
-		err = d.SetFolder(ctx, rec.GetRelease().GetInstanceId(), rec.GetRelease().GetId(), rec.GetRelease().GetFolderId(), fNum)
-		if err != nil {
-			return fmt.Errorf("unable to move record: %w", err)
-		}
-
-		qlog(ctx, "Setting folder: %v", fNum)
-
-		//Update and save record
-		rec.GetRelease().FolderId = int32(fNum)
-		err = q.db.SaveRecordWithUpdate(ctx, u.GetUser().GetDiscogsUserId(), rec, &pb.RecordUpdate{
-			Date: time.Now().UnixNano(),
-			//Explanation: []string{fmt.Sprintf("Moved to %v following rule %v", entry.GetMoveRecord().GetMoveFolder(), entry.GetMoveRecord().GetRule())},
-		})
-		if err != nil {
-			return err
-		}
-
-		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Intention: entry.GetIntention(),
-				RunDate:   time.Now().UnixNano(),
-				Entry: &pb.QueueElement_MoveRecords{
-					MoveRecords: &pb.MoveRecords{},
-				},
-				Auth: entry.GetAuth(),
-			}})
-		return err
+		return q.b.MoveRecord(ctx, d, u, entry.GetMoveRecord(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_MoveRecords:
 		return q.b.RunMoves(ctx, u, q.Enqueue)
 	case *pb.QueueElement_AddMasterWant:
 		return q.b.AddMasterWant(ctx, d, entry.GetAddMasterWant().GetWant())
 	case *pb.QueueElement_UpdateSale:
-		//Short cut if sale data is not complete
-		if entry.GetUpdateSale().GetCondition() == "" {
-			qlog(ctx, "Skipping %v", entry)
-			return nil
-		}
-		err := q.b.UpdateSalePrice(ctx, d, entry.GetUpdateSale().GetSaleId(), entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetCondition(), entry.GetUpdateSale().GetNewPrice(), entry.GetUpdateSale().GetMotivation())
-		qlog(ctx, "Updated sale price for %v -> %v", entry.GetUpdateSale().GetSaleId(), err)
-
-		// Not Found means the sale was deleted - if so remove from the db
-		if status.Code(err) == codes.NotFound {
-			qlog(ctx, "Deleting sale for %v (%v) since we can't locate the sale", entry.GetUpdateSale().GetReleaseId(), entry.GetUpdateSale().GetSaleId())
-			return q.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetUpdateSale().GetSaleId())
-		}
-		return err
+		return q.b.ProcessUpdateSale(ctx, d, u, entry.GetUpdateSale())
 	case *pb.QueueElement_RefreshWants:
 		return q.b.RefreshWants(ctx, d, entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshWant:
 		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_SyncWants:
-		user, err := q.db.GetUser(ctx, entry.GetAuth())
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-
-		// Only refresh every 24 hours
-		if time.Since(time.Unix(0, user.GetLastWantRefresh())) < time.Hour*24 {
-			qlog(ctx, "Needs more time to sync")
-			return nil
-		}
-
-		if entry.GetSyncWants().GetPage() == 1 {
-			entry.GetSyncWants().RefreshId = time.Now().UnixNano()
-		}
-		pages, err := q.b.PullWants(ctx, d, entry.GetSyncWants().GetPage(), entry.GetSyncWants().GetRefreshId(), user.GetConfig().GetWantsConfig())
-		if err != nil {
-			return err
-		}
-		if entry.GetSyncWants().GetPage() == 1 {
-			for i := int32(2); i <= pages; i++ {
-				q.Enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						RunDate: time.Now().UnixNano() + int64(i),
-						Entry: &pb.QueueElement_SyncWants{
-							SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
-						},
-						Auth: entry.GetAuth(),
-					},
-				})
-			}
-		}
-
-		// If this is the final sync, let's run the alignment
-		if entry.GetSyncWants().GetPage() >= pages {
-			err = q.b.AlignWants(ctx, user, user.GetConfig().GetWantsConfig())
-			if err != nil {
-				return err
-			}
-
-			// Save any dirty wants
-			wants, err := q.db.GetWants(ctx, user.GetUser().GetDiscogsUserId())
-			if err != nil {
-				return err
-			}
-			for _, want := range wants {
-				if !want.GetClean() {
-					_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-						Element: &pb.QueueElement{
-							RunDate:          time.Now().UnixNano(),
-							Auth:             user.GetAuth().GetToken(),
-							BackoffInSeconds: 60,
-							Entry: &pb.QueueElement_RefreshWant{
-								RefreshWant: &pb.RefreshWant{
-									Want: want,
-								},
-							},
-						},
-					})
-				}
-			}
-
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					RunDate:          time.Now().UnixNano(),
-					Auth:             user.GetAuth().GetToken(),
-					BackoffInSeconds: 60,
-					Entry: &pb.QueueElement_RefreshWants{
-						RefreshWants: &pb.RefreshWants{},
-					},
-				},
-			})
-
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					Intention:        "From SyncWants",
-					RunDate:          time.Now().UnixNano(),
-					Auth:             user.GetAuth().GetToken(),
-					BackoffInSeconds: 60,
-					Entry: &pb.QueueElement_RefreshWantlists{
-						RefreshWantlists: &pb.RefreshWantlists{},
-					},
-				},
-			})
-
-			user.LastWantRefresh = time.Now().UnixNano()
-			return q.db.SaveUser(ctx, user)
-		}
-
-		return nil
+		return q.b.ProcessSyncWants(ctx, d, u, entry, q.Enqueue)
 	case *pb.QueueElement_RefreshWantlists:
 		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
 		if err == nil {
@@ -792,73 +530,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		q.queueMutex.Unlock()
 		return nil
 	case *pb.QueueElement_RefreshSales:
-		user, err := q.db.GetUser(ctx, entry.GetAuth())
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-
-		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
-			qlog(ctx, "Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
-			return nil
-		}
-
-		if entry.GetRefreshSales().GetPage() == 1 {
-			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
-		}
-		pages, err := q.b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
-
-		if err != nil {
-			return err
-		}
-
-		qlog(ctx, "Got user: %v with %v", user, entry.GetRefreshSales())
-
-		if entry.GetRefreshSales().GetPage() == 1 {
-			for i := int32(2); i <= pages.GetPages(); i++ {
-				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Intention: entry.GetIntention(),
-					RunDate:   time.Now().UnixNano() + int64(i),
-					Force:     entry.GetForce(),
-					Entry: &pb.QueueElement_RefreshSales{
-
-						RefreshSales: &pb.RefreshSales{
-							Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
-					Auth: entry.GetAuth(),
-				}})
-				if err != nil {
-					return fmt.Errorf("unable to enqueue: %w", err)
-				}
-			}
-
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				Intention: entry.GetIntention(),
-				RunDate:   time.Now().UnixNano() + int64(pages.GetPages()) + 10,
-				Entry: &pb.QueueElement_LinkSales{
-					LinkSales: &pb.LinkSales{
-						RefreshId: entry.GetRefreshSales().GetRefreshId()}},
-				Auth: entry.GetAuth(),
-			}})
-			if err != nil {
-				return fmt.Errorf("dunable to enqueue link job: %v", err)
-			}
-		}
-
-		qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
-		if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
-			user.LastSaleRefresh = time.Now().UnixNano()
-			err = q.db.SaveUser(ctx, user)
-			if err != nil {
-				return fmt.Errorf("unable to sell user: %w", err)
-			}
-			err := q.b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
-			if err != nil {
-				return err
-			}
-			// Adjust all sale prices
-			return q.b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, q.Enqueue)
-		}
-
-		return nil
+		return q.b.ProcessRefreshSales(ctx, d, u, entry, q.Enqueue)
 	case *pb.QueueElement_AddFolderUpdate:
 		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
 		if err != nil {
@@ -866,60 +538,11 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		}
 		return nil
 	case *pb.QueueElement_RefreshIntents:
-		r, err := q.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
-		if err != nil {
-			return fmt.Errorf("unable to get record from %v: %w", d.GetUserId(), err)
-		}
-		i, err := q.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
-		if err != nil {
-			return fmt.Errorf("unable to get intent: %w", err)
-		}
-		v := q.b.ProcessIntents(ctx, d, r, i, entry.GetAuth(), q.Enqueue)
-		if v != nil {
-			return v
-		}
-		qlog(ctx, "Processed intent (%v) -> %v", i, v)
-
-		//Move records
-		q.Enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Intention: entry.GetIntention(),
-				RunDate:   time.Now().UnixNano(),
-				Entry: &pb.QueueElement_MoveRecords{
-					MoveRecords: &pb.MoveRecords{}},
-				Auth: entry.GetAuth(),
-			}})
-		if d.GetUserId() == 150295 {
-			nerr := q.updateRecord(ctx, int32(entry.GetRefreshIntents().GetInstanceId()), int32(r.GetRelease().GetId()))
-			if nerr != nil {
-				log.Printf("error on record update: %v", nerr)
-			}
-		}
-
-		return q.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
+		return q.b.ProcessRefreshIntents(ctx, d, entry, q.Enqueue)
 	case *pb.QueueElement_RefreshUser:
 		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshRelease:
-		err := q.b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), u, d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
-		qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
-		if err != nil {
-			if status.Code(err) == codes.NotFound {
-				q.Enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						RunDate:   time.Now().UnixNano(),
-						Intention: fmt.Sprintf("Refreshing collection from release release %v", entry.GetRefreshRelease().GetIid()),
-						Entry: &pb.QueueElement_RefreshCollectionEntry{
-							RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
-						},
-					},
-				})
-			}
-		}
-		derr := q.deleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
-		if derr != nil {
-			return err
-		}
-		return derr
+		return q.b.ProcessRefreshRelease(ctx, u, d, entry, q.Enqueue)
 	case *pb.QueueElement_RefreshCollection:
 		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
 		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
@@ -937,87 +560,18 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		if err != nil {
 			return err
 		}
-		return q.deleteRefreshDateMarker(ctx, entry.GetAuth())
+		return q.db.DeleteRefreshDateMarker(ctx, entry.GetAuth())
 	case *pb.QueueElement_RefreshEarliestReleaseDate:
 		return q.b.RefreshReleaseDate(ctx, u, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease(), entry.GetAuth(), q.Enqueue)
 	case *pb.QueueElement_RefreshCollectionEntry:
 		rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
-		user, err := q.db.GetUser(ctx, entry.GetAuth())
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-
-		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
-			entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
-		}
-
-		rval, err := q.b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollectionEntry().GetPage(), entry.GetRefreshCollectionEntry().GetRefreshId())
-		qlog(ctx, "Processed collection page: %v %v", rval, err)
-
-		if err != nil {
-			return err
-		}
-
-		isSetIntentMiss := strings.HasPrefix(entry.GetIntention(), "Triggered from miss on SetIntent")
-		if isSetIntentMiss && rval > 2 {
-			rval = 2
-		}
-
+		err := q.b.ProcessRefreshCollectionEntry(ctx, d, u, entry, q.Enqueue)
 		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 			q.queueMutex.Lock()
 			q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = false
 			q.queueMutex.Unlock()
-
-			for i := int32(2); i <= rval; i++ {
-				_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-					Force:     entry.GetForce(),
-					RunDate:   time.Now().UnixNano() + int64(i),
-					Intention: entry.GetIntention(),
-					Entry: &pb.QueueElement_RefreshCollectionEntry{
-						RefreshCollectionEntry: &pb.RefreshCollectionEntry{
-							Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
-					Auth: entry.GetAuth(),
-				}})
-				if err != nil {
-					return fmt.Errorf("unable to enqueue: %w", err)
-				}
-			}
-			user.LastCollectionRefresh = time.Now().UnixNano()
-			err = q.db.SaveUser(ctx, user)
-			if err != nil {
-				return fmt.Errorf("unable to save user: %w", err)
-			}
 		}
-
-		if entry.GetRefreshCollectionEntry().GetPage() == rval {
-			qlog(ctx, "Writing collection refresh chip")
-			//Move records
-			_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					Intention: entry.GetIntention(),
-					Force:     entry.GetForce(),
-					RunDate:   time.Now().UnixNano() + int64(rval) + 10,
-					Entry: &pb.QueueElement_MoveRecords{
-						MoveRecords: &pb.MoveRecords{}},
-					Auth: entry.GetAuth(),
-				}})
-			qlog(ctx, "Found %v", err)
-			if user.GetState() == pb.StoredUser_USER_STATE_REFRESHING {
-				user.State = pb.StoredUser_USER_STATE_IN_WAITLIST
-				err = q.db.SaveUser(ctx, user)
-				if err != nil {
-					return fmt.Errorf("unable to save user: %w", err)
-				}
-			}
-			if err != nil {
-				return err
-			}
-			if !isSetIntentMiss {
-				return q.b.CleanCollection(ctx, q.d.ForUser(user.GetUser()), entry.GetRefreshCollectionEntry().GetRefreshId(), entry.GetAuth(), q.Enqueue)
-			}
-			return nil
-		}
-		return nil
+		return err
 	case *pb.QueueElement_DeleteRecord:
 		return q.b.DeleteRecord(ctx, d, entry.GetDeleteRecord().GetIid())
 	}
@@ -1132,7 +686,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		intention.With(prometheus.Labels{"intention": req.GetElement().GetRefreshRelease().GetIntention()}).Inc()
 
 		// Check for a marker
-		marker, err := q.getRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		marker, err := q.db.GetRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
 			if status.Code(err) != codes.NotFound {
 				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
@@ -1144,7 +698,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
 		}
 
-		err = q.setRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
+		err = q.db.SetRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
 		if err != nil {
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)

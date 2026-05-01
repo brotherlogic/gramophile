@@ -17,9 +17,68 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/config"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	pbgd "github.com/brotherlogic/godiscogs/proto"
+	pbrc "github.com/brotherlogic/recordcollection/proto"
 )
+
+func (b *BackgroundRunner) updateRecord(ctx context.Context, iid int32, id int32) error {
+	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := pbrc.NewRecordCollectionServiceClient(conn)
+	tracev := fmt.Sprintf("gramophile-%v", time.Now().UnixNano())
+	nctx := metadata.AppendToOutgoingContext(ctx, "trace-id", tracev)
+	_, err = client.UpdateRecord(nctx, &pbrc.UpdateRecordRequest{
+		Reason: "ping_from_gramophile",
+		Update: &pbrc.Record{
+			Release:  &pbgd.Release{Id: id, InstanceId: iid},
+			Metadata: &pbrc.ReleaseMetadata{NeedsGramUpdate: true},
+		},
+	})
+	return err
+}
+
+func (b *BackgroundRunner) ProcessRefreshIntents(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	r, err := b.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
+	if err != nil {
+		return fmt.Errorf("unable to get record from %v: %w", d.GetUserId(), err)
+	}
+	i, err := b.db.GetIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
+	if err != nil {
+		return fmt.Errorf("unable to get intent: %w", err)
+	}
+	v := b.ProcessIntents(ctx, d, r, i, entry.GetAuth(), enqueue)
+	if v != nil {
+		return v
+	}
+	qlog(ctx, "Processed intent (%v) -> %v", i, v)
+
+	//Move records
+	enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: entry.GetIntention(),
+			RunDate:   time.Now().UnixNano(),
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{}},
+			Auth: entry.GetAuth(),
+		}})
+	if d.GetUserId() == 150295 {
+		nerr := b.updateRecord(ctx, int32(entry.GetRefreshIntents().GetInstanceId()), int32(r.GetRelease().GetId()))
+		if nerr != nil {
+			log.Printf("error on record update: %v", nerr)
+		}
+	}
+
+	return b.db.DeleteIntent(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId(), entry.GetRefreshIntents().GetTimestamp())
+}
 
 func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, auth string, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("BOUNCE: %v", b.db)
