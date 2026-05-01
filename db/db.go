@@ -144,6 +144,8 @@ func NewDatabase(ctx context.Context) Database {
 }
 
 func (d *DB) save(ctx context.Context, key string, message protoreflect.ProtoMessage) error {
+	log.Printf("Starting write of %v", key)
+	t := time.Now()
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return err
@@ -152,6 +154,7 @@ func (d *DB) save(ctx context.Context, key string, message protoreflect.ProtoMes
 		Key:   key,
 		Value: &anypb.Any{Value: data},
 	})
+	log.Printf("Finished write of %v in %v -> %v", key, time.Since(t), err)
 	return err
 }
 
@@ -502,17 +505,7 @@ func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, r
 }
 
 func (d *DB) SaveLogins(ctx context.Context, logins *pb.UserLoginAttempts) error {
-	data, err := proto.Marshal(logins)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   "gramophile/logins",
-		Value: &anypb.Any{Value: data},
-	})
-
-	return err
+	return d.save(ctx, "gramophile/logins", logins)
 }
 
 func cleanOrgString(org string) string {
@@ -525,28 +518,23 @@ func cleanOrgString(org string) string {
 }
 
 func (d *DB) SaveSnapshot(ctx context.Context, user *pb.StoredUser, org string, snapshot *pb.OrganisationSnapshot) error {
-	data, err := proto.Marshal(snapshot)
+	err := d.save(ctx, fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetDate()), snapshot)
 	if err != nil {
 		return err
 	}
 
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetDate()),
-		Value: &anypb.Any{Value: data},
-	})
-
 	if snapshot.GetName() != "" {
-		_, err = d.client.Write(ctx, &rspb.WriteRequest{
-			Key:   fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), cleanOrgString(snapshot.GetName())),
-			Value: &anypb.Any{Value: data},
-		})
+		err = d.save(ctx, fmt.Sprintf("gramophile/%v/org/%v/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), cleanOrgString(snapshot.GetName())), snapshot)
+		if err != nil {
+			return err
+		}
 	}
 
 	if snapshot.GetHash() != "" {
-		_, err = d.client.Write(ctx, &rspb.WriteRequest{
-			Key:   fmt.Sprintf("gramophile/%v/org/%v/hash/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetHash()),
-			Value: &anypb.Any{Value: data},
-		})
+		err = d.save(ctx, fmt.Sprintf("gramophile/%v/org/%v/hash/%v", user.GetUser().GetDiscogsUserId(), cleanOrgString(org), snapshot.GetHash()), snapshot)
+		if err != nil {
+			return err
+		}
 	}
 
 	return err
@@ -636,31 +624,12 @@ func (d *DB) GenerateToken(ctx context.Context, token, secret string) (*pb.Store
 		UserSecret: secret,
 	}
 
-	data, err := proto.Marshal(su)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user),
-		Value: &anypb.Any{Value: data},
-	})
-
+	err := d.save(ctx, fmt.Sprintf("%v%v", USER_PREFIX, user), su)
 	return su, err
 }
 
 func (d *DB) SaveUser(ctx context.Context, user *pb.StoredUser) error {
-	data, err := proto.Marshal(user)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("%v%v", USER_PREFIX, user.Auth.Token),
-		Value: &anypb.Any{Value: data},
-	})
-
-	return err
+	return d.save(ctx, fmt.Sprintf("%v%v", USER_PREFIX, user.Auth.Token), user)
 }
 
 func (d *DB) DeleteUserData(ctx context.Context, id string) error {
@@ -755,11 +724,6 @@ func (d *DB) SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.
 }
 
 func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, options ...*SaveOptions) error {
-	data, err := proto.Marshal(record)
-	if err != nil {
-		return err
-	}
-
 	old, err := d.GetRecord(ctx, userid, record.GetRelease().GetInstanceId())
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -768,21 +732,13 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, op
 	}
 
 	// Write the main release
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()),
-		Value: &anypb.Any{Value: data},
-	})
-	log.Printf("Writing gramophile/user/%v/release/%v -> %v", userid, record.GetRelease().GetInstanceId(), err)
-
+	err = d.save(ctx, fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()), record)
 	if err != nil {
 		return err
 	}
 
 	// Write historical data
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/releasehistory/%v-%v", userid, record.GetRelease().GetInstanceId(), time.Now().UnixNano()),
-		Value: &anypb.Any{Value: data},
-	})
+	err = d.save(ctx, fmt.Sprintf("gramophile/user/%v/releasehistory/%v-%v", userid, record.GetRelease().GetInstanceId(), time.Now().UnixNano()), record)
 
 	// Write out updates
 	saveUpdate := true
@@ -969,17 +925,7 @@ func (d *DB) GetIntent(ctx context.Context, userid int32, iid int64, ts int64) (
 }
 
 func (d *DB) SaveIntent(ctx context.Context, userid int32, iid int64, i *pb.Intent, ts int64) error {
-	data, err := proto.Marshal(i)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.client.Write(ctx, &rspb.WriteRequest{
-		Key:   fmt.Sprintf("gramophile/user/%v/release/intent-%v-%v", userid, iid, ts),
-		Value: &anypb.Any{Value: data},
-	})
-
-	return err
+	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/release/intent-%v-%v", userid, iid, ts), i)
 }
 
 func (d *DB) DeleteIntent(ctx context.Context, userid int32, iid int64, ts int64) error {
