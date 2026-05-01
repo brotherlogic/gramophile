@@ -7,9 +7,31 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
+	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
+
+func (b *BackgroundRunner) ProcessRefreshState(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	err := b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Auth:      entry.GetAuth(),
+					Force:     true,
+					RunDate:   time.Now().UnixNano(),
+					Intention: fmt.Sprintf("Refreshing collection from release state %v", entry.GetRefreshState().GetIid()),
+					Entry: &pb.QueueElement_RefreshCollectionEntry{
+						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+					},
+				},
+			})
+		}
+	}
+	return err
+}
 
 func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discogs.Discogs, force bool) error {
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)

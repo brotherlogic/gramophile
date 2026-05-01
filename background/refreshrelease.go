@@ -26,6 +26,30 @@ const (
 	digitalWantlistName = "digital"
 )
 
+func (b *BackgroundRunner) ProcessRefreshRelease(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	err := b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), u, d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
+	qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Auth:      entry.GetAuth(),
+					RunDate:   time.Now().UnixNano(),
+					Intention: fmt.Sprintf("Refreshing collection from release release %v", entry.GetRefreshRelease().GetIid()),
+					Entry: &pb.QueueElement_RefreshCollectionEntry{
+						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
+					},
+				},
+			})
+		}
+	}
+	derr := b.db.DeleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+	if derr != nil {
+		return err
+	}
+	return derr
+}
+
 func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.StoredUser, d discogs.Discogs, force bool) error {
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
 	if err != nil {

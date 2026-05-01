@@ -101,13 +101,17 @@ func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, user *pb.St
 	return list, b.db.SaveWantlist(ctx, user, list)
 }
 
-func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Discogs, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) ProcessRefreshWantlists(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return b.RefreshWantlists(ctx, d, authToken, enqueue)
+}
+
+func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	qlog(ctx, "Refreshing Wantlists")
-	lists, err := b.db.GetWantlists(ctx, di.GetUserId())
+	lists, err := b.db.GetWantlists(ctx, d.GetUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get wantlists: %w", err)
 	}
-	user, err := b.db.GetUser(ctx, auth)
+	user, err := b.db.GetUser(ctx, authToken)
 	if err != nil {
 		return err
 	}
@@ -136,17 +140,17 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
 		if builtList {
-			list, err = b.PurgeDigitalwantlist(ctx, user, di.GetUserId())
+			list, err = b.PurgeDigitalwantlist(ctx, user, d.GetUserId())
 			if err != nil {
 				return err
 			}
-			err = b.AlignDigitalWantlist(ctx, di.GetUserId())
+			err = b.AlignDigitalWantlist(ctx, d.GetUserId())
 			if err != nil {
 				return err
 			}
 		}
 
-		err = b.processWantlist(ctx, user, di, user.GetConfig().GetWantsListConfig(), list, auth, overthreshold && !builtList, enqueue)
+		err = b.processWantlist(ctx, user, d, user.GetConfig().GetWantsListConfig(), list, authToken, overthreshold && !builtList, enqueue)
 		if err != nil {
 			return fmt.Errorf("Unable to process wantlist %v -> %w", list.GetName(), err)
 		}
@@ -156,7 +160,7 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, di discogs.Disc
 	return b.db.SaveUser(ctx, user)
 }
 
-func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser, di discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, config *pb.WantslistConfig, list *pb.Wantlist, token string, overthreshold bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	qlog(ctx, "Processing %v -> %v with %v (%v)", list.GetName(), list.GetType(), overthreshold, len(list.GetEntries()))
 
 	// Deactivate if set
@@ -172,7 +176,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 
 	idMap := make(map[int64]int32)
 	recordMap := make(map[int64]*pb.Record)
-	records, err := b.db.LoadAllRecords(ctx, di.GetUserId())
+	records, err := b.db.LoadAllRecords(ctx, d.GetUserId())
 	if err != nil {
 		return err
 	}
@@ -184,7 +188,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 	for _, entry := range list.GetEntries() {
 		qlog(ctx, "REFRESH_WANT %v -> %v", list.GetName(), entry)
 		// Hard sync from the want
-		want, err := b.db.GetWant(ctx, di.GetUserId(), entry.GetId())
+		want, err := b.db.GetWant(ctx, d.GetUserId(), entry.GetId())
 		if err != nil {
 			if status.Code(err) == codes.NotFound {
 				// We need to save this want
@@ -193,7 +197,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 					State:        pb.WantState_WANT_UNKNOWN,
 					FromWantlist: []string{list.GetName()},
 				}
-				err = b.db.SaveWant(ctx, di.GetUserId(), want, "Creating from wantlist update")
+				err = b.db.SaveWant(ctx, d.GetUserId(), want, "Creating from wantlist update")
 				if err != nil {
 					return nil
 				}
@@ -211,7 +215,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 		}
 		if !found {
 			want.FromWantlist = append(want.GetFromWantlist(), list.GetName())
-			err = b.db.SaveWant(ctx, di.GetUserId(), want, "Adding from wantlist")
+			err = b.db.SaveWant(ctx, d.GetUserId(), want, "Adding from wantlist")
 			if err != nil {
 				return fmt.Errorf("unable to save want: %w", err)
 			}
@@ -266,7 +270,7 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 		}
 	}
 
-	_, err = b.refreshWantlist(ctx, di.GetUserId(), list, token, overthreshold, enqueue)
+	_, err = b.refreshWantlist(ctx, d.GetUserId(), list, token, overthreshold, enqueue)
 	if err != nil && status.Code(err) != codes.FailedPrecondition {
 		return fmt.Errorf("unable to refresh wantlist: %w", err)
 	}

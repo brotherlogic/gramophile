@@ -387,6 +387,23 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 	return nil
 }
 
+func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale) error {
+	//Short cut if sale data is not complete
+	if entry.GetCondition() == "" {
+		qlog(ctx, "Skipping %v", entry)
+		return nil
+	}
+	err := b.UpdateSalePrice(ctx, d, entry.GetSaleId(), entry.GetReleaseId(), entry.GetCondition(), entry.GetNewPrice(), entry.GetMotivation())
+	qlog(ctx, "Updated sale price for %v -> %v", entry.GetSaleId(), err)
+
+	// Not Found means the sale was deleted - if so remove from the db
+	if status.Code(err) == codes.NotFound {
+		qlog(ctx, "Deleting sale for %v (%v) since we can't locate the sale", entry.GetReleaseId(), entry.GetSaleId())
+		return b.db.DeleteSale(ctx, u.GetUser().GetDiscogsUserId(), entry.GetSaleId())
+	}
+	return err
+}
+
 func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discogs, sid int64, releaseid int64, condition string, newprice int32, motivation string) error {
 	sale, err := b.db.GetSale(ctx, d.GetUserId(), sid)
 	if err != nil {
@@ -517,6 +534,71 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	if time.Since(time.Unix(0, user.GetLastSaleRefresh())) < time.Hour*24 && !entry.GetForce() {
+		qlog(ctx, "Skipping refreshRefreshSales sales because %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+		return nil
+	}
+
+	if entry.GetRefreshSales().GetPage() == 1 {
+		entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+	}
+	pages, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
+
+	if err != nil {
+		return err
+	}
+
+	qlog(ctx, "Got user: %v with %v", user, entry.GetRefreshSales())
+
+	if entry.GetRefreshSales().GetPage() == 1 {
+		for i := int32(2); i <= pages.GetPages(); i++ {
+			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano() + int64(i),
+				Force:     entry.GetForce(),
+				Entry: &pb.QueueElement_RefreshSales{
+
+					RefreshSales: &pb.RefreshSales{
+						Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
+				Auth: entry.GetAuth(),
+			}})
+			if err != nil {
+				return fmt.Errorf("unable to enqueue: %w", err)
+			}
+		}
+
+		_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			Intention: entry.GetIntention(),
+			RunDate:   time.Now().UnixNano() + int64(pages.GetPages()) + 10,
+			Entry: &pb.QueueElement_LinkSales{
+				LinkSales: &pb.LinkSales{
+					RefreshId: entry.GetRefreshSales().GetRefreshId()}},
+			Auth: entry.GetAuth(),
+		}})
+		if err != nil {
+			return fmt.Errorf("dunable to enqueue link job: %v", err)
+		}
+	}
+
+	qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
+	if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
+		user.LastSaleRefresh = time.Now().UnixNano()
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			return fmt.Errorf("unable to sell user: %w", err)
+		}
+		err := b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
+		if err != nil {
+			return err
+		}
+		// Adjust all sale prices
+		return b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, enqueue)
 	}
 
 	return nil
