@@ -319,8 +319,12 @@ func (q *Queue) Run() {
 			} else {
 				// This is discogs throttling us
 				if status.Code(err) == codes.ResourceExhausted {
-					qlog(ctx, "Waiting for a minute to let our tokens regenerate")
-					time.Sleep(time.Minute)
+					if err.Error() == "rpc error: code = ResourceExhausted desc = User queue limit reached" {
+						qlog(ctx, "Skipping enqueue due to user queue limit")
+					} else {
+						qlog(ctx, "Waiting for a minute to let our tokens regenerate")
+						time.Sleep(time.Minute)
+					}
 				} else if status.Code(err) == codes.Internal {
 					_, err = q.gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
 						User:  "brotherlogic",
