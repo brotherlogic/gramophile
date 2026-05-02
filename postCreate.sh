@@ -10,6 +10,15 @@ tic -x ghostty.terminfo
 # Install tmux and emacs
 sudo apt-get update && sudo apt-get install -y tmux emacs
 
+# Setup tmux for Ghostty and graphics support
+cat << 'EOF' > "$HOME/.tmux.conf"
+# Allow programs to use the terminal's graphics capabilities
+set -g allow-passthrough on
+
+# Support Ghostty terminal capabilities
+set -as terminal-overrides ',xterm-ghostty:Sync:Tc'
+EOF
+
 # Add tmux auto-attach to .zshrc and .bashrc
 for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
     if [ -f "$RC_FILE" ] && ! grep -q "Auto-attach to tmux session" "$RC_FILE"; then
