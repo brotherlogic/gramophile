@@ -32,9 +32,13 @@ func TestRunWithEmptyQueue(t *testing.T) {
 }
 
 func getTestContext(userid int) context.Context {
-	return metadata.AppendToOutgoingContext(context.Background(),
-		"auth-token",
-		fmt.Sprintf("%v", userid))
+	return metadata.AppendToOutgoingContext(context.Background(), "auth-token", fmt.Sprintf("%v", userid))
+}
+
+func getTestContextBeta(userid int) context.Context {
+	return metadata.AppendToOutgoingContext(getTestContext(userid),
+		"user-level",
+		"BETA")
 }
 
 func TestMarkerCreationAndRemoval(t *testing.T) {
