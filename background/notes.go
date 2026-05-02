@@ -46,6 +46,22 @@ func (b *BackgroundRunner) updateRecord(ctx context.Context, iid int32, id int32
 	return err
 }
 
+type refreshIntentsHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshIntentsHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessRefreshIntents(ctx, d, entry, enqueue)
+}
+
+func (h *refreshIntentsHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshIntentsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
 func (b *BackgroundRunner) ProcessRefreshIntents(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement, enqueue func(ctx context.Context, entry *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	r, err := b.db.GetRecord(ctx, d.GetUserId(), entry.GetRefreshIntents().GetInstanceId())
 	if err != nil {

@@ -13,6 +13,22 @@ import (
 	"time"
 )
 
+type refreshStateHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshStateHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessRefreshState(ctx, d, entry, enqueue)
+}
+
+func (h *refreshStateHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshStateHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
 func (b *BackgroundRunner) ProcessRefreshState(ctx context.Context, d discogs.Discogs, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	err := b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
 	if err != nil {

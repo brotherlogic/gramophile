@@ -197,15 +197,9 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		pMap[key] = entry.GetPriority()
 		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
 
-		switch t := entry.GetEntry().(type) {
-		case *pb.QueueElement_RefreshWantlists:
-			hMap["RefreshWantlists"] = true
-		case *pb.QueueElement_RefreshCollection:
-			hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = true
-		case *pb.QueueElement_RefreshCollectionEntry:
-			if t.RefreshCollectionEntry.GetPage() == 1 {
-				hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = true
-			}
+		dkey := b.GetDeduplicationKey(entry)
+		if dkey != "" {
+			hMap[dkey] = true
 		}
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
@@ -486,97 +480,18 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 
 	queueRun.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.Entry)}).Inc()
 
-	switch entry.Entry.(type) {
-	case *pb.QueueElement_AddSale:
-		nd := d.ForUser(u.GetUser())
-		return q.b.AddSale(ctx, nd, entry.GetAddSale().GetInstanceId(), entry.GetAddSale().GetSaleParams(), u)
-	case *pb.QueueElement_FanoutHistory:
-		err := q.b.FanoutHistory(ctx, entry.GetFanoutHistory().GetType(), u, entry.GetAuth(), q.Enqueue)
-		return err
-	case *pb.QueueElement_RecordHistory:
-		err := q.b.RecordHistory(ctx, entry.GetRecordHistory().GetType(), int64(u.GetUser().GetDiscogsUserId()), entry.GetRecordHistory().GetInstanceId())
-		return err
-	case *pb.QueueElement_RefreshState:
-		return q.b.ProcessRefreshState(ctx, d, entry, q.Enqueue)
-	case *pb.QueueElement_MoveRecord:
-		return q.b.MoveRecord(ctx, d, u, entry.GetMoveRecord(), entry.GetAuth(), q.Enqueue)
-	case *pb.QueueElement_MoveRecords:
-		return q.b.RunMoves(ctx, u, q.Enqueue)
-	case *pb.QueueElement_AddMasterWant:
-		return q.b.AddMasterWant(ctx, d, entry.GetAddMasterWant().GetWant())
-	case *pb.QueueElement_UpdateSale:
-		return q.b.ProcessUpdateSale(ctx, d, u, entry.GetUpdateSale())
-	case *pb.QueueElement_RefreshWants:
-		return q.b.RefreshWants(ctx, d, entry.GetAuth(), q.Enqueue)
-	case *pb.QueueElement_RefreshWant:
-		return q.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), q.Enqueue)
-	case *pb.QueueElement_SyncWants:
-		return q.b.ProcessSyncWants(ctx, d, u, entry, q.Enqueue)
-	case *pb.QueueElement_RefreshWantlists:
-		err := q.b.RefreshWantlists(ctx, d, entry.GetAuth(), q.Enqueue)
-		if err == nil {
+	err := q.b.Execute(ctx, d, u, entry, q.Enqueue)
+
+	if err == nil {
+		key := q.b.GetDeduplicationKey(entry)
+		if key != "" {
 			q.queueMutex.Lock()
-			q.hMap["RefreshWantlists"] = false
+			q.hMap[key] = false
 			q.queueMutex.Unlock()
 		}
-		return err
-	case *pb.QueueElement_LinkSales:
-		err := q.b.LinkSales(ctx, u)
-		if err != nil {
-			return fmt.Errorf("unable to link sales: %w", err)
-		}
-		q.queueMutex.Lock()
-		q.hMap["LinkSales"] = false
-		q.queueMutex.Unlock()
-		return nil
-	case *pb.QueueElement_RefreshSales:
-		return q.b.ProcessRefreshSales(ctx, d, u, entry, q.Enqueue)
-	case *pb.QueueElement_AddFolderUpdate:
-		err := q.b.AddFolder(ctx, entry.GetAddFolderUpdate().GetFolderName(), d, u)
-		if err != nil {
-			return fmt.Errorf("unable to create folder: %w", err)
-		}
-		return nil
-	case *pb.QueueElement_RefreshIntents:
-		return q.b.ProcessRefreshIntents(ctx, d, entry, q.Enqueue)
-	case *pb.QueueElement_RefreshUser:
-		return q.b.RefreshUser(ctx, d, entry.GetRefreshUser().GetAuth(), q.Enqueue)
-	case *pb.QueueElement_RefreshRelease:
-		return q.b.ProcessRefreshRelease(ctx, u, d, entry, q.Enqueue)
-	case *pb.QueueElement_RefreshCollection:
-		qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
-		err := q.b.RefreshCollection(ctx, d, entry.GetAuth(), q.Enqueue)
-		q.queueMutex.Lock()
-		q.hMap[fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())] = false
-		q.queueMutex.Unlock()
-		return err
-	case *pb.QueueElement_RefreshEarliestReleaseDates:
-		user, err := q.db.GetUser(ctx, entry.GetAuth())
-		if err != nil {
-			return err
-		}
-		digWants := user.GetConfig().GetWantsConfig().GetDigitalWantList()
-		err = q.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), digWants, q.Enqueue)
-		if err != nil {
-			return err
-		}
-		return q.db.DeleteRefreshDateMarker(ctx, entry.GetAuth())
-	case *pb.QueueElement_RefreshEarliestReleaseDate:
-		return q.b.RefreshReleaseDate(ctx, u, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease(), entry.GetAuth(), q.Enqueue)
-	case *pb.QueueElement_RefreshCollectionEntry:
-		rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
-		err := q.b.ProcessRefreshCollectionEntry(ctx, d, u, entry, q.Enqueue)
-		if entry.GetRefreshCollectionEntry().GetPage() == 1 {
-			q.queueMutex.Lock()
-			q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())] = false
-			q.queueMutex.Unlock()
-		}
-		return err
-	case *pb.QueueElement_DeleteRecord:
-		return q.b.DeleteRecord(ctx, d, entry.GetDeleteRecord().GetIid())
 	}
 
-	return status.Errorf(codes.NotFound, "Unable to this handle (%t), %v -> %v", entry.GetEntry(), entry, entry.Entry)
+	return err
 }
 
 func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
@@ -600,18 +515,6 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 }
 
 var (
-	intention = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "gramophile_intention",
-		Help: "The length of the working queue I think yes",
-	}, []string{"intention"})
-	markerCount = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "gramophile_marker_rejects",
-		Help: "The length of the working queue I think yes",
-	})
-	rintention = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "gramophile_queue_refresh_intention",
-		Help: "The length of the working queue I think yes",
-	}, []string{"intention"})
 	enqueueFail = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_queue_enqueue",
 	}, []string{"code"})
@@ -632,77 +535,24 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	req.GetElement().AdditionDate = time.Now().UnixNano()
 
 	// Validate entries
-	switch req.GetElement().GetEntry().(type) {
-	case *pb.QueueElement_LinkSales:
-		q.queueMutex.Lock()
-		if q.hMap["LinkSales"] {
-			q.queueMutex.Unlock()
-			// Silent fail since it's already in the queue
-			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
-		} else {
-			q.hMap["LinkSales"] = true
-			q.queueMutex.Unlock()
-		}
-	case *pb.QueueElement_RefreshWantlists:
-		q.queueMutex.Lock()
-		if q.hMap["RefreshWantlists"] {
-			q.queueMutex.Unlock()
-			// Silent fail since it's already in the queue
-			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
-		} else {
-			q.hMap["RefreshWantlists"] = true
-			q.queueMutex.Unlock()
-		}
-	case *pb.QueueElement_RefreshCollection:
-		q.queueMutex.Lock()
-		if q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] {
-			q.queueMutex.Unlock()
-			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
-		} else {
-			q.hMap[fmt.Sprintf("RefreshCollection-%v", req.GetElement().GetAuth())] = true
-			q.queueMutex.Unlock()
-		}
-	case *pb.QueueElement_RefreshCollectionEntry:
-		if req.GetElement().GetRefreshCollectionEntry().GetPage() == 1 {
-			q.queueMutex.Lock()
-			if q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] {
-				q.queueMutex.Unlock()
-				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-				return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
-			} else {
-				q.hMap[fmt.Sprintf("RefreshCollectionEntry-%v", req.GetElement().GetAuth())] = true
-				q.queueMutex.Unlock()
-			}
-		}
-	case *pb.QueueElement_RefreshRelease:
-		if req.GetElement().GetRefreshRelease().GetIntention() == "" {
-			intention.With(prometheus.Labels{"intention": "REJECT"}).Inc()
-			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.InvalidArgument)}).Inc()
-			return nil, status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", req.GetElement().GetEntry())
-		}
-		intention.With(prometheus.Labels{"intention": req.GetElement().GetRefreshRelease().GetIntention()}).Inc()
-
-		// Check for a marker
-		marker, err := q.db.GetRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
-		if err != nil {
-			if status.Code(err) != codes.NotFound {
-				enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
-				return nil, fmt.Errorf("Unable to get refresh marker: %w", err)
-			}
-		} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 && req.GetElement().GetRefreshRelease().GetIntention() != "Manual Update" {
-			markerCount.Inc()
-			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-			return nil, status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
-		}
-
-		err = q.db.SetRefreshMarker(ctx, req.Element.GetAuth(), req.GetElement().GetRefreshRelease().GetIid())
-		if err != nil {
+	err := q.b.Validate(ctx, req.GetElement())
+	if err != nil {
+		if status.Code(err) == codes.AlreadyExists || status.Code(err) == codes.InvalidArgument {
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
-			return nil, fmt.Errorf("Unable to write refresh marker: %w", err)
 		}
+		return nil, err
+	}
+
+	key := q.b.GetDeduplicationKey(req.GetElement())
+	if key != "" {
+		q.queueMutex.Lock()
+		if q.hMap[key] {
+			q.queueMutex.Unlock()
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+		}
+		q.hMap[key] = true
+		q.queueMutex.Unlock()
 	}
 
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()

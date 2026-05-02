@@ -5,8 +5,42 @@ import (
 	"log"
 	"time"
 
+	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
+
+type fanoutHistoryHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *fanoutHistoryHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.FanoutHistory(ctx, entry.GetFanoutHistory().GetType(), u, entry.GetAuth(), enqueue)
+}
+
+func (h *fanoutHistoryHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *fanoutHistoryHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type recordHistoryHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *recordHistoryHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RecordHistory(ctx, entry.GetRecordHistory().GetType(), int64(u.GetUser().GetDiscogsUserId()), entry.GetRecordHistory().GetInstanceId())
+}
+
+func (h *recordHistoryHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *recordHistoryHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
 
 func (b *BackgroundRunner) FanoutHistory(ctx context.Context, typ pb.UpdateType, user *pb.StoredUser, auth string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("FANNING OUT: %v for %v", user, typ)
