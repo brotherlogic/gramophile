@@ -12,7 +12,7 @@ sudo apt-get update && sudo apt-get install -y tmux emacs
 
 # Add tmux auto-attach to .zshrc and .bashrc
 for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
-    if [ -f "$RC_FILE" ]; then
+    if [ -f "$RC_FILE" ] && ! grep -q "Auto-attach to tmux session" "$RC_FILE"; then
         cat << 'EOF' >> "$RC_FILE"
 
 # Auto-attach to tmux session
