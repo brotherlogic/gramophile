@@ -49,6 +49,14 @@ The system is built as a set of gRPC and HTTP services supported by a custom per
 
 The system is designed for high observability. It exposes a `/metrics` endpoint for Prometheus and uses OpenTelemetry to provide detailed traces of request execution across the server and background workers. The `admin_cli` provides a powerful toolset for manual intervention and state inspection.
 
+## Agent Outputs & Source of Truth
+
+GitHub is the sole source of truth for all investigation results, implementation plans, architectural notes, and other significant outputs generated during the development lifecycle.
+
+- **No Local File Storage**: You MUST NOT store these outputs as local Markdown files (e.g., in `.gemini/` or other project directories).
+- **GitHub Comments**: All such outputs must be posted as comments on the relevant Pull Request or Issue using the `gh` CLI (`gh pr comment` or `gh issue comment`).
+- **Context Required**: If a task is not yet associated with a specific GitHub Issue or Pull Request, you MUST pause and prompt the user for the relevant Issue/PR ID before uploading the output.
+
 ## Workflow
 
 You MUST follow the [.agents/workflows/finish.md](.agents/workflows/finish.md) workflow for all changes. This workflow ensures that changes are committed to a feature branch, pushed, and reviewed correctly. Never push directly to main unless explicitly instructed to do so by the user.
