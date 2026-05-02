@@ -100,6 +100,7 @@ type Queue struct {
 	keys      []int64
 	queueMutex sync.Mutex
 	pMap      map[int64]pb.QueueElement_Priority
+	userCounts map[string]int
 	gclient   ghb_client.GithubridgeClient
 	hMap      map[string]bool
 }
@@ -196,10 +197,20 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 		err = proto.Unmarshal(data.GetValue().GetValue(), entry)
 		pMap[key] = entry.GetPriority()
 		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Inc()
+		// Queue object isn't created yet; we'll calculate this after the loop.
+		// For now, let's keep track of counts in a local map.
+		// We'll rename local map to userCounts...
+	}
 
-		dkey := b.GetDeduplicationKey(entry)
-		if dkey != "" {
-			hMap[dkey] = true
+	userCounts := make(map[string]int)
+	for _, key := range ckeys {
+		data, err := r.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
+		if err == nil {
+			entry := &pb.QueueElement{}
+			err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+			if err == nil {
+				userCounts[entry.GetAuth()]++
+			}
 		}
 	}
 	log.Printf("Loaded pmap in %v", time.Since(t))
@@ -207,6 +218,7 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 	return &Queue{
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
 		pMap:      pMap,
+		userCounts: userCounts,
 		queueMutex: sync.Mutex{},
 		hMap:      hMap,
 	}
@@ -508,6 +520,7 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	}
 	q.keys = nkeys
 	delete(q.pMap, entry.GetRunDate())
+	q.userCounts[entry.GetAuth()]--
 	q.queueMutex.Unlock()
 	// Also delete the stored key
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
@@ -555,6 +568,21 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		q.queueMutex.Unlock()
 	}
 
+	// Per-user throttling for non-urgent tasks
+	isThrottlable := fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshRelease" || 
+	                 fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDates" ||
+	                 fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDate"
+
+	if isThrottlable {
+		q.queueMutex.Lock()
+		count := q.userCounts[req.GetElement().GetAuth()]
+		q.queueMutex.Unlock()
+
+		if count >= 100 {
+			return &pb.EnqueueResponse{}, status.Errorf(codes.ResourceExhausted, "User queue limit reached")
+		}
+	}
+
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 
 	data, err := proto.Marshal(req.GetElement())
@@ -572,6 +600,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		q.queueMutex.Lock()
 		q.keys = append(q.keys, req.GetElement().GetRunDate())
 		q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
+		q.userCounts[req.GetElement().GetAuth()]++
 		q.queueMutex.Unlock()
 	}
 	qlog(ctx, "Adding %v", req)
