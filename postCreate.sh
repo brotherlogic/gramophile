@@ -16,8 +16,8 @@ for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
         cat << 'EOF' >> "$RC_FILE"
 
 # Auto-attach to tmux session
-if [[ -z "$TMUX" ]] && [[ -z "$SKIP_TMUX" ]] && [[ -n "$PS1" ]] && [[ -t 0 ]]; then
-    tmux new-session -A -s default
+if [[ $- == *i* ]] && [[ -z "$TMUX" ]] && [[ -z "$SKIP_TMUX" ]] && [[ -t 0 ]]; then
+    tmux new-session -A -s "default-${USER:-vscode}"
 fi
 EOF
     fi
