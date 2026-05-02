@@ -23,6 +23,7 @@
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "./postCreate.sh",
+	"postStartCommand": "tmux new-session -d -s default-vscode || true",
 	"initializeCommand": "echo \"GH_TOKEN=$(gh auth token)\" > .devcontainer/.env.auth",
 	// Configure tool-specific properties.
 	// "customizations": {},
