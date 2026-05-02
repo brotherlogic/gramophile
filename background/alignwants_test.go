@@ -12,6 +12,10 @@ import (
 )
 
 func getTestContext(userid int) context.Context {
+	return metadata.AppendToOutgoingContext(context.Background(), "auth-token", fmt.Sprintf("%v", userid))
+}
+
+func getTestContextBeta(userid int) context.Context {
 	return metadata.AppendToOutgoingContext(context.Background(),
 		"auth-token",
 		fmt.Sprintf("%v", userid))
