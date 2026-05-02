@@ -23,14 +23,16 @@
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "./postCreate.sh",
-	"postStartCommand": "tmux new-session -d -s default-vscode || true",
+	"postStartCommand": "tmux -u new-session -d -s default-vscode || true",
 	"initializeCommand": "echo \"GH_TOKEN=$(gh auth token)\" > .devcontainer/.env.auth",
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 	"containerEnv": {
-		"GH_GIT_PROTOCOL": "ssh"
+		"GH_GIT_PROTOCOL": "ssh",
+		"LANG": "en_US.UTF-8",
+		"LC_ALL": "en_US.UTF-8"
 	},
 	"runArgs": [
 		"--network=host",
