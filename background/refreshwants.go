@@ -133,11 +133,11 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 					entry.State = storedWant.GetState()
 					updated = true
 				}
-				if updated {
-					err = b.db.SaveWantlist(ctx, user, list)
-					if err != nil {
-						return err
-					}
+			}
+			if updated {
+				err = b.db.SaveWantlist(ctx, user, list)
+				if err != nil {
+					return err
 				}
 			}
 		}
