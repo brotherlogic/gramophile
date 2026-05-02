@@ -24,11 +24,13 @@ func GetAccessLevel(configField interface{}) pb.UserConfig_UserLevel {
 		*pb.WantslistConfig,
 		*pb.ScoreConfig,
 		*pb.ClassificationConfig,
-		*pb.AddConfig:
+		*pb.AddConfig,
+		*pb.UserConfig:
 		return pb.UserConfig_USER_LEVEL_STANDARD
 	case *pb.MovingConfig:
 		return pb.UserConfig_USER_LEVEL_BETA
 	default:
+		// Security: Deny-by-default: require OMNIPOTENT (SUPERUSER) access for unrecognized config
 		return pb.UserConfig_USER_LEVEL_OMNIPOTENT
 	}
 }
