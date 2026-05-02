@@ -17,7 +17,7 @@ for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
 
 # Auto-attach to tmux session
 if [[ -z "$TMUX" ]] && [[ -z "$SKIP_TMUX" ]] && [[ -n "$PS1" ]] && [[ -t 0 ]]; then
-    tmux attach-session -t default || tmux new-session -s default
+    tmux new-session -A -s default
 fi
 EOF
     fi
