@@ -69,7 +69,6 @@ type refreshCollectionEntryHandler struct {
 }
 
 func (h *refreshCollectionEntryHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	Rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
 	return h.b.ProcessRefreshCollectionEntry(ctx, d, u, entry, enqueue)
 }
 

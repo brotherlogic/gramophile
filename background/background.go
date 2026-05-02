@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
@@ -28,6 +29,14 @@ var (
 		Name: "gramophile_queue_refresh_intention",
 		Help: "The length of the working queue I think yes",
 	}, []string{"intention"})
+	TaskDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Name: "gramophile_task_duration",
+		Help: "Duration of background tasks",
+	}, []string{"type"})
+	TaskResult = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_task_result",
+		Help: "Result of background tasks",
+	}, []string{"type", "result"})
 )
 
 type TaskHandler interface {
@@ -69,11 +78,22 @@ func (b *BackgroundRunner) getHandler(entry *pb.QueueElement) (TaskHandler, erro
 }
 
 func (b *BackgroundRunner) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	st := time.Now()
 	handler, err := b.getHandler(entry)
 	if err != nil {
 		return err
 	}
-	return handler.Execute(ctx, d, u, entry, enqueue)
+
+	err = handler.Execute(ctx, d, u, entry, enqueue)
+	
+	entryType := fmt.Sprintf("%T", entry.GetEntry())
+	TaskDuration.With(prometheus.Labels{"type": entryType}).Observe(float64(time.Since(st).Milliseconds()))
+	if err != nil {
+		TaskResult.With(prometheus.Labels{"type": entryType, "result": "error"}).Inc()
+	} else {
+		TaskResult.With(prometheus.Labels{"type": entryType, "result": "success"}).Inc()
+	}
+	return err
 }
 
 func (b *BackgroundRunner) Validate(ctx context.Context, entry *pb.QueueElement) error {
