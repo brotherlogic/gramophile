@@ -64,6 +64,26 @@ var (
 	})
 )
 
+type refreshCollectionEntryHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshCollectionEntryHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	Rintention.With(prometheus.Labels{"intention": fmt.Sprintf("%v:%v", entry.GetRefreshCollectionEntry().GetPage(), entry.GetIntention())}).Inc()
+	return h.b.ProcessRefreshCollectionEntry(ctx, d, u, entry, enqueue)
+}
+
+func (h *refreshCollectionEntryHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshCollectionEntryHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	if entry.GetRefreshCollectionEntry().GetPage() == 1 {
+		return fmt.Sprintf("RefreshCollectionEntry-%v", entry.GetAuth())
+	}
+	return ""
+}
+
 func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 		entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()

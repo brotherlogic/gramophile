@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -15,6 +16,43 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
+
+type refreshReleaseHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshReleaseHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessRefreshRelease(ctx, u, d, entry, enqueue)
+}
+
+func (h *refreshReleaseHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	if entry.GetRefreshRelease().GetIntention() == "" {
+		Intention.With(prometheus.Labels{"intention": "REJECT"}).Inc()
+		return status.Errorf(codes.InvalidArgument, "You must specify an intention for this refresh: %T", entry.GetEntry())
+	}
+	Intention.With(prometheus.Labels{"intention": entry.GetRefreshRelease().GetIntention()}).Inc()
+
+	// Check for a marker
+	marker, err := db.GetRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			return fmt.Errorf("Unable to get refresh marker: %w", err)
+		}
+	} else if marker > 0 && time.Since(time.Unix(0, marker)) < time.Hour*24 && entry.GetRefreshRelease().GetIntention() != "Manual Update" {
+		MarkerCount.Inc()
+		return status.Errorf(codes.AlreadyExists, "Refresh is in the queue: %v", time.Since(time.Unix(0, marker)))
+	}
+
+	err = db.SetRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
+	if err != nil {
+		return fmt.Errorf("Unable to write refresh marker: %w", err)
+	}
+	return nil
+}
+
+func (h *refreshReleaseHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
 
 const (
 	// Refresh core stats every week

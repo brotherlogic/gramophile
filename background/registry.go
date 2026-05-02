@@ -1,0 +1,27 @@
+package background
+
+func (b *BackgroundRunner) RegisterAllHandlers() {
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshCollection", &refreshCollectionHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshCollectionEntry", &refreshCollectionEntryHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshRelease", &refreshReleaseHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshWantlists", &refreshWantlistsHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_LinkSales", &linkSalesHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_AddSale", &addSaleHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_UpdateSale", &updateSaleHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshSales", &refreshSalesHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_FanoutHistory", &fanoutHistoryHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RecordHistory", &recordHistoryHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshState", &refreshStateHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshIntents", &refreshIntentsHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_MoveRecord", &moveRecordHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_MoveRecords", &moveRecordsHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_AddMasterWant", &addMasterWantHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshWants", &refreshWantsHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshWant", &refreshWantHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_SyncWants", &syncWantsHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_AddFolderUpdate", &addFolderUpdateHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshUser", &refreshUserHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshEarliestReleaseDates", &refreshEarliestReleaseDatesHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_RefreshEarliestReleaseDate", &refreshEarliestReleaseDateHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_DeleteRecord", &deleteRecordHandler{b: b})
+}

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
-
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
@@ -25,6 +25,22 @@ func (b *BackgroundRunner) CullWants(ctx context.Context, d discogs.Discogs, sid
 	}
 
 	return nil
+}
+
+type syncWantsHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *syncWantsHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessSyncWants(ctx, d, u, entry, enqueue)
+}
+
+func (h *syncWantsHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *syncWantsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
 }
 
 func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {

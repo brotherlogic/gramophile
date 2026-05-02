@@ -387,6 +387,71 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 	return nil
 }
 
+type addSaleHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *addSaleHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	nd := d.ForUser(u.GetUser())
+	return h.b.AddSale(ctx, nd, entry.GetAddSale().GetInstanceId(), entry.GetAddSale().GetSaleParams(), u)
+}
+
+func (h *addSaleHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *addSaleHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type updateSaleHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *updateSaleHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessUpdateSale(ctx, d, u, entry.GetUpdateSale())
+}
+
+func (h *updateSaleHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *updateSaleHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type refreshSalesHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshSalesHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessRefreshSales(ctx, d, u, entry, enqueue)
+}
+
+func (h *refreshSalesHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type linkSalesHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *linkSalesHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.LinkSales(ctx, u)
+}
+
+func (h *linkSalesHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *linkSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return "LinkSales"
+}
+
 func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale) error {
 	//Short cut if sale data is not complete
 	if entry.GetCondition() == "" {

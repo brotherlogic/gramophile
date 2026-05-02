@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,6 +18,23 @@ const (
 )
 
 var ()
+
+type refreshCollectionHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshCollectionHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	qlog(ctx, "RefreshCollection -> %v", entry.GetRefreshCollection().GetIntention())
+	return h.b.RefreshCollection(ctx, d, entry.GetAuth(), enqueue)
+}
+
+func (h *refreshCollectionHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshCollectionHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return fmt.Sprintf("RefreshCollection-%v", entry.GetAuth())
+}
 
 func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Discogs, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	ids, err := b.db.GetRecords(ctx, d.GetUserId())

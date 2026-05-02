@@ -8,6 +8,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/classification"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -112,6 +113,38 @@ func (b *BackgroundRunner) MoveRecord(ctx context.Context, d discogs.Discogs, u 
 			Auth: auth,
 		}})
 	return err
+}
+
+type moveRecordHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *moveRecordHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.MoveRecord(ctx, d, u, entry.GetMoveRecord(), entry.GetAuth(), enqueue)
+}
+
+func (h *moveRecordHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *moveRecordHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type moveRecordsHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *moveRecordsHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RunMoves(ctx, u, enqueue)
+}
+
+func (h *moveRecordsHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *moveRecordsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
 }
 
 func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {

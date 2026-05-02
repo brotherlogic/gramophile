@@ -8,6 +8,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	dpb "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,6 +37,54 @@ func wfilter(filter *pb.WantFilter, release *dpb.Release) bool {
 		}
 	}
 	return found
+}
+
+type addMasterWantHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *addMasterWantHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.AddMasterWant(ctx, d, entry.GetAddMasterWant().GetWant())
+}
+
+func (h *addMasterWantHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *addMasterWantHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type refreshWantsHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshWantsHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RefreshWants(ctx, d, entry.GetAuth(), enqueue)
+}
+
+func (h *refreshWantsHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshWantsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type refreshWantHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshWantHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RefreshWant(ctx, d, entry.GetRefreshWant().GetWant(), entry.GetAuth(), enqueue)
+}
+
+func (h *refreshWantHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshWantHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
 }
 
 func (b *BackgroundRunner) AddMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want) error {

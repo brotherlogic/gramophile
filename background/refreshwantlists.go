@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -58,6 +59,22 @@ func (b *BackgroundRunner) AlignDigitalWantlist(ctx context.Context, userid int3
 	}
 
 	return nil
+}
+
+type refreshWantlistsHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshWantlistsHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RefreshWantlists(ctx, d, entry.GetAuth(), enqueue)
+}
+
+func (h *refreshWantlistsHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshWantlistsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return "RefreshWantlists"
 }
 
 func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, user *pb.StoredUser, userid int32) (*pb.Wantlist, error) {

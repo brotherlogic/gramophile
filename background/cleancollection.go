@@ -7,10 +7,27 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type deleteRecordHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *deleteRecordHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.DeleteRecord(ctx, d, entry.GetDeleteRecord().GetIid())
+}
+
+func (h *deleteRecordHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *deleteRecordHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
 
 func (b *BackgroundRunner) DeleteRecord(ctx context.Context, d discogs.Discogs, iid int64) error {
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)

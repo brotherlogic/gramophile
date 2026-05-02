@@ -20,6 +20,43 @@ const (
 	refreshRelaseDateFrequency = time.Hour * 24 * 7 * 4 * 6
 )
 
+type refreshEarliestReleaseDatesHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshEarliestReleaseDatesHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	digWants := u.GetConfig().GetWantsConfig().GetDigitalWantList()
+	err := h.b.RefreshReleaseDates(ctx, d, entry.GetAuth(), entry.GetRefreshEarliestReleaseDates().GetIid(), entry.GetRefreshEarliestReleaseDates().GetMasterId(), digWants, enqueue)
+	if err != nil {
+		return err
+	}
+	return h.b.db.DeleteRefreshDateMarker(ctx, entry.GetAuth())
+}
+
+func (h *refreshEarliestReleaseDatesHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshEarliestReleaseDatesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+type refreshEarliestReleaseDateHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *refreshEarliestReleaseDateHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.RefreshReleaseDate(ctx, u, d, entry.GetRefreshEarliestReleaseDate().GetUpdateDigitalWantlist(), entry.GetRefreshEarliestReleaseDate().GetIid(), entry.GetRefreshEarliestReleaseDate().GetOtherRelease(), entry.GetAuth(), enqueue)
+}
+
+func (h *refreshEarliestReleaseDateHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *refreshEarliestReleaseDateHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
 func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Discogs, token string, iid, mid int64, digWants bool, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	log.Printf("Refreshing the MID %v", mid)
 
