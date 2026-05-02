@@ -54,8 +54,8 @@ The system is designed for high observability. It exposes a `/metrics` endpoint 
 GitHub is the sole source of truth for all investigation results, implementation plans, architectural notes, and other significant outputs generated during the development lifecycle.
 
 - **No Local File Storage**: You MUST NOT store these outputs as local Markdown files (e.g., in `.gemini/` or other project directories).
-- **GitHub Comments**: All such outputs must be posted as comments on the relevant Pull Request or Issue using the `gh` CLI (`gh pr comment` or `gh issue comment`).
-- **Context Required**: If a task is not yet associated with a specific GitHub Issue or Pull Request, you MUST pause and prompt the user for the relevant Issue/PR ID before uploading the output.
+- **GitHub Comments**: All such outputs must be posted as comments on the relevant Issue (preferring the Issue over the Pull Request) using the `gh` CLI (`gh issue comment`).
+- **Context Required**: If a task is not yet associated with a specific GitHub Issue, you MUST pause and prompt the user for the relevant Issue ID before uploading the output.
 
 ## Workflow
 
