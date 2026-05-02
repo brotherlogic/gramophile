@@ -16,7 +16,7 @@ for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
         cat << 'EOF' >> "$RC_FILE"
 
 # Auto-attach to tmux session
-if [[ -z "$TMUX" ]] && [[ -n "$PS1" ]] && [[ -t 0 ]]; then
+if [[ -z "$TMUX" ]] && [[ -z "$SKIP_TMUX" ]] && [[ -n "$PS1" ]] && [[ -t 0 ]]; then
     tmux attach-session -t default || tmux new-session -s default
 fi
 EOF
