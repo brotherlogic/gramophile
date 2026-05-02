@@ -12,6 +12,12 @@ sudo apt-get update && sudo apt-get install -y tmux emacs
 
 # Setup tmux for Ghostty and graphics support
 cat << 'EOF' > "$HOME/.tmux.conf"
+# Set proper default terminal for better TUI rendering
+set -g default-terminal "tmux-256color"
+
+# Standard tmux best practice for modern TUIs
+set -s escape-time 0
+
 # Allow programs to use the terminal's graphics capabilities
 set -g allow-passthrough on
 
