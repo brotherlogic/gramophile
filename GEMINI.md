@@ -60,3 +60,5 @@ GitHub is the sole source of truth for all investigation results, implementation
 ## Workflow
 
 You MUST follow the [.agents/workflows/finish.md](.agents/workflows/finish.md) workflow for all changes. This workflow ensures that changes are committed to a feature branch, pushed, and reviewed correctly. Never push directly to main unless explicitly instructed to do so by the user.
+
+**Pull Request Creation**: Pushing a feature branch to the remote repository will automatically create a Pull Request. You MUST NOT use `gh pr create` to create a pull request manually. After pushing, use `gh pr list --head $(git branch --show-current)` to locate the automatically created PR.
