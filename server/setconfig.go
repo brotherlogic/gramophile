@@ -142,6 +142,15 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 	log.Printf("got these fields: %v", fields)
 
 	u.Config = req.GetConfig()
+	err = CheckAccess(u.GetConfig().GetUserConfig().GetUserLevel(), req.GetConfig().GetCleaningConfig())
+	if err != nil {
+		return nil, err
+	}
+	err = CheckAccess(u.GetConfig().GetUserConfig().GetUserLevel(), req.GetConfig().GetListenConfig())
+	if err != nil {
+		return nil, err
+	}
+	// Add checks for other fields...
 	folders, verr := config.ValidateConfig(ctx, u, fields, u)
 	if verr != nil {
 		return nil, fmt.Errorf("bad validate: %w", verr)
