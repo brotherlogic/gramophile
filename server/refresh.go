@@ -56,6 +56,9 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: element,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	record, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
 	if err != nil {
