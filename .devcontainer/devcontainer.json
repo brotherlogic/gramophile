@@ -32,7 +32,8 @@
 	"containerEnv": {
 		"GH_GIT_PROTOCOL": "ssh",
 		"LANG": "en_US.UTF-8",
-		"LC_ALL": "en_US.UTF-8"
+		"LC_ALL": "en_US.UTF-8",
+		"TZ": "America/Los_Angeles"
 	},
 	"runArgs": [
 		"--network=host",
