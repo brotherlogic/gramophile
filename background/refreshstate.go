@@ -33,7 +33,7 @@ func (b *BackgroundRunner) ProcessRefreshState(ctx context.Context, d discogs.Di
 	err := b.RefreshState(ctx, entry.GetRefreshState().GetIid(), d, entry.GetRefreshState().GetForce())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			enqueue(ctx, &pb.EnqueueRequest{
+			_, err := enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Auth:      entry.GetAuth(),
 					Force:     true,
@@ -44,6 +44,9 @@ func (b *BackgroundRunner) ProcessRefreshState(ctx context.Context, d discogs.Di
 					},
 				},
 			})
+			if err != nil && status.Code(err) != codes.ResourceExhausted {
+				return err
+			}
 		}
 	}
 	return err

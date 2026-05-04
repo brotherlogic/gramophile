@@ -149,3 +149,11 @@ func qlog(ctx context.Context, str string, v ...any) {
 	prefix := fmt.Sprintf("%v: ", key)
 	log.Printf(prefix+str, v...)
 }
+
+func EnqueueWithIgnore(ctx context.Context, req *pb.EnqueueRequest, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	_, err := enqueue(ctx, req)
+	if err != nil && status.Code(err) != codes.ResourceExhausted && status.Code(err) != codes.AlreadyExists {
+		return err
+	}
+	return nil
+}

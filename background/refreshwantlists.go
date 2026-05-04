@@ -318,7 +318,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 				if err != nil {
 					return false, err
 				}
-				_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Intention: "From Refresh Wantlist",
 					Auth:      token,
 					RunDate:   time.Now().UnixNano(),
@@ -327,7 +327,7 @@ func (b *BackgroundRunner) refreshWantlist(ctx context.Context, userid int32, li
 							Want: &pb.Want{Id: entry.GetId()},
 						},
 					},
-				}})
+				}}, enqueue)
 				if err != nil {
 					return false, err
 				}
@@ -403,7 +403,7 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 			want.IntendedState = pb.WantState_WANTED
 			want.Clean = false
 			err = b.db.SaveWant(ctx, userid, want, "Saving from wantlist update")
-			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Intention: "From Wantlist refresh",
 				Auth:      token,
 				RunDate:   time.Now().UnixNano(),
@@ -414,7 +414,7 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 						},
 					},
 				},
-			}})
+			}}, enqueue)
 			entry.State = pb.WantState_WANTED
 			updated = true
 		}
@@ -439,7 +439,7 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 		case pb.WantState_PENDING, pb.WantState_WANT_UNKNOWN, pb.WantState_RETIRED:
 			if countWanted < intendedWants {
 				qlog(ctx, "ENQUEUE %v", entry.GetId())
-				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				err := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Intention: "From wantlist upodate",
 					Auth:      token,
 					RunDate:   time.Now().UnixNano(),
@@ -448,7 +448,7 @@ func (b *BackgroundRunner) refreshTimedWantlist(ctx context.Context, userid int3
 							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_WANTED},
 						},
 					},
-				}})
+				}}, enqueue)
 				qlog(ctx, "RESULT %v", err)
 				if err != nil {
 					return false, err
@@ -485,7 +485,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		if foundFirst {
 			if entry.GetState() != pb.WantState_PENDING {
 				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING}, list.GetName())
-				_, err := enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+				err := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Auth:      token,
 					Intention: "From Wantlist",
 					RunDate:   time.Now().UnixNano(),
@@ -494,7 +494,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 							Want: &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING},
 						},
 					},
-				}})
+				}}, enqueue)
 				if err != nil {
 					return false, err
 				}
@@ -523,7 +523,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 			if err != nil {
 				return false, err
 			}
-			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Intention: "From Wantlist",
 				Auth:      token,
 				RunDate:   time.Now().UnixNano(),
@@ -532,7 +532,7 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 						Want: &pb.Want{Id: entry.GetId(), State: entry.GetState()},
 					},
 				},
-			}})
+			}}, enqueue)
 			return true, err
 		}
 	}

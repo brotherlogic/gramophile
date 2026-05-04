@@ -69,7 +69,7 @@ func (b *BackgroundRunner) ProcessRefreshRelease(ctx context.Context, u *pb.Stor
 	qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			enqueue(ctx, &pb.EnqueueRequest{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Auth:      entry.GetAuth(),
 					RunDate:   time.Now().UnixNano(),
@@ -78,7 +78,10 @@ func (b *BackgroundRunner) ProcessRefreshRelease(ctx context.Context, u *pb.Stor
 						RefreshCollectionEntry: &pb.RefreshCollectionEntry{Page: 1},
 					},
 				},
-			})
+			}, enqueue)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	derr := b.db.DeleteRefreshMarker(ctx, entry.GetAuth(), entry.GetRefreshRelease().GetIid())
