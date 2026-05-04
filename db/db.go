@@ -735,9 +735,6 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, op
 		if record.GetRelease() != nil && record.GetRelease().GetDateAdded() == 0 && old.GetRelease().GetDateAdded() != 0 {
 			record.Release.DateAdded = old.GetRelease().GetDateAdded()
 		}
-		if record.GetEarliestReleaseDate() == 0 && old.GetEarliestReleaseDate() != 0 {
-			record.EarliestReleaseDate = old.GetEarliestReleaseDate()
-		}
 	}
 
 	// Write the main release

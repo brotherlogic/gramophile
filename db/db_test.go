@@ -46,7 +46,6 @@ func TestSaveRecord_PreserveDates(t *testing.T) {
 			Id:         10,
 			DateAdded:  1234,
 		},
-		EarliestReleaseDate: 5678,
 	})
 	if err != nil {
 		t.Fatalf("Initial save failed: %v", err)
@@ -59,7 +58,6 @@ func TestSaveRecord_PreserveDates(t *testing.T) {
 			Id:         10,
 			DateAdded:  0,
 		},
-		EarliestReleaseDate: 0,
 	})
 	if err != nil {
 		t.Fatalf("Second save failed: %v", err)
@@ -73,8 +71,5 @@ func TestSaveRecord_PreserveDates(t *testing.T) {
 
 	if ret.GetRelease().GetDateAdded() != 1234 {
 		t.Errorf("DateAdded was not preserved: %v, want 1234", ret.GetRelease().GetDateAdded())
-	}
-	if ret.GetEarliestReleaseDate() != 5678 {
-		t.Errorf("EarliestReleaseDate was not preserved: %v, want 5678", ret.GetEarliestReleaseDate())
 	}
 }
