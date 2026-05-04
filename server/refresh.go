@@ -39,16 +39,22 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 		}
 	}
 
+	element := &pb.QueueElement{
+		Force:     true,
+		RunDate:   time.Now().UnixNano(),
+		Intention: "Running from RefreshRecord",
+		Auth:      user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshState{
+			RefreshState: &pb.RefreshState{
+				Iid: req.GetInstanceId(),
+			}},
+	}
+	if req.JustState {
+		element.Priority = pb.QueueElement_PRIORITY_HIGH
+	}
+
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Force:     true,
-			RunDate:   time.Now().UnixNano(),
-			Intention: "Running from RefreshRecord",
-			Auth:      user.GetAuth().GetToken(),
-			Entry: &pb.QueueElement_RefreshState{
-				RefreshState: &pb.RefreshState{
-					Iid: req.GetInstanceId(),
-				}}},
+		Element: element,
 	})
 
 	record, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
