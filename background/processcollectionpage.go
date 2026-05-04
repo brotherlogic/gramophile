@@ -102,7 +102,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 
 	if entry.GetRefreshCollectionEntry().GetPage() == 1 {
 		for i := int32(2); i <= rval; i++ {
-			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Force:     entry.GetForce(),
 				RunDate:   time.Now().UnixNano() + int64(i),
 				Intention: entry.GetIntention(),
@@ -110,7 +110,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 					RefreshCollectionEntry: &pb.RefreshCollectionEntry{
 						Page: i, RefreshId: entry.GetRefreshCollectionEntry().GetRefreshId()}},
 				Auth: entry.GetAuth(),
-			}})
+			}}, enqueue)
 			if err != nil {
 				return fmt.Errorf("unable to enqueue: %w", err)
 			}
@@ -125,7 +125,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 	if entry.GetRefreshCollectionEntry().GetPage() == rval {
 		qlog(ctx, "Writing collection refresh chip")
 		//Move records
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: entry.GetIntention(),
 				Force:     entry.GetForce(),
@@ -133,7 +133,10 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 				Entry: &pb.QueueElement_MoveRecords{
 					MoveRecords: &pb.MoveRecords{}},
 				Auth: entry.GetAuth(),
-			}})
+			}}, enqueue)
+		if err != nil {
+			return err
+		}
 		qlog(ctx, "Found %v", err)
 		if user.GetState() == pb.StoredUser_USER_STATE_REFRESHING {
 			user.State = pb.StoredUser_USER_STATE_IN_WAITLIST
@@ -142,9 +145,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 				return fmt.Errorf("unable to save user: %w", err)
 			}
 		}
-		if err != nil {
-			return err
-		}
+
 		if !isSetIntentMiss {
 			return b.CleanCollection(ctx, d, entry.GetRefreshCollectionEntry().GetRefreshId(), entry.GetAuth(), enqueue)
 		}

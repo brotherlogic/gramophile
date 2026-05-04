@@ -59,7 +59,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 	}
 	if entry.GetSyncWants().GetPage() == 1 {
 		for i := int32(2); i <= pages; i++ {
-			enqueue(ctx, &pb.EnqueueRequest{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					RunDate: time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_SyncWants{
@@ -67,7 +67,10 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 					},
 					Auth: entry.GetAuth(),
 				},
-			})
+			}, enqueue)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -85,7 +88,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 		}
 		for _, want := range wants {
 			if !want.GetClean() {
-				_, err = enqueue(ctx, &pb.EnqueueRequest{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
@@ -96,11 +99,14 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 							},
 						},
 					},
-				})
+				}, enqueue)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				RunDate:          time.Now().UnixNano(),
 				Auth:             user.GetAuth().GetToken(),
@@ -109,9 +115,12 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 					RefreshWants: &pb.RefreshWants{},
 				},
 			},
-		})
+		}, enqueue)
+		if err != nil {
+			return err
+		}
 
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention:        "From SyncWants",
 				RunDate:          time.Now().UnixNano(),
@@ -121,7 +130,10 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 					RefreshWantlists: &pb.RefreshWantlists{},
 				},
 			},
-		})
+		}, enqueue)
+		if err != nil {
+			return err
+		}
 
 		user.LastWantRefresh = time.Now().UnixNano()
 		return b.db.SaveUser(ctx, user)

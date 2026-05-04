@@ -103,7 +103,7 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 						}},
 				},
 			})
-			if err != nil {
+			if err != nil && status.Code(err) != codes.ResourceExhausted {
 				return err
 			}
 		}

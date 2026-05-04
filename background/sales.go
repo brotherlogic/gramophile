@@ -359,7 +359,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 				log.Printf("ADJUST PRICE(%v) %v -> %v", sale.GetSaleId(), sale.GetCurrentPrice().GetValue(), nsp)
 
-				_, err = enqueue(ctx, &pb.EnqueueRequest{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						Intention: "From Adjust Sales",
 						RunDate:   time.Now().UnixNano(),
@@ -372,7 +372,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 								Condition:  sale.GetCondition(),
 								Motivation: motivation,
 							}}},
-				})
+				}, enqueue)
 				if err != nil {
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
@@ -623,7 +623,7 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 
 	if entry.GetRefreshSales().GetPage() == 1 {
 		for i := int32(2); i <= pages.GetPages(); i++ {
-			_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Intention: entry.GetIntention(),
 				RunDate:   time.Now().UnixNano() + int64(i),
 				Force:     entry.GetForce(),
@@ -632,20 +632,20 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 					RefreshSales: &pb.RefreshSales{
 						Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 				Auth: entry.GetAuth(),
-			}})
+			}}, enqueue)
 			if err != nil {
 				return fmt.Errorf("unable to enqueue: %w", err)
 			}
 		}
 
-		_, err = enqueue(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 			Intention: entry.GetIntention(),
 			RunDate:   time.Now().UnixNano() + int64(pages.GetPages()) + 10,
 			Entry: &pb.QueueElement_LinkSales{
 				LinkSales: &pb.LinkSales{
 					RefreshId: entry.GetRefreshSales().GetRefreshId()}},
 			Auth: entry.GetAuth(),
-		}})
+		}}, enqueue)
 		if err != nil {
 			return fmt.Errorf("dunable to enqueue link job: %v", err)
 		}

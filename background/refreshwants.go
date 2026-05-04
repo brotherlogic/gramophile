@@ -108,25 +108,28 @@ func (b *BackgroundRunner) handleMasterWant(ctx context.Context, d discogs.Disco
 	}
 
 	for _, pwant := range master {
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: "From Master Want",
 				Auth:      authToken,
 				RunDate:   time.Now().UnixNano(),
 				Entry:     &pb.QueueElement_AddMasterWant{AddMasterWant: &pb.AddMasterWant{Want: &pb.Want{Id: pwant.GetId(), MasterId: want.GetMasterId(), MasterFilter: want.GetMasterFilter()}}},
-			}})
+			}}, enqueue)
+		if err != nil {
+			return err
+		}
 	}
 
 	// resync the wants if we added anything
 	if len(master) > 0 {
-		_, err := enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: "From Master Want",
 				Auth:      authToken,
 				RunDate:   time.Now().UnixNano(),
 				Entry:     &pb.QueueElement_SyncWants{},
 			},
-		})
+		}, enqueue)
 		return err
 	}
 
@@ -285,7 +288,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 			if err != nil {
 				return fmt.Errorf("unable to save want: %w", err)
 			}
-			enqueue(ctx, &pb.EnqueueRequest{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Intention: "From Refresh Wants",
 					Auth:      auth,
@@ -294,7 +297,10 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 						RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 					},
 				},
-			})
+			}, enqueue)
+			if err != nil {
+				return err
+			}
 		}
 
 		for _, rec := range recs {
@@ -313,7 +319,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)
 				}
-				enqueue(ctx, &pb.EnqueueRequest{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						Intention: "From Refresh Wants",
 						Auth:      auth,
@@ -322,7 +328,10 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 						},
 					},
-				})
+				}, enqueue)
+				if err != nil {
+					return err
+				}
 				continue
 			}
 		}

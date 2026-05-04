@@ -73,7 +73,7 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 
 	log.Printf("FOUND MASTERS: %v -> %v", iid, masters)
 	for _, m := range masters {
-		_, err = enqueue(ctx, &pb.EnqueueRequest{
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: "From refresh release dates",
 				RunDate:   time.Now().UnixNano(),
@@ -84,10 +84,10 @@ func (b *BackgroundRunner) RefreshReleaseDates(ctx context.Context, d discogs.Di
 						OtherRelease:          m.GetId(),
 						UpdateDigitalWantlist: digWants,
 					}}},
-		})
+		}, enqueue)
 		log.Printf("ENQUEED %v", iid)
 		if err != nil {
-			return fmt.Errorf("unable to queue sales: %v", err)
+			return fmt.Errorf("unable to queue: %v", err)
 		}
 	}
 
@@ -158,14 +158,17 @@ func (b *BackgroundRunner) RefreshReleaseDate(ctx context.Context, u *pb.StoredU
 			b.db.SaveWantlist(ctx, u, wantlist)
 
 			// Since we updated the wants, we should also trigger a wants sync
-			_, err = enqueue(ctx, &pb.EnqueueRequest{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Intention: "From refresh release date",
 					RunDate:   time.Now().UnixNano(),
 					Auth:      token,
 					Entry:     &pb.QueueElement_RefreshWantlists{},
 				},
-			})
+			}, enqueue)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

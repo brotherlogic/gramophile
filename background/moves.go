@@ -104,14 +104,14 @@ func (b *BackgroundRunner) MoveRecord(ctx context.Context, d discogs.Discogs, u 
 		return err
 	}
 
-	_, err = enqueue(ctx, &pb.EnqueueRequest{
+	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			RunDate: time.Now().UnixNano(),
 			Entry: &pb.QueueElement_MoveRecords{
 				MoveRecords: &pb.MoveRecords{},
 			},
 			Auth: auth,
-		}})
+		}}, enqueue)
 	return err
 }
 
@@ -177,7 +177,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 			nfolder := applyMove(move, record, class, format)
 			log.Printf("MOVE: %v", nfolder)
 			if nfolder != "" {
-				_, err = enqueue(ctx, &pb.EnqueueRequest{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						Intention: "From Run Moves",
 						RunDate:   time.Now().UnixNano(),
@@ -188,7 +188,7 @@ func (b *BackgroundRunner) RunMoves(ctx context.Context, user *pb.StoredUser, en
 								MoveFolder: nfolder,
 								Rule:       move.GetName(),
 							}}},
-				})
+				}, enqueue)
 				log.Printf("enqueued move: %v", err)
 				if err != nil {
 					return err

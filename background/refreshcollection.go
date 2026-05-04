@@ -8,8 +8,6 @@ import (
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -53,7 +51,7 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 		}
 
 		if rec.GetHighPrice().GetValue() == 0 || time.Since(time.Unix(0, rec.GetLastUpdateTime())) > RefreshReleasePeriod {
-			_, err = enqueue(ctx, &pb.EnqueueRequest{
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
 					Intention: "From refresh collection",
 					RunDate:   time.Now().UnixNano(),
@@ -63,17 +61,13 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 							Iid:       id,
 							Intention: "from-refresh-collection",
 						}}},
-			})
-			if err == nil {
-				qlog(ctx, "Refreshing %v", id)
-			}
-
-			// If the refresh is already in the queue, then that's fine
-			if err != nil && status.Code(err) != codes.AlreadyExists {
+			}, enqueue)
+			if err != nil {
 				return err
 			}
+
 			if time.Since(time.Unix(0, rec.GetLastEarliestReleaseUpdate())) > RefreshReleaseDatesPeriod {
-				_, err = enqueue(ctx, &pb.EnqueueRequest{
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						Intention: "From refresh collection",
 						RunDate:   time.Now().UnixNano(),
@@ -83,8 +77,8 @@ func (b *BackgroundRunner) RefreshCollection(ctx context.Context, d discogs.Disc
 								Iid:      id,
 								MasterId: rec.GetRelease().GetMasterId(),
 							}}},
-				})
-				if err != nil && status.Code(err) != codes.AlreadyExists {
+				}, enqueue)
+				if err != nil {
 					return err
 				}
 			}
