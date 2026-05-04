@@ -33,3 +33,43 @@ func TestSnapshotOrdering(t *testing.T) {
 	}
 
 }
+
+func TestSaveRecord_PreserveDates(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	tdb := NewTestDB(pstore)
+	ctx := context.Background()
+
+	// Save initial record with dates
+	err := tdb.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 100,
+			Id:         10,
+			DateAdded:  1234,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Initial save failed: %v", err)
+	}
+
+	// Save record with zero dates
+	err = tdb.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 100,
+			Id:         10,
+			DateAdded:  0,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Second save failed: %v", err)
+	}
+
+	// Read back and verify dates are preserved
+	ret, err := tdb.GetRecord(ctx, 123, 100)
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+
+	if ret.GetRelease().GetDateAdded() != 1234 {
+		t.Errorf("DateAdded was not preserved: %v, want 1234", ret.GetRelease().GetDateAdded())
+	}
+}

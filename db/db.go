@@ -731,6 +731,12 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, op
 		}
 	}
 
+	if old != nil {
+		if record.GetRelease() != nil && record.GetRelease().GetDateAdded() == 0 && old.GetRelease().GetDateAdded() != 0 {
+			record.Release.DateAdded = old.GetRelease().GetDateAdded()
+		}
+	}
+
 	// Write the main release
 	err = d.save(ctx, fmt.Sprintf("gramophile/user/%v/release/%v", userid, record.GetRelease().GetInstanceId()), record)
 	if err != nil {
