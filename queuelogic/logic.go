@@ -537,8 +537,11 @@ var (
 	}, []string{"code"})
 )
 
-func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-	qlog(ctx, "Enqueue: %v", req)
+func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.EnqueueResponse, err error) {
+	defer func() {
+		qlog(ctx, "Enqueue: %v -> %v", req, err)
+	}()
+
 	if req.GetElement().GetIntention() == "" {
 		stack := debug.Stack()
 		fmt.Println(string(stack))
@@ -552,7 +555,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 	req.GetElement().AdditionDate = time.Now().UnixNano()
 
 	// Validate entries
-	err := q.b.Validate(ctx, req.GetElement())
+	err = q.b.Validate(ctx, req.GetElement())
 	if err != nil {
 		if status.Code(err) == codes.AlreadyExists || status.Code(err) == codes.InvalidArgument {
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
@@ -607,8 +610,6 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.Enqueu
 		q.userCounts[req.GetElement().GetAuth()]++
 		q.queueMutex.Unlock()
 	}
-	qlog(ctx, "Adding %v", req)
-	qlog(ctx, "Appended %v -> %v [%v]", req.GetElement(), len(q.keys), req.GetElement().GetRunDate())
 
 	enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", status.Code(err))}).Inc()
 	return &pb.EnqueueResponse{}, err
