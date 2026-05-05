@@ -544,10 +544,11 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
-	slices.SortFunc(sales, func(a, b *pb.SaleInfo) int {
+	salesCopy := slices.Clone(sales)
+	slices.SortFunc(salesCopy, func(a, b *pb.SaleInfo) int {
 		return cmp.Compare(a.GetSaleId(), b.GetSaleId())
 	})
-	for _, sale := range sales {
+	for _, sale := range salesCopy {
 		for _, record := range records {
 			changed := false
 			sale_changed := false
