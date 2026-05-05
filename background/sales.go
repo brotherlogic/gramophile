@@ -560,7 +560,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 					sale_changed = true
 				}
 
-				if record.GetSaleId() != sale.GetSaleId() {
+				if record.GetSaleId() != sale.GetSaleId() && sale.GetSaleId() > record.GetSaleId() {
 					record.SaleId = sale.GetSaleId()
 
 					changed = true

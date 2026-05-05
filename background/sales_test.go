@@ -262,3 +262,44 @@ func TestTypeOverride_Override(t *testing.T) {
 	}
 
 }
+
+func TestHardLink_PicksLatestSale(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	db := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(db, "", "", "")
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	records := []*pb.Record{
+		{
+			Release: &pbd.Release{Id: 100, InstanceId: 1000},
+			SaleId:  0,
+		},
+	}
+	sales := []*pb.SaleInfo{
+		{
+			SaleId:    50,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_FOR_SALE,
+		},
+		{
+			SaleId:    100,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_FOR_SALE,
+		},
+		{
+			SaleId:    75,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_FOR_SALE,
+		},
+	}
+
+	ctx := context.Background()
+	err := b.HardLink(ctx, user, records, sales)
+	if err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	if records[0].SaleId != 100 {
+		t.Errorf("Expected SaleId 100, got %v", records[0].SaleId)
+	}
+}
