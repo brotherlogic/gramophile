@@ -1,10 +1,12 @@
 package background
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -542,8 +544,8 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
-	sort.Slice(sales, func(i, j int) bool {
-		return sales[i].GetSaleId() < sales[j].GetSaleId()
+	slices.SortFunc(sales, func(a, b *pb.SaleInfo) int {
+		return cmp.Compare(a.GetSaleId(), b.GetSaleId())
 	})
 	for _, sale := range sales {
 		for _, record := range records {
