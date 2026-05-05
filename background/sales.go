@@ -542,6 +542,9 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
+	sort.Slice(sales, func(i, j int) bool {
+		return sales[i].GetSaleId() < sales[j].GetSaleId()
+	})
 	for _, sale := range sales {
 		for _, record := range records {
 			changed := false
@@ -560,7 +563,7 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 					sale_changed = true
 				}
 
-				if record.GetSaleId() != sale.GetSaleId() && sale.GetSaleId() > record.GetSaleId() {
+				if record.GetSaleId() != sale.GetSaleId() {
 					record.SaleId = sale.GetSaleId()
 
 					changed = true
