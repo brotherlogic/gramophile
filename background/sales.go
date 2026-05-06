@@ -561,14 +561,16 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				log.Printf("LINK %v or %v ($%v)", record.GetRelease().GetInstanceId(), record.GetSaleId(), sale)
 
 				// Ensure we copy over any changes to the median price
-				if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
-					sale.MedianPrice = record.GetMedianPrice()
-					sale_changed = true
-				}
+				if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+					if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
+						sale.MedianPrice = record.GetMedianPrice()
+						sale_changed = true
+					}
 
-				if record.GetLowPrice().GetValue() != sale.GetLowPrice().GetValue() {
-					sale.LowPrice = record.GetLowPrice()
-					sale_changed = true
+					if record.GetLowPrice().GetValue() != sale.GetLowPrice().GetValue() {
+						sale.LowPrice = record.GetLowPrice()
+						sale_changed = true
+					}
 				}
 
 				if record.GetSaleId() != sale.GetSaleId() {
@@ -595,15 +597,13 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		}
 	}
 
-	for _, record := range records {
-		found := false
-		for _, sale := range validSales {
-			if sale.GetReleaseId() == record.GetRelease().GetId() {
-				found = true
-			}
-		}
+	validReleaseIds := make(map[int64]bool)
+	for _, sale := range validSales {
+		validReleaseIds[sale.GetReleaseId()] = true
+	}
 
-		if !found {
+	for _, record := range records {
+		if !validReleaseIds[record.GetRelease().GetId()] {
 			if record.GetSaleId() != 0 {
 				record.SaleId = 0
 				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record, &db.SaveOptions{})
