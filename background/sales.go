@@ -544,15 +544,20 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 }
 
 func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, records []*pb.Record, sales []*pb.SaleInfo) error {
-	salesCopy := slices.Clone(sales)
-	slices.SortFunc(salesCopy, func(a, b *pb.SaleInfo) int {
+	var validSales []*pb.SaleInfo
+	for _, sale := range sales {
+		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE || sale.GetSaleState() == pbd.SaleStatus_SOLD {
+			validSales = append(validSales, sale)
+		}
+	}
+	slices.SortFunc(validSales, func(a, b *pb.SaleInfo) int {
 		return cmp.Compare(a.GetSaleId(), b.GetSaleId())
 	})
-	for _, sale := range salesCopy {
+	for _, sale := range validSales {
 		for _, record := range records {
 			changed := false
 			sale_changed := false
-			if record.GetRelease().GetId() == sale.GetReleaseId() && sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
+			if record.GetRelease().GetId() == sale.GetReleaseId() {
 				log.Printf("LINK %v or %v ($%v)", record.GetRelease().GetInstanceId(), record.GetSaleId(), sale)
 
 				// Ensure we copy over any changes to the median price
@@ -592,17 +597,19 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 
 	for _, record := range records {
 		found := false
-		for _, sale := range sales {
+		for _, sale := range validSales {
 			if sale.GetReleaseId() == record.GetRelease().GetId() {
 				found = true
 			}
 		}
 
 		if !found {
-			record.SaleId = 0
-			err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record, &db.SaveOptions{})
-			if err != nil {
-				return err
+			if record.GetSaleId() != 0 {
+				record.SaleId = 0
+				err := b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), record, &db.SaveOptions{})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
