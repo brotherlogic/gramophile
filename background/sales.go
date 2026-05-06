@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
@@ -563,11 +564,15 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				// Ensure we copy over any changes to the median price
 				if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
 					if record.GetMedianPrice().GetValue() != sale.GetMedianPrice().GetValue() {
+						sale = proto.Clone(sale).(*pb.SaleInfo)
 						sale.MedianPrice = record.GetMedianPrice()
 						sale_changed = true
 					}
 
 					if record.GetLowPrice().GetValue() != sale.GetLowPrice().GetValue() {
+						if !sale_changed {
+							sale = proto.Clone(sale).(*pb.SaleInfo)
+						}
 						sale.LowPrice = record.GetLowPrice()
 						sale_changed = true
 					}
