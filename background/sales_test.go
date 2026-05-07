@@ -303,3 +303,59 @@ func TestHardLink_PicksLatestSale(t *testing.T) {
 		t.Errorf("Expected SaleId 100, got %v", records[0].SaleId)
 	}
 }
+
+func TestHardLink_OnlyValidStates(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	db := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(db, "", "", "")
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	records := []*pb.Record{
+		{
+			Release: &pbd.Release{Id: 100, InstanceId: 1000},
+			SaleId:  50, // Currently linked to an old sale
+		},
+		{
+			Release: &pbd.Release{Id: 200, InstanceId: 2000},
+			SaleId:  200, // Linked to a sale that will become invalid
+		},
+	}
+	sales := []*pb.SaleInfo{
+		{
+			SaleId:    50,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_SOLD, // Valid
+		},
+		{
+			SaleId:    75,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_FOR_SALE, // Valid and latest
+		},
+		{
+			SaleId:    80,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus(100), // Invalid, should be ignored
+		},
+		{
+			SaleId:    200,
+			ReleaseId: 200,
+			SaleState: pbd.SaleStatus(100), // Invalid
+		},
+	}
+
+	ctx := context.Background()
+	err := b.HardLink(ctx, user, records, sales)
+	if err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	// Record 100 should be linked to 75 (latest valid)
+	if records[0].SaleId != 75 {
+		t.Errorf("Expected SaleId 75 for record 0, got %v", records[0].SaleId)
+	}
+
+	// Record 200 should have SaleId cleared (no valid sales)
+	if records[1].SaleId != 0 {
+		t.Errorf("Expected SaleId 0 for record 1, got %v", records[1].SaleId)
+	}
+}
