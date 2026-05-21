@@ -40,3 +40,6 @@ done
 
 git config --global user.email 'brotherlogic.automation@gmail.com'
 git config --global user.name 'Brotherlogic Automation'
+
+# Install Antigravity CLI
+curl -fsSL https://antigravity.google/cli/install.sh | bash
