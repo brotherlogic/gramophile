@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -370,4 +371,75 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 		t.Errorf("Error on addition: %v", err)
 	}
 
+}
+
+type mockTaskHandler struct {
+	err error
+}
+
+func (m *mockTaskHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return m.err
+}
+
+func (m *mockTaskHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (m *mockTaskHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+func TestResourceExhausted_UserLimit(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	// Register our mock task handler that returns a wrapped ResourceExhausted User Limit error
+	wrappedErr := fmt.Errorf("unable to queue: %w", status.Errorf(codes.ResourceExhausted, "User queue limit reached"))
+	q.b.RegisterTaskHandler("*proto.QueueElement_RefreshUser", &mockTaskHandler{err: wrappedErr})
+
+	// Enqueue the task
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   0,
+			Entry: &pb.QueueElement_RefreshUser{
+				RefreshUser: &pb.RefreshUserEntry{},
+			},
+			Auth: "123",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Error enqueueing: %v", err)
+	}
+
+	// Run the queue in a goroutine
+	go q.Run()
+
+	// Wait and check if the task is deleted (queue length becomes 0) within 2 seconds.
+	// If it slept for a minute, this will timeout and fail.
+	success := false
+	for i := 0; i < 20; i++ {
+		list, err := q.List(ctx, &pb.ListRequest{})
+		if err == nil && len(list.GetElements()) == 0 {
+			success = true
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	if !success {
+		t.Fatalf("Task was not deleted or queue stall triggered")
+	}
 }
