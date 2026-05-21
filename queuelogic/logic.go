@@ -90,6 +90,9 @@ var (
 const (
 	CollectionRefresh = time.Hour * 24 * 7 // Refresh the full collection once a week
 	CollectionCheck   = time.Hour * 24     // Check through collection once a day
+
+	errUserQueueLimit = "User queue limit reached"
+	errQueueFull      = "Queue is full"
 )
 
 type Queue struct {
@@ -319,8 +322,8 @@ func (q *Queue) Run() {
 			} else {
 				// This is discogs throttling us
 				if status.Code(err) == codes.ResourceExhausted {
-					if strings.Contains(err.Error(), "User queue limit reached") || strings.Contains(err.Error(), "Queue is full") {
-						if strings.Contains(err.Error(), "User queue limit reached") {
+					if strings.Contains(err.Error(), errUserQueueLimit) || strings.Contains(err.Error(), errQueueFull) {
+						if strings.Contains(err.Error(), errUserQueueLimit) {
 							qlog(ctx, "Skipping enqueue due to user queue limit")
 						} else {
 							qlog(ctx, "Skipping enqueue due to queue being full")
@@ -555,7 +558,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 
 	if len(q.keys) > 100000 && req.GetElement().GetPriority() != pb.QueueElement_PRIORITY_HIGH {
 		enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.ResourceExhausted)}).Inc()
-		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full (%v)", len(q.keys))
+		return nil, status.Errorf(codes.ResourceExhausted, "%s (%v)", errQueueFull, len(q.keys))
 	}
 
 	req.GetElement().AdditionDate = time.Now().UnixNano()
@@ -592,7 +595,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 		q.queueMutex.Unlock()
 
 		if count >= 100 {
-			return &pb.EnqueueResponse{}, status.Errorf(codes.ResourceExhausted, "User queue limit reached")
+			return &pb.EnqueueResponse{}, status.Errorf(codes.ResourceExhausted, errUserQueueLimit)
 		}
 	}
 
