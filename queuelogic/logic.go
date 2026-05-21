@@ -319,8 +319,14 @@ func (q *Queue) Run() {
 			} else {
 				// This is discogs throttling us
 				if status.Code(err) == codes.ResourceExhausted {
-					if err.Error() == "rpc error: code = ResourceExhausted desc = User queue limit reached" {
+					if strings.Contains(err.Error(), "User queue limit reached") {
 						qlog(ctx, "Skipping enqueue due to user queue limit")
+						q.delete(ctx, entry)
+						queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
+					} else if strings.Contains(err.Error(), "Queue is full") {
+						qlog(ctx, "Skipping enqueue due to queue being full")
+						q.delete(ctx, entry)
+						queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
 					} else {
 						qlog(ctx, "Waiting for a minute to let our tokens regenerate")
 						time.Sleep(time.Minute)
