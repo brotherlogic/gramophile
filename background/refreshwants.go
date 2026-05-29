@@ -257,6 +257,17 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 
 	log.Printf("Found %v wants and %v records", len(wants), len(recs))
 
+	// Pre-compute map of records by release ID to change O(W * R) to O(W + R)
+	recordMap := make(map[int64]*pb.Record)
+	for _, rec := range recs {
+		if rec.GetRelease() != nil {
+			recordMap[rec.GetRelease().GetId()] = rec
+		}
+	}
+
+	// Cache wantlists to prevent N+1 DB calls
+	wantlistCache := make(map[string]*pb.Wantlist)
+
 	for _, want := range wants {
 		// Validate in wants
 		foundInAnyList := false
@@ -264,12 +275,17 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 			foundInAnyList = true
 		}
 		for _, listname := range want.GetFromWantlist() {
-			list, err := b.db.LoadWantlist(ctx, d.GetUserId(), listname)
-			if err != nil {
-				if status.Code(err) == codes.NotFound {
-					continue
+			list, ok := wantlistCache[listname]
+			if !ok {
+				var err error
+				list, err = b.db.LoadWantlist(ctx, d.GetUserId(), listname)
+				if err != nil {
+					if status.Code(err) == codes.NotFound {
+						continue
+					}
+					return fmt.Errorf("unable to load wantlist: %w", err)
 				}
-				return fmt.Errorf("unable to load wantlist: %w", err)
+				wantlistCache[listname] = list
 			}
 			for _, entry := range list.GetEntries() {
 				if entry.GetId() == want.GetId() {
@@ -303,36 +319,33 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 			}
 		}
 
-		for _, rec := range recs {
-			if want.GetId() == rec.GetRelease().GetId() {
-				log.Printf("Refreshing Want %v -> %v", want, rec)
-				if rec.GetArrived() > 0 {
-					want.IntendedState = pb.WantState_PURCHASED
-				} else if want.IntendedState != pb.WantState_PURCHASED {
-					want.IntendedState = pb.WantState_IN_TRANSIT
-				}
-				if rec.GetRelease().GetRating() > 0 {
-					want.Score = rec.GetRelease().GetRating()
-				}
-				want.Clean = false
-				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
-				if err != nil {
-					return fmt.Errorf("unable to save want: %w", err)
-				}
-				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						Intention: "From Refresh Wants",
-						Auth:      auth,
-						RunDate:   time.Now().UnixNano(),
-						Entry: &pb.QueueElement_RefreshWant{
-							RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
-						},
+		if rec, found := recordMap[want.GetId()]; found {
+			log.Printf("Refreshing Want %v -> %v", want, rec)
+			if rec.GetArrived() > 0 {
+				want.IntendedState = pb.WantState_PURCHASED
+			} else if want.IntendedState != pb.WantState_PURCHASED {
+				want.IntendedState = pb.WantState_IN_TRANSIT
+			}
+			if rec.GetRelease().GetRating() > 0 {
+				want.Score = rec.GetRelease().GetRating()
+			}
+			want.Clean = false
+			err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
+			if err != nil {
+				return fmt.Errorf("unable to save want: %w", err)
+			}
+			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention: "From Refresh Wants",
+					Auth:      auth,
+					RunDate:   time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: want.GetId()}},
 					},
-				}, enqueue)
-				if err != nil {
-					return err
-				}
-				continue
+				},
+			}, enqueue)
+			if err != nil {
+				return err
 			}
 		}
 	}
