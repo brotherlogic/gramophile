@@ -3,7 +3,9 @@ package queuelogic
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -17,10 +19,50 @@ import (
 
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
+	rspb "github.com/brotherlogic/pstore/proto"
 )
 
+type syncPstoreClient struct {
+	mu     sync.Mutex
+	client pstore_client.PStoreClient
+}
+
+func (s *syncPstoreClient) Read(ctx context.Context, req *rspb.ReadRequest) (*rspb.ReadResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.client.Read(ctx, req)
+}
+
+func (s *syncPstoreClient) Write(ctx context.Context, req *rspb.WriteRequest) (*rspb.WriteResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.client.Write(ctx, req)
+}
+
+func (s *syncPstoreClient) GetKeys(ctx context.Context, req *rspb.GetKeysRequest) (*rspb.GetKeysResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.client.GetKeys(ctx, req)
+}
+
+func (s *syncPstoreClient) Delete(ctx context.Context, req *rspb.DeleteRequest) (*rspb.DeleteResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.client.Delete(ctx, req)
+}
+
+func (s *syncPstoreClient) Count(ctx context.Context, req *rspb.CountRequest) (*rspb.CountResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.client.Count(ctx, req)
+}
+
+func getSyncTestClient() pstore_client.PStoreClient {
+	return &syncPstoreClient{client: pstore_client.GetTestClient()}
+}
+
 func TestRunWithEmptyQueue(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
@@ -44,7 +86,7 @@ func getTestContextBeta(userid int) context.Context {
 func TestMarkerCreationAndRemoval(t *testing.T) {
 	ctx := getTestContext(123)
 
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	di.AddCollectionRelease(&pbd.Release{InstanceId: 1234})
@@ -120,7 +162,7 @@ func TestMarkerCreationAndRemoval(t *testing.T) {
 }
 
 func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -140,7 +182,7 @@ func TestEnqueueRefreshRelease_EmptyIntention(t *testing.T) {
 }
 
 func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -161,7 +203,7 @@ func TestEnqueueRefreshRelease_WithIntention(t *testing.T) {
 }
 
 func TestEnqueuePriority(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -207,7 +249,7 @@ func TestEnqueuePriority(t *testing.T) {
 }
 
 func TestEnqueuePriority_Normal(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -253,7 +295,7 @@ func TestEnqueuePriority_Normal(t *testing.T) {
 }
 
 func TestPriorityOrdering(t *testing.T) {
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -318,7 +360,7 @@ func TestPriorityOrdering(t *testing.T) {
 func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 	ctx := getTestContext(123)
 
-	pstore := pstore_client.GetTestClient()
+	pstore := getSyncTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
 	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
@@ -370,4 +412,75 @@ func TestEnqueueRefreshRelease_DoubleAdd(t *testing.T) {
 		t.Errorf("Error on addition: %v", err)
 	}
 
+}
+
+type mockTaskHandler struct {
+	err error
+}
+
+func (m *mockTaskHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return m.err
+}
+
+func (m *mockTaskHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (m *mockTaskHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
+func TestResourceExhausted_UserLimit(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	// Register our mock task handler that returns a wrapped ResourceExhausted User Limit error
+	wrappedErr := fmt.Errorf("unable to queue: %w", status.Errorf(codes.ResourceExhausted, "User queue limit reached"))
+	q.b.RegisterTaskHandler("*proto.QueueElement_RefreshUser", &mockTaskHandler{err: wrappedErr})
+
+	// Enqueue the task
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   0,
+			Entry: &pb.QueueElement_RefreshUser{
+				RefreshUser: &pb.RefreshUserEntry{},
+			},
+			Auth: "123",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Error enqueueing: %v", err)
+	}
+
+	// Run the queue in a goroutine
+	go q.Run()
+
+	// Wait and check if the task is deleted (queue length becomes 0) within 2 seconds.
+	// If it slept for a minute, this will timeout and fail.
+	success := false
+	for i := 0; i < 20; i++ {
+		list, err := q.List(ctx, &pb.ListRequest{})
+		if err == nil && len(list.GetElements()) == 0 {
+			success = true
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	if !success {
+		t.Fatalf("Task was not deleted or queue stall triggered")
+	}
 }
