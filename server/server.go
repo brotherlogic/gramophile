@@ -169,7 +169,7 @@ func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.U
 	return resp, err
 }
 
-func (s *Server) updateRecord(ctx context.Context, iid int32, id int32) error {
+func (s *Server) updateRecord(ctx context.Context, iid int64, id int32) error {
 	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
 	if err != nil {
 		return err

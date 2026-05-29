@@ -26,7 +26,7 @@ import (
 	pbrc "github.com/brotherlogic/recordcollection/proto"
 )
 
-func (b *BackgroundRunner) updateRecord(ctx context.Context, iid int32, id int32) error {
+func (b *BackgroundRunner) updateRecord(ctx context.Context, iid int64, id int32) error {
 	conn, err := grpc.Dial("argon:57724", grpc.WithInsecure())
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (b *BackgroundRunner) ProcessRefreshIntents(ctx context.Context, d discogs.
 			Auth: entry.GetAuth(),
 		}})
 	if d.GetUserId() == 150295 {
-		nerr := b.updateRecord(ctx, int32(entry.GetRefreshIntents().GetInstanceId()), int32(r.GetRelease().GetId()))
+		nerr := b.updateRecord(ctx, int64(entry.GetRefreshIntents().GetInstanceId()), int32(r.GetRelease().GetId()))
 		if nerr != nil {
 			log.Printf("error on record update: %v", nerr)
 		}
