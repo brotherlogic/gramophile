@@ -82,3 +82,45 @@ func TestNginxConfig(t *testing.T) {
 		t.Errorf("nginx.conf does not configure custom 404 page fallback")
 	}
 }
+
+func TestDocsFilesArePopulated(t *testing.T) {
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+
+	root := dir
+	for {
+		if _, err := os.Stat(filepath.Join(root, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(root)
+		if parent == root {
+			t.Fatalf("Failed to locate workspace root starting from %s", dir)
+		}
+		root = parent
+	}
+
+	requiredFiles := []string{
+		filepath.Join("docs", "index.md"),
+		filepath.Join("docs", "onboarding.md"),
+		filepath.Join("docs", "syncing.md"),
+		filepath.Join("docs", "organisations.md"),
+	}
+
+	for _, file := range requiredFiles {
+		path := filepath.Join(root, file)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("Failed to read %s: %v", file, err)
+		}
+		content := string(data)
+		lines := strings.Split(content, "\n")
+		if len(lines) < 15 {
+			t.Errorf("File %s seems to be a placeholder (only has %d lines, expected at least 15)", file, len(lines))
+		}
+		if strings.Contains(content, "placeholder") || strings.Contains(content, "This page will provide") {
+			t.Errorf("File %s still contains placeholder/intro text", file)
+		}
+	}
+}
