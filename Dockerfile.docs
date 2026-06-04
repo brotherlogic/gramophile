@@ -1,7 +1,7 @@
 # Build Stage
 FROM python:3.11-alpine AS builder
 WORKDIR /app
-RUN pip install --no-cache-dir mkdocs mkdocs-material
+RUN pip install --no-cache-dir mkdocs==1.5.3 mkdocs-material==9.5.18
 COPY mkdocs.yml ./
 COPY docs/ ./docs/
 RUN mkdocs build
