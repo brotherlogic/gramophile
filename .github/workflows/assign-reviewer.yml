@@ -1,0 +1,29 @@
+name: Assign Reviewer
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  assign-reviewer:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+     
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26.2'
+
+    - name: Run build
+      run: go build ./...
+
+    - name: Run test
+      run: go test ./... -coverpkg=integration -coverprofile=profile.cov
+
+    - name: Add Reviewer
+      env:
+        GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
+      run: |
+        gh pr edit ${{ github.event.pull_request.number }} --add-reviewer brotherlogic@gmail.com

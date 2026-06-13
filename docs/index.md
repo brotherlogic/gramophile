@@ -4,6 +4,7 @@ Gramophile is a stateful manager for your vinyl record collection, providing int
 
 While Discogs provides an excellent catalog database, it lacks a stateful history, complex physical organization rules (e.g., shelves, spills, density), automated price reductions for sales, and advanced wantlist capabilities. Gramophile bridges this gap by acting as a stateful layer over Discogs.
 
+
 ## Key Features
 
 - **Deep Discogs Integration**: Automated, multi-stage synchronization of collections, wantlists, and marketplace data.
@@ -12,6 +13,7 @@ While Discogs provides an excellent catalog database, it lacks a stateful histor
 - **Sales Management**: Track sales, update prices dynamically based on marketplace data, and monitor sales statistics using configurable strategies.
 - **Advanced Wantlists**: Custom logic for managing wants and wantlists with historical tracking and state management.
 - **Queueing & Eventual Consistency**: Performs all long-running or external API interactions via a background task queue.
+
 
 ## Architecture Overview
 
