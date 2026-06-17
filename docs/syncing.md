@@ -1,37 +1,37 @@
 # Syncing Expectations
 
-Gramophile maintains eventual consistency with Discogs by processing data-heavy and external API tasks asynchronously via a persistent background queue.
+Gramophile keeps your local collection data matching Discogs by running updates in the background. This page describes what to expect from these background updates.
 
-## Asynchronous Queue Processing
+## Background Updates Queue
 
-Tasks are stored in the database (`pstore`) as `QueueElement` messages under the `gramophile/taskqueue/` prefix. A background worker loop (`queuelogic.Run`) processes these tasks sequentially.
+Because your collection can be large and Discogs limits how quickly we can request information, Gramophile doesn't update everything instantly. Instead, it places tasks in a background queue to be processed one after the other.
 
-Key properties of each task include:
-- **Run Date**: A timestamp representing when the task is scheduled to run. If this is in the future, the worker will sleep until it is reached.
-- **Intention**: A human-readable description of why the task was queued.
-- **Priority**: Detrmines the order in which items are fetched.
+Every task in the queue has:
+- **Scheduled Time**: When the task is set to run.
+- **Purpose**: A description of what the update is doing (such as updating a record's price or downloading a new addition).
+- **Priority**: How quickly the task should be processed relative to others.
 
-## Queue Priority Levels
+## Update Priorities
 
-Gramophile uses three active priority levels:
-1. `PRIORITY_HIGH`: Reserved for critical, user-triggered changes that should execute immediately (e.g., immediate price updates, manual movement of records).
-2. `PRIORITY_NORMAL`: Default priority for system operations.
-3. `PRIORITY_LOW`: Used for long-running, bulk operations (e.g., initial user collection refresh, large wants updates).
+Gramophile uses three priority levels:
+1. **High Priority**: Immediate actions requested by you (such as manual record moves or instant price updates). These run as soon as possible.
+2. **Normal Priority**: Routine system operations.
+3. **Low Priority**: Long-running or bulk tasks (such as importing a large collection for the first time or checking all wants).
 
-## Background Sync Intervals
+## Syncing Schedule
 
-Once your account is live, Gramophile executes routine background refreshes:
-- **Full Collection Refresh**: Refreshes your entire collection from Discogs once a week (`time.Hour * 24 * 7`).
-- **Collection Check**: Checks through the database for metadata and sync tasks once a day (`time.Hour * 24`).
+Once your account is connected and fully imported, Gramophile runs scheduled updates to stay fresh:
+- **Full Collection Sync**: Gramophile does a complete refresh of your entire collection from Discogs once a week.
+- **Daily Check**: Gramophile checks for any changed records or metadata once a day.
 
-## Throttling and Rate Limiting
+## Handling Discogs Rate Limits
 
-Discogs enforces rate limits on external API requests. Gramophile handles rate limits gracefully:
-- **Throttling Detection**: If a request fails with a `codes.ResourceExhausted` error, the system checks the error reason.
-- **Queue Limits**: If the limit is due to the queue being full or user queue limits being exceeded (`User queue limit reached` or `Queue is full`), the task is deleted/dropped to protect resources.
-- **Cooldown**: For standard API rate limits, the worker sleeps for 1 minute to allow tokens to regenerate, leaving the task in the queue for a retry.
+Discogs limits the number of requests external applications can make. Gramophile handles these limits automatically:
+- **Rate Limit Cool-downs**: If we hit a Discogs rate limit, Gramophile pauses processing for 1 minute to allow the rate limit to clear before retrying the task.
+- **Safety Valve**: If the queue becomes excessively full, low-priority tasks may be skipped to ensure high-priority user actions are not delayed.
 
-## Error Handling and DLQ
+## Errors and Automatic Retries
 
-- **Internal Errors**: If a task fails with a `codes.Internal` error, the system automatically files a GitHub issue on the `brotherlogic/gramophile` repository, deletes the current entry, and re-queues it with a 5-minute backoff.
-- **Dead Letter Queue (DLQ)**: For all other non-recoverable errors, the item is moved to the DLQ under the database prefix `gramophile/dlq/` for manual administrative intervention.
+- **Temporary Failures**: If a task fails due to a temporary network issue or server error, Gramophile will wait 5 minutes and automatically try again.
+- **Persistent Failures**: If a task continues to fail, the system puts it aside so it can be reviewed and fixed without blocking other updates from running.
+
