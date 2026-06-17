@@ -288,7 +288,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 				wantlistCache[listname] = list
 			}
 			for _, entry := range list.GetEntries() {
-				if entry.GetId() == want.GetId() {
+				if entry.GetId() == want.GetId() && entry.GetState() != pb.WantState_RETIRED {
 					foundInAnyList = true
 					break
 				}
