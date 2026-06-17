@@ -63,5 +63,6 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 		FolderCount:        int32(len(key.GetFolders())),
 		LastSaleRefresh:    key.GetLastSaleRefresh(),
 		LastWantSync:       key.GetLastWantRefresh(),
+		LastWantlistSync:   key.GetLastWantlistRefresh(),
 	}, nil
 }
