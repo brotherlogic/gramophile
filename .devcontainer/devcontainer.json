@@ -8,7 +8,6 @@
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {
 			"installOhMyZsh": true,
-			"upgradePackages": true,
 			"installZsh": true,
 			"configureZshAsDefaultShell": true
 		},
