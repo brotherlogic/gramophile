@@ -246,13 +246,17 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 		}
 
 		// Update the want
-		if want.GetId() == entry.GetId() && want.GetState() != entry.GetState() {
-			if want.GetIntendedState() == pb.WantState_RETIRED && entry.GetState() == pb.WantState_RETIRED {
-				// Do not overwrite a RETIRED wantlist entry back to WANTED just because Discogs hasn't deleted it yet.
-			} else if entry.GetState() != pb.WantState_PURCHASED || want.GetState() == pb.WantState_PURCHASED {
-				qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
-				entry.State = want.GetState()
-				list.LastPurchaseDate = time.Now().UnixNano()
+		if want.GetId() == entry.GetId() {
+			intended := want.GetIntendedState()
+			if intended == pb.WantState_WANT_UNKNOWN {
+				intended = want.GetState()
+			}
+			if intended != entry.GetState() {
+				if entry.GetState() != pb.WantState_PURCHASED || intended == pb.WantState_PURCHASED {
+					qlog(ctx, "UPDATING WANT STATE %v and %v", want, entry)
+					entry.State = intended
+					list.LastPurchaseDate = time.Now().UnixNano()
+				}
 			}
 		}
 
