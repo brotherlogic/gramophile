@@ -1,30 +1,22 @@
 # Welcome to Gramophile
 
-Gramophile is a stateful manager for your vinyl record collection, providing integration with Discogs, background syncing, collection organization rules, sales management, and advanced wantlist tools.
+Gramophile is a smart manager for your vinyl record collection, designed to work seamlessly with your Discogs account. 
 
-While Discogs provides an excellent catalog database, it lacks a stateful history, complex physical organization rules (e.g., shelves, spills, density), automated price reductions for sales, and advanced wantlist capabilities. Gramophile bridges this gap by acting as a stateful layer over Discogs.
-
+While Discogs is a fantastic cataloging tool, it doesn't keep track of your collection's history, help you organize your physical shelves, or automate pricing when selling records. Gramophile fills these gaps by acting as a smart layer on top of Discogs.
 
 ## Key Features
 
-- **Deep Discogs Integration**: Automated, multi-stage synchronization of collections, wantlists, and marketplace data.
-- **Stateful History**: Tracks historical changes to records and wantlists, providing insights beyond what the standard Discogs API offers.
-- **Collection Physical Organization (Organisations)**: Support for complex physical space rules, virtual folders, density rules, spills, and placement snapshots.
-- **Sales Management**: Track sales, update prices dynamically based on marketplace data, and monitor sales statistics using configurable strategies.
-- **Advanced Wantlists**: Custom logic for managing wants and wantlists with historical tracking and state management.
-- **Queueing & Eventual Consistency**: Performs all long-running or external API interactions via a background task queue.
+- **Seamless Discogs Sync**: Automatically synchronizes your collections, wantlists, and marketplace listings in the background.
+- **Collection History**: Tracks changes to your collection and wantlists over time, showing you how your collection has evolved.
+- **Physical Shelves & Boxes (Organisations)**: Helps you plan and organize your physical storage. You can define custom layouts, set shelf capacities, group records by artist, and generate instructions for rearranging your physical records.
+- **Sales & Pricing Automation**: Set rules to dynamically update record prices based on marketplace trends and track your sales performance.
+- **Advanced Wantlist Management**: Powerful tools to organize, prioritize, and track records you want to acquire.
+- **Reliable Background Syncing**: Long-running updates are run smoothly in the background, keeping your experience responsive and avoiding rate limits.
 
+## Getting Started
 
-## Architecture Overview
+To learn how to use Gramophile:
+- Read the [Onboarding Guide](onboarding.md) to connect your Discogs account.
+- Read [Syncing Expectations](syncing.md) to understand how Gramophile updates and communicates with Discogs.
+- Read the [Organisations Guide](organisations.md) to set up and manage your physical record shelves.
 
-Gramophile is built as a set of gRPC and HTTP services:
-
-- **API Server**: Primary interface for user and internal interactions (e.g., authentication, organization management).
-- **Background Processing**: A background worker system that processes long-running or scheduled tasks asynchronously.
-- **Persistence Layer**: Custom key-value store named `pstore` to persist data as Protobuf messages.
-- **Observability**: Instrumented with OpenTelemetry for tracing and Prometheus for performance metrics.
-
-For detailed instructions, refer to the guides:
-- [Onboarding Guide](onboarding.md)
-- [Syncing Expectations](syncing.md)
-- [Organisations Guide](organisations.md)
