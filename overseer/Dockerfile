@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 go build -o /overseer
 ##
 ## Deploy
 ##
-FROM gcr.io/distroless/base-debian11
+FROM gcr.io/distroless/base-debian12
 
 WORKDIR /
 
