@@ -1,3 +1,4 @@
+sudo apt update
 sudo apt-get install -y protobuf-compiler
 
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
