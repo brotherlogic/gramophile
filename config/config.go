@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"time"
 
@@ -40,6 +41,17 @@ var validators []Validator = []Validator{
 }
 
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, u *pb.StoredUser) ([]*pbd.Folder, error) {
+	if u.GetConfig() != nil && u.GetConfig().GetOrganisationConfig() != nil {
+		for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
+			seenFolders := make(map[int32]bool)
+			for _, fs := range org.GetFoldersets() {
+				if seenFolders[fs.GetFolder()] {
+					return nil, fmt.Errorf("overlapping folder found in organisation %v: folder ID %v is defined multiple times", org.GetName(), fs.GetFolder())
+				}
+				seenFolders[fs.GetFolder()] = true
+			}
+		}
+	}
 
 	for _, validator := range validators {
 		err := validator.Validate(ctx, fields, u)
