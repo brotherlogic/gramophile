@@ -43,12 +43,12 @@ var validators []Validator = []Validator{
 func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Field, u *pb.StoredUser) ([]*pbd.Folder, error) {
 	if u.GetConfig() != nil && u.GetConfig().GetOrganisationConfig() != nil {
 		for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
-			seenFolders := make(map[int32]bool)
+			seenFolders := make(map[int32]struct{})
 			for _, fs := range org.GetFoldersets() {
-				if seenFolders[fs.GetFolder()] {
+				if _, ok := seenFolders[fs.GetFolder()]; ok {
 					return nil, fmt.Errorf("overlapping folder found in organisation %v: folder ID %v is defined multiple times", org.GetName(), fs.GetFolder())
 				}
-				seenFolders[fs.GetFolder()] = true
+				seenFolders[fs.GetFolder()] = struct{}{}
 			}
 		}
 	}
