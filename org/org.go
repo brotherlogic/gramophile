@@ -199,14 +199,14 @@ func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve,
 			formats := rec.GetRelease().GetFormats()
 			if len(formats) == 0 {
 				count += 1
-			} else {
-				for _, format := range formats {
-					if format.GetQuantity() == 0 {
-						count += 1
-					} else {
-						count += float32(format.GetQuantity())
-					}
+				continue
+			}
+			for _, format := range formats {
+				qty := format.GetQuantity()
+				if qty == 0 {
+					qty = 1
 				}
+				count += float32(qty)
 			}
 		}
 		return count
