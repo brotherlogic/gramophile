@@ -100,6 +100,7 @@ func execute(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
+		defer os.Remove(tmpFile)
 		
 		err = proto.MarshalText(f, auth)
 		f.Close()
