@@ -69,7 +69,7 @@ func execute(ctx context.Context, args []string) error {
 
 	err = browser.OpenURL(val)
 	if err != nil {
-		return fmt.Errorf("unable to open URL: %v", err)
+		fmt.Printf("Please open this URL in your browser: %v\n", val)
 	}
 
 	// Only try to retreive the login details for 5 minutes
@@ -91,7 +91,7 @@ func execute(ctx context.Context, args []string) error {
 			return err
 		}
 
-		f, err := os.OpenFile(fmt.Sprintf("%v/.gramophile", dirname), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		f, err := os.OpenFile(fmt.Sprintf("%v/.gramophile", dirname), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
