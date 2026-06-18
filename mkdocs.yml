@@ -1,0 +1,16 @@
+site_name: Gramophile Documentation
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: deep purple
+    accent: deep purple
+  features:
+    - navigation.sections
+    - navigation.indexes
+
+nav:
+  - Welcome: index.md
+  - Onboarding Guide: onboarding.md
+  - Syncing Expectations: syncing.md
+  - Organisations Guide: organisations.md

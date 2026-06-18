@@ -158,7 +158,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 
 	log.Printf("Saved Intent")
 	if user.GetUser().GetDiscogsUserId() == 150295 {
-		nerr := s.updateRecord(ctx, int32(req.GetInstanceId()), int32(r.GetRelease().GetId()))
+		nerr := s.updateRecord(ctx, int64(req.GetInstanceId()), int32(r.GetRelease().GetId()))
 		if nerr != nil {
 			log.Printf("error on record update: %v", nerr)
 		}

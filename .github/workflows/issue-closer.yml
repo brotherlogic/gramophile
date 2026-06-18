@@ -1,0 +1,54 @@
+name: Issue Closer
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Issue Closer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for pass in {1..5}; do
+            echo "=== Pass $pass ==="
+            closed_any=false
+            
+            # Fetch all open issues in the repository
+            open_issues=$(gh issue list --state open --limit 1000 --json number --jq '.[].number')
+            
+            if [ -z "$open_issues" ]; then
+              echo "No open issues found."
+              break
+            fi
+            
+            for issue in $open_issues; do
+              echo "Checking issue #$issue..."
+              # Query sub-issues via the native GitHub Sub-issues API
+              sub_issues=$(gh api "repos/${{ github.repository }}/issues/$issue/sub_issues" 2>/dev/null || echo "[]")
+              
+              has_sub_issues=$(echo "$sub_issues" | jq 'length > 0')
+              all_closed=$(echo "$sub_issues" | jq 'if length > 0 then all(.[]; .state == "closed") else false end')
+              
+              if [ "$has_sub_issues" = "true" ] && [ "$all_closed" = "true" ]; then
+                echo "Closing parent issue #$issue because all its sub-issues are closed."
+                gh issue close "$issue" -r "completed"
+                closed_any=true
+              fi
+            done
+            
+            if [ "$closed_any" = "false" ]; then
+              echo "No issues closed in this pass. Terminating early."
+              break
+            fi
+          done
