@@ -24,6 +24,18 @@ set -g allow-passthrough on
 set -as terminal-overrides ',xterm-ghostty:Sync:Tc'
 EOF
 
+# Add tmux auto-attach to .zshrc and .bashrc
+for RC_FILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
+    if [ -f "$RC_FILE" ] && ! grep -q "Auto-attach to tmux session" "$RC_FILE"; then
+        cat << 'EOF' >> "$RC_FILE"
+
+# Auto-attach to tmux session
+if [[ $- == *i* ]] && [[ -z "$TMUX" ]] && [[ -z "$SKIP_TMUX" ]] && [[ -t 0 ]]; then
+    tmux new-session -A -s "gramophile"
+fi
+EOF
+    fi
+done
 
 git config --global user.email 'brotherlogic.automation@gmail.com'
 git config --global user.name 'Brotherlogic Automation'
