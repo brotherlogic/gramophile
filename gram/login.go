@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -69,7 +70,9 @@ func execute(ctx context.Context, args []string) error {
 
 	err = browser.OpenURL(val)
 	if err != nil {
-		return fmt.Errorf("unable to open URL: %v", err)
+		// We deliberately don't return the error here to allow the 
+		// CLI to print the URL so the user can open it manually.
+		fmt.Printf("Please open this URL in your browser: %v\n", val)
 	}
 
 	// Only try to retreive the login details for 5 minutes
@@ -91,12 +94,23 @@ func execute(ctx context.Context, args []string) error {
 			return err
 		}
 
-		f, err := os.OpenFile(fmt.Sprintf("%v/.gramophile", dirname), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		tmpFile := filepath.Join(dirname, ".gramophile.tmp")
+		finalFile := filepath.Join(dirname, ".gramophile")
+		
+		f, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		return proto.MarshalText(f, auth)
+		defer os.Remove(tmpFile)
+		
+		err = proto.MarshalText(f, auth)
+		f.Close()
+		
+		if err != nil {
+			return err
+		}
+		
+		return os.Rename(tmpFile, finalFile)
 	}
 
 	return status.Errorf(codes.DeadlineExceeded, "Unable to get login token after 5 minutes")
