@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
@@ -28,10 +29,11 @@ import (
 )
 
 type Server struct {
-	d         db.Database
-	di        discogs.Discogs
-	qc        queue_client.QueueClient
-	trackings map[string]*tracking
+	d          db.Database
+	di         discogs.Discogs
+	qc         queue_client.QueueClient
+	trackings  map[string]*tracking
+	loginMutex sync.Mutex
 }
 
 type tracking struct {
