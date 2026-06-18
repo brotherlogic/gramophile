@@ -46,7 +46,7 @@ func ValidateConfig(ctx context.Context, user *pb.StoredUser, fields []*pbd.Fiel
 			seenFolders := make(map[int32]struct{})
 			for _, fs := range org.GetFoldersets() {
 				if _, ok := seenFolders[fs.GetFolder()]; ok {
-					return nil, fmt.Errorf("overlapping folder found in organisation %v: folder ID %v is defined multiple times", org.GetName(), fs.GetFolder())
+					return nil, fmt.Errorf("overlapping folder found in organisation: folder ID %v is defined multiple times", fs.GetFolder())
 				}
 				seenFolders[fs.GetFolder()] = struct{}{}
 			}
