@@ -69,6 +69,8 @@ func execute(ctx context.Context, args []string) error {
 
 	err = browser.OpenURL(val)
 	if err != nil {
+		// We deliberately don't return the error here to allow the 
+		// CLI to print the URL so the user can open it manually.
 		fmt.Printf("Please open this URL in your browser: %v\n", val)
 	}
 
@@ -91,12 +93,22 @@ func execute(ctx context.Context, args []string) error {
 			return err
 		}
 
-		f, err := os.OpenFile(fmt.Sprintf("%v/.gramophile", dirname), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		tmpFile := fmt.Sprintf("%v/.gramophile.tmp", dirname)
+		finalFile := fmt.Sprintf("%v/.gramophile", dirname)
+		
+		f, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		return proto.MarshalText(f, auth)
+		
+		err = proto.MarshalText(f, auth)
+		f.Close()
+		
+		if err != nil {
+			return err
+		}
+		
+		return os.Rename(tmpFile, finalFile)
 	}
 
 	return status.Errorf(codes.DeadlineExceeded, "Unable to get login token after 5 minutes")
