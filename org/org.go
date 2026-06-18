@@ -194,7 +194,22 @@ func getWidth(r *groupingElement, d pb.Density, sleeveMap map[string]*pb.Sleeve,
 	case pb.Density_COUNT:
 		return float32(len(r.records))
 	case pb.Density_DISKS:
-		return float32(len(r.records))
+		count := float32(0)
+		for _, rec := range r.records {
+			formats := rec.GetRelease().GetFormats()
+			if len(formats) == 0 {
+				count += 1
+			} else {
+				for _, format := range formats {
+					if format.GetQuantity() == 0 {
+						count += 1
+					} else {
+						count += float32(format.GetQuantity())
+					}
+				}
+			}
+		}
+		return count
 	case pb.Density_WIDTH:
 		twidth := float32(0)
 		for _, r := range r.records {
