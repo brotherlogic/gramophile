@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -93,8 +94,8 @@ func execute(ctx context.Context, args []string) error {
 			return err
 		}
 
-		tmpFile := fmt.Sprintf("%v/.gramophile.tmp", dirname)
-		finalFile := fmt.Sprintf("%v/.gramophile", dirname)
+		tmpFile := filepath.Join(dirname, ".gramophile.tmp")
+		finalFile := filepath.Join(dirname, ".gramophile")
 		
 		f, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
