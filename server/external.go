@@ -14,6 +14,9 @@ import (
 )
 
 func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
+	s.loginMutex.Lock()
+	defer s.loginMutex.Unlock()
+
 	url, token, secret, err := s.di.GetLoginURL()
 	if err != nil {
 		return nil, fmt.Errorf("bad get for login ulr: %v", err)
@@ -23,6 +26,15 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 	if err != nil {
 		return nil, fmt.Errorf("bad load of logins: %v", err)
 	}
+
+	var newAttempts []*pb.UserLoginAttempt
+	for _, attempt := range attempts.GetAttempts() {
+		if time.Since(time.Unix(0, attempt.GetDateAdded())) < time.Minute*15 {
+			newAttempts = append(newAttempts, attempt)
+		}
+	}
+	attempts.Attempts = newAttempts
+
 	attempts.Attempts = append(attempts.Attempts,
 		&pb.UserLoginAttempt{
 			RequestToken: token,
@@ -36,21 +48,42 @@ func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLR
 }
 
 func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.GetLoginResponse, error) {
+	s.loginMutex.Lock()
+	defer s.loginMutex.Unlock()
+
 	attempts, err := s.d.LoadLogins(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, attempt := range attempts.GetAttempts() {
-		if attempt.RequestToken == req.GetToken() && attempt.GetUserSecret() != "" {
-			user, err := s.d.GenerateToken(ctx, attempt.GetUserToken(), attempt.GetUserSecret())
-			if err != nil {
-				return nil, err
-			}
+	var newAttempts []*pb.UserLoginAttempt
+	var foundAttempt *pb.UserLoginAttempt
 
-			// Enrich and store the user
-			log.Printf("from %v got %v and %v", attempt, user, err)
-			sd := s.di.ForUser(&pbd.User{UserToken: attempt.GetUserToken(), UserSecret: attempt.GetUserSecret()})
+	for _, attempt := range attempts.GetAttempts() {
+		if time.Since(time.Unix(0, attempt.GetDateAdded())) < time.Minute*15 {
+			if attempt.RequestToken == req.GetToken() && attempt.GetUserSecret() != "" {
+				foundAttempt = attempt
+			} else {
+				newAttempts = append(newAttempts, attempt)
+			}
+		}
+	}
+
+	if foundAttempt != nil {
+		user, err := s.d.GenerateToken(ctx, foundAttempt.GetUserToken(), foundAttempt.GetUserSecret())
+		if err != nil {
+			return nil, err
+		}
+
+		attempts.Attempts = newAttempts
+		err = s.d.SaveLogins(ctx, attempts)
+		if err != nil {
+			return nil, err
+		}
+
+		// Enrich and store the user
+		log.Printf("from %v got %v and %v", foundAttempt, user, err)
+		sd := s.di.ForUser(&pbd.User{UserToken: foundAttempt.GetUserToken(), UserSecret: foundAttempt.GetUserSecret()})
 			duser, err := sd.GetDiscogsUser(ctx)
 			if err != nil {
 				return nil, err
@@ -72,8 +105,7 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 				},
 			})
 
-			return &pb.GetLoginResponse{Auth: user.GetAuth()}, s.d.SaveUser(ctx, user)
-		}
+		return &pb.GetLoginResponse{Auth: user.GetAuth()}, s.d.SaveUser(ctx, user)
 	}
 
 	log.Printf("Tokens: %v", attempts)
