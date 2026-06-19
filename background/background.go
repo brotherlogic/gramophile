@@ -85,7 +85,7 @@ func (b *BackgroundRunner) Execute(ctx context.Context, d discogs.Discogs, u *pb
 	}
 
 	err = handler.Execute(ctx, d, u, entry, enqueue)
-	
+
 	entryType := fmt.Sprintf("%T", entry.GetEntry())
 	TaskDuration.With(prometheus.Labels{"type": entryType}).Observe(float64(time.Since(st).Milliseconds()))
 	if err != nil {

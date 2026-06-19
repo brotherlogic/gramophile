@@ -27,7 +27,7 @@ func TestSpillingWithCountDensity(t *testing.T) {
 
 	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
-		Name: "testing",
+		Name:    "testing",
 		Density: pb.Density_COUNT,
 		Foldersets: []*pb.FolderSet{
 			{
@@ -88,8 +88,8 @@ func TestFallbackWidthWhenNoWidthsPresent(t *testing.T) {
 
 	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
-		Name: "testing",
-		Density: pb.Density_WIDTH,
+		Name:                 "testing",
+		Density:              pb.Density_WIDTH,
 		MissingWidthHandling: pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE,
 		Foldersets: []*pb.FolderSet{
 			{
@@ -150,8 +150,8 @@ func TestSpillingWithWidthDensityAndSomeMissingWidths(t *testing.T) {
 
 	orglogic, _ := GetOrg(d)
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
-		Name: "testing",
-		Density: pb.Density_WIDTH,
+		Name:                 "testing",
+		Density:              pb.Density_WIDTH,
 		MissingWidthHandling: pb.MissingWidthHandling_MISSING_WIDTH_AVERAGE,
 		Foldersets: []*pb.FolderSet{
 			{

@@ -58,7 +58,7 @@ func TestSnapshotDiffRobust_ReverseShuffle(t *testing.T) {
 	end := &pb.OrganisationSnapshot{Placements: endPlacements}
 
 	moves := getSnapshotDiff(start, end)
-	
+
 	nsnap := applyMoves(start, moves)
 	if tgetHash(end.GetPlacements()) != tgetHash(nsnap.GetPlacements()) {
 		t.Errorf("Reverse shuffle moves failed to result in correct end state")
@@ -116,7 +116,7 @@ func TestSnapshotDiffRobust_PartialOverlap(t *testing.T) {
 	}
 
 	moves := getSnapshotDiff(start, end)
-	
+
 	foundAddition := false
 	foundDeletion := false
 	foundMove := false
