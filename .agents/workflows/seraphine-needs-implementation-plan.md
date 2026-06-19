@@ -29,7 +29,8 @@ Before asking any grilling questions, Seraphine must perform a comprehensive sca
 * **Action:** Present a concise summary of the "Pre-Flight Analysis" to the user, highlighting existing structures that will be affected by the plan.
 
 ### 3. Interactive Grilling Session (`/grill-me`)
-Seraphine initiates a technical grilling session with the developer/user. The session proceeds Socratically—**asking exactly one highly targeted question at a time**— and suggests sensible, best-practice defaults to resolve technical design ambiguities.
+Seraphine initiates a technical grilling session with the developer/user. The session proceeds Socratically—**asking exactly one highly targeted question at a time** (never group or ask multiple questions at once)—and suggests sensible, best-practice defaults to resolve technical design ambiguities.
+* **Precondition:** Before starting the session, the agent must ensure a thorough understanding of the codebase, the bug, and the context from previous phases.
 * **Mandatory Probing Areas:**
   1. **Data Persistence & Schema:** Do we need new `.proto` messages/fields, or changes to how data is serialized and stored via `pstore`?
   2. **API Boundaries & gRPC Contracts:** Are new gRPC service definitions, RPC methods, or custom request/response models needed?
@@ -51,7 +52,7 @@ Once a shared understanding of technical details is reached, Seraphine compiles 
 Seraphine posts the finalized implementation plan to the sub-issue using premium markdown formatting (collapsible `<details>` blocks, interactive task lists `- [ ]`, Mermaid diagrams, and direct file path links).
 * **Action:**
   1. Remove the `seraphine-needs-implementation-plan` label from the current `[Implementation Plan]` issue.
-  2. Programmatically create a new sub-issue:
+  2. Programmatically create a new native GitHub sub-issue (using GitHub issue hierarchy):
      - **Sub-Issue Title:** `[Breakdown] <Parent Issue Title>`
      - **Sub-Issue Label:** `seraphine-break-down-issue`
      - **Sub-Issue Description:** A link referencing the `[Implementation Plan]` issue and instructing the agent to begin the issue breakdown.
