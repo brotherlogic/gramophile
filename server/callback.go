@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"log"
 	"net/http"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	token := r.URL.Query().Get("oauth_token")
 	verifier := r.URL.Query().Get("oauth_verifier")
