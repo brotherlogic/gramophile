@@ -149,7 +149,7 @@ type fakeOrgClient struct{}
 func (f *fakeOrgClient) GetArtist(ctx context.Context, req *kbpb.GetArtistRequest, _ ...grpc.CallOption) (*kbpb.GetArtistResponse, error) {
 	switch req.GetArtist() {
 	case "The Beatles":
-		return &kbpb.GetArtistResponse{}, nil
+		return &kbpb.GetArtistResponse{ArtistSort: "Beatles, The"}, nil
 	}
 	return nil, status.Errorf(codes.NotFound, "could not find %v", req)
 }
@@ -229,6 +229,96 @@ func TestOrderByArtist(t *testing.T) {
 
 	if snap.GetPlacements()[2].GetIid() != 1235 {
 		t.Errorf("1235 should be third: %v", snap.GetPlacements()[2])
+	}
+}
+
+func TestSortingFallbackAdditionDate(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, DateAdded: 0}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, DateAdded: 100}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, DateAdded: 50}})
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	orglogic, _ := GetOrg(d, &fakeOrgClient{})
+	snap, _ := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
+		Foldersets: []*pb.FolderSet{{Folder: 12, Index: 1, Sort: pb.Sort_ADDITION_DATE}},
+		Spaces:     []*pb.Space{{Name: "Main", Units: 1, Width: 100}},
+	}, &pb.OrganisationConfig{})
+
+	if len(snap.GetPlacements()) != 3 {
+		t.Fatalf("Should be 3 placements: %v", snap)
+	}
+	if snap.GetPlacements()[0].GetIid() != 1236 {
+		t.Errorf("1236 should be first: %v", snap.GetPlacements()[0])
+	}
+	if snap.GetPlacements()[1].GetIid() != 1235 {
+		t.Errorf("1235 should be second: %v", snap.GetPlacements()[1])
+	}
+	if snap.GetPlacements()[2].GetIid() != 1234 {
+		t.Errorf("1234 should be third (fallback to end): %v", snap.GetPlacements()[2])
+	}
+}
+
+func TestSortingFallbackReleaseYear(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, ReleaseDate: 0}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, ReleaseDate: 2000}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, ReleaseDate: 1990}})
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	orglogic, _ := GetOrg(d, &fakeOrgClient{})
+	snap, _ := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
+		Foldersets: []*pb.FolderSet{{Folder: 12, Index: 1, Sort: pb.Sort_RELEASE_YEAR}},
+		Spaces:     []*pb.Space{{Name: "Main", Units: 1, Width: 100}},
+	}, &pb.OrganisationConfig{})
+
+	if len(snap.GetPlacements()) != 3 {
+		t.Fatalf("Should be 3 placements: %v", snap)
+	}
+	if snap.GetPlacements()[0].GetIid() != 1236 {
+		t.Errorf("1236 should be first: %v", snap.GetPlacements()[0])
+	}
+	if snap.GetPlacements()[1].GetIid() != 1235 {
+		t.Errorf("1235 should be second: %v", snap.GetPlacements()[1])
+	}
+	if snap.GetPlacements()[2].GetIid() != 1234 {
+		t.Errorf("1234 should be third (fallback to end): %v", snap.GetPlacements()[2])
+	}
+}
+
+func TestSortingFallbackLabelCatno(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{}}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 12, Labels: []*pbd.Label{{Name: "ZZZ", Catno: "1"}}}})
+	d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1236, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA", Catno: "1"}}}})
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	orglogic, _ := GetOrg(d, &fakeOrgClient{})
+	snap, _ := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
+		Foldersets: []*pb.FolderSet{{Folder: 12, Index: 1, Sort: pb.Sort_LABEL_CATNO}},
+		Spaces:     []*pb.Space{{Name: "Main", Units: 1, Width: 100}},
+	}, &pb.OrganisationConfig{})
+
+	if len(snap.GetPlacements()) != 3 {
+		t.Fatalf("Should be 3 placements: %v", snap)
+	}
+	if snap.GetPlacements()[0].GetIid() != 1236 {
+		t.Errorf("1236 should be first: %v", snap.GetPlacements()[0])
+	}
+	if snap.GetPlacements()[1].GetIid() != 1235 {
+		t.Errorf("1235 should be second: %v", snap.GetPlacements()[1])
+	}
+	if snap.GetPlacements()[2].GetIid() != 1234 {
+		t.Errorf("1234 should be third (fallback to end): %v", snap.GetPlacements()[2])
 	}
 }
 

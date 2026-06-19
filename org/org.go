@@ -295,26 +295,74 @@ func (o *Org) BuildSnapshot(ctx context.Context, user *pb.StoredUser, org *pb.Or
 		switch s {
 		case pb.Sort_ADDITION_DATE:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return recs[i].record.GetRelease().GetDateAdded() < recs[j].record.GetRelease().GetDateAdded()
+				valI := recs[i].record.GetRelease().GetDateAdded()
+				valJ := recs[j].record.GetRelease().GetDateAdded()
+				if valI == 0 && valJ != 0 {
+					return false
+				}
+				if valJ == 0 && valI != 0 {
+					return true
+				}
+				return valI < valJ
 			})
 		case pb.Sort_ARTIST_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return recs[i].artistYear < recs[j].artistYear
+				valI := recs[i].artistYear
+				valJ := recs[j].artistYear
+				if valI == "" && valJ != "" {
+					return false
+				}
+				if valJ == "" && valI != "" {
+					return true
+				}
+				return valI < valJ
 			})
 		case pb.Sort_LABEL_CATNO:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return recs[i].labelCatno < recs[j].labelCatno
+				valI := recs[i].labelCatno
+				valJ := recs[j].labelCatno
+				if valI == "" && valJ != "" {
+					return false
+				}
+				if valJ == "" && valI != "" {
+					return true
+				}
+				return valI < valJ
 			})
 		case pb.Sort_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				return recs[i].record.GetRelease().GetReleaseDate() < recs[j].record.GetRelease().GetReleaseDate()
+				valI := recs[i].record.GetRelease().GetReleaseDate()
+				valJ := recs[j].record.GetRelease().GetReleaseDate()
+				if valI == 0 && valJ != 0 {
+					return false
+				}
+				if valJ == 0 && valI != 0 {
+					return true
+				}
+				return valI < valJ
 			})
 		case pb.Sort_EARLIEST_RELEASE_YEAR:
 			sort.SliceStable(recs, func(i, j int) bool {
-				if recs[i].record.GetEarliestReleaseDate() == recs[j].record.GetEarliestReleaseDate() {
-					return recs[i].record.GetRelease().GetReleaseDate() < recs[j].record.GetRelease().GetReleaseDate()
+				valI := recs[i].record.GetEarliestReleaseDate()
+				valJ := recs[j].record.GetEarliestReleaseDate()
+				if valI == 0 && valJ != 0 {
+					return false
 				}
-				return recs[i].record.GetEarliestReleaseDate() < recs[j].record.GetEarliestReleaseDate()
+				if valJ == 0 && valI != 0 {
+					return true
+				}
+				if valI == valJ {
+					rI := recs[i].record.GetRelease().GetReleaseDate()
+					rJ := recs[j].record.GetRelease().GetReleaseDate()
+					if rI == 0 && rJ != 0 {
+						return false
+					}
+					if rJ == 0 && rI != 0 {
+						return true
+					}
+					return rI < rJ
+				}
+				return valI < valJ
 			})
 
 		}
