@@ -1,12 +1,12 @@
-# 🛠️ The `gramophile-ready-to-implement` Label Workflow
+# 🛠️ The `seraphine-ready-to-implement` Label Workflow
 
-When a granular child sub-issue is labeled with `gramophile-ready-to-implement`, the AI assistant is triggered to execute a disciplined engineering process to implement the specified component slice.
+When a granular child sub-issue is labeled with `seraphine-ready-to-implement`, the AI assistant is triggered to execute a disciplined engineering process to implement the specified component slice.
 
 ## 🔄 Workflow Lifecycle
 
 ```mermaid
 graph TD
-    A[Sub-Issue Labeled gramophile-ready-to-implement] --> B[1. Context Resolution & Bug Tree Crawling]
+    A[Sub-Issue Labeled seraphine-ready-to-implement] --> B[1. Context Resolution & Bug Tree Crawling]
     B --> C[2. Red-Green TDD Process]
     C --> D[3. Strict Scope Adherence]
     D --> E[4. Branching & PR Review Loop]

@@ -1,12 +1,12 @@
-# 🐛 The `gramophile-bug` Label Workflow
+# 🐛 The `seraphine-bug` Label Workflow
 
-When a GitHub issue is labeled with `gramophile-bug`, the AI assistant (**Gramophile**) is triggered to triage and resolve the bug using a structured and disciplined process.
+When a GitHub issue is labeled with `seraphine-bug`, the AI assistant (**Seraphine**) is triggered to triage and resolve the bug using a structured and disciplined process.
 
 ## 🔄 Workflow Lifecycle
 
 ```mermaid
 graph TD
-    A[Issue Labeled gramophile-bug] --> B[1. Triage & Classification]
+    A[Issue Labeled seraphine-bug] --> B[1. Triage & Classification]
     B -->|Simple Bug| C[2. Simple Path: Implementation & Verification]
     B -->|Complex Bug| D[3. Complex Path: Transition to Requirements]
     C -->|Tests Pass| E[4. Commit, Push & Review]
@@ -35,7 +35,7 @@ If the bug is classified as simple, the agent implements the fix immediately.
 ### 3. Complex Path: Transition to Requirements
 If the bug is complex or if a simple fix attempt fails verification:
 * **Revert Changes:** Ensure any experimental code changes are completely reverted.
-* **Action:** Do not attempt to implement a fix. Instead, file a follow-up requirements gathering issue labeled with `gramophile-needs-requirements`.
+* **Action:** Do not attempt to implement a fix. Instead, file a follow-up requirements gathering issue labeled with `seraphine-needs-requirements`.
 * **Issue Description:** Provide a detailed description of the bug, why it is considered complex (or why the simple fix failed), and link it back to the parent bug issue.
 
 ### 4. Commit, Push & Review

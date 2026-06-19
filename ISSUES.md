@@ -1,6 +1,6 @@
 # Notes Management System - GitHub Issue Processing Workflow
 
-This document serves as the entry point and index for Gramophile's issue-processing workflows. It outlines the general rules and lists the specific workflow files for each stage in the issue lifecycle.
+This document serves as the entry point and index for Seraphine's issue-processing workflows. It outlines the general rules and lists the specific workflow files for each stage in the issue lifecycle.
 
 ---
 
@@ -15,24 +15,24 @@ This document serves as the entry point and index for Gramophile's issue-process
 When an issue is labeled, refer to the corresponding workflow document under `.agents/workflows/` for detailed step-by-step instructions:
 
 1. **Requirements gathering**
-   - **Label**: `gramophile-needs-requirements` (or variant `gramophile-need-requirements`)
-   - **Workflow Guideline**: [gramophile-needs-requirements.md](file:///workspaces/gramophile/.agents/workflows/gramophile-needs-requirements.md)
+   - **Label**: `seraphine-needs-requirements` (or variant `seraphine-need-requirements`)
+   - **Workflow Guideline**: [seraphine-needs-requirements.md](file:///workspaces/seraphine/.agents/workflows/seraphine-needs-requirements.md)
 
 2. **Technical implementation plan formulation**
-   - **Label**: `gramophile-needs-implementation-plan`
-   - **Workflow Guideline**: [gramophile-needs-implementation-plan.md](file:///workspaces/gramophile/.agents/workflows/gramophile-needs-implementation-plan.md)
+   - **Label**: `seraphine-needs-implementation-plan`
+   - **Workflow Guideline**: [seraphine-needs-implementation-plan.md](file:///workspaces/seraphine/.agents/workflows/seraphine-needs-implementation-plan.md)
 
 3. **Issue breakdown**
-   - **Label**: `gramophile-break-down-issue`
-   - **Workflow Guideline**: [gramophile-break-down-issue.md](file:///workspaces/gramophile/.agents/workflows/gramophile-break-down-issue.md)
+   - **Label**: `seraphine-break-down-issue`
+   - **Workflow Guideline**: [seraphine-break-down-issue.md](file:///workspaces/seraphine/.agents/workflows/seraphine-break-down-issue.md)
 
 4. **Component implementation**
-   - **Label**: `gramophile-ready-to-implement`
-   - **Workflow Guideline**: [gramophile-ready-to-implement.md](file:///workspaces/gramophile/.agents/workflows/gramophile-ready-to-implement.md)
+   - **Label**: `seraphine-ready-to-implement`
+   - **Workflow Guideline**: [seraphine-ready-to-implement.md](file:///workspaces/seraphine/.agents/workflows/seraphine-ready-to-implement.md)
 
 5. **Bug triage and resolution**
-   - **Label**: `gramophile-bug`
-   - **Workflow Guideline**: [gramophile-bug.md](file:///workspaces/gramophile/.agents/workflows/gramophile-bug.md)
+   - **Label**: `seraphine-bug`
+   - **Workflow Guideline**: [seraphine-bug.md](file:///workspaces/seraphine/.agents/workflows/seraphine-bug.md)
 
 ---
 
@@ -40,11 +40,11 @@ When an issue is labeled, refer to the corresponding workflow document under `.a
 
 | Phase | Parent Issue Label(s) | Sub-Issue Title & Label(s) |
 | :--- | :--- | :--- |
-| **Requirements Gathering** | `gramophile-needs-requirements` | *None (Not yet created)* |
-| **Requirements Approved** | *(Label Removed)* | `[Implementation Plan] <Title>` labeled with `gramophile-needs-implementation-plan` |
-| **Implementation Plan Drafting** | *None* | `[Implementation Plan] <Title>` labeled with `gramophile-needs-implementation-plan` |
-| **Implementation Plan Approved** | *None* | **Implementation Plan:** Label removed (remains Open).<br>**Breakdown Sub-Issue:** `[Breakdown] <Title>` labeled with `gramophile-break-down-issue` |
-| **Issue Breakdown** | *None* | **Breakdown Issue:** `gramophile-break-down-issue` removed (remains Open).<br>**Child Sub-Issues:** `[Sub-Issue] <Action>` labeled with `gramophile-ready-to-implement` |
-| **Implementation** | *None* | **Breakdown Issue:** Closed when all child sub-issues are closed (cascading to close Implementation Plan and Parent issues).<br>**Child Sub-Issues:** Labeled with `gramophile-ready-to-implement`. Closed programmatically via PR submission. |
-| **Bug Triage (Simple)** | `gramophile-bug` | *None (Direct fix implemented and PR submitted)* |
-| **Bug Triage (Complex/Failed)** | `gramophile-bug` (Removed) | New issue labeled with `gramophile-needs-requirements` to initiate requirements gathering |
+| **Requirements Gathering** | `seraphine-needs-requirements` | *None (Not yet created)* |
+| **Requirements Approved** | *(Label Removed)* | `[Implementation Plan] <Title>` labeled with `seraphine-needs-implementation-plan` |
+| **Implementation Plan Drafting** | *None* | `[Implementation Plan] <Title>` labeled with `seraphine-needs-implementation-plan` |
+| **Implementation Plan Approved** | *None* | **Implementation Plan:** Label removed (remains Open).<br>**Breakdown Sub-Issue:** `[Breakdown] <Title>` labeled with `seraphine-break-down-issue` (created as a native GitHub sub-issue) |
+| **Issue Breakdown** | *None* | **Breakdown Issue:** `seraphine-break-down-issue` removed (remains Open).<br>**Child Sub-Issues:** `[Sub-Issue] <Action>` labeled with `seraphine-ready-to-implement` (created as native GitHub sub-issues) |
+| **Implementation** | *None* | **Breakdown Issue:** Closed when all child sub-issues are closed (cascading to close Implementation Plan and Parent issues).<br>**Child Sub-Issues:** Labeled with `seraphine-ready-to-implement`. Closed programmatically via PR submission. |
+| **Bug Triage (Simple)** | `seraphine-bug` | *None (Direct fix implemented and PR submitted)* |
+| **Bug Triage (Complex/Failed)** | `seraphine-bug` (Removed) | New issue labeled with `seraphine-needs-requirements` to initiate requirements gathering |

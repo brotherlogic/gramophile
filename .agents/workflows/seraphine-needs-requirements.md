@@ -1,12 +1,12 @@
-# 🏷️ The `gramophile-needs-requirements` Label Workflow
+# 🏷️ The `seraphine-needs-requirements` Label Workflow
 
-When a GitHub issue is labeled with `gramophile-needs-requirements` (or its variant `gramophile-need-requirements`), the AI assistant (**Gramophile**) is triggered to run a requirements-gathering process. This stage focuses strictly on **what** needs to be built and **why**, avoiding any early technical implementation details.
+When a GitHub issue is labeled with `seraphine-needs-requirements` (or its variant `seraphine-need-requirements`), the AI assistant (**Seraphine**) is triggered to run a requirements-gathering process. This stage focuses strictly on **what** needs to be built and **why**, avoiding any early technical implementation details.
 
 ## 🔄 Workflow Lifecycle
 
 ```mermaid
 graph TD
-    A[Issue Labeled gramophile-needs-requirements] --> B[1. Request Brief Description]
+    A[Issue Labeled seraphine-needs-requirements] --> B[1. Request Brief Description]
     B --> C[2. Grilling Session /grill-me]
     C --> D[3. Generate PRD & Edge Cases]
     D --> E[4. Post PRD to Parent Issue]
@@ -49,8 +49,8 @@ The outcome of the grilling session is compiled into a clear **Product Requireme
 ### 4. GitHub Issue Synchronization & Sub-Issue Creation
 Once the PRD is complete, the agent must execute the following automated steps on GitHub:
 1. **Post the PRD:** Render the requirements document beautifully as a comment on the parent GitHub issue.
-2. **Remove the Label:** Remove the `gramophile-needs-requirements` (or `gramophile-need-requirements`) label from the parent issue to signify completion of the requirements phase.
+2. **Remove the Label:** Remove the `seraphine-needs-requirements` (or `seraphine-need-requirements`) label from the parent issue to signify completion of the requirements phase.
 3. **Create Sub-Issue:** Programmatically create a GitHub sub-issue to track the subsequent step:
    - **Sub-Issue Title:** `[Implementation Plan] <Parent Issue Title>`
-   - **Sub-Issue Label:** `gramophile-needs-implementation-plan`
+   - **Sub-Issue Label:** `seraphine-needs-implementation-plan`
    - **Sub-Issue Description:** A link referencing the parent issue and instructing the agent to begin drafting the implementation plan.
