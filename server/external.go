@@ -11,7 +11,36 @@ import (
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"encoding/json"
+	"net/http"
 )
+
+type discogsProfile struct {
+	NumCollection int32 `json:"num_collection"`
+	NumWantlist   int32 `json:"num_wantlist"`
+}
+
+var getProfileStats = func(username string) (int32, int32, error) {
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.discogs.com/users/%v", username), nil)
+	req.Header.Set("User-Agent", "Gramophile")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return 0, 0, fmt.Errorf("bad status: %v", resp.StatusCode)
+	}
+
+	var profile discogsProfile
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		return 0, 0, err
+	}
+
+	return profile.NumCollection, profile.NumWantlist, nil
+}
 
 func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
 	url, token, secret, err := s.di.GetLoginURL()
@@ -91,6 +120,16 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 		}
 		user.User = duser
 		user.State = pb.StoredUser_USER_STATE_REFRESHING
+
+		if duser.GetUsername() != "" {
+			colSize, wantSize, err := getProfileStats(duser.GetUsername())
+			if err == nil {
+				user.ExpectedCollectionSize = colSize
+				user.ExpectedWantlistSize = wantSize
+			} else {
+				log.Printf("Unable to get profile stats: %v", err)
+			}
+		}
 
 		// Trigger a low-pri collection update
 		s.qc.Enqueue(ctx, &pb.EnqueueRequest{
