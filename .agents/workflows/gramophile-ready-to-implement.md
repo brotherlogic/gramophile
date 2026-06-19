@@ -1,12 +1,12 @@
-# 🛠️ The `seraphine-ready-to-implement` Label Workflow
+# 🛠️ The `gramophile-ready-to-implement` Label Workflow
 
-When a granular child sub-issue is labeled with `seraphine-ready-to-implement`, the AI assistant is triggered to execute a disciplined engineering process to implement the specified component slice.
+When a granular child sub-issue is labeled with `gramophile-ready-to-implement`, the AI assistant is triggered to execute a disciplined engineering process to implement the specified component slice.
 
 ## 🔄 Workflow Lifecycle
 
 ```mermaid
 graph TD
-    A[Sub-Issue Labeled seraphine-ready-to-implement] --> B[1. Context Resolution & Bug Tree Crawling]
+    A[Sub-Issue Labeled gramophile-ready-to-implement] --> B[1. Context Resolution & Bug Tree Crawling]
     B --> C[2. Red-Green TDD Process]
     C --> D[3. Strict Scope Adherence]
     D --> E[4. Branching & PR Review Loop]
@@ -20,6 +20,11 @@ graph TD
 ### 1. Context Resolution & Bug Tree Crawling
 Before writing any code, the agent must pull in all necessary context from the bug tree to understand where the task fits into the broader implementation.
 * **Action:** Programmatically query GitHub using the `gh` CLI (e.g., executing `gh issue view <parent_id>`) to traverse up the issue hierarchy, locate the parent implementation plan, and reference the original approved Product Requirements Document (PRD).
+* **Dependency Check & Polling:** Inspect the issue description, comments, and metadata to identify if it is dependent on other issues (e.g., prerequisite sub-issues). If open dependencies exist:
+  * Do **not** proceed with implementation or modify the codebase.
+  * Poll the status of each dependent issue (e.g., using `gh issue view <issue-number> --json state`) every 5 minutes.
+  * Only move forward and start implementation once all identified dependent issues are fully resolved/closed.
+
 
 ### 2. Red-Green TDD Process
 Follow a strict Test-Driven Development (TDD) cycle to ensure absolute correctness:
