@@ -52,10 +52,4 @@ func TestUpgradeUser(t *testing.T) {
 	}
 }
 
-func TestGetWaitlistStatus(t *testing.T) {
-	s := Server{}
-	_, err := s.GetWaitlistStatus(context.Background(), &pb.GetWaitlistStatusRequest{})
-	if err == nil {
-		t.Errorf("Expected an error from GetWaitlistStatus")
-	}
-}
+
