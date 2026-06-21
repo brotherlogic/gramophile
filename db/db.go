@@ -15,8 +15,8 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/sync/errgroup"
 	pstore_client "github.com/brotherlogic/pstore/client"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,9 +41,9 @@ var (
 		Help: "The time to load a record",
 	})
 
-	USER_PREFIX        = "gramophile/user/"
-	RR_MARKER_PREFIX   = "gramophile/rr/"
-	RRD_MARKER_PREFIX  = "gramophile/rrd/"
+	USER_PREFIX       = "gramophile/user/"
+	RR_MARKER_PREFIX  = "gramophile/rr/"
+	RRD_MARKER_PREFIX = "gramophile/rrd/"
 )
 
 type ChangeProcessor interface {

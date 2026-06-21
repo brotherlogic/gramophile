@@ -96,16 +96,16 @@ const (
 )
 
 type Queue struct {
-	pstore    pstore_client.PStoreClient
-	b         *background.BackgroundRunner
-	d         discogs.Discogs
-	db        db.Database
-	keys      []int64
+	pstore     pstore_client.PStoreClient
+	b          *background.BackgroundRunner
+	d          discogs.Discogs
+	db         db.Database
+	keys       []int64
 	queueMutex sync.Mutex
-	pMap      map[int64]pb.QueueElement_Priority
+	pMap       map[int64]pb.QueueElement_Priority
 	userCounts map[string]int
-	gclient   ghb_client.GithubridgeClient
-	hMap      map[string]bool
+	gclient    ghb_client.GithubridgeClient
+	hMap       map[string]bool
 }
 
 func getRefKey(ctx context.Context) (string, error) {
@@ -220,10 +220,10 @@ func GetQueueWithGHClient(r pstore_client.PStoreClient, b *background.Background
 
 	return &Queue{
 		b: b, d: d, pstore: r, db: db, keys: ckeys, gclient: ghc,
-		pMap:      pMap,
+		pMap:       pMap,
 		userCounts: userCounts,
 		queueMutex: sync.Mutex{},
-		hMap:      hMap,
+		hMap:       hMap,
 	}
 }
 
@@ -404,7 +404,7 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 					}
 				case *pb.QueueElement_RefreshSales:
 					if req.GetDrainType() == pb.DrainRequest_JUST_SALES {
-						delete =true
+						delete = true
 					}
 				default:
 					delete = false
@@ -585,9 +585,9 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 	}
 
 	// Per-user throttling for non-urgent tasks
-	isThrottlable := fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshRelease" || 
-	                 fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDates" ||
-	                 fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDate"
+	isThrottlable := fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshRelease" ||
+		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDates" ||
+		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDate"
 
 	if isThrottlable {
 		q.queueMutex.Lock()

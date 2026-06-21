@@ -51,3 +51,5 @@ func TestUpgradeUser(t *testing.T) {
 		t.Errorf("User state was not set: %v", user.GetUser())
 	}
 }
+
+
