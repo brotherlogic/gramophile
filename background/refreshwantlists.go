@@ -173,8 +173,9 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, d discogs.Disco
 		}
 	}
 
-	user.LastWantlistRefresh = time.Now().UnixNano()
-	user.LastItemSyncedTime = time.Now().UnixNano()
+	now := time.Now().UnixNano()
+	user.LastWantlistRefresh = now
+	user.LastItemSyncedTime = now
 	return b.db.SaveUser(ctx, user)
 }
 

@@ -207,7 +207,10 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	err = b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
 	if err == nil {
 		user.LastItemSyncedTime = time.Now().UnixNano()
-		b.db.SaveUser(ctx, user)
+		saveErr := b.db.SaveUser(ctx, user)
+		if saveErr != nil {
+			return saveErr
+		}
 	}
 	return err
 }
