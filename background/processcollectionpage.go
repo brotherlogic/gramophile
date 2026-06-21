@@ -88,7 +88,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 		entry.GetRefreshCollectionEntry().RefreshId = time.Now().UnixNano()
 	}
 
-	rval, err := b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollectionEntry().GetPage(), entry.GetRefreshCollectionEntry().GetRefreshId())
+	rval, err := b.ProcessCollectionPage(ctx, d, entry.GetRefreshCollectionEntry().GetPage(), entry.GetRefreshCollectionEntry().GetRefreshId(), user)
 	qlog(ctx, "Processed collection page: %v %v", rval, err)
 
 	if err != nil {
@@ -154,7 +154,7 @@ func (b *BackgroundRunner) ProcessRefreshCollectionEntry(ctx context.Context, d 
 	return nil
 }
 
-func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32, refreshId int64) (int32, error) {
+func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.Discogs, page int32, refreshId int64, user *pb.StoredUser) (int32, error) {
 	crefresh.Set(float64(refreshId))
 
 	releases, pag, err := d.GetCollection(ctx, page)
@@ -194,6 +194,9 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			if err != nil {
 				return -1, err
 			}
+			if user != nil {
+				user.LastItemSyncedTime = time.Now().UnixNano()
+			}
 		} else if status.Code(err) == codes.NotFound {
 			record := &pb.Record{Release: release}
 			record.RefreshId = refreshId
@@ -209,7 +212,18 @@ func (b *BackgroundRunner) ProcessCollectionPage(ctx context.Context, d discogs.
 			if err != nil {
 				return -1, err
 			}
+			
+			if user != nil {
+				user.LastItemSyncedTime = time.Now().UnixNano()
+			}
 		} else {
+			return -1, err
+		}
+	}
+
+	if user != nil {
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
 			return -1, err
 		}
 	}

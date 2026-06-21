@@ -22,7 +22,7 @@ func TestSync_WithGramophile(t *testing.T) {
 
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 
-	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_GRAMOPHILE})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_GRAMOPHILE}, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestSync_WithDiscogs(t *testing.T) {
 		t.Fatalf("Unable to add want: %v", err)
 	}
 
-	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_DISCOGS})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_DISCOGS}, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestSync_WithHybrid(t *testing.T) {
 		t.Fatalf("Unable to add want: %v", err)
 	}
 
-	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID})
+	_, err = b.PullWants(context.Background(), d, 1, 12345, &pb.WantsConfig{Origin: pb.WantsBasis_WANTS_HYBRID}, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}

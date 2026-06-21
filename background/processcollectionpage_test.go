@@ -26,7 +26,7 @@ func TestGetCollectionPage_WithNewRecord(t *testing.T) {
 	d := &discogs.TestDiscogsClient{}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123, nil)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 	d := &discogs.TestDiscogsClient{}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123, nil)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 	}
 
 	d = &discogs.TestDiscogsClient{}
-	_, err = b.ProcessCollectionPage(context.Background(), d, 1, 1234)
+	_, err = b.ProcessCollectionPage(context.Background(), d, 1, 1234, nil)
 	if err != nil {
 		t.Fatalf("Bad collection pull (2); %v", err)
 	}
@@ -94,7 +94,7 @@ func TestGetCollectionPage_WithFieldUpdates(t *testing.T) {
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: ti.Format("2006-01-02")}})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123, nil)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestGetCollectionPage_NotClobberingDateAdded(t *testing.T) {
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Labels: []*pbd.Label{{Name: "testing"}}})
 	b.db.SaveRecord(context.Background(), 123, &pb.Record{Release: &pbd.Release{Id: 1, DateAdded: 1234, Labels: []*pbd.Label{{Name: "testing"}}, InstanceId: 100}}, &db.SaveOptions{})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123, nil)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestGetCollectionPage_WithArrivedUpdates(t *testing.T) {
 	d := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
 	d.AddCollectionRelease(&dpb.Release{InstanceId: 100, Rating: 2, Notes: map[int32]string{10: ti.Format("2006-01-02")}})
 
-	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123)
+	_, err := b.ProcessCollectionPage(context.Background(), d, 1, 123, nil)
 	if err != nil {
 		t.Errorf("Bad collection pull: %v", err)
 	}

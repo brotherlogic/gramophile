@@ -34,7 +34,7 @@ func TestWantsDropped_Drop(t *testing.T) {
 	}
 
 	d.AddWant(ctx, 12345)
-	_, err = b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestWantsDropped_TransferToNew(t *testing.T) {
 	}
 
 	d.AddWant(ctx, 12345)
-	_, err = b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestWantsDropped_TransferToExisting(t *testing.T) {
 	b.db.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, &pb.Wantlist{Name: "testing", Entries: []*pb.WantlistEntry{{Id: 111}}})
 
 	d.AddWant(ctx, 12345)
-	_, err = b.PullWants(ctx, d, 1, 12345, c)
+	_, err = b.PullWants(ctx, d, 1, 12345, c, nil)
 	if err != nil {
 		t.Fatalf("Unable to pull wants: %v", err)
 	}

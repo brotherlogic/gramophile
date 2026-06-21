@@ -164,6 +164,10 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.
 
 	err = b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 	qlog(ctx, "Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
+	if err == nil && u != nil {
+		u.LastItemSyncedTime = time.Now().UnixNano()
+		b.db.SaveUser(ctx, u)
+	}
 	return err
 }
 

@@ -204,7 +204,12 @@ func (b *BackgroundRunner) RefreshWant(ctx context.Context, d discogs.Discogs, w
 	}
 	storedWant.Clean = true
 	log.Printf("STORED: %v -> %v", storedWant, want)
-	return b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
+	err = b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), storedWant, "Storing from refresh")
+	if err == nil {
+		user.LastItemSyncedTime = time.Now().UnixNano()
+		b.db.SaveUser(ctx, user)
+	}
+	return err
 }
 
 func (b *BackgroundRunner) RefreshWantInternal(ctx context.Context, d discogs.Discogs, want *pb.Want, authToken string, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) (bool, error) {

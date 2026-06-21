@@ -53,7 +53,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 	if entry.GetSyncWants().GetPage() == 1 {
 		entry.GetSyncWants().RefreshId = time.Now().UnixNano()
 	}
-	pages, err := b.PullWants(ctx, d, entry.GetSyncWants().GetPage(), entry.GetSyncWants().GetRefreshId(), user.GetConfig().GetWantsConfig())
+	pages, err := b.PullWants(ctx, d, entry.GetSyncWants().GetPage(), entry.GetSyncWants().GetRefreshId(), user.GetConfig().GetWantsConfig(), user)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 	return nil
 }
 
-func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, page int32, sid int64, wc *pb.WantsConfig) (int32, error) {
+func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, page int32, sid int64, wc *pb.WantsConfig, user *pb.StoredUser) (int32, error) {
 	wants, pag, err := d.GetWants(ctx, page)
 	log.Printf("GET_WANTS: %v", wants)
 
@@ -164,6 +164,10 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 				if err != nil {
 					return -1, fmt.Errorf("error on save in pull: %w", err)
 				}
+				
+				if user != nil {
+					user.LastItemSyncedTime = time.Now().UnixNano()
+				}
 
 				continue
 			}
@@ -184,6 +188,17 @@ func (b *BackgroundRunner) PullWants(ctx context.Context, d discogs.Discogs, pag
 			if err != nil {
 				return -1, fmt.Errorf("error on new want in pull: %w", err)
 			}
+			
+			if user != nil {
+				user.LastItemSyncedTime = time.Now().UnixNano()
+			}
+		}
+	}
+
+	if user != nil {
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			return -1, err
 		}
 	}
 
