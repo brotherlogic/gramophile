@@ -876,7 +876,7 @@ message WaitlistUser {
 message GetWaitlistStatusRequest {}
 
 message GetWaitlistStatusResponse {
-    WaitlistUser user = 1;
+    repeated WaitlistUser users = 1;
 }
 
 // Internally accessible service

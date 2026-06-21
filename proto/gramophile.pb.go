@@ -8115,7 +8115,7 @@ func (*GetWaitlistStatusRequest) Descriptor() ([]byte, []int) {
 
 type GetWaitlistStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *WaitlistUser          `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Users         []*WaitlistUser        `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8150,9 +8150,9 @@ func (*GetWaitlistStatusResponse) Descriptor() ([]byte, []int) {
 	return file_gramophile_proto_rawDescGZIP(), []int{121}
 }
 
-func (x *GetWaitlistStatusResponse) GetUser() *WaitlistUser {
+func (x *GetWaitlistStatusResponse) GetUsers() []*WaitlistUser {
 	if x != nil {
-		return x.User
+		return x.Users
 	}
 	return nil
 }
@@ -8753,9 +8753,9 @@ const file_gramophile_proto_rawDesc = "" +
 	"\veta_seconds\x18\x05 \x01(\x03R\n" +
 	"etaSeconds\x12!\n" +
 	"\ffully_synced\x18\x06 \x01(\bR\vfullySynced\"\x1a\n" +
-	"\x18GetWaitlistStatusRequest\"I\n" +
-	"\x19GetWaitlistStatusResponse\x12,\n" +
-	"\x04user\x18\x01 \x01(\v2\x18.gramophile.WaitlistUserR\x04user*h\n" +
+	"\x18GetWaitlistStatusRequest\"K\n" +
+	"\x19GetWaitlistStatusResponse\x12.\n" +
+	"\x05users\x18\x01 \x03(\v2\x18.gramophile.WaitlistUserR\x05users*h\n" +
 	"\tWantState\x12\x10\n" +
 	"\fWANT_UNKNOWN\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\v\n" +
@@ -9105,7 +9105,7 @@ var file_gramophile_proto_depIdxs = []int32{
 	11,  // 118: gramophile.UpgradeUserRequest.new_state:type_name -> gramophile.StoredUser.UserState
 	12,  // 119: gramophile.CleanRequest.type:type_name -> gramophile.CleanRequest.CleanType
 	69,  // 120: gramophile.WaitlistUser.user:type_name -> gramophile.StoredUser
-	132, // 121: gramophile.GetWaitlistStatusResponse.user:type_name -> gramophile.WaitlistUser
+	132, // 121: gramophile.GetWaitlistStatusResponse.users:type_name -> gramophile.WaitlistUser
 	63,  // 122: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
 	63,  // 123: gramophile.QueueService.Execute:input_type -> gramophile.EnqueueRequest
 	65,  // 124: gramophile.QueueService.List:input_type -> gramophile.ListRequest
