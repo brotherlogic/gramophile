@@ -32,11 +32,14 @@ func (s *Server) GetWaitlistStatus(ctx context.Context, req *pb.GetWaitlistStatu
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var resUsers []*pb.WaitlistUser
+	sem := make(chan struct{}, 10)
 
 	for _, user := range waitlistUsers {
 		wg.Add(1)
+		sem <- struct{}{}
 		go func(u *pb.StoredUser) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
 			uid := u.GetUser().GetDiscogsUserId()
 			recs, err := s.d.GetRecords(ctx, uid)
