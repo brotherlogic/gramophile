@@ -13,6 +13,11 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+// TODO: Remove this stub once brotherlogic/discogs implements profile stats fetching.
+var getProfileStats = func(username string) (int32, int32, error) {
+	return 0, 0, nil
+}
+
 func (s *Server) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
 	url, token, secret, err := s.di.GetLoginURL()
 	if err != nil {
@@ -91,6 +96,16 @@ func (s *Server) GetLogin(ctx context.Context, req *pb.GetLoginRequest) (*pb.Get
 		}
 		user.User = duser
 		user.State = pb.StoredUser_USER_STATE_REFRESHING
+
+		if duser.GetUsername() != "" {
+			colSize, wantSize, err := getProfileStats(duser.GetUsername())
+			if err == nil {
+				user.ExpectedCollectionSize = colSize
+				user.ExpectedWantlistSize = wantSize
+			} else {
+				log.Printf("Unable to get profile stats: %v", err)
+			}
+		}
 
 		// Trigger a low-pri collection update
 		s.qc.Enqueue(ctx, &pb.EnqueueRequest{

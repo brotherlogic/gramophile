@@ -833,6 +833,7 @@ message GetUserResponse {
    StoredUser user = 1;
 }
 
+
 message GetUsersRequest {
     StoredUser.UserState state = 1;
 }
