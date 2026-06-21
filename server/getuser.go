@@ -60,3 +60,7 @@ func (s *Server) GetUsers(ctx context.Context, req *pb.GetUsersRequest) (*pb.Get
 
 	return &pb.GetUsersResponse{Users: users}, nil
 }
+
+func (s *Server) GetWaitlistStatus(ctx context.Context, req *pb.GetWaitlistStatusRequest) (*pb.GetWaitlistStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWaitlistStatus not implemented")
+}
