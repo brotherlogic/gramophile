@@ -30,9 +30,9 @@ Seraphine analyzes the technical implementation plan proposed in the current iss
 * **Dependency Identification:** Explicitly identify dependencies between component tasks. If task X is dependent on task Y being completed first, this sequence must be highlighted.
 
 ### 3. Programmatic Sub-Issue Creation
-For each identified component, Seraphine programmatically files a new GitHub sub-issue under the current `[Breakdown]` issue.
+For each identified component, Seraphine programmatically files a new native GitHub sub-issue under the current `[Breakdown]` issue (using GitHub's native issue hierarchy/sub-issues feature).
 * **Sub-Issue Title:** Must use the format `[Sub-Issue] <Action>` (e.g., `[Sub-Issue] Implement pstore serialization for note status`).
-* **Sub-Issue Body:** Sub-issues should stand alone and do not need to include the parent implementation plan. **Explicitly state issue dependencies in the description: if sub-issue X is dependent on sub-issue Y, this relationship must be clearly documented. They must reference the `[Breakdown]` issue as their parent.**
+* **Sub-Issue Body:** Sub-issues should stand alone and do not need to include the parent implementation plan. **Explicitly state issue dependencies in the description: if sub-issue X is dependent on sub-issue Y, this relationship must be clearly documented.**
 * **Sub-Issue Label:** Must be marked with the `seraphine-ready-to-implement` label.
 
 ### 4. Transition & Label Cleanup

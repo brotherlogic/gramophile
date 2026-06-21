@@ -350,13 +350,13 @@ func TestDensityCalculations(t *testing.T) {
 	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
 
 	orglogic, _ := GetOrg(d, &fakeOrgClient{})
-	
+
 	// Shelf width is 2. Double LP takes 2, Single takes 1.
 	// With pb.Density_COUNT, they both take 1.
 	// With pb.Density_DISKS, Double takes 2, Single takes 1.
-	
+
 	snap, err := orglogic.BuildSnapshot(ctx, user, &pb.Organisation{
-		Name: "testing",
+		Name:    "testing",
 		Density: pb.Density_DISKS,
 		Foldersets: []*pb.FolderSet{
 			{

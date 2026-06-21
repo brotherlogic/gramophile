@@ -24,7 +24,10 @@ Before starting any structured analysis, the agent must ask the developer/user t
 ### 2. Interactive Grilling Session (`/grill-me`)
 Once the initial description is provided, the agent initiates a focused grilling session using the `/grill-me` command or an interactive interview format.
 * **Objective:** Uncover ambiguities, capture user stories, and map out requirements.
-* **Rule:** The questions must probe **only the requirements** of the issue. Do not discuss specific technologies, database schemas, API designs, or code architectures yet.
+* **Rules:**
+  - **Understand Context First:** Before starting the session, ensure you have thoroughly read and understood the codebase, the bug, and all associated details.
+  - **One Question at a Time:** You must ask exactly one targeted question at a time. Do not group or ask multiple questions in a single turn.
+  - **Focus on Requirements:** The questions must probe **only the requirements** of the issue. Do not discuss specific technologies, database schemas, API designs, or code architectures yet.
 * **Probing Areas:**
   - Who is the end-user, and what is their primary flow?
   - What are the success criteria?

@@ -70,7 +70,7 @@ func execute(ctx context.Context, args []string) error {
 
 	err = browser.OpenURL(val)
 	if err != nil {
-		// We deliberately don't return the error here to allow the 
+		// We deliberately don't return the error here to allow the
 		// CLI to print the URL so the user can open it manually.
 		fmt.Printf("Please open this URL in your browser: %v\n", val)
 	}
@@ -96,20 +96,20 @@ func execute(ctx context.Context, args []string) error {
 
 		tmpFile := filepath.Join(dirname, ".gramophile.tmp")
 		finalFile := filepath.Join(dirname, ".gramophile")
-		
+
 		f, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
 		defer os.Remove(tmpFile)
-		
+
 		err = proto.MarshalText(f, auth)
 		f.Close()
-		
+
 		if err != nil {
 			return err
 		}
-		
+
 		return os.Rename(tmpFile, finalFile)
 	}
 

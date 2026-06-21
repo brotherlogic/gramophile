@@ -20,6 +20,11 @@ graph TD
 ### 1. Context Resolution & Bug Tree Crawling
 Before writing any code, the agent must pull in all necessary context from the bug tree to understand where the task fits into the broader implementation.
 * **Action:** Programmatically query GitHub using the `gh` CLI (e.g., executing `gh issue view <parent_id>`) to traverse up the issue hierarchy, locate the parent implementation plan, and reference the original approved Product Requirements Document (PRD).
+* **Dependency Check & Polling:** Inspect the issue description, comments, and metadata to identify if it is dependent on other issues (e.g., prerequisite sub-issues). If open dependencies exist:
+  * Do **not** proceed with implementation or modify the codebase.
+  * Poll the status of each dependent issue (e.g., using `gh issue view <issue-number> --json state`) every 5 minutes.
+  * Only move forward and start implementation once all identified dependent issues are fully resolved/closed.
+
 
 ### 2. Red-Green TDD Process
 Follow a strict Test-Driven Development (TDD) cycle to ensure absolute correctness:

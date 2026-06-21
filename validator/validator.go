@@ -28,7 +28,7 @@ func runValidationLoop(ctx context.Context) error {
 	queue := pb.NewQueueServiceClient(qconn)
 	users, err := client.GetUsers(ctx, &pb.GetUsersRequest{})
 	if err != nil {
-		return fmt.Errorf("unable to get users: %v",err)
+		return fmt.Errorf("unable to get users: %v", err)
 	}
 
 	for _, user := range users.GetUsers() {

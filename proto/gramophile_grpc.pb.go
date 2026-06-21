@@ -1021,10 +1021,11 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	GramophileService_GetUsers_FullMethodName    = "/gramophile.GramophileService/GetUsers"
-	GramophileService_DeleteUser_FullMethodName  = "/gramophile.GramophileService/DeleteUser"
-	GramophileService_Clean_FullMethodName       = "/gramophile.GramophileService/Clean"
-	GramophileService_UpgradeUser_FullMethodName = "/gramophile.GramophileService/UpgradeUser"
+	GramophileService_GetUsers_FullMethodName          = "/gramophile.GramophileService/GetUsers"
+	GramophileService_DeleteUser_FullMethodName        = "/gramophile.GramophileService/DeleteUser"
+	GramophileService_Clean_FullMethodName             = "/gramophile.GramophileService/Clean"
+	GramophileService_UpgradeUser_FullMethodName       = "/gramophile.GramophileService/UpgradeUser"
+	GramophileService_GetWaitlistStatus_FullMethodName = "/gramophile.GramophileService/GetWaitlistStatus"
 )
 
 // GramophileServiceClient is the client API for GramophileService service.
@@ -1037,6 +1038,7 @@ type GramophileServiceClient interface {
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
 	Clean(ctx context.Context, in *CleanRequest, opts ...grpc.CallOption) (*CleanResponse, error)
 	UpgradeUser(ctx context.Context, in *UpgradeUserRequest, opts ...grpc.CallOption) (*UpgradeUserResponse, error)
+	GetWaitlistStatus(ctx context.Context, in *GetWaitlistStatusRequest, opts ...grpc.CallOption) (*GetWaitlistStatusResponse, error)
 }
 
 type gramophileServiceClient struct {
@@ -1087,6 +1089,16 @@ func (c *gramophileServiceClient) UpgradeUser(ctx context.Context, in *UpgradeUs
 	return out, nil
 }
 
+func (c *gramophileServiceClient) GetWaitlistStatus(ctx context.Context, in *GetWaitlistStatusRequest, opts ...grpc.CallOption) (*GetWaitlistStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWaitlistStatusResponse)
+	err := c.cc.Invoke(ctx, GramophileService_GetWaitlistStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileServiceServer is the server API for GramophileService service.
 // All implementations should embed UnimplementedGramophileServiceServer
 // for forward compatibility.
@@ -1097,6 +1109,7 @@ type GramophileServiceServer interface {
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
 	Clean(context.Context, *CleanRequest) (*CleanResponse, error)
 	UpgradeUser(context.Context, *UpgradeUserRequest) (*UpgradeUserResponse, error)
+	GetWaitlistStatus(context.Context, *GetWaitlistStatusRequest) (*GetWaitlistStatusResponse, error)
 }
 
 // UnimplementedGramophileServiceServer should be embedded to have
@@ -1117,6 +1130,9 @@ func (UnimplementedGramophileServiceServer) Clean(context.Context, *CleanRequest
 }
 func (UnimplementedGramophileServiceServer) UpgradeUser(context.Context, *UpgradeUserRequest) (*UpgradeUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpgradeUser not implemented")
+}
+func (UnimplementedGramophileServiceServer) GetWaitlistStatus(context.Context, *GetWaitlistStatusRequest) (*GetWaitlistStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWaitlistStatus not implemented")
 }
 func (UnimplementedGramophileServiceServer) testEmbeddedByValue() {}
 
@@ -1210,6 +1226,24 @@ func _GramophileService_UpgradeUser_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileService_GetWaitlistStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWaitlistStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileServiceServer).GetWaitlistStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GramophileService_GetWaitlistStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileServiceServer).GetWaitlistStatus(ctx, req.(*GetWaitlistStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileService_ServiceDesc is the grpc.ServiceDesc for GramophileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1232,6 +1266,10 @@ var GramophileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpgradeUser",
 			Handler:    _GramophileService_UpgradeUser_Handler,
+		},
+		{
+			MethodName: "GetWaitlistStatus",
+			Handler:    _GramophileService_GetWaitlistStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
