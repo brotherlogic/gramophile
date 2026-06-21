@@ -567,6 +567,10 @@ message StoredUser {
         USER_STATE_LIVE = 3;
     }
     UserState state = 16;
+
+    int32 expected_collection_size = 17;
+    int32 expected_wantlist_size = 18;
+    int64 last_item_synced_time = 19;
 }
 
 message GramophileAuth {
@@ -860,10 +864,26 @@ message CleanRequest {
 }
 message CleanResponse {}
 
+message WaitlistUser {
+    StoredUser user = 1;
+    int32 synced_collection_size = 2;
+    int32 synced_wantlist_size = 3;
+    bool is_stuck = 4;
+    int64 eta_seconds = 5;
+    bool fully_synced = 6;
+}
+
+message GetWaitlistStatusRequest {}
+
+message GetWaitlistStatusResponse {
+    repeated WaitlistUser users = 1;
+}
+
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {};
     rpc Clean(CleanRequest) returns (CleanResponse) {};
     rpc UpgradeUser(UpgradeUserRequest) returns (UpgradeUserResponse) {};
+    rpc GetWaitlistStatus(GetWaitlistStatusRequest) returns (GetWaitlistStatusResponse) {};
 }
