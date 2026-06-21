@@ -567,7 +567,6 @@ message StoredUser {
         USER_STATE_LIVE = 3;
     }
     UserState state = 16;
-
     int32 expected_collection_size = 17;
     int32 expected_wantlist_size = 18;
     int64 last_item_synced_time = 19;
@@ -832,6 +831,7 @@ message GetUserRequest {}
 message GetUserResponse {
    StoredUser user = 1;
 }
+
 
 message GetUsersRequest {
     StoredUser.UserState state = 1;
