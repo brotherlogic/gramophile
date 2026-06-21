@@ -215,3 +215,10 @@ func TestFetchExpectedSizes(t *testing.T) {
 		}
 	}
 }
+
+func TestGetProfileStats_DirectCall(t *testing.T) {
+	_, _, err := getProfileStats("this_user_should_not_exist_1234567890")
+	if err == nil {
+		t.Errorf("Expected error for non-existent user, got nil")
+	}
+}
