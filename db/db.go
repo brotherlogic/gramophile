@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"slices"
 	"sort"
+	"sync"
 	"strconv"
 	"strings"
 	"time"
@@ -299,7 +300,11 @@ func (d *DB) SaveWantlist(ctx context.Context, user *pb.StoredUser, wantlist *pb
 		}
 	}
 
-	return d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist.GetName()), wantlist)
+	err := d.save(ctx, fmt.Sprintf("gramophile/%v/wantlist/%v", user.GetUser().GetDiscogsUserId(), wantlist.GetName()), wantlist)
+	if err == nil {
+		d.updateLastItemSync(ctx, user.GetUser().GetDiscogsUserId())
+	}
+	return err
 }
 
 func (d *DB) DeleteWantlist(ctx context.Context, userid int32, name string) error {
@@ -329,6 +334,25 @@ func (d *DB) LoadProberState(ctx context.Context) (*pb.ProberState, error) {
 	wl := &pb.ProberState{}
 	err = proto.Unmarshal(data, wl)
 	return wl, err
+}
+
+var lastItemSyncTime sync.Map
+
+func (d *DB) updateLastItemSync(ctx context.Context, userid int32) {
+	val, ok := lastItemSyncTime.Load(userid)
+	if ok && time.Since(val.(time.Time)) < time.Second*5 {
+		return
+	}
+	lastItemSyncTime.Store(userid, time.Now())
+
+	bgCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	user, err := d.GetUser(bgCtx, fmt.Sprintf("%v", userid))
+	if err == nil {
+		user.LastItemSyncedTime = time.Now().UnixNano()
+		d.SaveUser(bgCtx, user)
+	}
 }
 
 func (d *DB) SaveProberState(ctx context.Context, state *pb.ProberState) error {
@@ -469,10 +493,14 @@ func (d *DB) SaveWant(ctx context.Context, userid int32, want *pb.Want, reason s
 	log.Printf("Saving Want %v (%v)", want, reason)
 
 	if want.GetId() > 0 {
-		return d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
+		err = d.save(ctx, fmt.Sprintf("gramophile/user/%v/want/%v", userid, want.GetId()), want)
+	} else {
+		err = d.save(ctx, fmt.Sprintf("gramophile/user/%v/masterwant/%v", userid, want.GetMasterId()), want)
 	}
-
-	return d.save(ctx, fmt.Sprintf("gramophile/user/%v/masterwant/%v", userid, want.GetMasterId()), want)
+	if err == nil {
+		d.updateLastItemSync(ctx, userid)
+	}
+	return err
 }
 
 func (d *DB) saveWantUpdates(ctx context.Context, userid int32, want *pb.Want, reason string) error {
@@ -720,6 +748,9 @@ func (d *DB) SaveRecordWithUpdate(ctx context.Context, userid int32, record *pb.
 		Value: &anypb.Any{Value: data},
 	})
 
+	if err == nil {
+		d.updateLastItemSync(ctx, userid)
+	}
 	return err
 }
 
@@ -761,6 +792,9 @@ func (d *DB) SaveRecord(ctx context.Context, userid int32, record *pb.Record, op
 		}
 	}
 
+	if err == nil {
+		d.updateLastItemSync(ctx, userid)
+	}
 	return err
 }
 
