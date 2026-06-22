@@ -345,16 +345,14 @@ func (d *DB) updateLastItemSync(ctx context.Context, userid int32) {
 	}
 	lastItemSyncTime.Store(userid, time.Now())
 
-	go func(uid int32) {
-		bgCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
+	bgCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-		user, err := d.GetUser(bgCtx, fmt.Sprintf("%v", uid))
-		if err == nil {
-			user.LastItemSyncedTime = time.Now().UnixNano()
-			d.SaveUser(bgCtx, user)
-		}
-	}(userid)
+	user, err := d.GetUser(bgCtx, fmt.Sprintf("%v", userid))
+	if err == nil {
+		user.LastItemSyncedTime = time.Now().UnixNano()
+		d.SaveUser(bgCtx, user)
+	}
 }
 
 func (d *DB) SaveProberState(ctx context.Context, state *pb.ProberState) error {
