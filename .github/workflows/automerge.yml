@@ -1,30 +1,39 @@
-name: automerge
+name: Auto Merge
+
 on:
   pull_request:
-    types:
-      - labeled
-      - unlabeled
-      - synchronize
-      - opened
-      - edited
-      - ready_for_review
-      - reopened
-      - unlocked
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   pull_request_review:
-    types:
-      - submitted
-  check_suite:
+    types: [submitted]
+  workflow_run:
+    workflows: ["Validate PR"]
     types:
       - completed
-  status: {}
+
 jobs:
-  automerge:
-    permissions: write-all
+  enable-automerge:
     runs-on: ubuntu-latest
     steps:
-      - name: automerge
-        uses: "pascalgn/automerge-action@v0.14.2"
+      - name: Enable Auto-Merge for PR
         env:
-          GITHUB_TOKEN: "${{ secrets.PERSONAL_TOKEN }}"
-          MERGE_METHOD: merge
-          MERGE_LABELS: ""
+          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          PR_PAYLOAD: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+        run: |
+          PR_NUMBER=""
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+              echo "Workflow run did not succeed. Skipping auto-merge."
+              exit 0
+            fi
+            PR_NUMBER=$(echo "$PR_PAYLOAD" | jq '.[0].number')
+          elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "No associated pull request found. Skipping."
+            exit 0
+          fi
+
+          echo "Enabling Github Auto-Merge for PR #$PR_NUMBER"
+          gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --auto --squash || echo "Auto-merge might already be enabled or requires repo settings configuration."

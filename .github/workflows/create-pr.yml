@@ -1,0 +1,24 @@
+name: Create PR
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          # Only create PR if one doesn't already exist for this branch
+          if ! gh pr view --json number > /dev/null 2>&1; then
+            gh pr create --title "$GITHUB_REF_NAME" --body "Automated PR for $GITHUB_REF_NAME"
+          else
+            echo "PR already exists"
+          fi

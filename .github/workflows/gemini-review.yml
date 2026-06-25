@@ -1,0 +1,19 @@
+name: Gemini Review
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  gemini-review:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/gemini-review')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gemini Review
+        uses: truongnh1992/gemini-ai-code-reviewer@main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
