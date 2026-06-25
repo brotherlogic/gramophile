@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -89,14 +90,11 @@ func main() {
 			fmt.Printf("%v\n", user)
 		}
 	case "waitlist":
-		users, err := sclient.GetUsers(ctx, &pb.GetUsersRequest{State: pb.StoredUser_USER_STATE_IN_WAITLIST})
+		users, err := sclient.GetWaitlistStatus(ctx, &pb.GetWaitlistStatusRequest{})
 		if err != nil {
-			log.Fatalf("Error getting users: %v", err)
+			log.Fatalf("Error getting waitlist status: %v", err)
 		}
-		fmt.Printf("%v users\n", len(users.GetUsers()))
-		for _, user := range users.GetUsers() {
-			fmt.Printf("%v\n", user)
-		}
+		fmt.Print(formatWaitlist(users))
 	case "refresh":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
 			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshUser{RefreshUser: &pb.RefreshUserEntry{Auth: os.Args[3]}}},
@@ -209,3 +207,44 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	}
 }
+
+func formatWaitlist(res *pb.GetWaitlistStatusResponse) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%v users in waitlist\n", len(res.GetUsers())))
+	sb.WriteString(fmt.Sprintf("%-20s | %-16s | %-10s | %-10s\n", "User", "Progress", "ETA", "Status"))
+	sb.WriteString(strings.Repeat("-", 65) + "\n")
+	
+	for _, u := range res.GetUsers() {
+		username := ""
+		if u.GetUser() != nil && u.GetUser().GetUser() != nil {
+			username = u.GetUser().GetUser().GetUsername()
+		}
+		
+		status := "Partially Synced"
+		if u.GetFullySynced() {
+			status = "Fully Synced"
+		} else if u.GetIsStuck() {
+			status = "STUCK"
+		}
+		
+		totalExpected := int32(0)
+		if u.GetUser() != nil {
+			totalExpected = u.GetUser().GetExpectedCollectionSize() + u.GetUser().GetExpectedWantlistSize()
+		}
+		totalSynced := u.GetSyncedCollectionSize() + u.GetSyncedWantlistSize()
+		progress := fmt.Sprintf("%d/%d", totalSynced, totalExpected)
+		
+		eta := fmt.Sprintf("%ds", u.GetEtaSeconds())
+		if u.GetEtaSeconds() > 3600 {
+			eta = fmt.Sprintf("%dh%dm", u.GetEtaSeconds()/3600, (u.GetEtaSeconds()%3600)/60)
+		} else if u.GetEtaSeconds() > 60 {
+			eta = fmt.Sprintf("%dm%ds", u.GetEtaSeconds()/60, u.GetEtaSeconds()%60)
+		} else if u.GetEtaSeconds() == 0 {
+			eta = "-"
+		}
+		
+		sb.WriteString(fmt.Sprintf("%-20s | %-16s | %-10s | %-10s\n", username, progress, eta, status))
+	}
+	return sb.String()
+}
+
