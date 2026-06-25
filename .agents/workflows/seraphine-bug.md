@@ -35,7 +35,8 @@ If the bug is classified as simple, the agent implements the fix immediately.
 ### 3. Complex Path: Transition to Requirements
 If the bug is complex or if a simple fix attempt fails verification:
 * **Revert Changes:** Ensure any experimental code changes are completely reverted.
-* **Action:** Do not attempt to implement a fix. Instead, file a follow-up requirements gathering issue labeled with `seraphine-needs-requirements`.
+* **Action:** Do not attempt to implement a fix. Instead, file a follow-up **native GitHub sub-issue** for requirements gathering, labeled with `seraphine-needs-requirements`. Ensure the native GitHub sub-issue relationship is established with the parent bug issue.
+* **Assignee:** Assign the new issue to `brotherlogic@gmail.com`.
 * **Issue Description:** Provide a detailed description of the bug, why it is considered complex (or why the simple fix failed), and link it back to the parent bug issue.
 
 ### 4. Commit, Push & Review
