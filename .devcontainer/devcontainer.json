@@ -23,7 +23,7 @@
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "./postCreate.sh",
 	"postStartCommand": "tmux -u new-session -d -s default-vscode || true",
-	"initializeCommand": "echo \"GH_TOKEN=$(gh auth token)\" > .devcontainer/.env.auth",
+"initializeCommand": "cat ~/.seraphine-automation > .devcontainer/.env.auth",
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
