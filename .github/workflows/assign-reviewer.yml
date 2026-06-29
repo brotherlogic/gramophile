@@ -1,29 +1,28 @@
 name: Assign Reviewer
 
 on:
-  pull_request:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["Validate PR"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
 
 jobs:
-  assign-reviewer:
+  assign:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-     
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.26.2'
-
-    - name: Run build
-      run: go build ./...
-
-    - name: Run test
-      run: go test ./... -coverpkg=integration -coverprofile=profile.cov
-
-    - name: Add Reviewer
-      env:
-        GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
-      run: |
-        gh pr edit ${{ github.event.pull_request.number }} --add-reviewer brotherlogic
+      - name: Assign brotherlogic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_PAYLOAD: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+        run: |
+          PR_NUMBER=$(echo "$PR_PAYLOAD" | jq '.[0].number')
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "No associated pull request found for this workflow run."
+            exit 0
+          fi
+          echo "Assigning brotherlogic as reviewer for PR #$PR_NUMBER..."
+          gh pr edit "$PR_NUMBER" --add-reviewer brotherlogic --repo "${{ github.repository }}"
