@@ -2,7 +2,7 @@
 
 This document serves as the entry point and index for Seraphine's issue-processing workflows. It outlines the general rules and lists the specific workflow files for each stage in the issue lifecycle.
 
-**Note:** Always use **native GitHub sub-issues** when defining parent-child issue relationships to ensure proper tracking within GitHub.
+**Note:** Always use **native GitHub sub-issues** (via the `gh issue create --parent <parent-issue-number>` flag) when defining parent-child issue relationships to ensure proper tracking within GitHub.
 
 ---
 
@@ -19,27 +19,27 @@ When an issue is labeled, refer to the corresponding workflow document under `.a
 
 1. **Deep Research**
    - **Label**: `seraphine-needs-deep-research`
-   - **Workflow Guideline**: [seraphine-needs-deep-research.md](file:///workspaces/seraphine/.agent/workflows/seraphine-needs-deep-research.md)
+   - **Workflow Guideline**: [seraphine-needs-deep-research.md](file:///workspaces/gramophile/.agents/workflows/seraphine-needs-deep-research.md)
 
 2. **Requirements gathering**
    - **Label**: `seraphine-needs-requirements` (or variant `seraphine-need-requirements`)
-   - **Workflow Guideline**: [seraphine-needs-requirements.md](file:///workspaces/seraphine/.agent/workflows/seraphine-needs-requirements.md)
+   - **Workflow Guideline**: [seraphine-needs-requirements.md](file:///workspaces/gramophile/.agents/workflows/seraphine-needs-requirements.md)
 
 3. **Technical implementation plan formulation**
    - **Label**: `seraphine-needs-implementation-plan`
-   - **Workflow Guideline**: [seraphine-needs-implementation-plan.md](file:///workspaces/seraphine/.agent/workflows/seraphine-needs-implementation-plan.md)
+   - **Workflow Guideline**: [seraphine-needs-implementation-plan.md](file:///workspaces/gramophile/.agents/workflows/seraphine-needs-implementation-plan.md)
 
 4. **Issue breakdown**
    - **Label**: `seraphine-break-down-issue`
-   - **Workflow Guideline**: [seraphine-break-down-issue.md](file:///workspaces/seraphine/.agent/workflows/seraphine-break-down-issue.md)
+   - **Workflow Guideline**: [seraphine-break-down-issue.md](file:///workspaces/gramophile/.agents/workflows/seraphine-break-down-issue.md)
 
 5. **Component implementation**
    - **Label**: `seraphine-ready-to-implement`
-   - **Workflow Guideline**: [seraphine-ready-to-implement.md](file:///workspaces/seraphine/.agent/workflows/seraphine-ready-to-implement.md)
+   - **Workflow Guideline**: [seraphine-ready-to-implement.md](file:///workspaces/gramophile/.agents/workflows/seraphine-ready-to-implement.md)
 
 6. **Bug triage and resolution**
    - **Label**: `seraphine-bug`
-   - **Workflow Guideline**: [seraphine-bug.md](file:///workspaces/seraphine/.agent/workflows/seraphine-bug.md)
+   - **Workflow Guideline**: [seraphine-bug.md](file:///workspaces/gramophile/.agents/workflows/seraphine-bug.md)
 
 ---
 
