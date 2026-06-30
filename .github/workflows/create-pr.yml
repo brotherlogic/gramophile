@@ -14,7 +14,7 @@ jobs:
       
       - name: Create PR
         env:
-          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Only create PR if one doesn't already exist for this branch
           if ! gh pr view --json number > /dev/null 2>&1; then
