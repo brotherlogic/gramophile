@@ -32,7 +32,11 @@ func (s *Server) AddRecord(ctx context.Context, req *pb.AddRecordRequest) (*pb.A
 	}
 
 	if defaultFolder == 0 {
-		return nil, status.Errorf(codes.FailedPrecondition, "Your default folder (%v) does not exist", user.GetConfig().GetAddConfig().GetDefaultFolder())
+		var fNames []string
+		for _, f := range user.GetFolders() {
+			fNames = append(fNames, f.GetName())
+		}
+		return nil, status.Errorf(codes.FailedPrecondition, "Your default folder (%v) does not exist (found %v)", user.GetConfig().GetAddConfig().GetDefaultFolder(), fNames)
 	}
 
 	iid := int64(0)
