@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Enable Auto-Merge for PR
         env:
-          GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
+          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           PR_PAYLOAD: ${{ toJSON(github.event.workflow_run.pull_requests) }}
         run: |
           PR_NUMBER=""
