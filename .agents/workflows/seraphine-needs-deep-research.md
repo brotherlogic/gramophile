@@ -32,7 +32,7 @@ graph TD
 * **Action:** Remove the `seraphine-needs-deep-research` label from the issue using the GitHub API or CLI.
 
 ### 5. Create Sub-issue
-* **Action:** Create a new **native GitHub child sub-issue** to initiate the requirements gathering phase. Ensure the native GitHub sub-issue relationship is established with the parent issue.
+* **Action:** Create a new **native GitHub child sub-issue** (via the `gh issue create --parent <parent-issue-number>` flag) to initiate the requirements gathering phase. Ensure the native GitHub sub-issue relationship is established with the parent issue.
 * **Title:** `[Requirements] <Original Issue Title>`
 * **Label:** Add the `seraphine-needs-requirements` label to the new sub-issue.
 * **Assignee:** Assign the sub-issue to `brotherlogic@gmail.com`.
