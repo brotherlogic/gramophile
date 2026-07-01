@@ -11,3 +11,7 @@ Probers validate the login process and rebuild the user db.
 
 Gramophile is built with Go.
 Current Go version: 1.26.2
+
+## Features
+- LocateRecord: Provides functionality to query the location of records within the collection.
+

@@ -252,6 +252,7 @@ const (
 	GramophileEService_AddSale_FullMethodName        = "/gramophile.GramophileEService/AddSale"
 	GramophileEService_GetStats_FullMethodName       = "/gramophile.GramophileEService/GetStats"
 	GramophileEService_AddRecord_FullMethodName      = "/gramophile.GramophileEService/AddRecord"
+	GramophileEService_LocateRecord_FullMethodName   = "/gramophile.GramophileEService/LocateRecord"
 )
 
 // GramophileEServiceClient is the client API for GramophileEService service.
@@ -279,6 +280,7 @@ type GramophileEServiceClient interface {
 	AddSale(ctx context.Context, in *AddSaleRequest, opts ...grpc.CallOption) (*AddSaleResponse, error)
 	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 	AddRecord(ctx context.Context, in *AddRecordRequest, opts ...grpc.CallOption) (*AddRecordResponse, error)
+	LocateRecord(ctx context.Context, in *LocateRecordRequest, opts ...grpc.CallOption) (*LocateRecordResponse, error)
 }
 
 type gramophileEServiceClient struct {
@@ -479,6 +481,16 @@ func (c *gramophileEServiceClient) AddRecord(ctx context.Context, in *AddRecordR
 	return out, nil
 }
 
+func (c *gramophileEServiceClient) LocateRecord(ctx context.Context, in *LocateRecordRequest, opts ...grpc.CallOption) (*LocateRecordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LocateRecordResponse)
+	err := c.cc.Invoke(ctx, GramophileEService_LocateRecord_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GramophileEServiceServer is the server API for GramophileEService service.
 // All implementations should embed UnimplementedGramophileEServiceServer
 // for forward compatibility.
@@ -504,6 +516,7 @@ type GramophileEServiceServer interface {
 	AddSale(context.Context, *AddSaleRequest) (*AddSaleResponse, error)
 	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 	AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error)
+	LocateRecord(context.Context, *LocateRecordRequest) (*LocateRecordResponse, error)
 }
 
 // UnimplementedGramophileEServiceServer should be embedded to have
@@ -569,6 +582,9 @@ func (UnimplementedGramophileEServiceServer) GetStats(context.Context, *GetStats
 }
 func (UnimplementedGramophileEServiceServer) AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddRecord not implemented")
+}
+func (UnimplementedGramophileEServiceServer) LocateRecord(context.Context, *LocateRecordRequest) (*LocateRecordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LocateRecord not implemented")
 }
 func (UnimplementedGramophileEServiceServer) testEmbeddedByValue() {}
 
@@ -932,6 +948,24 @@ func _GramophileEService_AddRecord_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GramophileEService_LocateRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LocateRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GramophileEServiceServer).LocateRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GramophileEService_LocateRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GramophileEServiceServer).LocateRecord(ctx, req.(*LocateRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GramophileEService_ServiceDesc is the grpc.ServiceDesc for GramophileEService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1014,6 +1048,10 @@ var GramophileEService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddRecord",
 			Handler:    _GramophileEService_AddRecord_Handler,
+		},
+		{
+			MethodName: "LocateRecord",
+			Handler:    _GramophileEService_LocateRecord_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
