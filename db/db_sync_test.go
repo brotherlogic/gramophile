@@ -18,9 +18,9 @@ func TestLastItemSyncedTimeUpdated(t *testing.T) {
 
 	// Create user
 	user := &pb.StoredUser{
-		User: &pbd.User{DiscogsUserId: userid},
+		User:      &pbd.User{DiscogsUserId: userid},
 		UserToken: "token",
-		Auth: &pb.GramophileAuth{Token: "123"},
+		Auth:      &pb.GramophileAuth{Token: "123"},
 	}
 	err := tdb.SaveUser(ctx, user)
 	if err != nil {

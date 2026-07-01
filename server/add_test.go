@@ -13,7 +13,6 @@ import (
 	pstore_client "github.com/brotherlogic/pstore/client"
 )
 
-
 func TestAdd_Success(t *testing.T) {
 	ctx := getTestContext(123)
 
