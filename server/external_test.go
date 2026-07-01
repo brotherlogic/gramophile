@@ -167,7 +167,6 @@ func TestFetchExpectedSizes(t *testing.T) {
 
 	s := Server{d: d, di: di, qc: qc}
 
-
 	// Mock getProfileStats
 	originalGetProfileStats := getProfileStats
 	getProfileStats = func(username string) (int32, int32, error) {

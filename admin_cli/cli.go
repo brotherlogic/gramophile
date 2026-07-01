@@ -213,27 +213,27 @@ func formatWaitlist(res *pb.GetWaitlistStatusResponse) string {
 	sb.WriteString(fmt.Sprintf("%v users in waitlist\n", len(res.GetUsers())))
 	sb.WriteString(fmt.Sprintf("%-20s | %-16s | %-10s | %-10s\n", "User", "Progress", "ETA", "Status"))
 	sb.WriteString(strings.Repeat("-", 65) + "\n")
-	
+
 	for _, u := range res.GetUsers() {
 		username := ""
 		if u.GetUser() != nil && u.GetUser().GetUser() != nil {
 			username = u.GetUser().GetUser().GetUsername()
 		}
-		
+
 		status := "Partially Synced"
 		if u.GetFullySynced() {
 			status = "Fully Synced"
 		} else if u.GetIsStuck() {
 			status = "STUCK"
 		}
-		
+
 		totalExpected := int32(0)
 		if u.GetUser() != nil {
 			totalExpected = u.GetUser().GetExpectedCollectionSize() + u.GetUser().GetExpectedWantlistSize()
 		}
 		totalSynced := u.GetSyncedCollectionSize() + u.GetSyncedWantlistSize()
 		progress := fmt.Sprintf("%d/%d", totalSynced, totalExpected)
-		
+
 		eta := fmt.Sprintf("%ds", u.GetEtaSeconds())
 		if u.GetEtaSeconds() > 3600 {
 			eta = fmt.Sprintf("%dh%dm", u.GetEtaSeconds()/3600, (u.GetEtaSeconds()%3600)/60)
@@ -242,9 +242,8 @@ func formatWaitlist(res *pb.GetWaitlistStatusResponse) string {
 		} else if u.GetEtaSeconds() == 0 {
 			eta = "-"
 		}
-		
+
 		sb.WriteString(fmt.Sprintf("%-20s | %-16s | %-10s | %-10s\n", username, progress, eta, status))
 	}
 	return sb.String()
 }
-

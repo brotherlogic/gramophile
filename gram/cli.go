@@ -73,6 +73,7 @@ func main() {
 		GetScore(),
 		GetAdd(),
 		GetGetSats(),
+		GetLocate(),
 		GetWeight()}
 
 	var commands []string

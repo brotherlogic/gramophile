@@ -60,5 +60,3 @@ func (s *Server) GetUsers(ctx context.Context, req *pb.GetUsersRequest) (*pb.Get
 
 	return &pb.GetUsersResponse{Users: users}, nil
 }
-
-

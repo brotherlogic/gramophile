@@ -39,12 +39,12 @@ func TestWaitlistStatus(t *testing.T) {
 	// 50 users case
 	for i := 0; i < 50; i++ {
 		su := &pb.StoredUser{
-			Auth: &pb.GramophileAuth{Token: fmt.Sprintf("user-%v", i)},
-			User: &discogs.User{DiscogsUserId: int32(i)},
-			State: pb.StoredUser_USER_STATE_IN_WAITLIST,
+			Auth:                   &pb.GramophileAuth{Token: fmt.Sprintf("user-%v", i)},
+			User:                   &discogs.User{DiscogsUserId: int32(i)},
+			State:                  pb.StoredUser_USER_STATE_IN_WAITLIST,
 			ExpectedCollectionSize: 100,
-			ExpectedWantlistSize: 50,
-			LastItemSyncedTime: time.Now().Add(-time.Hour * 2).UnixNano(),
+			ExpectedWantlistSize:   50,
+			LastItemSyncedTime:     time.Now().Add(-time.Hour * 2).UnixNano(),
 		}
 		err := d.SaveUser(ctx, su)
 		if err != nil {

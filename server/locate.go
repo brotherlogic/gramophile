@@ -53,7 +53,7 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 						Shelf:        p.GetSpace(),
 						Slot:         p.GetUnit(),
 					}
-					
+
 					// Get before context (up to 2)
 					beforeCount := 0
 					for i := idx - 1; i >= 0 && beforeCount < 2; i-- {
@@ -64,7 +64,7 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 						})
 						beforeCount++
 					}
-					
+
 					// Get after context (up to 2)
 					afterCount := 0
 					for i := idx + 1; i < len(placements) && afterCount < 2; i++ {
@@ -83,4 +83,3 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 
 	return &pb.LocateRecordResponse{Locations: locations}, nil
 }
-
