@@ -747,6 +747,7 @@ service GramophileEService {
     rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {};
 
     rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {};
+    rpc LocateRecord(LocateRecordRequest) returns (LocateRecordResponse) {};
 }
 
 message AddSaleRequest {
@@ -877,6 +878,15 @@ message GetWaitlistStatusRequest {}
 
 message GetWaitlistStatusResponse {
     repeated WaitlistUser users = 1;
+}
+
+message LocateRecordRequest {
+    int64 release_id = 1;
+}
+
+message LocateRecordResponse {
+    // Allows multiple entries in case there are multiple copies of the same release
+    repeated Location locations = 1;
 }
 
 // Internally accessible service
