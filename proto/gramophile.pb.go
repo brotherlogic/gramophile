@@ -4788,6 +4788,7 @@ type StoredUser struct {
 	ExpectedCollectionSize int32                  `protobuf:"varint,17,opt,name=expected_collection_size,json=expectedCollectionSize,proto3" json:"expected_collection_size,omitempty"`
 	ExpectedWantlistSize   int32                  `protobuf:"varint,18,opt,name=expected_wantlist_size,json=expectedWantlistSize,proto3" json:"expected_wantlist_size,omitempty"`
 	LastItemSyncedTime     int64                  `protobuf:"varint,19,opt,name=last_item_synced_time,json=lastItemSyncedTime,proto3" json:"last_item_synced_time,omitempty"`
+	WaitlistIssueNumber    int64                  `protobuf:"varint,20,opt,name=waitlist_issue_number,json=waitlistIssueNumber,proto3" json:"waitlist_issue_number,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -4951,6 +4952,13 @@ func (x *StoredUser) GetExpectedWantlistSize() int32 {
 func (x *StoredUser) GetLastItemSyncedTime() int64 {
 	if x != nil {
 		return x.LastItemSyncedTime
+	}
+	return 0
+}
+
+func (x *StoredUser) GetWaitlistIssueNumber() int64 {
+	if x != nil {
+		return x.WaitlistIssueNumber
 	}
 	return 0
 }
@@ -8625,7 +8633,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\n" +
 	"JUST_SALES\x10\x04\"%\n" +
 	"\rDrainResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"\x81\b\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"\xb5\b\n" +
 	"\n" +
 	"StoredUser\x12.\n" +
 	"\x04auth\x18\x01 \x01(\v2\x1a.gramophile.GramophileAuthR\x04auth\x12!\n" +
@@ -8649,7 +8657,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x05state\x18\x10 \x01(\x0e2 .gramophile.StoredUser.UserStateR\x05state\x128\n" +
 	"\x18expected_collection_size\x18\x11 \x01(\x05R\x16expectedCollectionSize\x124\n" +
 	"\x16expected_wantlist_size\x18\x12 \x01(\x05R\x14expectedWantlistSize\x121\n" +
-	"\x15last_item_synced_time\x18\x13 \x01(\x03R\x12lastItemSyncedTime\"o\n" +
+	"\x15last_item_synced_time\x18\x13 \x01(\x03R\x12lastItemSyncedTime\x122\n" +
+	"\x15waitlist_issue_number\x18\x14 \x01(\x03R\x13waitlistIssueNumber\"o\n" +
 	"\tUserState\x12\x16\n" +
 	"\x12USER_STATE_UNKNOWN\x10\x00\x12\x19\n" +
 	"\x15USER_STATE_REFRESHING\x10\x01\x12\x1a\n" +
