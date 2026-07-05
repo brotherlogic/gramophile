@@ -29,7 +29,12 @@ func getTitle(ctx context.Context, client pb.GramophileEServiceClient, iid int64
 	if err != nil || len(res.GetRecords()) == 0 {
 		return fmt.Sprintf("Unknown (%v)", iid)
 	}
-	return res.GetRecords()[0].GetRecord().GetRelease().GetTitle()
+	
+	release := res.GetRecords()[0].GetRecord().GetRelease()
+	if len(release.GetArtists()) > 0 {
+		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
+	}
+	return release.GetTitle()
 }
 
 func getTitleFromRelease(ctx context.Context, client pb.GramophileEServiceClient, releaseId int64) string {
@@ -43,7 +48,12 @@ func getTitleFromRelease(ctx context.Context, client pb.GramophileEServiceClient
 	if err != nil || len(res.GetRecords()) == 0 {
 		return fmt.Sprintf("Unknown (%v)", releaseId)
 	}
-	return res.GetRecords()[0].GetRecord().GetRelease().GetTitle()
+	
+	release := res.GetRecords()[0].GetRecord().GetRelease()
+	if len(release.GetArtists()) > 0 {
+		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
+	}
+	return release.GetTitle()
 }
 
 func executeLocate(ctx context.Context, args []string) error {
