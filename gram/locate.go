@@ -46,6 +46,12 @@ func getTitleFromRelease(ctx context.Context, client pb.GramophileEServiceClient
 	return res.GetRecords()[0].GetRecord().GetRelease().GetTitle()
 }
 
+func calculatePercentage(beforeCount, afterCount int) float64 {
+	total := beforeCount + afterCount + 1
+	targetIndex := beforeCount + 1
+	return float64(targetIndex) / float64(total) * 100.0
+}
+
 func executeLocate(ctx context.Context, args []string) error {
 	conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -69,7 +75,8 @@ func executeLocate(ctx context.Context, args []string) error {
 		title := getTitleFromRelease(ctx, client, int64(*id))
 
 		for _, location := range res.GetLocations() {
-			fmt.Printf("%v is in %v, Slot %v:\n\n", title, location.GetLocationName(), location.GetSlot())
+			percentage := calculatePercentage(len(location.GetBefore()), len(location.GetAfter()))
+			fmt.Printf("%v is in %v, Slot %v (%.0f %%):\n\n", title, location.GetLocationName(), location.GetSlot(), percentage)
 
 			for i := len(location.GetBefore()) - 1; i >= 0; i-- {
 				b := location.GetBefore()[i]
