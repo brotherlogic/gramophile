@@ -4,18 +4,34 @@ import (
 	"context"
 	"testing"
 
-	"github.com/brotherlogic/discogs/proto"
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc"
 )
 
-type mockClient struct {
+type testClient struct {
 	pb.GramophileEServiceClient
-	records []*pb.RecordResponse
+	withArtist bool
 }
 
-func (m *mockClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error) {
-	return &pb.GetRecordResponse{Records: m.records}, nil
+func (t *testClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error) {
+	artists := []*pbd.Artist{}
+	if t.withArtist {
+		artists = append(artists, &pbd.Artist{Name: "The Beatles"})
+	}
+
+	return &pb.GetRecordResponse{
+		Records: []*pb.RecordResponse{
+			{
+				Record: &pb.Record{
+					Release: &pbd.Release{
+						Title:   "Abbey Road",
+						Artists: artists,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func TestGetLocate(t *testing.T) {
@@ -28,53 +44,38 @@ func TestGetLocate(t *testing.T) {
 	}
 }
 
-func TestGetTitleWithArtist(t *testing.T) {
-	client := &mockClient{
-		records: []*pb.RecordResponse{
-			{
-				Record: &pb.Record{
-					Release: &proto.Release{
-						Title: "Some Title",
-						Artists: []*proto.Artist{
-							{Name: "Some Artist"},
-						},
-					},
-				},
-			},
-		},
-	}
-
+func TestGetTitle_WithArtist(t *testing.T) {
+	client := &testClient{withArtist: true}
 	title := getTitle(context.Background(), client, 123)
-	if title != "Some Artist - Some Title" {
-		t.Errorf("Expected 'Some Artist - Some Title', got %v", title)
-	}
-
-	titleRelease := getTitleFromRelease(context.Background(), client, 123)
-	if titleRelease != "Some Artist - Some Title" {
-		t.Errorf("Expected 'Some Artist - Some Title', got %v", titleRelease)
+	expected := "The Beatles - Abbey Road"
+	if title != expected {
+		t.Errorf("Expected %v, got %v", expected, title)
 	}
 }
 
-func TestGetTitleWithoutArtist(t *testing.T) {
-	client := &mockClient{
-		records: []*pb.RecordResponse{
-			{
-				Record: &pb.Record{
-					Release: &proto.Release{
-						Title: "Some Title",
-					},
-				},
-			},
-		},
-	}
-
+func TestGetTitle_WithoutArtist(t *testing.T) {
+	client := &testClient{withArtist: false}
 	title := getTitle(context.Background(), client, 123)
-	if title != "Some Title" {
-		t.Errorf("Expected 'Some Title', got %v", title)
+	expected := "Abbey Road"
+	if title != expected {
+		t.Errorf("Expected %v, got %v", expected, title)
 	}
+}
 
-	titleRelease := getTitleFromRelease(context.Background(), client, 123)
-	if titleRelease != "Some Title" {
-		t.Errorf("Expected 'Some Title', got %v", titleRelease)
+func TestGetTitleFromRelease_WithArtist(t *testing.T) {
+	client := &testClient{withArtist: true}
+	title := getTitleFromRelease(context.Background(), client, 123)
+	expected := "The Beatles - Abbey Road"
+	if title != expected {
+		t.Errorf("Expected %v, got %v", expected, title)
+	}
+}
+
+func TestGetTitleFromRelease_WithoutArtist(t *testing.T) {
+	client := &testClient{withArtist: false}
+	title := getTitleFromRelease(context.Background(), client, 123)
+	expected := "Abbey Road"
+	if title != expected {
+		t.Errorf("Expected %v, got %v", expected, title)
 	}
 }

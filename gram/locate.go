@@ -29,9 +29,10 @@ func getTitle(ctx context.Context, client pb.GramophileEServiceClient, iid int64
 	if err != nil || len(res.GetRecords()) == 0 {
 		return fmt.Sprintf("Unknown (%v)", iid)
 	}
+	
 	release := res.GetRecords()[0].GetRecord().GetRelease()
 	if len(release.GetArtists()) > 0 {
-		return fmt.Sprintf("%v - %v", release.GetArtists()[0].GetName(), release.GetTitle())
+		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
 	}
 	return release.GetTitle()
 }
@@ -47,9 +48,10 @@ func getTitleFromRelease(ctx context.Context, client pb.GramophileEServiceClient
 	if err != nil || len(res.GetRecords()) == 0 {
 		return fmt.Sprintf("Unknown (%v)", releaseId)
 	}
+	
 	release := res.GetRecords()[0].GetRecord().GetRelease()
 	if len(release.GetArtists()) > 0 {
-		return fmt.Sprintf("%v - %v", release.GetArtists()[0].GetName(), release.GetTitle())
+		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
 	}
 	return release.GetTitle()
 }
