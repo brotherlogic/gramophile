@@ -44,6 +44,29 @@ func TestGetLocate(t *testing.T) {
 	}
 }
 
+func TestCalculatePercentage(t *testing.T) {
+	tests := []struct {
+		before int
+		after  int
+		want   float64
+	}{
+		{0, 0, 100.0},
+		{1, 1, 66.66666666666666},
+		{0, 1, 50.0},
+		{1, 0, 100.0},
+		{9, 0, 100.0},
+		{0, 9, 10.0},
+		{4, 5, 50.0},
+	}
+
+	for _, tt := range tests {
+		got := calculatePercentage(tt.before, tt.after)
+		if got != tt.want {
+			t.Errorf("calculatePercentage(%v, %v) = %v, want %v", tt.before, tt.after, got, tt.want)
+		}
+	}
+}
+
 func TestGetTitle_WithArtist(t *testing.T) {
 	client := &testClient{withArtist: true}
 	title := getTitle(context.Background(), client, 123)
