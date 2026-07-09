@@ -13,5 +13,5 @@ Gramophile is built with Go.
 Current Go version: 1.26.2
 
 ## Features
-- LocateRecord: Provides functionality to query the location of records within the collection via the `gram locate` CLI command. It displays the artist name along with the title.
+- LocateRecord: Provides functionality to query the location of records within the collection via the `gram locate` CLI command. It displays the artist name along with the title, and the shelf width percentage where the record is located.
 
