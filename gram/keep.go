@@ -43,7 +43,7 @@ func executeKeep(ctx context.Context, args []string) error {
 	case "reset":
 		keepState = pb.KeepStatus_RESET
 	default:
-		return status.Errorf(codes.FailedPrecondition, "%v is not a valid keep state (none, digital, keep, mintup)", args[1])
+		return status.Errorf(codes.FailedPrecondition, "%v is not a valid keep state (none, digital, keep, mintup, reset)", args[1])
 	}
 
 	var extraIds []int64
