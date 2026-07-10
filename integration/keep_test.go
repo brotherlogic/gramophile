@@ -55,3 +55,46 @@ func TestSetKeep_Success(t *testing.T) {
 		t.Errorf("Keep was not set: %v", rec)
 	}
 }
+
+func TestSetKeep_Reset(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, KeepStatus: pb.KeepStatus_MINT_UP_KEEP}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Keep"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     &pb.Intent{Keep: pb.KeepStatus_RESET},
+		InstanceId: 1234,
+	})
+	if err != nil {
+		t.Fatalf("Error setting intent: %v", err)
+	}
+
+	//Run the intent
+	qc.FlushQueue(ctx)
+
+	resp, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 1234}}})
+	if err != nil {
+		t.Fatalf("Bad record retrieve: %v", err)
+	}
+	rec := resp.GetRecords()[0].GetRecord()
+	if rec.GetKeepStatus() != pb.KeepStatus_KEEP_UNKNOWN {
+		t.Errorf("Keep was not reset: %v", rec)
+	}
+}
