@@ -34,7 +34,7 @@ For each identified component, Seraphine programmatically files a new **native G
 * **Sub-Issue Title:** Must use the format `[Sub-Issue] <Action>` (e.g., `[Sub-Issue] Implement pstore serialization for note status`).
 * **Sub-Issue Body:** Sub-issues should stand alone and do not need to include the parent implementation plan. **Explicitly state issue dependencies in the description: if sub-issue X is dependent on sub-issue Y, this relationship must be clearly documented. They must use native GitHub sub-issues (via the `gh issue create --parent <parent-issue-number>` flag) to define the parent relationship to the `[Breakdown]` issue.**
 * **Sub-Issue Label:** Must be marked with the `seraphine-ready-to-implement` label.
-* **Assignee:** Must be assigned to `brotherlogic@gmail.com`.
+* **Assignee:** Must be assigned to `brotherlogic-automation@gmail.com`.
 
 ### 4. Transition & Label Cleanup
 Once all component sub-issues are successfully filed:
