@@ -50,8 +50,8 @@ The outcome of the grilling session is compiled into a clear **Product Requireme
 Once the PRD is complete, the agent must execute the following automated steps on GitHub:
 1. **Post the PRD:** Render the requirements document beautifully as a comment on the parent GitHub issue.
 2. **Remove the Label:** Remove the `seraphine-needs-requirements` (or `seraphine-need-requirements`) label from the parent issue to signify completion of the requirements phase.
-3. **Create Sub-Issue:** Programmatically create a **native GitHub sub-issue** (via the `gh issue create --parent <parent-issue-number>` flag) to track the subsequent step:
+3. **Create Sub-Issue:** Programmatically create a **native GitHub sub-issue** to track the subsequent step:
    - **Sub-Issue Title:** `[Implementation Plan] <Parent Issue Title>`
    - **Sub-Issue Label:** `seraphine-needs-implementation-plan`
-   - **Assignee:** `brotherlogic@gmail.com`
-   - **Sub-Issue Description:** A link referencing the parent issue and instructing the agent to begin drafting the implementation plan. Ensure the native GitHub sub-issue (via the `gh issue create --parent <parent-issue-number>` flag) relationship is established with the parent issue.
+   - **Assignee:** `brotherlogic-automation`
+   - **Sub-Issue Description:** A link referencing the parent issue and instructing the agent to begin drafting the implementation plan. Ensure the native GitHub sub-issue relationship is established with the parent issue.

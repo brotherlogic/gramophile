@@ -52,8 +52,8 @@ Once a shared understanding of technical details is reached, Seraphine compiles 
 Seraphine posts the finalized implementation plan to the sub-issue using premium markdown formatting (collapsible `<details>` blocks, interactive task lists `- [ ]`, Mermaid diagrams, and direct file path links).
 * **Action:**
   1. Remove the `seraphine-needs-implementation-plan` label from the current `[Implementation Plan]` issue.
-  2. Programmatically create a new **native GitHub sub-issue** (via the `gh issue create --parent <parent-issue-number>` flag):
+  2. Programmatically create a new **native GitHub sub-issue**:
      - **Sub-Issue Title:** `[Breakdown] <Parent Issue Title>`
      - **Sub-Issue Label:** `seraphine-break-down-issue`
-     - **Assignee:** `brotherlogic@gmail.com`
-     - **Sub-Issue Description:** A link referencing the `[Implementation Plan]` issue and instructing the agent to begin the issue breakdown. Ensure the native GitHub sub-issue (via the `gh issue create --parent <parent-issue-number>` flag) relationship is established with the parent issue.
+     - **Assignee:** `brotherlogic-automation`
+     - **Sub-Issue Description:** A link referencing the `[Implementation Plan]` issue and instructing the agent to begin the issue breakdown. Ensure the native GitHub sub-issue relationship is established with the parent issue.
