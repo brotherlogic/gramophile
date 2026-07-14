@@ -62,6 +62,8 @@ type Model struct {
 	tokenSaver func(string) error
 	progress   float64
 	progBar    progress.Model
+	syncRetryCount  int
+	loginRetryCount int
 }
 
 func defaultTokenSaver(tokenText string) error {
@@ -179,10 +181,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
+			m.loginRetryCount = 0
 			m.state = StateLoadingSync
 			return m, m.pollSync()
 		case loginErrMsg:
-			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+			m.loginRetryCount++
+			delay := time.Duration(1<<m.loginRetryCount) * time.Second
+			if delay > 30*time.Second {
+				delay = 30 * time.Second
+			}
+			return m, tea.Tick(delay, func(t time.Time) tea.Msg {
 				return loginPollMsg{}
 			})
 		case loginPollMsg:
@@ -195,11 +203,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case syncStatusMsg:
 			if msg.err != nil {
 				m.err = msg.err
-				return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+				m.syncRetryCount++
+				delay := time.Duration(1<<m.syncRetryCount) * time.Second
+				if delay > 30*time.Second {
+					delay = 30 * time.Second
+				}
+				return m, tea.Tick(delay, func(t time.Time) tea.Msg {
 					return syncPollMsg{}
 				})
 			}
 			m.err = nil
+			m.syncRetryCount = 0
 			
 			if msg.expectedSize > 0 {
 				m.progress = float64(msg.currentSize) / float64(msg.expectedSize)
@@ -207,7 +221,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			
 			if msg.userState == pb.StoredUser_USER_STATE_IN_WAITLIST {
 				m.state = StateWaitlist
-				return m, nil
+				return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+					return syncPollMsg{}
+				})
 			} else if msg.userState == pb.StoredUser_USER_STATE_LIVE {
 				m.state = StateMainApp
 				return m, nil
@@ -223,6 +239,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.progBar.Width = 80
 			}
 			return m, nil
+		}
+	case StateWaitlist:
+		switch msg := msg.(type) {
+		case syncPollMsg:
+			return m, m.pollSync()
+		case syncStatusMsg:
+			if msg.err != nil {
+				m.err = msg.err
+				m.syncRetryCount++
+				delay := time.Duration(1<<m.syncRetryCount) * time.Second
+				if delay > 30*time.Second {
+					delay = 30 * time.Second
+				}
+				return m, tea.Tick(delay, func(t time.Time) tea.Msg {
+					return syncPollMsg{}
+				})
+			}
+			m.err = nil
+			m.syncRetryCount = 0
+			
+			if msg.userState == pb.StoredUser_USER_STATE_LIVE {
+				m.state = StateMainApp
+				return m, nil
+			}
+
+			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+				return syncPollMsg{}
+			})
 		}
 	}
 
@@ -258,9 +302,20 @@ func (m Model) View() string {
 		return fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 	case StateLoadingSync:
 		if m.err != nil {
-			return fmt.Sprintf("Error fetching sync state: %v\n\nRetrying...", m.err)
+			return fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)
 		}
 		return fmt.Sprintf("\nSyncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
+	case StateWaitlist:
+		if m.err != nil {
+			return fmt.Sprintf("Error polling waitlist status: %v\n\nReconnecting...", m.err)
+		}
+		style := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FFD700")).
+			Padding(1, 2)
+		return "\nSync Complete!\n\n" + style.Render("Waiting for Admin Approval...") + "\n"
+	case StateMainApp:
+		return "\nHandoff to main application complete.\n"
 	}
 	return "Gramophile TUI"
 }

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -166,5 +167,71 @@ func TestStateLoadingSync_Complete(t *testing.T) {
 
 	if updatedModel.state != StateWaitlist {
 		t.Errorf("Expected state to transition to StateWaitlist on complete, got %v", updatedModel.state)
+	}
+}
+
+func TestStateWaitlist_Poll(t *testing.T) {
+	m := InitialModel(&mockClient{})
+	m.state = StateWaitlist
+
+	msg := syncPollMsg{}
+	newModel, cmd := m.Update(msg)
+	updatedModel := newModel.(Model)
+
+	if cmd == nil {
+		t.Errorf("Expected command to fetch sync status in waitlist")
+	}
+
+	respMsg := syncStatusMsg{
+		userState: pb.StoredUser_USER_STATE_IN_WAITLIST,
+	}
+
+	newModel, _ = updatedModel.Update(respMsg)
+	updatedModel = newModel.(Model)
+
+	if updatedModel.state != StateWaitlist {
+		t.Errorf("Expected state to remain StateWaitlist, got %v", updatedModel.state)
+	}
+}
+
+func TestStateWaitlist_Promoted(t *testing.T) {
+	m := InitialModel(&mockClient{})
+	m.state = StateWaitlist
+
+	respMsg := syncStatusMsg{
+		userState: pb.StoredUser_USER_STATE_LIVE,
+	}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected state to transition to StateMainApp on promotion, got %v", updatedModel.state)
+	}
+}
+
+func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
+	m := InitialModel(&mockClient{})
+	m.state = StateLoadingSync
+
+	if m.syncRetryCount != 0 {
+		t.Errorf("Expected initial syncRetryCount to be 0")
+	}
+
+	respMsg := syncStatusMsg{err: fmt.Errorf("connection refused")}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.syncRetryCount != 1 {
+		t.Errorf("Expected syncRetryCount to be 1, got %v", updatedModel.syncRetryCount)
+	}
+	
+	// Test it again to see backoff increase
+	newModel, _ = updatedModel.Update(respMsg)
+	updatedModel = newModel.(Model)
+	
+	if updatedModel.syncRetryCount != 2 {
+		t.Errorf("Expected syncRetryCount to be 2, got %v", updatedModel.syncRetryCount)
 	}
 }
