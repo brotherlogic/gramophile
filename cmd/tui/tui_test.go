@@ -11,6 +11,8 @@ import (
 type mockClient struct {
 	getURLFunc   func() (*pb.GetURLResponse, error)
 	getLoginFunc func() (*pb.GetLoginResponse, error)
+	getUserFunc  func() (*pb.GetUserResponse, error)
+	getStateFunc func() (*pb.GetStateResponse, error)
 }
 
 func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error) {
@@ -25,6 +27,20 @@ func (m *mockClient) GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.
 		return m.getLoginFunc()
 	}
 	return &pb.GetLoginResponse{Auth: &pb.GramophileAuth{Token: "final-auth"}}, nil
+}
+
+func (m *mockClient) GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error) {
+	if m.getUserFunc != nil {
+		return m.getUserFunc()
+	}
+	return &pb.GetUserResponse{User: &pb.StoredUser{ExpectedCollectionSize: 100, State: pb.StoredUser_USER_STATE_REFRESHING}}, nil
+}
+
+func (m *mockClient) GetState(ctx context.Context, in *pb.GetStateRequest) (*pb.GetStateResponse, error) {
+	if m.getStateFunc != nil {
+		return m.getStateFunc()
+	}
+	return &pb.GetStateResponse{CollectionSize: 50}, nil
 }
 
 func TestStateTransitions(t *testing.T) {
@@ -99,5 +115,56 @@ func TestStateLogin_LoginSuccess(t *testing.T) {
 	
 	if updatedModel.state != StateLoadingSync {
 		t.Errorf("Expected state to transition to StateLoadingSync, got %v", updatedModel.state)
+	}
+}
+
+func TestStateLoadingSync_Progress(t *testing.T) {
+	m := InitialModel(&mockClient{})
+	m.state = StateLoadingSync
+
+	// Trigger sync poll
+	msg := syncPollMsg{}
+	newModel, cmd := m.Update(msg)
+	updatedModel := newModel.(Model)
+
+	if cmd == nil {
+		t.Errorf("Expected command to fetch sync status")
+	}
+
+	// Fake the response
+	respMsg := syncStatusMsg{
+		expectedSize: 100,
+		currentSize:  50,
+		userState:    pb.StoredUser_USER_STATE_REFRESHING,
+	}
+
+	newModel, _ = updatedModel.Update(respMsg)
+	updatedModel = newModel.(Model)
+
+	if updatedModel.progress != 0.5 {
+		t.Errorf("Expected progress to be 0.5, got %v", updatedModel.progress)
+	}
+
+	view := updatedModel.View()
+	if view == "" {
+		t.Errorf("Expected a progress bar view")
+	}
+}
+
+func TestStateLoadingSync_Complete(t *testing.T) {
+	m := InitialModel(&mockClient{})
+	m.state = StateLoadingSync
+
+	respMsg := syncStatusMsg{
+		expectedSize: 100,
+		currentSize:  100,
+		userState:    pb.StoredUser_USER_STATE_IN_WAITLIST,
+	}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateWaitlist {
+		t.Errorf("Expected state to transition to StateWaitlist on complete, got %v", updatedModel.state)
 	}
 }

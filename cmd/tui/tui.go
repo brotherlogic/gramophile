@@ -8,6 +8,7 @@ import (
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/golang/protobuf/proto"
@@ -26,6 +27,8 @@ const (
 type AuthClient interface {
 	GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error)
 	GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.GetLoginResponse, error)
+	GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error)
+	GetState(ctx context.Context, in *pb.GetStateRequest) (*pb.GetStateResponse, error)
 }
 
 type timeoutMsg struct{}
@@ -39,6 +42,13 @@ type loginSuccessMsg struct {
 }
 type loginErrMsg struct{ err error }
 type loginPollMsg struct{}
+type syncPollMsg struct{}
+type syncStatusMsg struct {
+	expectedSize int32
+	currentSize  int32
+	userState    pb.StoredUser_UserState
+	err          error
+}
 
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
@@ -50,6 +60,8 @@ type Model struct {
 	loginToken string
 	err        error
 	tokenSaver func(string) error
+	progress   float64
+	progBar    progress.Model
 }
 
 func defaultTokenSaver(tokenText string) error {
@@ -83,6 +95,7 @@ func InitialModel(client AuthClient) Model {
 		state:      StateStartupLogo,
 		client:     client,
 		tokenSaver: defaultTokenSaver,
+		progBar:    progress.New(progress.WithDefaultGradient()),
 	}
 }
 
@@ -107,6 +120,29 @@ func (m Model) pollLogin() tea.Cmd {
 			return loginErrMsg{err: err}
 		}
 		return loginSuccessMsg{auth: resp.GetAuth()}
+	}
+}
+
+func (m Model) pollSync() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		userResp, err := m.client.GetUser(ctx, &pb.GetUserRequest{})
+		if err != nil {
+			return syncStatusMsg{err: err}
+		}
+		
+		stateResp, err := m.client.GetState(ctx, &pb.GetStateRequest{})
+		if err != nil {
+			return syncStatusMsg{err: err}
+		}
+
+		return syncStatusMsg{
+			expectedSize: userResp.GetUser().GetExpectedCollectionSize(),
+			currentSize:  stateResp.GetCollectionSize(),
+			userState:    userResp.GetUser().GetState(),
+		}
 	}
 }
 
@@ -144,13 +180,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.state = StateLoadingSync
-			return m, nil
+			return m, m.pollSync()
 		case loginErrMsg:
 			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 				return loginPollMsg{}
 			})
 		case loginPollMsg:
 			return m, m.pollLogin()
+		}
+	case StateLoadingSync:
+		switch msg := msg.(type) {
+		case syncPollMsg:
+			return m, m.pollSync()
+		case syncStatusMsg:
+			if msg.err != nil {
+				m.err = msg.err
+				return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+					return syncPollMsg{}
+				})
+			}
+			m.err = nil
+			
+			if msg.expectedSize > 0 {
+				m.progress = float64(msg.currentSize) / float64(msg.expectedSize)
+			}
+			
+			if msg.userState == pb.StoredUser_USER_STATE_IN_WAITLIST {
+				m.state = StateWaitlist
+				return m, nil
+			} else if msg.userState == pb.StoredUser_USER_STATE_LIVE {
+				m.state = StateMainApp
+				return m, nil
+			}
+
+			return m, tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+				return syncPollMsg{}
+			})
+			
+		case tea.WindowSizeMsg:
+			m.progBar.Width = msg.Width - 4
+			if m.progBar.Width > 80 {
+				m.progBar.Width = 80
+			}
+			return m, nil
 		}
 	}
 
@@ -185,7 +257,10 @@ func (m Model) View() string {
 		}
 		return fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 	case StateLoadingSync:
-		return "Loading Sync State..."
+		if m.err != nil {
+			return fmt.Sprintf("Error fetching sync state: %v\n\nRetrying...", m.err)
+		}
+		return fmt.Sprintf("\nSyncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
 	}
 	return "Gramophile TUI"
 }
