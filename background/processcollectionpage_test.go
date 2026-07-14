@@ -172,3 +172,93 @@ func TestGetCollectionPage_WithArrivedUpdates(t *testing.T) {
 		t.Errorf("Last clean time should be zero, but is: %v", record.GetLastCleanTime())
 	}
 }
+
+func TestCleanCollection_SuccessStateTransition(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	d := &discogs.TestDiscogsClient{UserId: 123}
+	
+	// Create user with ExpectedCollectionSize = 5
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{
+		Auth: &pb.GramophileAuth{Token: "test-token"},
+		UserToken: "test-token",
+		User: &pbd.User{DiscogsUserId: 123},
+		ExpectedCollectionSize: 5,
+		State: pb.StoredUser_USER_STATE_REFRESHING,
+	})
+	if err != nil {
+		t.Fatalf("Save user failed: %v", err)
+	}
+
+	// Add 5 records
+	for i := int64(1); i <= 5; i++ {
+		b.db.SaveRecord(context.Background(), 123, &pb.Record{
+			Release: &pbd.Release{InstanceId: i},
+			RefreshId: 1234,
+		}, &db.SaveOptions{})
+	}
+
+	err = b.CleanCollection(context.Background(), d, 1234, "test-token", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("Clean failed: %v", err)
+	}
+
+	user, err := b.db.GetUser(context.Background(), "test-token")
+	if err != nil {
+		t.Fatalf("Get user failed: %v", err)
+	}
+
+	if user.GetState() != pb.StoredUser_USER_STATE_IN_WAITLIST {
+		t.Errorf("User state did not transition: %v", user.GetState())
+	}
+}
+
+func TestCleanCollection_FailureRetryTransition(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	d := &discogs.TestDiscogsClient{UserId: 123}
+	
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{
+		Auth: &pb.GramophileAuth{Token: "test-token"},
+		UserToken: "test-token",
+		User: &pbd.User{DiscogsUserId: 123},
+		ExpectedCollectionSize: 5,
+		State: pb.StoredUser_USER_STATE_REFRESHING,
+	})
+	if err != nil {
+		t.Fatalf("Save user failed: %v", err)
+	}
+
+	// Add 3 records (less than 5)
+	for i := int64(1); i <= 3; i++ {
+		b.db.SaveRecord(context.Background(), 123, &pb.Record{
+			Release: &pbd.Release{InstanceId: i},
+			RefreshId: 1234,
+		}, &db.SaveOptions{})
+	}
+
+	enqueuedRetry := false
+	err = b.CleanCollection(context.Background(), d, 1234, "test-token", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if req.GetElement().GetRefreshCollectionEntry() != nil && req.GetElement().GetRefreshCollectionEntry().GetPage() == 1 {
+			enqueuedRetry = true
+		}
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("Clean failed: %v", err)
+	}
+
+	if !enqueuedRetry {
+		t.Errorf("Retry was not enqueued")
+	}
+
+	user, err := b.db.GetUser(context.Background(), "test-token")
+	if err != nil {
+		t.Fatalf("Get user failed: %v", err)
+	}
+
+	if user.GetState() != pb.StoredUser_USER_STATE_REFRESHING {
+		t.Errorf("User state should not have transitioned: %v", user.GetState())
+	}
+}
+
