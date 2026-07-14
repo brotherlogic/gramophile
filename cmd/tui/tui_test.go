@@ -1,13 +1,34 @@
 package tui
 
 import (
+	"context"
 	"testing"
 
+	pb "github.com/brotherlogic/gramophile/proto"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type mockClient struct {
+	getURLFunc   func() (*pb.GetURLResponse, error)
+	getLoginFunc func() (*pb.GetLoginResponse, error)
+}
+
+func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error) {
+	if m.getURLFunc != nil {
+		return m.getURLFunc()
+	}
+	return &pb.GetURLResponse{URL: "http://test", Token: "test-token"}, nil
+}
+
+func (m *mockClient) GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.GetLoginResponse, error) {
+	if m.getLoginFunc != nil {
+		return m.getLoginFunc()
+	}
+	return &pb.GetLoginResponse{Auth: &pb.GramophileAuth{Token: "final-auth"}}, nil
+}
+
 func TestStateTransitions(t *testing.T) {
-	m := InitialModel()
+	m := InitialModel(&mockClient{})
 
 	if m.state != StateStartupLogo {
 		t.Errorf("Expected initial state to be StateStartupLogo, got %v", m.state)
@@ -15,7 +36,7 @@ func TestStateTransitions(t *testing.T) {
 
 	// Any key press in StateStartupLogo should transition to StateLogin
 	msg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, _ := m.Update(msg)
+	newModel, cmd := m.Update(msg)
 	
 	updatedModel, ok := newModel.(Model)
 	if !ok {
@@ -25,10 +46,15 @@ func TestStateTransitions(t *testing.T) {
 	if updatedModel.state != StateLogin {
 		t.Errorf("Expected state to transition to StateLogin on key press, got %v", updatedModel.state)
 	}
+	
+	// And it should return a command to fetch the URL
+	if cmd == nil {
+		t.Errorf("Expected a command to be returned to fetch URL")
+	}
 }
 
 func TestTimerTransition(t *testing.T) {
-	m := InitialModel()
+	m := InitialModel(&mockClient{})
 	
 	// A timeout message should transition to StateLogin
 	msg := timeoutMsg{}
@@ -44,39 +70,34 @@ func TestTimerTransition(t *testing.T) {
 	}
 }
 
-type mockGetURLMsg struct {
-	url   string
-	token string
-}
-
-func TestLoginURLTransition(t *testing.T) {
-	m := InitialModel()
+func TestStateLogin_GetURL(t *testing.T) {
+	m := InitialModel(&mockClient{})
 	m.state = StateLogin
 
-	// When receiving a loginURLMsg, it should update the URL and token
-	msg := loginURLMsg{url: "http://test", token: "tok123"}
-	newModel, _ := m.Update(msg)
+	// Test getting the URL successfully
+	msg := urlFetchedMsg{url: "http://test", token: "test-token"}
+	newModel, cmd := m.Update(msg)
+	updatedModel := newModel.(Model)
 	
-	updatedModel, _ := newModel.(Model)
-	if updatedModel.url != "http://test" {
-		t.Errorf("Expected url to be http://test, got %v", updatedModel.url)
+	if updatedModel.loginURL != "http://test" {
+		t.Errorf("Expected loginURL to be http://test, got %v", updatedModel.loginURL)
 	}
-	if updatedModel.loginToken != "tok123" {
-		t.Errorf("Expected token to be tok123, got %v", updatedModel.loginToken)
+	
+	if cmd == nil {
+		t.Errorf("Expected command to poll for login")
 	}
 }
 
-func TestLoginSuccessTransition(t *testing.T) {
-	m := InitialModel()
+func TestStateLogin_LoginSuccess(t *testing.T) {
+	m := InitialModel(&mockClient{})
 	m.state = StateLogin
-	m.loginToken = "tok123"
-
-	// When receiving a loginSuccessMsg, it should transition to StateLoadingSync
-	msg := loginSuccessMsg{auth: nil}
-	newModel, _ := m.Update(msg)
+	m.tokenSaver = func(token string) error { return nil } // mock saver
 	
-	updatedModel, _ := newModel.(Model)
+	msg := loginSuccessMsg{auth: &pb.GramophileAuth{Token: "test-auth-token"}}
+	newModel, _ := m.Update(msg)
+	updatedModel := newModel.(Model)
+	
 	if updatedModel.state != StateLoadingSync {
-		t.Errorf("Expected state to transition to StateLoadingSync on success, got %v", updatedModel.state)
+		t.Errorf("Expected state to transition to StateLoadingSync, got %v", updatedModel.state)
 	}
 }
