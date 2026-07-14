@@ -2,20 +2,15 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	pb "github.com/brotherlogic/gramophile/proto"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/browser"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
-
-	pb "github.com/brotherlogic/gramophile/proto"
 )
 
 type appState int
@@ -28,44 +23,36 @@ const (
 	StateMainApp
 )
 
-type timeoutMsg struct{}
-type tickPollMsg struct{}
+type AuthClient interface {
+	GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error)
+	GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.GetLoginResponse, error)
+}
 
-type loginInitiatedMsg struct {
+type timeoutMsg struct{}
+type urlFetchedMsg struct {
 	url   string
 	token string
-	err   error
 }
-
-type loginPollMsg struct {
+type urlFetchErrMsg struct{ err error }
+type loginSuccessMsg struct {
 	auth *pb.GramophileAuth
-	err  error
 }
+type loginErrMsg struct{ err error }
+type loginPollMsg struct{}
 
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
 type Model struct {
-	state       appState
-	loginURL    string
-	loginToken  string
-	loginErr    error
-	loginStatus string
+	state      appState
+	client     AuthClient
+	loginURL   string
+	loginToken string
+	err        error
+	tokenSaver func(string) error
 }
 
-func InitialModel() Model {
-	return Model{
-		state: StateStartupLogo,
-	}
-}
-
-func (m Model) Init() tea.Cmd {
-	return tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
-		return timeoutMsg{}
-	})
-}
-
-func saveToken(auth *pb.GramophileAuth) error {
+func defaultTokenSaver(tokenText string) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -80,6 +67,7 @@ func saveToken(auth *pb.GramophileAuth) error {
 	}
 	defer os.Remove(tmpFile)
 
+	auth := &pb.GramophileAuth{Token: tokenText}
 	err = proto.MarshalText(f, auth)
 	f.Close()
 
@@ -90,55 +78,42 @@ func saveToken(auth *pb.GramophileAuth) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
-func (m Model) initLogin() tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return loginInitiatedMsg{err: err}
-		}
-		defer conn.Close()
-
-		client := pb.NewGramophileEServiceClient(conn)
-		resp, err := client.GetURL(ctx, &pb.GetURLRequest{})
-		if err != nil {
-			return loginInitiatedMsg{err: err}
-		}
-
-		return loginInitiatedMsg{url: resp.GetURL(), token: resp.GetToken()}
+func InitialModel(client AuthClient) Model {
+	return Model{
+		state:      StateStartupLogo,
+		client:     client,
+		tokenSaver: defaultTokenSaver,
 	}
 }
 
-func (m Model) pollLoginTick() tea.Cmd {
-	return tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-		return tickPollMsg{}
+func (m Model) fetchURL() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		resp, err := m.client.GetURL(ctx, &pb.GetURLRequest{})
+		if err != nil {
+			return urlFetchErrMsg{err: err}
+		}
+		return urlFetchedMsg{url: resp.GetURL(), token: resp.GetToken()}
+	}
+}
+
+func (m Model) pollLogin() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		resp, err := m.client.GetLogin(ctx, &pb.GetLoginRequest{Token: m.loginToken})
+		if err != nil {
+			return loginErrMsg{err: err}
+		}
+		return loginSuccessMsg{auth: resp.GetAuth()}
+	}
+}
+
+func (m Model) Init() tea.Cmd {
+	return tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
+		return timeoutMsg{}
 	})
-}
-
-func (m Model) checkLogin(token string) tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		conn, err := grpc.Dial("gramophile-grpc.brotherlogic-backend.com:80", grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return loginPollMsg{err: err}
-		}
-		defer conn.Close()
-
-		client := pb.NewGramophileEServiceClient(conn)
-		resp, err := client.GetLogin(ctx, &pb.GetLoginRequest{Token: token})
-		if err != nil {
-			if status.Code(err) != codes.DataLoss {
-				return loginPollMsg{err: err}
-			}
-			return loginPollMsg{auth: nil, err: nil} // keep polling
-		}
-
-		return loginPollMsg{auth: resp.GetAuth(), err: nil}
-	}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -147,57 +122,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.(type) {
 		case tea.KeyMsg:
 			m.state = StateLogin
-			return m, m.initLogin()
+			return m, m.fetchURL()
 		case timeoutMsg:
 			m.state = StateLogin
-			return m, m.initLogin()
+			return m, m.fetchURL()
 		}
-
 	case StateLogin:
 		switch msg := msg.(type) {
-		case loginInitiatedMsg:
-			if msg.err != nil {
-				m.loginErr = msg.err
-				m.loginStatus = "Failed to get login URL: " + msg.err.Error()
-				return m, nil
-			}
+		case urlFetchedMsg:
 			m.loginURL = msg.url
 			m.loginToken = msg.token
-			m.loginStatus = "Please open this URL in your browser:\n\n" + msg.url
-			
-			// Try to open the browser automatically
-			_ = browser.OpenURL(msg.url)
-			
-			return m, m.pollLoginTick()
-
-		case tickPollMsg:
-			return m, m.checkLogin(m.loginToken)
-
-		case loginPollMsg:
-			if msg.err != nil {
-				m.loginErr = msg.err
-				m.loginStatus = "Error checking login: " + msg.err.Error()
-				return m, nil
+			return m, m.pollLogin()
+		case urlFetchErrMsg:
+			m.err = msg.err
+			return m, nil
+		case loginSuccessMsg:
+			if m.tokenSaver != nil && msg.auth != nil {
+				if err := m.tokenSaver(msg.auth.GetToken()); err != nil {
+					m.err = err
+					return m, nil
+				}
 			}
-			if msg.auth == nil {
-				// Keep polling
-				return m, m.pollLoginTick()
-			}
-			
-			// Success
-			err := saveToken(msg.auth)
-			if err != nil {
-				m.loginErr = err
-				m.loginStatus = "Error saving token: " + err.Error()
-				return m, nil
-			}
-			
-			m.loginStatus = "Login successful!"
 			m.state = StateLoadingSync
 			return m, nil
+		case loginErrMsg:
+			return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+				return loginPollMsg{}
+			})
+		case loginPollMsg:
+			return m, m.pollLogin()
 		}
 	}
-	
+
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -218,18 +174,18 @@ func (m Model) View() string {
 			Background(lipgloss.Color("#7D56F4")).
 			Padding(2, 4).
 			Margin(1, 1)
-		
+
 		return style.Render("GRAMOPHILE") + "\n\nPress any key to continue..."
 	case StateLogin:
-		if m.loginErr != nil {
-			return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render(m.loginStatus)
+		if m.err != nil {
+			return fmt.Sprintf("Error: %v\nPress q to quit", m.err)
 		}
 		if m.loginURL == "" {
-			return "Fetching login URL..."
+			return "Fetching authentication URL..."
 		}
-		
-		style := lipgloss.NewStyle().Padding(1, 2)
-		return style.Render(m.loginStatus + "\n\nWaiting for authentication...")
+		return fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
+	case StateLoadingSync:
+		return "Loading Sync State..."
 	}
 	return "Gramophile TUI"
 }
