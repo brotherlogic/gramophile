@@ -62,8 +62,17 @@ func TestGetCollectionPage_WithDeletion(t *testing.T) {
 		t.Fatalf("Bad collection pull (2); %v", err)
 	}
 
+	err = b.db.SaveUser(context.Background(), &pb.StoredUser{
+		Auth: &pb.GramophileAuth{Token: "test-token-deletion"},
+		UserToken: "test-token-deletion",
+		User: &pbd.User{DiscogsUserId: d.GetUserId()},
+	})
+	if err != nil {
+		t.Fatalf("Unable to save user: %v", err)
+	}
+
 	var enqueuedIid int64
-	err = b.CleanCollection(context.Background(), d, 1234, "", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	err = b.CleanCollection(context.Background(), d, 1234, "test-token-deletion", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		enqueuedIid = req.GetElement().GetDeleteRecord().GetIid()
 		return &pb.EnqueueResponse{}, nil
 	})
