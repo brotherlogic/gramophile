@@ -109,6 +109,38 @@ func (b *BackgroundRunner) CleanCollection(ctx context.Context, d discogs.Discog
 		}
 	}
 
+	user, err := b.db.GetUser(ctx, authToken)
+	if err != nil {
+		return fmt.Errorf("unable to get user: %w", err)
+	}
+
+	if int32(len(records)) >= user.GetExpectedCollectionSize() {
+		if user.GetState() == pb.StoredUser_USER_STATE_REFRESHING || user.GetState() == pb.StoredUser_USER_STATE_UNKNOWN {
+			user.State = pb.StoredUser_USER_STATE_IN_WAITLIST
+			err = b.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to save user: %w", err)
+			}
+		}
+	} else {
+		_, err = enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				RunDate:          time.Now().UnixNano(),
+				Auth:             authToken,
+				BackoffInSeconds: 60,
+				Intention:        "Retry missing records",
+				Entry: &pb.QueueElement_RefreshCollectionEntry{
+					RefreshCollectionEntry: &pb.RefreshCollectionEntry{
+						Page: 1,
+					},
+				},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("unable to enqueue retry: %w", err)
+		}
+	}
+
 	// Reset the refresh lock
 	b.ReleaseRefresh = 0
 
