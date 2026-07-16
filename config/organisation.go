@@ -23,9 +23,25 @@ func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser)
 
 	// Raise an error if any org relies on width being set
 	hasWidthMandate := u.GetConfig().GetWidthConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED
+	
+	orgNames := make(map[string]bool)
+	folderMapped := make(map[int32]string)
+
 	for _, org := range u.GetConfig().GetOrganisationConfig().GetOrganisations() {
 		if org.GetDensity() == pb.Density_WIDTH && !hasWidthMandate {
 			return status.Errorf(codes.FailedPrecondition, "%v requires width mandate", org.GetName())
+		}
+		
+		if orgNames[org.GetName()] {
+			return status.Errorf(codes.AlreadyExists, "duplicate organisation name: %v", org.GetName())
+		}
+		orgNames[org.GetName()] = true
+
+		for _, fs := range org.GetFoldersets() {
+			if existingOrg, ok := folderMapped[fs.GetFolder()]; ok {
+				return status.Errorf(codes.FailedPrecondition, "folder %v is mapped to multiple organisations: %v and %v", fs.GetFolder(), existingOrg, org.GetName())
+			}
+			folderMapped[fs.GetFolder()] = org.GetName()
 		}
 	}
 
