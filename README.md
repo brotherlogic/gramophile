@@ -15,5 +15,19 @@ Current Go version: 1.26.2
 ## Features
 - LocateRecord: Provides functionality to query the location of records within the collection via the `gram locate` CLI command. It displays the artist name along with the title, and the shelf width percentage where the record is located.
 
+## TUI (Terminal User Interface)
+
+You can install the Gramophile TUI using standard Go tooling:
+
+```bash
+go install github.com/brotherlogic/gramophile/cmd/tui@latest
+```
+
+To run the TUI once installed, simply execute:
+
+```bash
+tui
+```
+
 ## Documentation
 - [v1 Requirements](v1/requirements.md): The core feature definitions and user journeys for the v1 release of Gramophile.
