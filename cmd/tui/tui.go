@@ -324,7 +324,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.form.State == huh.StateCompleted {
-				unitsVal, _ := strconv.Atoi(m.spaceUnits)
+				unitsVal64, _ := strconv.ParseInt(m.spaceUnits, 10, 32)
+				unitsVal := int32(unitsVal64)
 				widthVal, _ := strconv.ParseFloat(m.spaceWidth, 64)
 
 				var sortVal pb.Sort
@@ -343,11 +344,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				var foldersets []*pb.FolderSet
 				for _, folderIdStr := range m.selectedFolders {
-					folderId, _ := strconv.Atoi(folderIdStr)
+					folderId64, _ := strconv.ParseInt(folderIdStr, 10, 32)
+					folderId := int32(folderId64)
 					var folderName string
 					if m.user != nil {
 						for _, f := range m.user.GetFolders() {
-							if f.GetId() == int32(folderId) {
+							if f.GetId() == folderId {
 								folderName = f.GetName()
 								break
 							}
@@ -355,7 +357,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					foldersets = append(foldersets, &pb.FolderSet{
 						Name:   folderName,
-						Folder: int32(folderId),
+						Folder: folderId,
 						Sort:   sortVal,
 					})
 				}
@@ -366,7 +368,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Spaces: []*pb.Space{
 						{
 							Name:  m.spaceName,
-							Units: int32(unitsVal),
+							Units: unitsVal,
 							Width: float32(widthVal),
 						},
 					},
@@ -494,7 +496,7 @@ func (m *Model) initOrgConfigForm() {
 				Title("Number of Units").
 				Value(&m.spaceUnits).
 				Validate(func(str string) error {
-					val, err := strconv.Atoi(str)
+					val, err := strconv.ParseInt(str, 10, 32)
 					if err != nil || val <= 0 {
 						return fmt.Errorf("must be a positive integer")
 					}
