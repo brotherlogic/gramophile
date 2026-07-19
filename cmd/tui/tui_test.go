@@ -44,6 +44,10 @@ func (m *mockClient) GetState(ctx context.Context, in *pb.GetStateRequest) (*pb.
 	return &pb.GetStateResponse{CollectionSize: 50}, nil
 }
 
+func (m *mockClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+	return &pb.SetConfigResponse{}, nil
+}
+
 func TestStateTransitions(t *testing.T) {
 	m := InitialModel(&mockClient{})
 
