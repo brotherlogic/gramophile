@@ -17,7 +17,7 @@ func main() {
 	if host == "" {
 		host = "gramophile.brotherlogic-backend.com:80"
 	}
-	conn, err := grpc.Dial(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial gramophile: %v", err)
 	}
