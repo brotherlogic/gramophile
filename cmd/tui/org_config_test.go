@@ -1,4 +1,4 @@
-package tui
+package main
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"google.golang.org/grpc"
 )
 
 type mockOrgClient struct {
@@ -17,7 +18,7 @@ type mockOrgClient struct {
 	setConfigFunc func(*pb.SetConfigRequest) (*pb.SetConfigResponse, error)
 }
 
-func (m *mockOrgClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+func (m *mockOrgClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error) {
 	if m.setConfigFunc != nil {
 		return m.setConfigFunc(in)
 	}

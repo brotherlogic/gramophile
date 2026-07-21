@@ -1,4 +1,4 @@
-package tui
+package main
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	tea "github.com/charmbracelet/bubbletea"
+	"google.golang.org/grpc"
 )
 
 type mockClient struct {
@@ -16,35 +17,35 @@ type mockClient struct {
 	getStateFunc func() (*pb.GetStateResponse, error)
 }
 
-func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error) {
+func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest, opts ...grpc.CallOption) (*pb.GetURLResponse, error) {
 	if m.getURLFunc != nil {
 		return m.getURLFunc()
 	}
 	return &pb.GetURLResponse{URL: "http://test", Token: "test-token"}, nil
 }
 
-func (m *mockClient) GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.GetLoginResponse, error) {
+func (m *mockClient) GetLogin(ctx context.Context, in *pb.GetLoginRequest, opts ...grpc.CallOption) (*pb.GetLoginResponse, error) {
 	if m.getLoginFunc != nil {
 		return m.getLoginFunc()
 	}
 	return &pb.GetLoginResponse{Auth: &pb.GramophileAuth{Token: "final-auth"}}, nil
 }
 
-func (m *mockClient) GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error) {
+func (m *mockClient) GetUser(ctx context.Context, in *pb.GetUserRequest, opts ...grpc.CallOption) (*pb.GetUserResponse, error) {
 	if m.getUserFunc != nil {
 		return m.getUserFunc()
 	}
 	return &pb.GetUserResponse{User: &pb.StoredUser{ExpectedCollectionSize: 100, State: pb.StoredUser_USER_STATE_REFRESHING}}, nil
 }
 
-func (m *mockClient) GetState(ctx context.Context, in *pb.GetStateRequest) (*pb.GetStateResponse, error) {
+func (m *mockClient) GetState(ctx context.Context, in *pb.GetStateRequest, opts ...grpc.CallOption) (*pb.GetStateResponse, error) {
 	if m.getStateFunc != nil {
 		return m.getStateFunc()
 	}
 	return &pb.GetStateResponse{CollectionSize: 50}, nil
 }
 
-func (m *mockClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+func (m *mockClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error) {
 	return &pb.SetConfigResponse{}, nil
 }
 
