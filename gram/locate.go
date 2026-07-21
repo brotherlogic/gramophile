@@ -18,48 +18,28 @@ func GetLocate() *CLIModule {
 	}
 }
 
-func getTitle(ctx context.Context, client pb.GramophileEServiceClient, iid int64) string {
-	res, err := client.GetRecord(ctx, &pb.GetRecordRequest{
-		Request: &pb.GetRecordRequest_GetRecordWithId{
-			GetRecordWithId: &pb.GetRecordWithId{
-				InstanceId: iid,
-			},
-		},
-	})
-	if err != nil || len(res.GetRecords()) == 0 {
-		return fmt.Sprintf("Unknown (%v)", iid)
-	}
-	
-	release := res.GetRecords()[0].GetRecord().GetRelease()
-	if len(release.GetArtists()) > 0 {
-		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
-	}
-	return release.GetTitle()
-}
-
-func getTitleFromRelease(ctx context.Context, client pb.GramophileEServiceClient, releaseId int64) string {
-	res, err := client.GetRecord(ctx, &pb.GetRecordRequest{
-		Request: &pb.GetRecordRequest_GetRecordWithId{
-			GetRecordWithId: &pb.GetRecordWithId{
-				ReleaseId: releaseId,
-			},
-		},
-	})
-	if err != nil || len(res.GetRecords()) == 0 {
-		return fmt.Sprintf("Unknown (%v)", releaseId)
-	}
-	
-	release := res.GetRecords()[0].GetRecord().GetRelease()
-	if len(release.GetArtists()) > 0 {
-		return release.GetArtists()[0].GetName() + " - " + release.GetTitle()
-	}
-	return release.GetTitle()
-}
-
 func calculatePercentage(beforeCount, afterCount int) float64 {
 	total := beforeCount + afterCount + 1
 	targetIndex := beforeCount + 1
 	return float64(targetIndex) / float64(total) * 100.0
+}
+
+func formatLocationOutput(location *pb.Location) string {
+	percentage := calculatePercentage(len(location.GetBefore()), len(location.GetAfter()))
+	out := fmt.Sprintf("%v is in %v, Slot %v (%.0f %%):\n\n", location.GetRecord(), location.GetLocationName(), location.GetSlot(), percentage)
+
+	for i := len(location.GetBefore()) - 1; i >= 0; i-- {
+		b := location.GetBefore()[i]
+		out += fmt.Sprintf("%v\n", b.GetRecord())
+	}
+
+	out += fmt.Sprintf("%v\n", location.GetRecord())
+
+	for _, a := range location.GetAfter() {
+		out += fmt.Sprintf("%v\n", a.GetRecord())
+	}
+	out += "\n"
+	return out
 }
 
 func executeLocate(ctx context.Context, args []string) error {
@@ -82,23 +62,8 @@ func executeLocate(ctx context.Context, args []string) error {
 			return err
 		}
 
-		title := getTitleFromRelease(ctx, client, int64(*id))
-
 		for _, location := range res.GetLocations() {
-			percentage := calculatePercentage(len(location.GetBefore()), len(location.GetAfter()))
-			fmt.Printf("%v is in %v, Slot %v (%.0f %%):\n\n", title, location.GetLocationName(), location.GetSlot(), percentage)
-
-			for i := len(location.GetBefore()) - 1; i >= 0; i-- {
-				b := location.GetBefore()[i]
-				fmt.Printf("%v\n", getTitle(ctx, client, b.GetIid()))
-			}
-
-			fmt.Printf("%v\n", title)
-
-			for _, a := range location.GetAfter() {
-				fmt.Printf("%v\n", getTitle(ctx, client, a.GetIid()))
-			}
-			fmt.Printf("\n")
+			fmt.Print(formatLocationOutput(location))
 		}
 	}
 
