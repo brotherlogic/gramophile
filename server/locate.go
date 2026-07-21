@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"google.golang.org/grpc/codes"
@@ -10,19 +11,21 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func formatRecordTitle(rec *pb.Record) string {
-	if rec == nil || rec.GetRelease() == nil {
-		return ""
-	}
-	artists := rec.GetRelease().GetArtists()
-	title := rec.GetRelease().GetTitle()
-	if len(artists) > 0 && artists[0].GetName() != "" {
-		if title != "" {
-			return artists[0].GetName() + " - " + title
+func formatRecordTitle(iid int64, rec *pb.Record) string {
+	if rec != nil && rec.GetRelease() != nil {
+		artists := rec.GetRelease().GetArtists()
+		title := rec.GetRelease().GetTitle()
+		if len(artists) > 0 && artists[0].GetName() != "" {
+			if title != "" {
+				return artists[0].GetName() + " - " + title
+			}
+			return artists[0].GetName()
 		}
-		return artists[0].GetName()
+		if title != "" {
+			return title
+		}
 	}
-	return title
+	return fmt.Sprintf("Unknown (%v)", iid)
 }
 
 func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
@@ -71,7 +74,7 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 						LocationName: org.GetName(),
 						Shelf:        p.GetSpace(),
 						Slot:         p.GetUnit(),
-						Record:       formatRecordTitle(iidToRecord[p.GetIid()]),
+						Record:       formatRecordTitle(p.GetIid(), iidToRecord[p.GetIid()]),
 					}
 
 					// Get before context (up to 2)
@@ -81,7 +84,7 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 						loc.Before = append(loc.Before, &pb.Context{
 							Index:  beforeP.GetIndex(),
 							Iid:    beforeP.GetIid(),
-							Record: formatRecordTitle(iidToRecord[beforeP.GetIid()]),
+							Record: formatRecordTitle(beforeP.GetIid(), iidToRecord[beforeP.GetIid()]),
 						})
 						beforeCount++
 					}
@@ -93,7 +96,7 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 						loc.After = append(loc.After, &pb.Context{
 							Index:  afterP.GetIndex(),
 							Iid:    afterP.GetIid(),
-							Record: formatRecordTitle(iidToRecord[afterP.GetIid()]),
+							Record: formatRecordTitle(afterP.GetIid(), iidToRecord[afterP.GetIid()]),
 						})
 						afterCount++
 					}
@@ -105,4 +108,5 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 
 	return &pb.LocateRecordResponse{Locations: locations}, nil
 }
+
 

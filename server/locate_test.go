@@ -138,21 +138,25 @@ func TestLocateRecord_NotFound(t *testing.T) {
 func TestFormatRecordTitle(t *testing.T) {
 	tests := []struct {
 		name     string
+		iid      int64
 		record   *pb.Record
 		expected string
 	}{
 		{
 			name:     "Nil record",
+			iid:      1001,
 			record:   nil,
-			expected: "",
+			expected: "Unknown (1001)",
 		},
 		{
 			name:     "Nil release",
+			iid:      1002,
 			record:   &pb.Record{},
-			expected: "",
+			expected: "Unknown (1002)",
 		},
 		{
 			name: "Artist and Title",
+			iid:  1003,
 			record: &pb.Record{
 				Release: &pbd.Release{
 					Title:   "Thriller",
@@ -163,6 +167,7 @@ func TestFormatRecordTitle(t *testing.T) {
 		},
 		{
 			name: "Artist only",
+			iid:  1004,
 			record: &pb.Record{
 				Release: &pbd.Release{
 					Artists: []*pbd.Artist{{Name: "Prince"}},
@@ -172,6 +177,7 @@ func TestFormatRecordTitle(t *testing.T) {
 		},
 		{
 			name: "Title only",
+			iid:  1005,
 			record: &pb.Record{
 				Release: &pbd.Release{
 					Title: "Untitled Track",
@@ -181,23 +187,25 @@ func TestFormatRecordTitle(t *testing.T) {
 		},
 		{
 			name: "Empty artist name and empty title",
+			iid:  1006,
 			record: &pb.Record{
 				Release: &pbd.Release{
 					Artists: []*pbd.Artist{{Name: ""}},
 					Title:   "",
 				},
 			},
-			expected: "",
+			expected: "Unknown (1006)",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatRecordTitle(tt.record)
+			got := formatRecordTitle(tt.iid, tt.record)
 			if got != tt.expected {
 				t.Errorf("formatRecordTitle() = %q, expected %q", got, tt.expected)
 			}
 		})
 	}
 }
+
 
