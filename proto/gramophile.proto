@@ -42,6 +42,7 @@ message Location {
     string shelf = 5;
     repeated Context before = 2;
     repeated Context after = 3;
+    string record = 6;
 }
 
 message Context {
