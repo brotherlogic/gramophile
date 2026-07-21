@@ -93,3 +93,46 @@ func TestOrganisation_OverlappingFolders(t *testing.T) {
 		t.Errorf("Should have failed with FailedPrecondition or InvalidArgument: %v", err)
 	}
 }
+
+func TestOrganisation_BlankSpaceName(t *testing.T) {
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{
+		WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
+		OrganisationConfig: &pb.OrganisationConfig{
+			Organisations: []*pb.Organisation{
+				{
+					Name:    "testing1",
+					Density: pb.Density_WIDTH,
+					Spaces: []*pb.Space{
+						{Name: ""},
+					},
+				},
+			},
+		}}}
+
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.InvalidArgument {
+		t.Errorf("Should have failed with InvalidArgument for blank space name: %v", err)
+	}
+}
+
+func TestOrganisation_DuplicateSpaceName(t *testing.T) {
+	c := &pb.StoredUser{Config: &pb.GramophileConfig{
+		WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
+		OrganisationConfig: &pb.OrganisationConfig{
+			Organisations: []*pb.Organisation{
+				{
+					Name:    "testing1",
+					Density: pb.Density_WIDTH,
+					Spaces: []*pb.Space{
+						{Name: "shelf1"},
+						{Name: "shelf1"},
+					},
+				},
+			},
+		}}}
+
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.InvalidArgument {
+		t.Errorf("Should have failed with InvalidArgument for duplicate space name: %v", err)
+	}
+}
