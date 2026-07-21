@@ -4,12 +4,12 @@ import (
 	"testing"
 )
 
-func TestLocationTitle(t *testing.T) {
+func TestLocationRecord(t *testing.T) {
 	loc := &Location{
-		Title: "Test Artist - Test Title",
+		Record: "Test Artist - Test Title",
 	}
 
-	if loc.GetTitle() != "Test Artist - Test Title" {
-		t.Errorf("Expected title 'Test Artist - Test Title', got %v", loc.GetTitle())
+	if loc.GetRecord() != "Test Artist - Test Title" {
+		t.Errorf("Expected record 'Test Artist - Test Title', got %v", loc.GetRecord())
 	}
 }
