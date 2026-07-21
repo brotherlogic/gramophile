@@ -25,6 +25,9 @@ func calculatePercentage(beforeCount, afterCount int) float64 {
 }
 
 func formatLocationOutput(location *pb.Location) string {
+	if location == nil {
+		return ""
+	}
 	percentage := calculatePercentage(len(location.GetBefore()), len(location.GetAfter()))
 	out := fmt.Sprintf("%v is in %v, Slot %v (%.0f %%):\n\n", location.GetRecord(), location.GetLocationName(), location.GetSlot(), percentage)
 

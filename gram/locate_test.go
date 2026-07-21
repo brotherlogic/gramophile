@@ -62,3 +62,9 @@ func TestFormatLocationOutput(t *testing.T) {
 	}
 }
 
+func TestFormatLocationOutput_Nil(t *testing.T) {
+	if got := formatLocationOutput(nil); got != "" {
+		t.Errorf("Expected empty string for nil location, got %q", got)
+	}
+}
+
