@@ -3,6 +3,9 @@ package server
 import (
 	"testing"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -31,16 +34,30 @@ func TestLocateRecord_Success(t *testing.T) {
 	s := Server{d: d}
 
 	err = d.SaveRecord(ctx, 123, &pb.Record{
-		Release: &pbd.Release{Id: 100, InstanceId: 1001},
+		Release: &pbd.Release{
+			Id:         100,
+			InstanceId: 1001,
+			Title:      "Album100",
+			Artists:    []*pbd.Artist{{Name: "ArtistA"}},
+		},
 	})
 	if err != nil {
 		t.Fatalf("cannot save record: %v", err)
 	}
 	err = d.SaveRecord(ctx, 123, &pb.Record{
-		Release: &pbd.Release{Id: 101, InstanceId: 1002},
+		Release: &pbd.Release{
+			Id:         101,
+			InstanceId: 1002,
+			Title:      "Album101",
+			Artists:    []*pbd.Artist{{Name: "ArtistB"}},
+		},
 	})
 	err = d.SaveRecord(ctx, 123, &pb.Record{
-		Release: &pbd.Release{Id: 100, InstanceId: 1003},
+		Release: &pbd.Release{
+			Id:         100,
+			InstanceId: 1003,
+			Title:      "Album100_2",
+		},
 	})
 
 	err = d.SaveSnapshot(ctx, &pb.StoredUser{
@@ -74,10 +91,121 @@ func TestLocateRecord_Success(t *testing.T) {
 	if loc1.GetShelf() != "ShelfA" || loc1.GetSlot() != 1 {
 		t.Errorf("Bad location 1: %v", loc1)
 	}
+	if loc1.GetRecord() != "ArtistA - Album100" {
+		t.Errorf("Expected target record 'ArtistA - Album100', got '%v'", loc1.GetRecord())
+	}
 	if len(loc1.GetBefore()) != 1 || loc1.GetBefore()[0].GetIid() != 1002 {
 		t.Errorf("Bad before context 1: %v", loc1.GetBefore())
+	}
+	if loc1.GetBefore()[0].GetRecord() != "ArtistB - Album101" {
+		t.Errorf("Expected before context record 'ArtistB - Album101', got '%v'", loc1.GetBefore()[0].GetRecord())
 	}
 	if len(loc1.GetAfter()) != 1 || loc1.GetAfter()[0].GetIid() != 1003 {
 		t.Errorf("Bad after context 1: %v", loc1.GetAfter())
 	}
+	if loc1.GetAfter()[0].GetRecord() != "Album100_2" {
+		t.Errorf("Expected after context record 'Album100_2', got '%v'", loc1.GetAfter()[0].GetRecord())
+	}
 }
+
+func TestLocateRecord_NotFound(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("cannot save user: %v", err)
+	}
+
+	s := Server{d: d}
+
+	_, err = s.LocateRecord(ctx, &pb.LocateRecordRequest{
+		ReleaseId: 999,
+	})
+
+	if err == nil {
+		t.Fatalf("Expected error for non-existent release, got nil")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.NotFound {
+		t.Errorf("Expected NotFound error code, got %v (err: %v)", st.Code(), err)
+	}
+}
+
+func TestFormatRecordTitle(t *testing.T) {
+	tests := []struct {
+		name     string
+		iid      int64
+		record   *pb.Record
+		expected string
+	}{
+		{
+			name:     "Nil record",
+			iid:      1001,
+			record:   nil,
+			expected: "Unknown (1001)",
+		},
+		{
+			name:     "Nil release",
+			iid:      1002,
+			record:   &pb.Record{},
+			expected: "Unknown (1002)",
+		},
+		{
+			name: "Artist and Title",
+			iid:  1003,
+			record: &pb.Record{
+				Release: &pbd.Release{
+					Title:   "Thriller",
+					Artists: []*pbd.Artist{{Name: "Michael Jackson"}},
+				},
+			},
+			expected: "Michael Jackson - Thriller",
+		},
+		{
+			name: "Artist only",
+			iid:  1004,
+			record: &pb.Record{
+				Release: &pbd.Release{
+					Artists: []*pbd.Artist{{Name: "Prince"}},
+				},
+			},
+			expected: "Prince",
+		},
+		{
+			name: "Title only",
+			iid:  1005,
+			record: &pb.Record{
+				Release: &pbd.Release{
+					Title: "Untitled Track",
+				},
+			},
+			expected: "Untitled Track",
+		},
+		{
+			name: "Empty artist name and empty title",
+			iid:  1006,
+			record: &pb.Record{
+				Release: &pbd.Release{
+					Artists: []*pbd.Artist{{Name: ""}},
+					Title:   "",
+				},
+			},
+			expected: "Unknown (1006)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatRecordTitle(tt.iid, tt.record)
+			if got != tt.expected {
+				t.Errorf("formatRecordTitle() = %q, expected %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+
