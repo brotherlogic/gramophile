@@ -1,4 +1,4 @@
-package tui
+package main
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc"
 )
 
 type appState int
@@ -28,11 +29,11 @@ const (
 )
 
 type AuthClient interface {
-	GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error)
-	GetLogin(ctx context.Context, in *pb.GetLoginRequest) (*pb.GetLoginResponse, error)
-	GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error)
-	GetState(ctx context.Context, in *pb.GetStateRequest) (*pb.GetStateResponse, error)
-	SetConfig(ctx context.Context, in *pb.SetConfigRequest) (*pb.SetConfigResponse, error)
+	GetURL(ctx context.Context, in *pb.GetURLRequest, opts ...grpc.CallOption) (*pb.GetURLResponse, error)
+	GetLogin(ctx context.Context, in *pb.GetLoginRequest, opts ...grpc.CallOption) (*pb.GetLoginResponse, error)
+	GetUser(ctx context.Context, in *pb.GetUserRequest, opts ...grpc.CallOption) (*pb.GetUserResponse, error)
+	GetState(ctx context.Context, in *pb.GetStateRequest, opts ...grpc.CallOption) (*pb.GetStateResponse, error)
+	SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error)
 }
 
 type timeoutMsg struct{}
