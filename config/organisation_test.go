@@ -94,7 +94,13 @@ func TestOrganisation_OverlappingFolders(t *testing.T) {
 		},
 	}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	u := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 123, Name: "Test Folder"},
+		},
+	}
+
+	_, err := ValidateConfig(context.Background(), u, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
 	if err == nil || status.Code(err) != codes.FailedPrecondition {
 		t.Errorf("Should have failed with FailedPrecondition: %v", err)
 	}
