@@ -94,6 +94,58 @@ func TestOrganisation_OverlappingFolders(t *testing.T) {
 	}
 }
 
+func TestOrganisation_WidthMandate_FailedPrecondition(t *testing.T) {
+	c := &pb.StoredUser{
+		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_DISABLED},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "my-org",
+						Density: pb.Density_WIDTH,
+					},
+				},
+			},
+		},
+	}
+
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Expected FailedPrecondition for width mandate missing, got: %v", err)
+	}
+}
+
+func TestOrganisation_DuplicateFolderMapping_FailedPrecondition(t *testing.T) {
+	c := &pb.StoredUser{
+		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "org1",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{Folder: 100},
+						},
+					},
+					{
+						Name:    "org2",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{Folder: 100},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Expected FailedPrecondition for duplicate folder mapping, got: %v", err)
+	}
+}
+
 func TestOrganisation_BlankSpaceName(t *testing.T) {
 	c := &pb.StoredUser{Config: &pb.GramophileConfig{
 		WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
@@ -136,3 +188,4 @@ func TestOrganisation_DuplicateSpaceName(t *testing.T) {
 		t.Errorf("Should have failed with InvalidArgument for duplicate space name: %v", err)
 	}
 }
+
