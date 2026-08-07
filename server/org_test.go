@@ -43,7 +43,7 @@ func TestLabelOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestReleaseDateOrdering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestReleaseDateOrdering_IgnoresGrouping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -338,7 +338,7 @@ func TestLabelOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestReleaseYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -602,7 +602,7 @@ func TestReleaseEarliestYearOrdering_NoGroupingNoSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -733,7 +733,7 @@ func TestLabelOrdering_NoGroupingInfiniteSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -834,7 +834,7 @@ func TestLabelOrdering_GroupingFail(t *testing.T) {
 		{Id: 5, Name: "Width"},
 		{Id: 10, Name: "Sleeve"},
 	}}
-	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -947,7 +947,7 @@ func TestLabelOrdering_GroupingNoSpill(t *testing.T) {
 		{Id: 10, Name: "Sleeve"},
 	}}
 
-	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1113,7 +1113,7 @@ func TestLabelOrdering_GroupingAndSpill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1229,7 +1229,7 @@ func TestLabelOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1374,7 +1374,7 @@ func TestSetSnapshotName(t *testing.T) {
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
 	di := &discogs.TestDiscogsClient{}
-	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1463,7 +1463,7 @@ func TestArtistOrdering_WithOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1559,8 +1559,10 @@ func TestWidths(t *testing.T) {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 	err = d.SaveUser(ctx, &pb.StoredUser{
-		User: &pbd.User{DiscogsUserId: 123},
-		Auth: &pb.GramophileAuth{Token: "123"}})
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+		Folders: []*pbd.Folder{{Id: 12}, {Id: 13}},
+	})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1642,8 +1644,10 @@ func TestWidths_MissingWidth(t *testing.T) {
 		t.Fatalf("Can't init save record: %v", err)
 	}
 	err = d.SaveUser(ctx, &pb.StoredUser{
-		User: &pbd.User{DiscogsUserId: 123},
-		Auth: &pb.GramophileAuth{Token: "123"}})
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+		Folders: []*pbd.Folder{{Id: 12}, {Id: 13}},
+	})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}
@@ -1722,7 +1726,7 @@ func TestGetSnapshotHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't init save record: %v", err)
 	}
-	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
 	if err != nil {
 		t.Fatalf("Can't init save user: %v", err)
 	}

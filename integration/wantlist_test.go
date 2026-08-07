@@ -739,7 +739,7 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
 	err := d.SaveUser(ctx, &pb.StoredUser{
-		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}, {Name: "Listening Pile", Id: 12}},
 		User:    &pbd.User{DiscogsUserId: 123},
 		Auth:    &pb.GramophileAuth{Token: "123"}})
 	if err != nil {
