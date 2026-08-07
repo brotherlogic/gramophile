@@ -37,6 +37,17 @@ func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser)
 		}
 		orgNames[org.GetName()] = true
 
+		spaceNames := make(map[string]bool)
+		for _, space := range org.GetSpaces() {
+			if space.GetName() == "" {
+				return status.Errorf(codes.InvalidArgument, "space name cannot be blank in organisation: %v", org.GetName())
+			}
+			if spaceNames[space.GetName()] {
+				return status.Errorf(codes.InvalidArgument, "duplicate space name %v in organisation: %v", space.GetName(), org.GetName())
+			}
+			spaceNames[space.GetName()] = true
+		}
+
 		for _, fs := range org.GetFoldersets() {
 			if existingOrg, ok := folderMapped[fs.GetFolder()]; ok {
 				return status.Errorf(codes.FailedPrecondition, "folder %v is mapped to multiple organisations: %v and %v", fs.GetFolder(), existingOrg, org.GetName())
