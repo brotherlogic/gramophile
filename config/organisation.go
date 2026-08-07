@@ -49,6 +49,17 @@ func (*org) Validate(ctx context.Context, fields []*pbd.Field, u *pb.StoredUser)
 		}
 
 		for _, fs := range org.GetFoldersets() {
+			found := false
+			for _, folder := range u.GetFolders() {
+				if folder.GetId() == fs.GetFolder() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return status.Errorf(codes.InvalidArgument, "folder %v does not exist", fs.GetFolder())
+			}
+
 			if existingOrg, ok := folderMapped[fs.GetFolder()]; ok {
 				return status.Errorf(codes.FailedPrecondition, "folder %v is mapped to multiple organisations: %v and %v", fs.GetFolder(), existingOrg, org.GetName())
 			}

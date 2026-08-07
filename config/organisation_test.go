@@ -67,30 +67,42 @@ func TestOrganisation_DuplicateName(t *testing.T) {
 }
 
 func TestOrganisation_OverlappingFolders(t *testing.T) {
-	c := &pb.StoredUser{Config: &pb.GramophileConfig{
-		WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
-		OrganisationConfig: &pb.OrganisationConfig{
-			Organisations: []*pb.Organisation{
-				{
-					Name:    "testing1",
-					Density: pb.Density_WIDTH,
-					Foldersets: []*pb.FolderSet{
-						{Folder: 123},
+	c := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 123, Name: "TestFolder"},
+		},
+		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "testing1",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{Folder: 123},
+						},
 					},
-				},
-				{
-					Name:    "testing2",
-					Density: pb.Density_WIDTH,
-					Foldersets: []*pb.FolderSet{
-						{Folder: 123},
+					{
+						Name:    "testing2",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{Folder: 123},
+						},
 					},
 				},
 			},
-		}}}
+		},
+	}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
-	if err == nil || (status.Code(err) != codes.FailedPrecondition && status.Code(err) != codes.InvalidArgument) {
-		t.Errorf("Should have failed with FailedPrecondition or InvalidArgument: %v", err)
+	u := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 123, Name: "Test Folder"},
+		},
+	}
+
+	_, err := ValidateConfig(context.Background(), u, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Should have failed with FailedPrecondition: %v", err)
 	}
 }
 
@@ -117,6 +129,9 @@ func TestOrganisation_WidthMandate_FailedPrecondition(t *testing.T) {
 
 func TestOrganisation_DuplicateFolderMapping_FailedPrecondition(t *testing.T) {
 	c := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 100, Name: "Folder 100"},
+		},
 		Config: &pb.GramophileConfig{
 			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
 			OrganisationConfig: &pb.OrganisationConfig{
@@ -140,7 +155,12 @@ func TestOrganisation_DuplicateFolderMapping_FailedPrecondition(t *testing.T) {
 		},
 	}
 
-	_, err := ValidateConfig(context.Background(), &pb.StoredUser{}, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	u := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 100, Name: "Folder 100"},
+		},
+	}
+	_, err := ValidateConfig(context.Background(), u, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
 	if err == nil || status.Code(err) != codes.FailedPrecondition {
 		t.Errorf("Expected FailedPrecondition for duplicate folder mapping, got: %v", err)
 	}
@@ -189,3 +209,32 @@ func TestOrganisation_DuplicateSpaceName(t *testing.T) {
 	}
 }
 
+func TestOrganisation_NonExistentFolder(t *testing.T) {
+	u := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 100, Name: "Uncategorized"},
+		},
+	}
+
+	c := &pb.StoredUser{
+		Config: &pb.GramophileConfig{
+			WidthConfig: &pb.WidthConfig{Enabled: pb.Enabled_ENABLED_ENABLED},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "testing",
+						Density: pb.Density_WIDTH,
+						Foldersets: []*pb.FolderSet{
+							{Folder: 999},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := ValidateConfig(context.Background(), u, []*pbd.Field{{Name: "Arrived", Id: 1}, {Name: "Width", Id: 2}}, c)
+	if err == nil || status.Code(err) != codes.InvalidArgument {
+		t.Errorf("Should have failed with InvalidArgument for non-existent folder, got: %v", err)
+	}
+}
