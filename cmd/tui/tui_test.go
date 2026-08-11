@@ -67,7 +67,7 @@ func (m *mockClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opt
 }
 
 func TestStateTransitions(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 
 	if m.state != StateStartupLogo {
 		t.Errorf("Expected initial state to be StateStartupLogo, got %v", m.state)
@@ -93,7 +93,7 @@ func TestStateTransitions(t *testing.T) {
 }
 
 func TestTimerTransition(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	
 	// A timeout message should transition to StateLogin
 	msg := timeoutMsg{}
@@ -110,7 +110,7 @@ func TestTimerTransition(t *testing.T) {
 }
 
 func TestStateLogin_GetURL(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLogin
 
 	// Test getting the URL successfully
@@ -128,7 +128,7 @@ func TestStateLogin_GetURL(t *testing.T) {
 }
 
 func TestStateLogin_LoginSuccess(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLogin
 	m.tokenSaver = func(token string) error { return nil } // mock saver
 	
@@ -142,7 +142,7 @@ func TestStateLogin_LoginSuccess(t *testing.T) {
 }
 
 func TestStateLoadingSync_Progress(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	// Trigger sync poll
@@ -175,7 +175,7 @@ func TestStateLoadingSync_Progress(t *testing.T) {
 }
 
 func TestStateLoadingSync_Complete(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	respMsg := syncStatusMsg{
@@ -193,7 +193,7 @@ func TestStateLoadingSync_Complete(t *testing.T) {
 }
 
 func TestStateWaitlist_Poll(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	msg := syncPollMsg{}
@@ -217,7 +217,7 @@ func TestStateWaitlist_Poll(t *testing.T) {
 }
 
 func TestStateWaitlist_Promoted(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	respMsg := syncStatusMsg{
@@ -233,7 +233,7 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 }
 
 func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	if m.syncRetryCount != 0 {

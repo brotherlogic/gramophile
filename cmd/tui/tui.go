@@ -28,17 +28,18 @@ const (
 	StateOrgConfig
 )
 
-type OrgClient interface {
+type AuthClient interface {
 	GetURL(ctx context.Context, in *pb.GetURLRequest, opts ...grpc.CallOption) (*pb.GetURLResponse, error)
 	GetLogin(ctx context.Context, in *pb.GetLoginRequest, opts ...grpc.CallOption) (*pb.GetLoginResponse, error)
 	GetUser(ctx context.Context, in *pb.GetUserRequest, opts ...grpc.CallOption) (*pb.GetUserResponse, error)
 	GetState(ctx context.Context, in *pb.GetStateRequest, opts ...grpc.CallOption) (*pb.GetStateResponse, error)
 	SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error)
+}
+
+type OrgClient interface {
 	GetOrg(ctx context.Context, in *pb.GetOrgRequest, opts ...grpc.CallOption) (*pb.GetOrgResponse, error)
 	GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error)
 }
-
-type AuthClient = OrgClient
 
 type timeoutMsg struct{}
 type urlFetchedMsg struct {
@@ -69,7 +70,8 @@ const initialLogoDuration = 2 * time.Second
 
 type Model struct {
 	state           appState
-	client          OrgClient
+	client          AuthClient
+	orgClient       OrgClient
 	loginURL        string
 	loginToken      string
 	err             error
@@ -114,10 +116,11 @@ func defaultTokenSaver(tokenText string) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
-func InitialModel(client OrgClient) Model {
+func InitialModel(client AuthClient, orgClient OrgClient) Model {
 	return Model{
 		state:      StateStartupLogo,
 		client:     client,
+		orgClient:  orgClient,
 		tokenSaver: defaultTokenSaver,
 		progBar:    progress.New(progress.WithDefaultGradient()),
 	}
