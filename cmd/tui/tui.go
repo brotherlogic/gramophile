@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -27,6 +29,7 @@ const (
 	StateWaitlist
 	StateMainApp
 	StateOrgConfig
+	StateOrgView
 )
 
 type AuthClient interface {
@@ -35,6 +38,11 @@ type AuthClient interface {
 	GetUser(ctx context.Context, in *pb.GetUserRequest, opts ...grpc.CallOption) (*pb.GetUserResponse, error)
 	GetState(ctx context.Context, in *pb.GetStateRequest, opts ...grpc.CallOption) (*pb.GetStateResponse, error)
 	SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error)
+}
+
+type OrgClient interface {
+	GetOrg(ctx context.Context, in *pb.GetOrgRequest, opts ...grpc.CallOption) (*pb.GetOrgResponse, error)
+	GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error)
 }
 
 type timeoutMsg struct{}
@@ -61,12 +69,24 @@ type setConfigMsg struct {
 	err error
 }
 
+type orgFetchedMsg struct {
+	snapshot *pb.OrganisationSnapshot
+	err      error
+}
+
+type recordFetchedMsg struct {
+	iid    int64
+	record *pb.Record
+	err    error
+}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
 type Model struct {
 	state           appState
 	client          AuthClient
+	orgClient       OrgClient
 	loginURL        string
 	loginToken      string
 	err             error
@@ -84,6 +104,18 @@ type Model struct {
 	spaceWidth      string
 	selectedFolders []string
 	sortStrategy    string
+
+	commandInput    string
+	orgViewport     viewport.Model
+	activeOrgName   string
+	activeSlot      int32
+	activeHash      string
+	activeDebug     bool
+	orgSnapshot     *pb.OrganisationSnapshot
+	orgPlacements   []*pb.Placement
+	resolvedRecords map[int64]*pb.Record
+	totalWidth      int32
+	inlineErrMsg    string
 }
 
 func defaultTokenSaver(tokenText string) error {
@@ -112,10 +144,11 @@ func defaultTokenSaver(tokenText string) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
-func InitialModel(client AuthClient) Model {
+func InitialModel(client AuthClient, orgClient OrgClient) Model {
 	return Model{
 		state:      StateStartupLogo,
 		client:     client,
+		orgClient:  orgClient,
 		tokenSaver: defaultTokenSaver,
 		progBar:    progress.New(progress.WithDefaultGradient()),
 	}
@@ -416,12 +449,60 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, cmd
 		}
+	case StateOrgView:
+		switch msg := msg.(type) {
+		case orgFetchedMsg:
+			if msg.err != nil {
+				m.inlineErrMsg = msg.err.Error()
+				return m, nil
+			}
+			m.orgSnapshot = msg.snapshot
+			if msg.snapshot != nil {
+				m.orgPlacements = msg.snapshot.GetPlacements()
+			}
+			m.resolvedRecords = make(map[int64]*pb.Record)
+			m.renderOrgViewport()
+			var cmds []tea.Cmd
+			for _, p := range m.orgPlacements {
+				if p.GetIid() > 0 {
+					cmds = append(cmds, m.fetchRecordCmd(p.GetIid()))
+				}
+			}
+			return m, tea.Batch(cmds...)
+		case recordFetchedMsg:
+			if msg.err == nil && msg.record != nil {
+				if m.resolvedRecords == nil {
+					m.resolvedRecords = make(map[int64]*pb.Record)
+				}
+				m.resolvedRecords[msg.iid] = msg.record
+				m.renderOrgViewport()
+			}
+			return m, nil
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "x", "q", "esc":
+				m.state = StateMainApp
+				return m, nil
+			case "up", "k":
+				m.orgViewport.LineUp(1)
+				return m, nil
+			case "down", "j":
+				m.orgViewport.LineDown(1)
+				return m, nil
+			case "pgup":
+				m.orgViewport.HalfViewUp()
+				return m, nil
+			case "pgdown":
+				m.orgViewport.HalfViewDown()
+				return m, nil
+			}
+		}
 	}
 
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || msg.String() == "q" {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -483,6 +564,12 @@ func (m Model) View() string {
 			view += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
 		}
 		return view
+	case StateOrgView:
+		if m.inlineErrMsg != "" {
+			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		}
+		return fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
+			m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 	}
 	return "Gramophile TUI"
 }
@@ -551,4 +638,183 @@ func (m Model) pollSetConfig(config *pb.GramophileConfig) tea.Cmd {
 		_, err := m.client.SetConfig(ctx, &pb.SetConfigRequest{Config: config})
 		return setConfigMsg{err: err}
 	}
+}
+
+// parseOrgCommand parses command string input for org / orgview commands and flags (--org, --slot, --hash, --debug).
+func parseOrgCommand(input string) (string, int32, string, bool, error) {
+	fields := strings.Fields(strings.TrimSpace(input))
+	if len(fields) == 0 {
+		return "", 0, "", false, fmt.Errorf("empty command")
+	}
+	cmd := fields[0]
+	if cmd != "org" && cmd != "orgview" {
+		return "", 0, "", false, fmt.Errorf("unknown command: %s", cmd)
+	}
+
+	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
+	var orgName string
+	var slot int
+	var hash string
+	var debug bool
+
+	fs.StringVar(&orgName, "org", "", "organization name")
+	fs.IntVar(&slot, "slot", 0, "slot number")
+	fs.StringVar(&hash, "hash", "", "snapshot hash")
+	fs.BoolVar(&debug, "debug", false, "debug mode")
+
+	var flagArgs []string
+	var posArgs []string
+	args := fields[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flagArgs = append(flagArgs, arg)
+			if !strings.Contains(arg, "=") && arg != "--debug" && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				flagArgs = append(flagArgs, args[i+1])
+				i++
+			}
+		} else {
+			posArgs = append(posArgs, arg)
+		}
+	}
+
+	err := fs.Parse(flagArgs)
+	if err != nil {
+		return "", 0, "", false, err
+	}
+
+	if orgName == "" && len(posArgs) > 0 {
+		orgName = posArgs[0]
+	}
+
+	return orgName, int32(slot), hash, debug, nil
+}
+
+func (m Model) fetchOrgCmd(orgName, hash string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return orgFetchedMsg{err: fmt.Errorf("no org client initialized")}
+		}
+		resp, err := m.orgClient.GetOrg(ctx, &pb.GetOrgRequest{
+			OrgName: orgName,
+		})
+		if err != nil {
+			return orgFetchedMsg{err: err}
+		}
+		return orgFetchedMsg{snapshot: resp.GetSnapshot()}
+	}
+}
+
+func (m Model) fetchRecordCmd(iid int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return recordFetchedMsg{iid: iid, err: fmt.Errorf("no org client initialized")}
+		}
+		resp, err := m.orgClient.GetRecord(ctx, &pb.GetRecordRequest{
+			IncludeHistory: false,
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{
+					InstanceId: iid,
+				},
+			},
+		})
+		if err != nil {
+			return recordFetchedMsg{iid: iid, err: err}
+		}
+		if len(resp.GetRecords()) > 0 {
+			return recordFetchedMsg{iid: iid, record: resp.GetRecords()[0].GetRecord()}
+		}
+		return recordFetchedMsg{iid: iid, err: fmt.Errorf("record not found")}
+	}
+}
+
+func (m *Model) renderOrgViewport() {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Organization: %s", m.activeOrgName))
+	if m.activeSlot > 0 {
+		sb.WriteString(fmt.Sprintf(" | Slot: %d", m.activeSlot))
+	}
+	if m.activeHash != "" {
+		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.activeHash))
+	} else if m.orgSnapshot != nil && m.orgSnapshot.GetHash() != "" {
+		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.orgSnapshot.GetHash()))
+	}
+	if m.activeDebug {
+		sb.WriteString(" [DEBUG]")
+	}
+	sb.WriteString("\n\n")
+
+	var sumWidth float32
+	for _, p := range m.orgPlacements {
+		sumWidth += p.GetWidth()
+	}
+	m.totalWidth = int32(sumWidth)
+
+	if len(m.orgPlacements) == 0 {
+		sb.WriteString("No placements found in snapshot.\n")
+	} else {
+		for i, p := range m.orgPlacements {
+			iid := p.GetIid()
+			var titleStr string
+			if m.resolvedRecords != nil {
+				if rec, ok := m.resolvedRecords[iid]; ok && rec != nil {
+					artist := ""
+					title := ""
+					if rec.GetRelease() != nil {
+						if len(rec.GetRelease().GetArtists()) > 0 {
+							artist = rec.GetRelease().GetArtists()[0].GetName()
+						}
+						title = rec.GetRelease().GetTitle()
+					}
+					if artist != "" && title != "" {
+						titleStr = fmt.Sprintf("%s - %s", artist, title)
+					} else if title != "" {
+						titleStr = title
+					} else if artist != "" {
+						titleStr = artist
+					} else {
+						titleStr = fmt.Sprintf("Release #%d", iid)
+					}
+				} else {
+					titleStr = "Loading..."
+				}
+			} else {
+				titleStr = "Loading..."
+			}
+
+			sb.WriteString(fmt.Sprintf("[%d] Space: %s | Unit: %d | Index: %d | Title: %s | Width: %.1f\n",
+				i+1, p.GetSpace(), p.GetUnit(), p.GetIndex(), titleStr, p.GetWidth()))
+		}
+	}
+
+	if m.orgViewport.Width == 0 {
+		m.orgViewport = viewport.New(80, 20)
+	}
+	m.orgViewport.SetContent(sb.String())
+}
+
+// handleCommandInput parses the command string and transitions state to StateOrgView.
+func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
+	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)
+	if err != nil {
+		m.inlineErrMsg = err.Error()
+		return m, nil
+	}
+
+	m.commandInput = cmdStr
+	m.activeOrgName = orgName
+	m.activeSlot = slot
+	m.activeHash = hash
+	m.activeDebug = debug
+	m.inlineErrMsg = ""
+	m.state = StateOrgView
+	m.orgSnapshot = nil
+	m.orgPlacements = nil
+	m.resolvedRecords = nil
+	m.orgViewport = viewport.New(80, 20)
+	return m, m.fetchOrgCmd(orgName, hash)
 }
