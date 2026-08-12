@@ -564,6 +564,7 @@ func (m Model) pollSetConfig(config *pb.GramophileConfig) tea.Cmd {
 	}
 }
 
+// parseOrgCommand parses command string input for org / orgview commands and flags (--org, --slot, --hash, --debug).
 func parseOrgCommand(input string) (string, int32, string, bool, error) {
 	fields := strings.Fields(strings.TrimSpace(input))
 	if len(fields) == 0 {
@@ -613,6 +614,7 @@ func parseOrgCommand(input string) (string, int32, string, bool, error) {
 	return orgName, int32(slot), hash, debug, nil
 }
 
+// handleCommandInput parses the command string and transitions state to StateOrgView.
 func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)
 	if err != nil {
