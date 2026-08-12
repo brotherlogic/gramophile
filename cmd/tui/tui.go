@@ -40,6 +40,11 @@ type AuthClient interface {
 	SetConfig(ctx context.Context, in *pb.SetConfigRequest, opts ...grpc.CallOption) (*pb.SetConfigResponse, error)
 }
 
+type OrgClient interface {
+	GetOrg(ctx context.Context, in *pb.GetOrgRequest, opts ...grpc.CallOption) (*pb.GetOrgResponse, error)
+	GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error)
+}
+
 type timeoutMsg struct{}
 type urlFetchedMsg struct {
 	url   string
@@ -70,6 +75,7 @@ const initialLogoDuration = 2 * time.Second
 type Model struct {
 	state           appState
 	client          AuthClient
+	orgClient       OrgClient
 	loginURL        string
 	loginToken      string
 	err             error
@@ -125,10 +131,11 @@ func defaultTokenSaver(tokenText string) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
-func InitialModel(client AuthClient) Model {
+func InitialModel(client AuthClient, orgClient OrgClient) Model {
 	return Model{
 		state:      StateStartupLogo,
 		client:     client,
+		orgClient:  orgClient,
 		tokenSaver: defaultTokenSaver,
 		progBar:    progress.New(progress.WithDefaultGradient()),
 	}
