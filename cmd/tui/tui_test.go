@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"testing"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	tea "github.com/charmbracelet/bubbletea"
 	"google.golang.org/grpc"
 )
 
 type mockClient struct {
-	getURLFunc   func() (*pb.GetURLResponse, error)
-	getLoginFunc func() (*pb.GetLoginResponse, error)
-	getUserFunc  func() (*pb.GetUserResponse, error)
-	getStateFunc func() (*pb.GetStateResponse, error)
+	getURLFunc    func() (*pb.GetURLResponse, error)
+	getLoginFunc  func() (*pb.GetLoginResponse, error)
+	getUserFunc   func() (*pb.GetUserResponse, error)
+	getStateFunc  func() (*pb.GetStateResponse, error)
+	getOrgFunc    func(*pb.GetOrgRequest) (*pb.GetOrgResponse, error)
+	getRecordFunc func(*pb.GetRecordRequest) (*pb.GetRecordResponse, error)
 }
 
 func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest, opts ...grpc.CallOption) (*pb.GetURLResponse, error) {
@@ -49,8 +52,22 @@ func (m *mockClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest, opt
 	return &pb.SetConfigResponse{}, nil
 }
 
+func (m *mockClient) GetOrg(ctx context.Context, in *pb.GetOrgRequest, opts ...grpc.CallOption) (*pb.GetOrgResponse, error) {
+	if m.getOrgFunc != nil {
+		return m.getOrgFunc(in)
+	}
+	return &pb.GetOrgResponse{}, nil
+}
+
+func (m *mockClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error) {
+	if m.getRecordFunc != nil {
+		return m.getRecordFunc(in)
+	}
+	return &pb.GetRecordResponse{}, nil
+}
+
 func TestStateTransitions(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 
 	if m.state != StateStartupLogo {
 		t.Errorf("Expected initial state to be StateStartupLogo, got %v", m.state)
@@ -76,7 +93,7 @@ func TestStateTransitions(t *testing.T) {
 }
 
 func TestTimerTransition(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	
 	// A timeout message should transition to StateLogin
 	msg := timeoutMsg{}
@@ -93,7 +110,7 @@ func TestTimerTransition(t *testing.T) {
 }
 
 func TestStateLogin_GetURL(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLogin
 
 	// Test getting the URL successfully
@@ -111,7 +128,7 @@ func TestStateLogin_GetURL(t *testing.T) {
 }
 
 func TestStateLogin_LoginSuccess(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLogin
 	m.tokenSaver = func(token string) error { return nil } // mock saver
 	
@@ -125,7 +142,7 @@ func TestStateLogin_LoginSuccess(t *testing.T) {
 }
 
 func TestStateLoadingSync_Progress(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	// Trigger sync poll
@@ -158,7 +175,7 @@ func TestStateLoadingSync_Progress(t *testing.T) {
 }
 
 func TestStateLoadingSync_Complete(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	respMsg := syncStatusMsg{
@@ -176,7 +193,7 @@ func TestStateLoadingSync_Complete(t *testing.T) {
 }
 
 func TestStateWaitlist_Poll(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	msg := syncPollMsg{}
@@ -200,7 +217,7 @@ func TestStateWaitlist_Poll(t *testing.T) {
 }
 
 func TestStateWaitlist_Promoted(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	respMsg := syncStatusMsg{
@@ -216,7 +233,7 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 }
 
 func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
-	m := InitialModel(&mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	if m.syncRetryCount != 0 {
@@ -240,3 +257,45 @@ func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
 		t.Errorf("Expected syncRetryCount to be 2, got %v", updatedModel.syncRetryCount)
 	}
 }
+
+func TestMockClientGetOrgAndGetRecord(t *testing.T) {
+	var client OrgClient = &mockClient{
+		getOrgFunc: func(req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
+			return &pb.GetOrgResponse{
+				Snapshot: &pb.OrganisationSnapshot{
+					Hash: "test-hash",
+				},
+			}, nil
+		},
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			return &pb.GetRecordResponse{
+				Records: []*pb.RecordResponse{
+					{
+						Record: &pb.Record{
+							Release: &pbd.Release{
+								Id: 12345,
+							},
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	orgResp, err := client.GetOrg(context.Background(), &pb.GetOrgRequest{OrgName: "test-org"})
+	if err != nil {
+		t.Fatalf("GetOrg returned error: %v", err)
+	}
+	if orgResp.GetSnapshot().GetHash() != "test-hash" {
+		t.Errorf("Expected snapshot hash 'test-hash', got '%s'", orgResp.GetSnapshot().GetHash())
+	}
+
+	recResp, err := client.GetRecord(context.Background(), &pb.GetRecordRequest{})
+	if err != nil {
+		t.Fatalf("GetRecord returned error: %v", err)
+	}
+	if len(recResp.GetRecords()) != 1 || recResp.GetRecords()[0].GetRecord().GetRelease().GetId() != 12345 {
+		t.Errorf("Unexpected GetRecord response: %+v", recResp)
+	}
+}
+

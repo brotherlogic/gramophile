@@ -26,7 +26,7 @@ func (m *mockOrgClient) SetConfig(ctx context.Context, in *pb.SetConfigRequest, 
 }
 
 func TestTransitionToOrgConfig(t *testing.T) {
-	m := InitialModel(&mockOrgClient{})
+	m := InitialModel(&mockOrgClient{}, &mockOrgClient{})
 	m.state = StateMainApp
 	m.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{
@@ -65,7 +65,7 @@ func TestOrgConfigSubmissionSuccess(t *testing.T) {
 		},
 	}
 
-	m := InitialModel(client)
+	m := InitialModel(client, client)
 	m.state = StateOrgConfig
 	m.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{
@@ -146,7 +146,7 @@ func TestOrgConfigSubmissionError(t *testing.T) {
 		},
 	}
 
-	m := InitialModel(client)
+	m := InitialModel(client, client)
 	m.state = StateOrgConfig
 	m.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{
