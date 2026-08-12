@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"google.golang.org/grpc"
 )
@@ -356,4 +358,135 @@ func TestMockClientGetOrgAndGetRecord(t *testing.T) {
 		t.Errorf("Unexpected GetRecord response: %+v", recResp)
 	}
 }
+
+func TestOrgFetchedAndRecordResolution(t *testing.T) {
+	mock := &mockClient{
+		getOrgFunc: func(req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
+			return &pb.GetOrgResponse{
+				Snapshot: &pb.OrganisationSnapshot{
+					Hash: "hash-123",
+					Placements: []*pb.Placement{
+						{Iid: 101, Space: "MainShelf", Unit: 1, Index: 1, Width: 12.5},
+						{Iid: 102, Space: "MainShelf", Unit: 1, Index: 2, Width: 15.0},
+					},
+				},
+			}, nil
+		},
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			return &pb.GetRecordResponse{
+				Records: []*pb.RecordResponse{
+					{
+						Record: &pb.Record{
+							Release: &pbd.Release{
+								Id:      101,
+								Title:   "Blue Train",
+								Artists: []*pbd.Artist{{Name: "John Coltrane"}},
+							},
+							Width: 12.5,
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	m := InitialModel(mock, mock)
+	m.state = StateMainApp
+
+	newModel, cmd := m.handleCommandInput("org --org TestOrg")
+	m = newModel.(Model)
+
+	if m.state != StateOrgView {
+		t.Fatalf("Expected state StateOrgView, got %v", m.state)
+	}
+
+	if cmd == nil {
+		t.Fatalf("Expected fetchOrgCmd to be returned")
+	}
+	orgMsg := cmd()
+	fetchedMsg, ok := orgMsg.(orgFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected orgFetchedMsg, got %T", orgMsg)
+	}
+
+	newModel, batchCmd := m.Update(fetchedMsg)
+	m = newModel.(Model)
+
+	if len(m.orgPlacements) != 2 {
+		t.Errorf("Expected 2 placements, got %d", len(m.orgPlacements))
+	}
+
+	viewContent := m.orgViewport.View()
+	if !strings.Contains(viewContent, "Loading...") {
+		t.Errorf("Expected viewport to initially contain placeholder Loading..., got:\n%s", viewContent)
+	}
+
+	if batchCmd == nil {
+		t.Fatalf("Expected batch fetchRecordCmd batch to be returned")
+	}
+
+	recMsg1 := recordFetchedMsg{
+		iid: 101,
+		record: &pb.Record{
+			Release: &pbd.Release{
+				Id:      101,
+				Title:   "Blue Train",
+				Artists: []*pbd.Artist{{Name: "John Coltrane"}},
+			},
+		},
+	}
+	newModel, _ = m.Update(recMsg1)
+	m = newModel.(Model)
+
+	viewContentUpdated := m.orgViewport.View()
+	if !strings.Contains(viewContentUpdated, "John Coltrane - Blue Train") {
+		t.Errorf("Expected viewport to contain resolved title John Coltrane - Blue Train, got:\n%s", viewContentUpdated)
+	}
+}
+
+func TestOrgViewNavigationAndExit(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{})
+	m.state = StateOrgView
+	m.orgViewport = viewport.New(80, 5)
+	m.orgViewport.SetContent("Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10")
+
+	navKeys := []string{"down", "j", "up", "k", "pgdown", "pgup"}
+	for _, k := range navKeys {
+		var keyMsg tea.KeyMsg
+		switch k {
+		case "down":
+			keyMsg = tea.KeyMsg{Type: tea.KeyDown}
+		case "up":
+			keyMsg = tea.KeyMsg{Type: tea.KeyUp}
+		case "pgdown":
+			keyMsg = tea.KeyMsg{Type: tea.KeyPgDown}
+		case "pgup":
+			keyMsg = tea.KeyMsg{Type: tea.KeyPgUp}
+		default:
+			keyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+		}
+		newModel, _ := m.Update(keyMsg)
+		m = newModel.(Model)
+		if m.state != StateOrgView {
+			t.Errorf("Key %s changed state unexpectedly to %v", k, m.state)
+		}
+	}
+
+	exitKeys := []string{"x", "q", "esc"}
+	for _, ek := range exitKeys {
+		m.state = StateOrgView
+		var keyMsg tea.KeyMsg
+		if ek == "esc" {
+			keyMsg = tea.KeyMsg{Type: tea.KeyEsc}
+		} else {
+			keyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(ek)}
+		}
+		newModel, _ := m.Update(keyMsg)
+		m = newModel.(Model)
+		if m.state != StateMainApp {
+			t.Errorf("Expected exit key %s to transition to StateMainApp, got %v", ek, m.state)
+		}
+	}
+}
+
 

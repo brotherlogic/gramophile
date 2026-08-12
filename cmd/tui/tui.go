@@ -69,6 +69,17 @@ type setConfigMsg struct {
 	err error
 }
 
+type orgFetchedMsg struct {
+	snapshot *pb.OrganisationSnapshot
+	err      error
+}
+
+type recordFetchedMsg struct {
+	iid    int64
+	record *pb.Record
+	err    error
+}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
@@ -101,6 +112,7 @@ type Model struct {
 	activeDebug     bool
 	orgSnapshot     *pb.OrganisationSnapshot
 	orgPlacements   []*pb.Placement
+	resolvedRecords map[int64]*pb.Record
 	totalWidth      int32
 	inlineErrMsg    string
 }
@@ -433,9 +445,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case StateOrgView:
 		switch msg := msg.(type) {
+		case orgFetchedMsg:
+			if msg.err != nil {
+				m.inlineErrMsg = msg.err.Error()
+				return m, nil
+			}
+			m.orgSnapshot = msg.snapshot
+			if msg.snapshot != nil {
+				m.orgPlacements = msg.snapshot.GetPlacements()
+			}
+			m.resolvedRecords = make(map[int64]*pb.Record)
+			m.renderOrgViewport()
+			var cmds []tea.Cmd
+			for _, p := range m.orgPlacements {
+				if p.GetIid() > 0 {
+					cmds = append(cmds, m.fetchRecordCmd(p.GetIid()))
+				}
+			}
+			return m, tea.Batch(cmds...)
+		case recordFetchedMsg:
+			if msg.err == nil && msg.record != nil {
+				if m.resolvedRecords == nil {
+					m.resolvedRecords = make(map[int64]*pb.Record)
+				}
+				m.resolvedRecords[msg.iid] = msg.record
+				m.renderOrgViewport()
+			}
+			return m, nil
 		case tea.KeyMsg:
-			if msg.String() == "x" || msg.String() == "esc" {
+			switch msg.String() {
+			case "x", "q", "esc":
 				m.state = StateMainApp
+				return m, nil
+			case "up", "k":
+				m.orgViewport.LineUp(1)
+				return m, nil
+			case "down", "j":
+				m.orgViewport.LineDown(1)
+				return m, nil
+			case "pgup":
+				m.orgViewport.HalfViewUp()
+				return m, nil
+			case "pgdown":
+				m.orgViewport.HalfViewDown()
 				return m, nil
 			}
 		}
@@ -444,7 +496,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || msg.String() == "q" {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -621,6 +673,113 @@ func parseOrgCommand(input string) (string, int32, string, bool, error) {
 	return orgName, int32(slot), hash, debug, nil
 }
 
+func (m Model) fetchOrgCmd(orgName, hash string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return orgFetchedMsg{err: fmt.Errorf("no org client initialized")}
+		}
+		resp, err := m.orgClient.GetOrg(ctx, &pb.GetOrgRequest{
+			OrgName: orgName,
+		})
+		if err != nil {
+			return orgFetchedMsg{err: err}
+		}
+		return orgFetchedMsg{snapshot: resp.GetSnapshot()}
+	}
+}
+
+func (m Model) fetchRecordCmd(iid int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return recordFetchedMsg{iid: iid, err: fmt.Errorf("no org client initialized")}
+		}
+		resp, err := m.orgClient.GetRecord(ctx, &pb.GetRecordRequest{
+			IncludeHistory: false,
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{
+					InstanceId: iid,
+				},
+			},
+		})
+		if err != nil {
+			return recordFetchedMsg{iid: iid, err: err}
+		}
+		if len(resp.GetRecords()) > 0 {
+			return recordFetchedMsg{iid: iid, record: resp.GetRecords()[0].GetRecord()}
+		}
+		return recordFetchedMsg{iid: iid, err: fmt.Errorf("record not found")}
+	}
+}
+
+func (m *Model) renderOrgViewport() {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Organization: %s", m.activeOrgName))
+	if m.activeSlot > 0 {
+		sb.WriteString(fmt.Sprintf(" | Slot: %d", m.activeSlot))
+	}
+	if m.activeHash != "" {
+		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.activeHash))
+	} else if m.orgSnapshot != nil && m.orgSnapshot.GetHash() != "" {
+		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.orgSnapshot.GetHash()))
+	}
+	if m.activeDebug {
+		sb.WriteString(" [DEBUG]")
+	}
+	sb.WriteString("\n\n")
+
+	var sumWidth float32
+	for _, p := range m.orgPlacements {
+		sumWidth += p.GetWidth()
+	}
+	m.totalWidth = int32(sumWidth)
+
+	if len(m.orgPlacements) == 0 {
+		sb.WriteString("No placements found in snapshot.\n")
+	} else {
+		for i, p := range m.orgPlacements {
+			iid := p.GetIid()
+			var titleStr string
+			if m.resolvedRecords != nil {
+				if rec, ok := m.resolvedRecords[iid]; ok && rec != nil {
+					artist := ""
+					title := ""
+					if rec.GetRelease() != nil {
+						if len(rec.GetRelease().GetArtists()) > 0 {
+							artist = rec.GetRelease().GetArtists()[0].GetName()
+						}
+						title = rec.GetRelease().GetTitle()
+					}
+					if artist != "" && title != "" {
+						titleStr = fmt.Sprintf("%s - %s", artist, title)
+					} else if title != "" {
+						titleStr = title
+					} else if artist != "" {
+						titleStr = artist
+					} else {
+						titleStr = fmt.Sprintf("Release #%d", iid)
+					}
+				} else {
+					titleStr = "Loading..."
+				}
+			} else {
+				titleStr = "Loading..."
+			}
+
+			sb.WriteString(fmt.Sprintf("[%d] Space: %s | Unit: %d | Index: %d | Title: %s | Width: %.1f\n",
+				i+1, p.GetSpace(), p.GetUnit(), p.GetIndex(), titleStr, p.GetWidth()))
+		}
+	}
+
+	if m.orgViewport.Width == 0 {
+		m.orgViewport = viewport.New(80, 20)
+	}
+	m.orgViewport.SetContent(sb.String())
+}
+
 // handleCommandInput parses the command string and transitions state to StateOrgView.
 func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)
@@ -636,5 +795,9 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	m.activeDebug = debug
 	m.inlineErrMsg = ""
 	m.state = StateOrgView
-	return m, nil
+	m.orgSnapshot = nil
+	m.orgPlacements = nil
+	m.resolvedRecords = nil
+	m.orgViewport = viewport.New(80, 20)
+	return m, m.fetchOrgCmd(orgName, hash)
 }
