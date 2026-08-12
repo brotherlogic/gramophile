@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -26,6 +29,7 @@ const (
 	StateWaitlist
 	StateMainApp
 	StateOrgConfig
+	StateOrgView
 )
 
 type AuthClient interface {
@@ -88,6 +92,17 @@ type Model struct {
 	spaceWidth      string
 	selectedFolders []string
 	sortStrategy    string
+
+	commandInput    string
+	orgViewport     viewport.Model
+	activeOrgName   string
+	activeSlot      int32
+	activeHash      string
+	activeDebug     bool
+	orgSnapshot     *pb.OrganisationSnapshot
+	orgPlacements   []*pb.Placement
+	totalWidth      int32
+	inlineErrMsg    string
 }
 
 func defaultTokenSaver(tokenText string) error {
@@ -416,6 +431,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, cmd
 		}
+	case StateOrgView:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.String() == "x" || msg.String() == "esc" {
+				m.state = StateMainApp
+				return m, nil
+			}
+		}
 	}
 
 	// Handle global quit
@@ -472,6 +495,12 @@ func (m Model) View() string {
 			return m.form.View()
 		}
 		return "Loading wizard..."
+	case StateOrgView:
+		if m.inlineErrMsg != "" {
+			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		}
+		return fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
+			m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 	}
 	return "Gramophile TUI"
 }
@@ -540,4 +569,72 @@ func (m Model) pollSetConfig(config *pb.GramophileConfig) tea.Cmd {
 		_, err := m.client.SetConfig(ctx, &pb.SetConfigRequest{Config: config})
 		return setConfigMsg{err: err}
 	}
+}
+
+// parseOrgCommand parses command string input for org / orgview commands and flags (--org, --slot, --hash, --debug).
+func parseOrgCommand(input string) (string, int32, string, bool, error) {
+	fields := strings.Fields(strings.TrimSpace(input))
+	if len(fields) == 0 {
+		return "", 0, "", false, fmt.Errorf("empty command")
+	}
+	cmd := fields[0]
+	if cmd != "org" && cmd != "orgview" {
+		return "", 0, "", false, fmt.Errorf("unknown command: %s", cmd)
+	}
+
+	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
+	var orgName string
+	var slot int
+	var hash string
+	var debug bool
+
+	fs.StringVar(&orgName, "org", "", "organization name")
+	fs.IntVar(&slot, "slot", 0, "slot number")
+	fs.StringVar(&hash, "hash", "", "snapshot hash")
+	fs.BoolVar(&debug, "debug", false, "debug mode")
+
+	var flagArgs []string
+	var posArgs []string
+	args := fields[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flagArgs = append(flagArgs, arg)
+			if !strings.Contains(arg, "=") && arg != "--debug" && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				flagArgs = append(flagArgs, args[i+1])
+				i++
+			}
+		} else {
+			posArgs = append(posArgs, arg)
+		}
+	}
+
+	err := fs.Parse(flagArgs)
+	if err != nil {
+		return "", 0, "", false, err
+	}
+
+	if orgName == "" && len(posArgs) > 0 {
+		orgName = posArgs[0]
+	}
+
+	return orgName, int32(slot), hash, debug, nil
+}
+
+// handleCommandInput parses the command string and transitions state to StateOrgView.
+func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
+	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)
+	if err != nil {
+		m.inlineErrMsg = err.Error()
+		return m, nil
+	}
+
+	m.commandInput = cmdStr
+	m.activeOrgName = orgName
+	m.activeSlot = slot
+	m.activeHash = hash
+	m.activeDebug = debug
+	m.inlineErrMsg = ""
+	m.state = StateOrgView
+	return m, nil
 }

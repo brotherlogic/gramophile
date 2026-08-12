@@ -258,6 +258,64 @@ func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
 	}
 }
 
+func TestOrgCommandParsing(t *testing.T) {
+	orgName, slot, hash, debug, err := parseOrgCommand("org --org MyCollection --slot 2 --hash abc1234 --debug")
+	if err != nil {
+		t.Fatalf("Unexpected error parsing org command: %v", err)
+	}
+	if orgName != "MyCollection" {
+		t.Errorf("Expected orgName to be MyCollection, got %v", orgName)
+	}
+	if slot != 2 {
+		t.Errorf("Expected slot to be 2, got %v", slot)
+	}
+	if hash != "abc1234" {
+		t.Errorf("Expected hash to be abc1234, got %v", hash)
+	}
+	if !debug {
+		t.Errorf("Expected debug to be true, got %v", debug)
+	}
+
+	// Test positional org name with orgview
+	orgName2, slot2, hash2, debug2, err2 := parseOrgCommand("orgview PositionalOrg")
+	if err2 != nil {
+		t.Fatalf("Unexpected error parsing orgview command: %v", err2)
+	}
+	if orgName2 != "PositionalOrg" {
+		t.Errorf("Expected orgName to be PositionalOrg, got %v", orgName2)
+	}
+	if slot2 != 0 || hash2 != "" || debug2 {
+		t.Errorf("Expected default values for slot/hash/debug, got slot=%v, hash=%v, debug=%v", slot2, hash2, debug2)
+	}
+
+	// Test invalid command prefix
+	_, _, _, _, errInvalid := parseOrgCommand("invalidcommand MyOrg")
+	if errInvalid == nil {
+		t.Errorf("Expected error for non-org command prefix")
+	}
+}
+
+func TestStateOrgViewTransition(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{})
+	m.state = StateMainApp
+
+	newModel, _ := m.handleCommandInput("org --org MyOrg --slot 1")
+	updatedModel, ok := newModel.(Model)
+	if !ok {
+		t.Fatalf("Expected model to be of type Model")
+	}
+
+	if updatedModel.state != StateOrgView {
+		t.Errorf("Expected state to transition to StateOrgView, got %v", updatedModel.state)
+	}
+	if updatedModel.activeOrgName != "MyOrg" {
+		t.Errorf("Expected activeOrgName to be MyOrg, got %v", updatedModel.activeOrgName)
+	}
+	if updatedModel.activeSlot != 1 {
+		t.Errorf("Expected activeSlot to be 1, got %v", updatedModel.activeSlot)
+	}
+}
+
 func TestMockClientGetOrgAndGetRecord(t *testing.T) {
 	var client OrgClient = &mockClient{
 		getOrgFunc: func(req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
