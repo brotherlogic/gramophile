@@ -10,6 +10,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"google.golang.org/grpc"
 )
 
@@ -260,6 +261,102 @@ func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
 	}
 }
 
+func TestOrgErrorInlineReporting(t *testing.T) {
+	client := &mockOrgClient{
+		setConfigFunc: func(req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+			return nil, fmt.Errorf("gRPC communication failure")
+		},
+	}
+
+	m := InitialModel(client, client)
+	m.state = StateOrgConfig
+	m.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
+		Config:  &pb.GramophileConfig{},
+	}
+	m.initOrgConfigForm()
+	m.orgName = "Valid Org"
+	m.spaceName = "Main Shelf"
+	m.spaceUnits = "2"
+	m.spaceWidth = "12.5"
+	m.selectedFolders = []string{"123"}
+	m.sortStrategy = "RELEASE_YEAR"
+	m.form.State = huh.StateCompleted
+
+	newModel, cmd := m.Update(tea.WindowSizeMsg{})
+	updatedModel := newModel.(Model)
+	if cmd == nil {
+		t.Fatalf("Expected cmd to call SetConfig")
+	}
+
+	msg := cmd()
+	newModel, _ = updatedModel.Update(msg)
+	updatedModel = newModel.(Model)
+
+	if updatedModel.state != StateOrgConfig {
+		t.Errorf("Expected state to remain StateOrgConfig on gRPC error, got %v", updatedModel.state)
+	}
+	if updatedModel.form == nil {
+		t.Errorf("Expected form to not be nil on gRPC error")
+	}
+	view := updatedModel.View()
+	if !strings.Contains(view, "gRPC communication failure") {
+		t.Errorf("Expected view to contain inline error message 'gRPC communication failure', got:\n%s", view)
+	}
+
+	// Test case 2: Empty organization name validation
+	m2 := InitialModel(client, client)
+	m2.state = StateOrgConfig
+	m2.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
+		Config:  &pb.GramophileConfig{},
+	}
+	m2.initOrgConfigForm()
+	m2.orgName = ""
+	m2.spaceName = "Main Shelf"
+	m2.spaceUnits = "2"
+	m2.spaceWidth = "12.5"
+	m2.selectedFolders = []string{"123"}
+	m2.sortStrategy = "RELEASE_YEAR"
+	m2.form.State = huh.StateCompleted
+
+	newModel2, _ := m2.Update(tea.WindowSizeMsg{})
+	updatedModel2 := newModel2.(Model)
+	if updatedModel2.state != StateOrgConfig {
+		t.Errorf("Expected state to remain StateOrgConfig on invalid org name, got %v", updatedModel2.state)
+	}
+	view2 := updatedModel2.View()
+	if !strings.Contains(view2, "Organization name cannot be empty") && !strings.Contains(view2, "invalid organization name") && !strings.Contains(view2, "cannot be empty") {
+		t.Errorf("Expected view to contain inline error message for empty org name, got:\n%s", view2)
+	}
+
+	// Test case 3: Empty placement list (selectedFolders) validation
+	m3 := InitialModel(client, client)
+	m3.state = StateOrgConfig
+	m3.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
+		Config:  &pb.GramophileConfig{},
+	}
+	m3.initOrgConfigForm()
+	m3.orgName = "Valid Org"
+	m3.spaceName = "Main Shelf"
+	m3.spaceUnits = "2"
+	m3.spaceWidth = "12.5"
+	m3.selectedFolders = nil
+	m3.sortStrategy = "RELEASE_YEAR"
+	m3.form.State = huh.StateCompleted
+
+	newModel3, _ := m3.Update(tea.WindowSizeMsg{})
+	updatedModel3 := newModel3.(Model)
+	if updatedModel3.state != StateOrgConfig {
+		t.Errorf("Expected state to remain StateOrgConfig on empty placement list, got %v", updatedModel3.state)
+	}
+	view3 := updatedModel3.View()
+	if !strings.Contains(view3, "placement") && !strings.Contains(view3, "folder") {
+		t.Errorf("Expected view to contain inline error message for empty placement list, got:\n%s", view3)
+	}
+}
+
 func TestOrgCommandParsing(t *testing.T) {
 	orgName, slot, hash, debug, err := parseOrgCommand("org --org MyCollection --slot 2 --hash abc1234 --debug")
 	if err != nil {
@@ -488,5 +585,3 @@ func TestOrgViewNavigationAndExit(t *testing.T) {
 		}
 	}
 }
-
-

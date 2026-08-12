@@ -90,6 +90,7 @@ type Model struct {
 	loginURL        string
 	loginToken      string
 	err             error
+	orgErr          string
 	tokenSaver      func(string) error
 	progress        float64
 	progBar         progress.Model
@@ -327,6 +328,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			if msg.String() == "o" {
 				m.state = StateOrgConfig
+				m.orgErr = ""
 				m.initOrgConfigForm()
 				return m, nil
 			}
@@ -334,21 +336,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateOrgConfig:
 		if msg, ok := msg.(setConfigMsg); ok {
 			if msg.err != nil {
-				m.err = msg.err
-				m.form = nil
+				m.orgErr = fmt.Sprintf("gRPC communication failure: %v", msg.err)
 				return m, nil
 			}
 			m.state = StateMainApp
 			m.form = nil
-			return m, nil
-		}
-
-		if m.err != nil {
-			if _, ok := msg.(tea.KeyMsg); ok {
-				m.err = nil
-				m.state = StateMainApp
-				return m, nil
-			}
+			m.orgErr = ""
 			return m, nil
 		}
 
@@ -359,6 +352,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.form.State == huh.StateCompleted {
+				if strings.TrimSpace(m.orgName) == "" {
+					m.orgErr = "Error: Organization name cannot be empty"
+					m.form.State = huh.StateNormal
+					return m, nil
+				}
+				if len(m.selectedFolders) == 0 {
+					m.orgErr = "Error: At least one folder placement must be selected"
+					m.form.State = huh.StateNormal
+					return m, nil
+				}
+
+				m.orgErr = ""
 				unitsVal64, _ := strconv.ParseInt(m.spaceUnits, 10, 32)
 				unitsVal := int32(unitsVal64)
 				widthVal, _ := strconv.ParseFloat(m.spaceWidth, 64)
@@ -438,6 +443,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.form.State == huh.StateAborted {
 				m.state = StateMainApp
 				m.form = nil
+				m.orgErr = ""
 				return m, nil
 			}
 
@@ -540,13 +546,24 @@ func (m Model) View() string {
 	case StateMainApp:
 		return "\nHandoff to main application complete.\n"
 	case StateOrgConfig:
-		if m.err != nil {
-			return fmt.Sprintf("Error saving organization configuration:\n\n  %v\n\nPress any key to return...", m.err)
-		}
+		var view string
 		if m.form != nil {
-			return m.form.View()
+			view = m.form.View()
+		} else {
+			view = "Loading wizard..."
 		}
-		return "Loading wizard..."
+		if m.orgErr != "" {
+			errStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF0000")).
+				Bold(true)
+			view += "\n\n" + errStyle.Render(m.orgErr)
+		} else if m.err != nil {
+			errStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF0000")).
+				Bold(true)
+			view += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
+		}
+		return view
 	case StateOrgView:
 		if m.inlineErrMsg != "" {
 			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)

@@ -178,30 +178,22 @@ func TestOrgConfigSubmissionError(t *testing.T) {
 	newModel, cmd = updatedModel.Update(msg)
 	updatedModel = newModel.(Model)
 
-	// Since error was returned, we should display it
-	if updatedModel.err == nil || updatedModel.err.Error() != "duplicate organization name" {
-		t.Errorf("Expected error to be stored in model, got: %v", updatedModel.err)
+	// Since error was returned, we should display it inline
+	if updatedModel.orgErr == "" && updatedModel.err == nil {
+		t.Errorf("Expected error to be stored in model")
 	}
 
-	// State should remain StateOrgConfig or handle error screen
+	// State should remain StateOrgConfig and form should remain active
 	if updatedModel.state != StateOrgConfig {
 		t.Errorf("Expected state to remain StateOrgConfig, got %v", updatedModel.state)
 	}
+	if updatedModel.form == nil {
+		t.Errorf("Expected form to remain active for inline error reporting")
+	}
 
-	// Verify the view shows the error
+	// Verify the view shows the error inline
 	view := updatedModel.View()
 	if !strings.Contains(view, "duplicate organization name") {
 		t.Errorf("Expected view to contain the error message, got:\n%s", view)
-	}
-
-	// Pressing any key should clear error and transition back to StateMainApp
-	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	updatedModel = newModel.(Model)
-
-	if updatedModel.state != StateMainApp {
-		t.Errorf("Expected transition to StateMainApp on key press, got %v", updatedModel.state)
-	}
-	if updatedModel.err != nil {
-		t.Errorf("Expected error to be cleared, got %v", updatedModel.err)
 	}
 }
