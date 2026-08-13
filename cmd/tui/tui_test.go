@@ -15,12 +15,13 @@ import (
 )
 
 type mockClient struct {
-	getURLFunc    func() (*pb.GetURLResponse, error)
-	getLoginFunc  func() (*pb.GetLoginResponse, error)
-	getUserFunc   func() (*pb.GetUserResponse, error)
-	getStateFunc  func() (*pb.GetStateResponse, error)
-	getOrgFunc    func(*pb.GetOrgRequest) (*pb.GetOrgResponse, error)
-	getRecordFunc func(*pb.GetRecordRequest) (*pb.GetRecordResponse, error)
+	getURLFunc       func() (*pb.GetURLResponse, error)
+	getLoginFunc     func() (*pb.GetLoginResponse, error)
+	getUserFunc      func() (*pb.GetUserResponse, error)
+	getStateFunc     func() (*pb.GetStateResponse, error)
+	getOrgFunc       func(*pb.GetOrgRequest) (*pb.GetOrgResponse, error)
+	getRecordFunc    func(*pb.GetRecordRequest) (*pb.GetRecordResponse, error)
+	locateRecordFunc func(*pb.LocateRecordRequest) (*pb.LocateRecordResponse, error)
 }
 
 func (m *mockClient) GetURL(ctx context.Context, in *pb.GetURLRequest, opts ...grpc.CallOption) (*pb.GetURLResponse, error) {
@@ -70,6 +71,9 @@ func (m *mockClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opt
 }
 
 func (m *mockClient) LocateRecord(ctx context.Context, in *pb.LocateRecordRequest, opts ...grpc.CallOption) (*pb.LocateRecordResponse, error) {
+	if m.locateRecordFunc != nil {
+		return m.locateRecordFunc(in)
+	}
 	return &pb.LocateRecordResponse{}, nil
 }
 
@@ -811,6 +815,107 @@ func TestStateLocateView_UpdateAndNavigation(t *testing.T) {
 		t.Errorf("Expected View() to contain error message, got %q", viewErr)
 	}
 }
+
+func TestLocateCommand_Success(t *testing.T) {
+	mock := &mockClient{
+		locateRecordFunc: func(req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
+			return &pb.LocateRecordResponse{
+				Locations: []*pb.Location{
+					{
+						LocationName: "Box A",
+						Slot:         12,
+						Record:       "Kind of Blue",
+					},
+				},
+			}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	newModel, cmd := m.handleCommandInput("locate 12345")
+	if cmd == nil {
+		t.Fatalf("Expected non-nil cmd for valid locate command")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(locateFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected locateFetchedMsg, got %T", msg)
+	}
+	if fetchedMsg.err != nil {
+		t.Fatalf("Unexpected error in locateFetchedMsg: %v", fetchedMsg.err)
+	}
+
+	m2, _ := newModel.(Model).Update(fetchedMsg)
+	mUpdated := m2.(Model)
+	if mUpdated.state != StateLocateView {
+		t.Errorf("Expected state StateLocateView, got %v", mUpdated.state)
+	}
+	if !strings.Contains(mUpdated.locateViewport.View(), "Kind of Blue is in Box A") {
+		t.Errorf("Expected viewport to contain 'Kind of Blue is in Box A', got:\n%s", mUpdated.locateViewport.View())
+	}
+}
+
+func TestLocateCommand_NotFound(t *testing.T) {
+	mock := &mockClient{
+		locateRecordFunc: func(req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
+			return &pb.LocateRecordResponse{
+				Locations: []*pb.Location{},
+			}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	newModel, cmd := m.handleCommandInput("locate 99999")
+	if cmd == nil {
+		t.Fatalf("Expected non-nil cmd for valid locate command")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(locateFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected locateFetchedMsg, got %T", msg)
+	}
+
+	m2, _ := newModel.(Model).Update(fetchedMsg)
+	mUpdated := m2.(Model)
+	if !strings.Contains(mUpdated.locateViewport.View(), "No location found") {
+		t.Errorf("Expected viewport to state no location found, got:\n%s", mUpdated.locateViewport.View())
+	}
+}
+
+func TestLocateCommand_RPCError(t *testing.T) {
+	mock := &mockClient{
+		locateRecordFunc: func(req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
+			return nil, fmt.Errorf("rpc error: code = Unavailable desc = transport is closing")
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	newModel, cmd := m.handleCommandInput("locate 12345")
+	if cmd == nil {
+		t.Fatalf("Expected non-nil cmd for valid locate command")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(locateFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected locateFetchedMsg, got %T", msg)
+	}
+	if fetchedMsg.err == nil {
+		t.Fatalf("Expected error in locateFetchedMsg, got nil")
+	}
+
+	m2, _ := newModel.(Model).Update(fetchedMsg)
+	mUpdated := m2.(Model)
+	if mUpdated.inlineErrMsg != "rpc error: code = Unavailable desc = transport is closing" {
+		t.Errorf("Expected inlineErrMsg to be set on RPC error, got %q", mUpdated.inlineErrMsg)
+	}
+}
+
 
 
 
