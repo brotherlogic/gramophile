@@ -45,6 +45,10 @@ type OrgClient interface {
 	GetRecord(ctx context.Context, in *pb.GetRecordRequest, opts ...grpc.CallOption) (*pb.GetRecordResponse, error)
 }
 
+type LocateClient interface {
+	LocateRecord(ctx context.Context, in *pb.LocateRecordRequest, opts ...grpc.CallOption) (*pb.LocateRecordResponse, error)
+}
+
 type timeoutMsg struct{}
 type urlFetchedMsg struct {
 	url   string
@@ -87,6 +91,7 @@ type Model struct {
 	state           appState
 	client          AuthClient
 	orgClient       OrgClient
+	locateClient    LocateClient
 	loginURL        string
 	loginToken      string
 	err             error
@@ -144,13 +149,14 @@ func defaultTokenSaver(tokenText string) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
-func InitialModel(client AuthClient, orgClient OrgClient) Model {
+func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
 	return Model{
-		state:      StateStartupLogo,
-		client:     client,
-		orgClient:  orgClient,
-		tokenSaver: defaultTokenSaver,
-		progBar:    progress.New(progress.WithDefaultGradient()),
+		state:        StateStartupLogo,
+		client:       client,
+		orgClient:    orgClient,
+		locateClient: locateClient,
+		tokenSaver:   defaultTokenSaver,
+		progBar:      progress.New(progress.WithDefaultGradient()),
 	}
 }
 
