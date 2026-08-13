@@ -624,3 +624,93 @@ func TestStateLocateView_FieldsAndMsg(t *testing.T) {
 	}
 }
 
+func TestParseLocateCommand(t *testing.T) {
+	tests := []struct {
+		input       string
+		expectedID  int64
+		expectError bool
+	}{
+		{"locate 12345", 12345, false},
+		{"locate --id 67890", 67890, false},
+		{"locate --id=54321", 54321, false},
+		{"locate", 0, true},
+		{"locate invalid", 0, true},
+		{"locate --id invalid", 0, true},
+		{"locate --invalidflag", 0, true},
+	}
+
+	for _, tt := range tests {
+		id, err := parseLocateCommand(tt.input)
+		if tt.expectError {
+			if err == nil {
+				t.Errorf("Expected error for input %q, got nil", tt.input)
+			} else if !strings.Contains(err.Error(), "Invalid release ID format. Usage: locate <release_id> or locate --id <release_id>") {
+				t.Errorf("Expected error message to contain usage info for input %q, got %v", tt.input, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Unexpected error for input %q: %v", tt.input, err)
+			}
+			if id != tt.expectedID {
+				t.Errorf("Expected release ID %d for input %q, got %d", tt.expectedID, tt.input, id)
+			}
+		}
+	}
+}
+
+func TestFetchLocateCmd(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	cmd := m.fetchLocateCmd(12345)
+	if cmd == nil {
+		t.Fatalf("Expected fetchLocateCmd to return a tea.Cmd")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(locateFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected locateFetchedMsg, got %T", msg)
+	}
+	if fetchedMsg.releaseID != 12345 {
+		t.Errorf("Expected releaseID 12345, got %d", fetchedMsg.releaseID)
+	}
+}
+
+func TestHandleCommandInput_Locate(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Valid locate command
+	newModel, cmd := m.handleCommandInput("locate 12345")
+	updatedModel, ok := newModel.(Model)
+	if !ok {
+		t.Fatalf("Expected model to be of type Model")
+	}
+
+	if updatedModel.state != StateLocateView {
+		t.Errorf("Expected state to transition to StateLocateView, got %v", updatedModel.state)
+	}
+	if updatedModel.activeLocateID != 12345 {
+		t.Errorf("Expected activeLocateID to be 12345, got %d", updatedModel.activeLocateID)
+	}
+	if cmd == nil {
+		t.Errorf("Expected fetchLocateCmd to be returned")
+	}
+
+	// Invalid locate command
+	m2 := InitialModel(mock, mock, mock)
+	m2.state = StateMainApp
+
+	newModel2, cmd2 := m2.handleCommandInput("locate invalid")
+	updatedModel2 := newModel2.(Model)
+
+	if updatedModel2.inlineErrMsg != "Invalid release ID format. Usage: locate <release_id> or locate --id <release_id>" {
+		t.Errorf("Expected inlineErrMsg to be set for invalid locate syntax, got %q", updatedModel2.inlineErrMsg)
+	}
+	if cmd2 != nil {
+		t.Errorf("Expected cmd to be nil for invalid locate syntax")
+	}
+}
+
+
