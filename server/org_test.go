@@ -1837,3 +1837,21 @@ func applyMoves(snapshot *pb.OrganisationSnapshot, moves []*pb.Move) *pb.Organis
 
 	return &pb.OrganisationSnapshot{Placements: placements}
 }
+
+func TestGetOrgRequestFields(t *testing.T) {
+	space := "shelf1"
+	unit := int32(2)
+	req := &pb.GetOrgRequest{
+		OrgName: "testing",
+		Space:   &space,
+		Unit:    &unit,
+	}
+
+	if req.GetSpace() != "shelf1" {
+		t.Errorf("Expected space 'shelf1', got '%s'", req.GetSpace())
+	}
+	if req.Unit == nil || req.GetUnit() != 2 {
+		t.Errorf("Expected unit 2, got %d (unit nil: %v)", req.GetUnit(), req.Unit == nil)
+	}
+}
+
