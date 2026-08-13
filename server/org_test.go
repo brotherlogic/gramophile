@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"log"
@@ -1855,3 +1856,154 @@ func TestGetOrgRequestFields(t *testing.T) {
 	}
 }
 
+func setupOrgTestServer(t *testing.T) (context.Context, *Server) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1235, FolderId: 13, Labels: []*pbd.Label{{Name: "BBB"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Folders: []*pbd.Folder{{Id: 12}, {Id: 13}}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := &Server{d: d, di: di, qc: qc}
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "testing",
+						Foldersets: []*pb.FolderSet{
+							{
+								Name:   "set1",
+								Folder: 12,
+								Index:  1,
+								Sort:   pb.Sort_LABEL_CATNO,
+							},
+							{
+								Name:   "set2",
+								Folder: 13,
+								Index:  2,
+								Sort:   pb.Sort_LABEL_CATNO,
+							},
+						},
+						Spaces: []*pb.Space{
+							{
+								Name:  "Main Shelves",
+								Units: 2,
+								Width: 100,
+							},
+							{
+								Name:  "Second Shelves",
+								Units: 1,
+								Width: 100,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unable to set config: %v", err)
+	}
+	return ctx, s
+}
+
+func TestGetOrg_InvalidUnit(t *testing.T) {
+	ctx, s := setupOrgTestServer(t)
+	invalidUnit := int32(-1)
+	_, err := s.GetOrg(ctx, &pb.GetOrgRequest{
+		OrgName: "testing",
+		Unit:    &invalidUnit,
+	})
+	if err == nil {
+		t.Fatalf("Expected error for negative unit, got nil")
+	}
+}
+
+func TestGetOrg_FilterBySpace(t *testing.T) {
+	ctx, s := setupOrgTestServer(t)
+	space := "Main Shelves"
+	res, err := s.GetOrg(ctx, &pb.GetOrgRequest{
+		OrgName: "testing",
+		Space:   &space,
+	})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(res.GetSnapshot().GetPlacements()) == 0 {
+		t.Fatalf("Expected placements for space filter 'Main Shelves', got 0")
+	}
+	for _, p := range res.GetSnapshot().GetPlacements() {
+		if p.GetSpace() != "Main Shelves" {
+			t.Errorf("Expected space 'Main Shelves', got %v", p.GetSpace())
+		}
+	}
+}
+
+func TestGetOrg_FilterByUnit(t *testing.T) {
+	ctx, s := setupOrgTestServer(t)
+	unit := int32(1)
+	res, err := s.GetOrg(ctx, &pb.GetOrgRequest{
+		OrgName: "testing",
+		Unit:    &unit,
+	})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(res.GetSnapshot().GetPlacements()) == 0 {
+		t.Fatalf("Expected placements for unit filter 1, got 0")
+	}
+	for _, p := range res.GetSnapshot().GetPlacements() {
+		if p.GetUnit() != 1 {
+			t.Errorf("Expected unit 1, got %v", p.GetUnit())
+		}
+	}
+}
+
+func TestGetOrg_FilterBySpaceAndUnit(t *testing.T) {
+	ctx, s := setupOrgTestServer(t)
+	space := "Main Shelves"
+	unit := int32(1)
+	res, err := s.GetOrg(ctx, &pb.GetOrgRequest{
+		OrgName: "testing",
+		Space:   &space,
+		Unit:    &unit,
+	})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(res.GetSnapshot().GetPlacements()) == 0 {
+		t.Fatalf("Expected placements for space 'Main Shelves' and unit 1, got 0")
+	}
+	for _, p := range res.GetSnapshot().GetPlacements() {
+		if p.GetSpace() != "Main Shelves" || p.GetUnit() != 1 {
+			t.Errorf("Expected space 'Main Shelves' and unit 1, got space %v unit %v", p.GetSpace(), p.GetUnit())
+		}
+	}
+}
+
+func TestGetOrg_NoMatchingFilter(t *testing.T) {
+	ctx, s := setupOrgTestServer(t)
+	space := "NonExistentSpace"
+	res, err := s.GetOrg(ctx, &pb.GetOrgRequest{
+		OrgName: "testing",
+		Space:   &space,
+	})
+	if err != nil {
+		t.Fatalf("Unable to get org: %v", err)
+	}
+	if len(res.GetSnapshot().GetPlacements()) != 0 {
+		t.Errorf("Expected 0 placements, got %v", len(res.GetSnapshot().GetPlacements()))
+	}
+}
