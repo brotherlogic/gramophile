@@ -51,7 +51,33 @@ func (s *Server) SetOrgSnapshot(ctx context.Context, req *pb.SetOrgSnapshotReque
 	return &pb.SetOrgSnapshotResponse{}, nil
 }
 
+// filterSnapshot filters the placements in an OrganisationSnapshot based on optional space and unit filters.
+func filterSnapshot(snapshot *pb.OrganisationSnapshot, spaceFilter *string, unitFilter *int32) *pb.OrganisationSnapshot {
+	if snapshot == nil || (spaceFilter == nil && unitFilter == nil) {
+		return snapshot
+	}
+
+	var filtered []*pb.Placement
+	for _, p := range snapshot.GetPlacements() {
+		if spaceFilter != nil && p.GetSpace() != *spaceFilter {
+			continue
+		}
+		if unitFilter != nil && p.GetUnit() != *unitFilter {
+			continue
+		}
+		filtered = append(filtered, p)
+	}
+
+	cp := proto.Clone(snapshot).(*pb.OrganisationSnapshot)
+	cp.Placements = filtered
+	return cp
+}
+
 func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
+	if req.Unit != nil && req.GetUnit() < 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "unit index must be non-negative, got %d", req.GetUnit())
+	}
+
 	t := time.Now()
 	defer func() {
 		overallLatency.Observe(float64(time.Since(t).Milliseconds()))
@@ -71,7 +97,7 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 		}
 		orgLatency.With(prometheus.Labels{"stage": "snapshothasg"}).Observe(float64(time.Since(t).Milliseconds()))
 
-		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+		return &pb.GetOrgResponse{Snapshot: filterSnapshot(snapshot, req.Space, req.Unit)}, nil
 	}
 
 	if req.GetName() != "" {
@@ -82,7 +108,7 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 		}
 		orgLatency.With(prometheus.Labels{"stage": "loadsnapshot"}).Observe(float64(time.Since(t).Milliseconds()))
 
-		return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+		return &pb.GetOrgResponse{Snapshot: filterSnapshot(snapshot, req.Space, req.Unit)}, nil
 	}
 
 	var o *pb.Organisation
@@ -126,7 +152,7 @@ func (s *Server) GetOrg(ctx context.Context, req *pb.GetOrgRequest) (*pb.GetOrgR
 
 	}
 
-	return &pb.GetOrgResponse{Snapshot: snapshot}, nil
+	return &pb.GetOrgResponse{Snapshot: filterSnapshot(snapshot, req.Space, req.Unit)}, nil
 }
 
 func getSnapshotDiff(start, end *pb.OrganisationSnapshot) []*pb.Move {
