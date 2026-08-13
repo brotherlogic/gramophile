@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -814,8 +815,92 @@ func (m *Model) renderOrgViewport() {
 	m.orgViewport.SetContent(sb.String())
 }
 
-// handleCommandInput parses the command string and transitions state to StateOrgView.
+// parseLocateCommand parses command string input for locate commands supporting locate <release_id> and locate --id <release_id>.
+func parseLocateCommand(cmdStr string) (int64, error) {
+	fields := strings.Fields(strings.TrimSpace(cmdStr))
+	usageErr := fmt.Errorf("Invalid release ID format. Usage: locate <release_id> or locate --id <release_id>")
+	if len(fields) == 0 {
+		return 0, usageErr
+	}
+	if fields[0] != "locate" {
+		return 0, fmt.Errorf("unknown command: %s", fields[0])
+	}
+
+	fs := flag.NewFlagSet("locate", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var releaseID int64
+	fs.Int64Var(&releaseID, "id", 0, "release id")
+
+	var flagArgs []string
+	var posArgs []string
+	args := fields[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flagArgs = append(flagArgs, arg)
+			if !strings.Contains(arg, "=") && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				flagArgs = append(flagArgs, args[i+1])
+				i++
+			}
+		} else {
+			posArgs = append(posArgs, arg)
+		}
+	}
+
+	err := fs.Parse(flagArgs)
+	if err != nil {
+		return 0, usageErr
+	}
+
+	if releaseID <= 0 && len(posArgs) > 0 {
+		parsed, parseErr := strconv.ParseInt(posArgs[0], 10, 64)
+		if parseErr == nil && parsed > 0 {
+			releaseID = parsed
+		}
+	}
+
+	if releaseID <= 0 {
+		return 0, usageErr
+	}
+
+	return releaseID, nil
+}
+
+func (m Model) fetchLocateCmd(releaseID int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if m.locateClient == nil {
+			return locateFetchedMsg{releaseID: releaseID, err: fmt.Errorf("no locate client initialized")}
+		}
+		resp, err := m.locateClient.LocateRecord(ctx, &pb.LocateRecordRequest{
+			ReleaseId: releaseID,
+		})
+		if err != nil {
+			return locateFetchedMsg{releaseID: releaseID, err: err}
+		}
+		return locateFetchedMsg{releaseID: releaseID, response: resp}
+	}
+}
+
+// handleCommandInput parses the command string and transitions state to StateOrgView or StateLocateView.
 func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
+	fields := strings.Fields(strings.TrimSpace(cmdStr))
+	if len(fields) > 0 && fields[0] == "locate" {
+		releaseID, err := parseLocateCommand(cmdStr)
+		if err != nil {
+			m.inlineErrMsg = err.Error()
+			return m, nil
+		}
+		m.commandInput = cmdStr
+		m.activeLocateID = releaseID
+		m.inlineErrMsg = ""
+		m.state = StateLocateView
+		m.locateResponse = nil
+		m.locateViewport = viewport.New(80, 20)
+		return m, m.fetchLocateCmd(releaseID)
+	}
+
 	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)
 	if err != nil {
 		m.inlineErrMsg = err.Error()
