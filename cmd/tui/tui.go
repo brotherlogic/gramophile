@@ -515,12 +515,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+	case StateLocateView:
+		switch msg := msg.(type) {
+		case locateFetchedMsg:
+			if msg.err != nil {
+				m.inlineErrMsg = msg.err.Error()
+				return m, nil
+			}
+			m.locateResponse = msg.response
+			m.inlineErrMsg = ""
+			content := formatLocateOutput(msg.response)
+			if m.locateViewport.Width == 0 {
+				m.locateViewport = viewport.New(80, 20)
+			}
+			m.locateViewport.SetContent(content)
+			return m, nil
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "x", "q", "esc":
+				m.state = StateMainApp
+				return m, nil
+			case "up", "k":
+				m.locateViewport.LineUp(1)
+				return m, nil
+			case "down", "j":
+				m.locateViewport.LineDown(1)
+				return m, nil
+			case "pgup":
+				m.locateViewport.HalfViewUp()
+				return m, nil
+			case "pgdown":
+				m.locateViewport.HalfViewDown()
+				return m, nil
+			}
+		}
 	}
 
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -588,6 +622,11 @@ func (m Model) View() string {
 		}
 		return fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
 			m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
+	case StateLocateView:
+		if m.inlineErrMsg != "" {
+			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		}
+		return m.locateViewport.View()
 	}
 	return "Gramophile TUI"
 }
@@ -920,3 +959,40 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	m.orgViewport = viewport.New(80, 20)
 	return m, m.fetchOrgCmd(orgName, hash)
 }
+
+func calculatePercentage(beforeCount, afterCount int) float64 {
+	total := beforeCount + afterCount + 1
+	targetIndex := beforeCount + 1
+	return float64(targetIndex) / float64(total) * 100.0
+}
+
+func formatLocateOutput(res *pb.LocateRecordResponse) string {
+	if res == nil || len(res.GetLocations()) == 0 {
+		return "No location found for Release ID."
+	}
+
+	var sb strings.Builder
+	for i, location := range res.GetLocations() {
+		if location == nil {
+			continue
+		}
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		percentage := calculatePercentage(len(location.GetBefore()), len(location.GetAfter()))
+		sb.WriteString(fmt.Sprintf("%v is in %v, Slot %v (%.0f%%):\n\n", location.GetRecord(), location.GetLocationName(), location.GetSlot(), percentage))
+
+		for j := len(location.GetBefore()) - 1; j >= 0; j-- {
+			b := location.GetBefore()[j]
+			sb.WriteString(fmt.Sprintf("%v\n", b.GetRecord()))
+		}
+
+		sb.WriteString(lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("%v", location.GetRecord())) + "\n")
+
+		for _, a := range location.GetAfter() {
+			sb.WriteString(fmt.Sprintf("%v\n", a.GetRecord()))
+		}
+	}
+	return sb.String()
+}
+
