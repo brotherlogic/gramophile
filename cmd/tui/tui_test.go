@@ -598,3 +598,29 @@ func TestOrgViewNavigationAndExit(t *testing.T) {
 		}
 	}
 }
+
+func TestStateLocateView_FieldsAndMsg(t *testing.T) {
+	m := Model{
+		state:            StateLocateView,
+		locateViewport:   viewport.New(80, 20),
+		activeLocateID:   12345,
+		locateResponse:   &pb.LocateRecordResponse{},
+	}
+
+	if m.state != StateLocateView {
+		t.Errorf("Expected state to be StateLocateView, got %v", m.state)
+	}
+	if m.activeLocateID != 12345 {
+		t.Errorf("Expected activeLocateID to be 12345, got %d", m.activeLocateID)
+	}
+
+	msg := locateFetchedMsg{
+		releaseID: 12345,
+		response:  &pb.LocateRecordResponse{},
+		err:       nil,
+	}
+	if msg.releaseID != 12345 {
+		t.Errorf("Expected releaseID 12345, got %d", msg.releaseID)
+	}
+}
+

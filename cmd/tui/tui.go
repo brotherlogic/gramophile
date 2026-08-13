@@ -30,6 +30,7 @@ const (
 	StateMainApp
 	StateOrgConfig
 	StateOrgView
+	StateLocateView
 )
 
 type AuthClient interface {
@@ -84,6 +85,12 @@ type recordFetchedMsg struct {
 	err    error
 }
 
+type locateFetchedMsg struct {
+	releaseID int64
+	response  *pb.LocateRecordResponse
+	err       error
+}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
@@ -121,6 +128,10 @@ type Model struct {
 	resolvedRecords map[int64]*pb.Record
 	totalWidth      int32
 	inlineErrMsg    string
+
+	locateViewport viewport.Model
+	activeLocateID int64
+	locateResponse *pb.LocateRecordResponse
 }
 
 func defaultTokenSaver(tokenText string) error {
