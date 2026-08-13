@@ -51,6 +51,7 @@ func (s *Server) SetOrgSnapshot(ctx context.Context, req *pb.SetOrgSnapshotReque
 	return &pb.SetOrgSnapshotResponse{}, nil
 }
 
+// filterSnapshot filters the placements in an OrganisationSnapshot based on optional space and unit filters.
 func filterSnapshot(snapshot *pb.OrganisationSnapshot, spaceFilter *string, unitFilter *int32) *pb.OrganisationSnapshot {
 	if snapshot == nil || (spaceFilter == nil && unitFilter == nil) {
 		return snapshot
