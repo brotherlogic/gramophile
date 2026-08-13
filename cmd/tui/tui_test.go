@@ -69,8 +69,21 @@ func (m *mockClient) GetRecord(ctx context.Context, in *pb.GetRecordRequest, opt
 	return &pb.GetRecordResponse{}, nil
 }
 
+func (m *mockClient) LocateRecord(ctx context.Context, in *pb.LocateRecordRequest, opts ...grpc.CallOption) (*pb.LocateRecordResponse, error) {
+	return &pb.LocateRecordResponse{}, nil
+}
+
+func TestInitialModel_LocateClient(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	if m.locateClient == nil {
+		t.Errorf("Expected locateClient to be initialized")
+	}
+}
+
+
 func TestStateTransitions(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 
 	if m.state != StateStartupLogo {
 		t.Errorf("Expected initial state to be StateStartupLogo, got %v", m.state)
@@ -96,7 +109,7 @@ func TestStateTransitions(t *testing.T) {
 }
 
 func TestTimerTransition(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	
 	// A timeout message should transition to StateLogin
 	msg := timeoutMsg{}
@@ -113,7 +126,7 @@ func TestTimerTransition(t *testing.T) {
 }
 
 func TestStateLogin_GetURL(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLogin
 
 	// Test getting the URL successfully
@@ -131,7 +144,7 @@ func TestStateLogin_GetURL(t *testing.T) {
 }
 
 func TestStateLogin_LoginSuccess(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLogin
 	m.tokenSaver = func(token string) error { return nil } // mock saver
 	
@@ -145,7 +158,7 @@ func TestStateLogin_LoginSuccess(t *testing.T) {
 }
 
 func TestStateLoadingSync_Progress(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	// Trigger sync poll
@@ -178,7 +191,7 @@ func TestStateLoadingSync_Progress(t *testing.T) {
 }
 
 func TestStateLoadingSync_Complete(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	respMsg := syncStatusMsg{
@@ -196,7 +209,7 @@ func TestStateLoadingSync_Complete(t *testing.T) {
 }
 
 func TestStateWaitlist_Poll(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	msg := syncPollMsg{}
@@ -220,7 +233,7 @@ func TestStateWaitlist_Poll(t *testing.T) {
 }
 
 func TestStateWaitlist_Promoted(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	respMsg := syncStatusMsg{
@@ -236,7 +249,7 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 }
 
 func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
 
 	if m.syncRetryCount != 0 {
@@ -268,7 +281,7 @@ func TestOrgErrorInlineReporting(t *testing.T) {
 		},
 	}
 
-	m := InitialModel(client, client)
+	m := InitialModel(client, client, client)
 	m.state = StateOrgConfig
 	m.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
@@ -305,7 +318,7 @@ func TestOrgErrorInlineReporting(t *testing.T) {
 	}
 
 	// Test case 2: Empty organization name validation
-	m2 := InitialModel(client, client)
+	m2 := InitialModel(client, client, client)
 	m2.state = StateOrgConfig
 	m2.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
@@ -331,7 +344,7 @@ func TestOrgErrorInlineReporting(t *testing.T) {
 	}
 
 	// Test case 3: Empty placement list (selectedFolders) validation
-	m3 := InitialModel(client, client)
+	m3 := InitialModel(client, client, client)
 	m3.state = StateOrgConfig
 	m3.user = &pb.StoredUser{
 		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
@@ -395,7 +408,7 @@ func TestOrgCommandParsing(t *testing.T) {
 }
 
 func TestStateOrgViewTransition(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateMainApp
 
 	newModel, _ := m.handleCommandInput("org --org MyOrg --slot 1")
@@ -487,7 +500,7 @@ func TestOrgFetchedAndRecordResolution(t *testing.T) {
 		},
 	}
 
-	m := InitialModel(mock, mock)
+	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
 
 	newModel, cmd := m.handleCommandInput("org --org TestOrg")
@@ -542,7 +555,7 @@ func TestOrgFetchedAndRecordResolution(t *testing.T) {
 }
 
 func TestOrgViewNavigationAndExit(t *testing.T) {
-	m := InitialModel(&mockClient{}, &mockClient{})
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateOrgView
 	m.orgViewport = viewport.New(80, 5)
 	m.orgViewport.SetContent("Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10")

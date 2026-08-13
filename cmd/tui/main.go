@@ -24,7 +24,7 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewGramophileEServiceClient(conn)
-	p := tea.NewProgram(InitialModel(client, client))
+	p := tea.NewProgram(InitialModel(client, client, client))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v\n", err)
 		os.Exit(1)
