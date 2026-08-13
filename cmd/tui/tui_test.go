@@ -713,4 +713,104 @@ func TestHandleCommandInput_Locate(t *testing.T) {
 	}
 }
 
+func TestFormatLocateOutput(t *testing.T) {
+	resp := &pb.LocateRecordResponse{
+		Locations: []*pb.Location{
+			{
+				LocationName: "Shelf A",
+				Slot:         3,
+				Record:       "Target Album",
+				Before: []*pb.Context{
+					{Record: "Before Album 1"},
+					{Record: "Before Album 2"},
+				},
+				After: []*pb.Context{
+					{Record: "After Album 1"},
+				},
+			},
+		},
+	}
+
+	out := formatLocateOutput(resp)
+	if !strings.Contains(out, "Target Album is in Shelf A, Slot 3 (75%):") && !strings.Contains(out, "Target Album is in Shelf A, Slot 3 (75 %):") {
+		t.Errorf("Expected location header, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Before Album 1") || !strings.Contains(out, "Before Album 2") {
+		t.Errorf("Expected preceding records in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "After Album 1") {
+		t.Errorf("Expected following records in output, got:\n%s", out)
+	}
+
+	// Empty locations edge case
+	emptyResp := &pb.LocateRecordResponse{}
+	emptyOut := formatLocateOutput(emptyResp)
+	if !strings.Contains(emptyOut, "No location found for Release ID") && !strings.Contains(emptyOut, "No location found") {
+		t.Errorf("Expected empty location error message, got %q", emptyOut)
+	}
+}
+
+func TestStateLocateView_UpdateAndNavigation(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateView
+	m.activeLocateID = 999
+
+	// Process locateFetchedMsg
+	fetchedMsg := locateFetchedMsg{
+		releaseID: 999,
+		response: &pb.LocateRecordResponse{
+			Locations: []*pb.Location{
+				{
+					LocationName: "Shelf 1",
+					Slot:         1,
+					Record:       "Record 999",
+				},
+			},
+		},
+	}
+	newModel, _ := m.Update(fetchedMsg)
+	mUpdated := newModel.(Model)
+
+	if !strings.Contains(mUpdated.locateViewport.View(), "Record 999 is in Shelf 1") {
+		t.Errorf("Expected viewport to contain formatted location output, got %q", mUpdated.locateViewport.View())
+	}
+
+	// Key bindings: esc or q to return to StateMainApp
+	escMsg := tea.KeyMsg{Type: tea.KeyEsc}
+	mEsc, _ := mUpdated.Update(escMsg)
+	if mEsc.(Model).state != StateMainApp {
+		t.Errorf("Expected esc to transition to StateMainApp, got %v", mEsc.(Model).state)
+	}
+
+	qMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	mQ, _ := mUpdated.Update(qMsg)
+	if mQ.(Model).state != StateMainApp {
+		t.Errorf("Expected 'q' to transition to StateMainApp, got %v", mQ.(Model).state)
+	}
+
+	// Key bindings: viewport scrolling
+	downMsg := tea.KeyMsg{Type: tea.KeyDown}
+	mDown, _ := mUpdated.Update(downMsg)
+	if mDown.(Model).state != StateLocateView {
+		t.Errorf("Expected state to stay StateLocateView on scroll, got %v", mDown.(Model).state)
+	}
+
+	// Error handling: locateFetchedMsg with error
+	errMsg := locateFetchedMsg{
+		releaseID: 999,
+		err:       fmt.Errorf("gRPC failure"),
+	}
+	mErrModel, _ := m.Update(errMsg)
+	mErr := mErrModel.(Model)
+	if mErr.inlineErrMsg != "gRPC failure" {
+		t.Errorf("Expected inlineErrMsg to be 'gRPC failure', got %q", mErr.inlineErrMsg)
+	}
+	viewErr := mErr.View()
+	if !strings.Contains(viewErr, "gRPC failure") {
+		t.Errorf("Expected View() to contain error message, got %q", viewErr)
+	}
+}
+
+
 
