@@ -135,6 +135,69 @@ func TestLocateRecord_NotFound(t *testing.T) {
 	}
 }
 
+func TestLocateRecord_NotInOrg(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "test-org"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("cannot save user: %v", err)
+	}
+
+	s := Server{d: d}
+
+	// Save record in collection
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         200,
+			InstanceId: 2001,
+			Title:      "Unplaced Album",
+			Artists:    []*pbd.Artist{{Name: "ArtistC"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("cannot save record: %v", err)
+	}
+
+	// Save snapshot without record 2001
+	err = d.SaveSnapshot(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+	}, "test-org", &pb.OrganisationSnapshot{
+		Date: 12345,
+		Placements: []*pb.Placement{
+			{Iid: 9999, Space: "ShelfA", Unit: 1, Index: 1},
+		},
+	})
+	if err != nil {
+		t.Fatalf("cannot save snapshot: %v", err)
+	}
+
+	_, err = s.LocateRecord(ctx, &pb.LocateRecordRequest{
+		ReleaseId: 200,
+	})
+
+	if err == nil {
+		t.Fatalf("Expected error for unplaced record, got nil")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.InvalidArgument {
+		t.Errorf("Expected InvalidArgument error code, got %v (err: %v)", st.Code(), err)
+	}
+	if st.Message() != "record not in any organization" {
+		t.Errorf("Expected error message 'record not in any organization', got %q", st.Message())
+	}
+}
+
 func TestFormatRecordTitle(t *testing.T) {
 	tests := []struct {
 		name     string
