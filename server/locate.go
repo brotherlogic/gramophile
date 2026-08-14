@@ -106,6 +106,10 @@ func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) 
 		}
 	}
 
+	if len(locations) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "record not in any organization")
+	}
+
 	return &pb.LocateRecordResponse{Locations: locations}, nil
 }
 
