@@ -31,7 +31,7 @@ func formatRecordTitle(iid int64, rec *pb.Record) string {
 func (s *Server) LocateRecord(ctx context.Context, req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
 	user, err := s.getUser(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Unauthenticated, "unable to authenticate: %v", err)
 	}
 
 	records, err := s.d.LoadAllRecords(ctx, user.GetUser().GetDiscogsUserId())
