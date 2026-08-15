@@ -224,15 +224,14 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 	}
 
 	// Run a sale update loop
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -327,15 +326,14 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -434,15 +432,14 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -544,15 +541,14 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -654,15 +650,14 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -764,15 +759,14 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -874,15 +868,14 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {
@@ -989,15 +982,14 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
 	}
-	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-		Element: &pb.QueueElement{
-			Intention: "From Test",
-			Auth:      "123",
-			Entry:     &pb.QueueElement_RefreshSales{},
-		},
-	})
+	u, err := d.GetUser(ctx, "123")
 	if err != nil {
-		t.Fatalf("Unable to enqueue request: %v", err)
+		t.Fatalf("unable to get user: %v", err)
+	}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("unable to adjust sales: %v", err)
 	}
 	err = q.FlushQueue(ctx)
 	if err != nil {

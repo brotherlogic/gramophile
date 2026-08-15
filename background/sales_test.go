@@ -2,6 +2,7 @@ package background
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"testing"
 	"time"
@@ -202,7 +203,7 @@ func TestTypeOverride_NoOverride(t *testing.T) {
 		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
 		PostMedianReductionFrequency: 10,
 		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN,
-	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		//pass
 		recordedPrice = req.GetElement().GetUpdateSale().GetNewPrice()
 		return &pb.EnqueueResponse{}, nil
@@ -247,7 +248,7 @@ func TestTypeOverride_Override(t *testing.T) {
 		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
 		PostMedianReductionFrequency: 10,
 		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN,
-	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		//pass
 		recordedPrice = req.GetElement().GetUpdateSale().GetNewPrice()
 		return &pb.EnqueueResponse{}, nil
@@ -359,3 +360,158 @@ func TestHardLink_OnlyValidStates(t *testing.T) {
 		t.Errorf("Expected SaleId 0 for record 1, got %v", records[1].SaleId)
 	}
 }
+
+func TestAdjustPrice_MissingMedian(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 500},
+		MedianPrice:  &pbd.Price{Value: 0},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+		Reduction:  50,
+	}
+	_, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN)
+	if !errors.Is(err, ErrMissingMetadata) {
+		t.Fatalf("expected ErrMissingMetadata, got: %v", err)
+	}
+}
+
+func TestAdjustPrice_MissingLowPrice(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 500},
+		MedianPrice:  &pbd.Price{Value: 400},
+		LowPrice:     &pbd.Price{Value: 0},
+		TimeAtMedian: time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               1,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+	}
+	_, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if !errors.Is(err, ErrMissingMetadata) {
+		t.Fatalf("expected ErrMissingMetadata, got: %v", err)
+	}
+}
+
+func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	initialLastPriceUpdate := time.Now().Add(-time.Hour * 72).UnixNano()
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          12345,
+		ReleaseId:       100,
+		CurrentPrice:    &pbd.Price{Value: 500},
+		MedianPrice:     &pbd.Price{Value: 0}, // Missing metadata
+		LastPriceUpdate: initialLastPriceUpdate,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+
+	enqueued := false
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds: 3600,
+		UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+		Reduction:              50,
+	}
+
+	err := b.AdjustSales(ctx, config, user, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = true
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("AdjustSales failed: %v", err)
+	}
+
+	if enqueued {
+		t.Errorf("expected no update task to be enqueued for sale missing metadata")
+	}
+
+	sale, err := d.GetSale(ctx, 123, 12345)
+	if err != nil {
+		t.Fatalf("unable to get sale: %v", err)
+	}
+	if sale.GetLastPriceUpdate() != initialLastPriceUpdate {
+		t.Errorf("expected LastPriceUpdate to remain %v, got %v", initialLastPriceUpdate, sale.GetLastPriceUpdate())
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("unable to get user: %v", err)
+	}
+	if savedUser.GetLastSaleAdjust() == 0 {
+		t.Errorf("expected user.LastSaleAdjust to be set > 0, got %v", savedUser.GetLastSaleAdjust())
+	}
+}
+
+func TestProcessRefreshSales_Decoupled(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Sales:  []*pbd.SaleItem{{ReleaseId: 100, SaleId: 12345, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE}},
+	}
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              50,
+			},
+		},
+	}
+	d.SaveUser(ctx, user)
+
+	entry := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: time.Now().UnixNano(),
+			},
+		},
+	}
+
+	var enqueuedIntents []string
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if req.GetElement().GetUpdateSale() != nil {
+			enqueuedIntents = append(enqueuedIntents, "UpdateSale")
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err := b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	for _, intent := range enqueuedIntents {
+		if intent == "UpdateSale" {
+			t.Errorf("ProcessRefreshSales should not have enqueued AdjustSales / UpdateSale")
+		}
+	}
+}
+
