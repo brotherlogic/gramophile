@@ -357,6 +357,7 @@ message QueueElement {
         RecordHistory record_history = 32;
         AddSale add_sale = 33;
         DeleteRecord delete_record = 34;
+        AdjustSales adjust_sales = 35;
     }
 
     int64 refresh_id = 7;
@@ -470,6 +471,10 @@ message RefreshWantlists {
 
 }
 
+message AdjustSales {
+
+}
+
 message LinkSales {
     int64 refresh_id = 1;
 }
@@ -572,6 +577,7 @@ message StoredUser {
     int32 expected_wantlist_size = 18;
     int64 last_item_synced_time = 19;
     int64 waitlist_issue_number = 20;
+    int64 last_sale_adjust = 21;
 }
 
 message GramophileAuth {
