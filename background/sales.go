@@ -471,6 +471,22 @@ func (h *linkSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
 	return "LinkSales"
 }
 
+type adjustSalesHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *adjustSalesHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, enqueue)
+}
+
+func (h *adjustSalesHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *adjustSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return fmt.Sprintf("AdjustSales-%v", entry.GetAuth())
+}
+
 func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale) error {
 	//Short cut if sale data is not complete
 	if entry.GetCondition() == "" {

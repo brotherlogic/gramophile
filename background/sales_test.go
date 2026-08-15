@@ -515,3 +515,65 @@ func TestProcessRefreshSales_Decoupled(t *testing.T) {
 	}
 }
 
+func TestAdjustSalesHandler(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_auth_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              50,
+			},
+		},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("unable to save user: %v", err)
+	}
+
+	entry := &pb.QueueElement{
+		Auth: "test_auth_token",
+		Entry: &pb.QueueElement_AdjustSales{
+			AdjustSales: &pb.AdjustSales{},
+		},
+	}
+
+	handler, err := b.getHandler(entry)
+	if err != nil {
+		t.Fatalf("handler not registered for QueueElement_AdjustSales: %v", err)
+	}
+
+	dedupKey := handler.GetDeduplicationKey(entry)
+	if dedupKey != "AdjustSales-test_auth_token" {
+		t.Errorf("expected deduplication key 'AdjustSales-test_auth_token', got '%v'", dedupKey)
+	}
+
+	err = handler.Validate(ctx, d, entry)
+	if err != nil {
+		t.Errorf("expected Validate to return nil, got %v", err)
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.Execute(ctx, &discogs.TestDiscogsClient{}, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("unable to get user: %v", err)
+	}
+	if savedUser.GetLastSaleAdjust() == 0 {
+		t.Errorf("expected user.LastSaleAdjust to be set > 0, got %v", savedUser.GetLastSaleAdjust())
+	}
+}
+
