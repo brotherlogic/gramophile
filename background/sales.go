@@ -3,6 +3,7 @@ package background
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -23,10 +24,17 @@ import (
 )
 
 var (
+	ErrMissingMetadata = errors.New("missing pricing metadata for sale adjustment")
+
 	saleAdds = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "gramophile_sale_adds",
 		Help: "The size of the user list",
 	}, []string{"id"})
+
+	salesSkippedMissingMetadata = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gramophile_sales_skipped_missing_metadata",
+		Help: "The number of sales skipped due to missing pricing metadata",
+	})
 )
 
 func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Discogs, iid int64, saleParams *pbd.SaleParams, user *pb.StoredUser) (*pbd.SaleParams, error) {
@@ -251,7 +259,7 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 		// Bail if there is not current median price
 		if s.GetMedianPrice().GetValue() == 0 {
 			log.Printf("Cannot find median")
-			return s.GetCurrentPrice().GetValue(), "no median available", nil
+			return 0, "no median available", ErrMissingMetadata
 		}
 
 		if c.GetTimeToMedianDays() > 0 {
@@ -279,6 +287,9 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 
 					lowerBound := c.GetLowerBound()
 					if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+						if s.GetLowPrice().GetValue() == 0 {
+							return 0, "missing low price", ErrMissingMetadata
+						}
 						lowerBound = s.GetLowPrice().GetValue()
 					}
 					log.Printf("Found lower bound %v", lowerBound)
@@ -322,6 +333,10 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				log.Printf("Working off of: %v and %v", sale, updateType)
 				nsp, motivation, err := adjustPrice(ctx, sale, c, updateType)
 				if err != nil {
+					if errors.Is(err, ErrMissingMetadata) {
+						salesSkippedMissingMetadata.Inc()
+						continue
+					}
 					return fmt.Errorf("unable to adjust price: %w", err)
 				}
 
@@ -375,7 +390,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 								Condition:  sale.GetCondition(),
 								Motivation: motivation,
 							}}},
-				}, enqueue)
+					}, enqueue)
 				if err != nil {
 					return fmt.Errorf("unable to queue sales: %v", err)
 				}
@@ -387,7 +402,8 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 		}
 	}
 
-	return nil
+	user.LastSaleAdjust = time.Now().UnixNano()
+	return b.db.SaveUser(ctx, user)
 }
 
 type addSaleHandler struct {
@@ -676,12 +692,7 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 		if err != nil {
 			return fmt.Errorf("unable to sell user: %w", err)
 		}
-		err := b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
-		if err != nil {
-			return err
-		}
-		// Adjust all sale prices
-		return b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, enqueue)
+		return b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
 	}
 
 	return nil
