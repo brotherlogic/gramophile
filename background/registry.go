@@ -9,6 +9,7 @@ func (b *BackgroundRunner) RegisterAllHandlers() {
 	b.RegisterTaskHandler("*proto.QueueElement_AddSale", &addSaleHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_UpdateSale", &updateSaleHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_RefreshSales", &refreshSalesHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_AdjustSales", &adjustSalesHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_FanoutHistory", &fanoutHistoryHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_RecordHistory", &recordHistoryHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_RefreshState", &refreshStateHandler{b: b})

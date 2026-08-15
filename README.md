@@ -17,6 +17,7 @@ Current Go version: 1.26.2
 - Organization Configuration Wizard: A guided interactive Terminal User Interface (TUI) wizard built with Bubble Tea and Charm Huh to help configure physical storage organizations (shelves, boxes) mapping to Discogs folders.
 - Organization View: Terminal User Interface mode for viewing physical record organization placement layout and snapshots via `org` / `orgview` command parsing (supporting `--org`, `--slot`, `--hash`, `--debug` flags).
 - Resilient Sale Adjustments & Decoupled Refresh: Evaluates sale price reductions resiliently against missing pricing metadata (such as unlinked sales or missing median prices) and decouples sale adjustment processing from catalog refresh.
+- AdjustSales Queue Task Handler: Registers a dedicated background queue task handler for `QueueElement_AdjustSales` with deduplication key support to process collection sale price adjustments asynchronously.
 
 
 ## TUI (Terminal User Interface)
