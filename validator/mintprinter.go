@@ -15,9 +15,7 @@ import (
 	printqueueclient "github.com/brotherlogic/printqueue/client"
 )
 
-func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
-	db := db.NewDatabase(ctx)
-
+func runMintPrinter(ctx context.Context, d db.Database, user *gpb.StoredUser) error {
 	log.Printf("Mint Up %v vs %v", time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery()), user.GetConfig().GetMintUpConfig().GetPeriodInSeconds())
 	// Don't send mint ups if the user doesn't want them.
 	if time.Since(time.Unix(0, user.GetConfig().GetMintUpConfig().GetLastMintUpDelivery())).Seconds() < float64(user.GetConfig().GetMintUpConfig().GetPeriodInSeconds()) ||
@@ -25,7 +23,11 @@ func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 		return nil
 	}
 
-	records, err := db.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
+	if d == nil {
+		d = db.NewDatabase(ctx)
+	}
+
+	records, err := d.GetRecords(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return err
 	}
@@ -35,7 +37,7 @@ func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 	})
 
 	for _, r := range records {
-		rec, err := db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
+		rec, err := d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), r)
 		if err != nil {
 			return err
 		}
@@ -58,7 +60,7 @@ func runMintPrinter(ctx context.Context, user *gpb.StoredUser) error {
 			}
 
 			user.GetConfig().GetMintUpConfig().LastMintUpDelivery = time.Now().UnixNano()
-			return db.SaveUser(ctx, user)
+			return d.SaveUser(ctx, user)
 		}
 
 	}

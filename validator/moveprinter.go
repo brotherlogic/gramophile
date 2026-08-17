@@ -52,10 +52,12 @@ func buildRepresentation(move *gpb.PrintMove) []string {
 	return lines
 }
 
-func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
-	db := db.NewDatabase(ctx)
+func runPrintLoop(ctx context.Context, d db.Database, user *gpb.StoredUser) error {
+	if d == nil {
+		d = db.NewDatabase(ctx)
+	}
 
-	moves, err := db.LoadPrintMoves(ctx, user.GetUser().GetDiscogsUserId())
+	moves, err := d.LoadPrintMoves(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return err
 	}
@@ -91,7 +93,7 @@ func runPrintLoop(ctx context.Context, user *gpb.StoredUser) error {
 
 				move.Printed = true
 				move.PrintId = resp.GetId()
-				err = db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
+				err = d.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), move)
 				log.Printf("Deleted print move for %v -> %v (%v)", move.GetIid(), err, move)
 			} else {
 				log.Printf("Failed to move %v %v", resp, err)
