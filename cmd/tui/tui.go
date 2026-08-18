@@ -19,6 +19,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type appState int
@@ -102,8 +104,10 @@ type Model struct {
 	locateClient    LocateClient
 	loginURL        string
 	loginToken      string
+	authToken       string
 	err             error
 	orgErr          string
+	tokenLoader     func() (string, error)
 	tokenSaver      func(string) error
 	progress        float64
 	progBar         progress.Model
@@ -133,6 +137,31 @@ type Model struct {
 	locateViewport viewport.Model
 	activeLocateID int64
 	locateResponse *pb.LocateRecordResponse
+}
+
+func defaultTokenLoader() (string, error) {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	filePath := filepath.Join(dirname, ".gramophile")
+	text, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	auth := &pb.GramophileAuth{}
+	err = prototext.Unmarshal(text, auth)
+	if err != nil {
+		return "", err
+	}
+
+	if auth.GetToken() == "" {
+		return "", fmt.Errorf("empty auth token")
+	}
+
+	return auth.GetToken(), nil
 }
 
 func defaultTokenSaver(tokenText string) error {
@@ -167,14 +196,23 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		client:       client,
 		orgClient:    orgClient,
 		locateClient: locateClient,
+		tokenLoader:  defaultTokenLoader,
 		tokenSaver:   defaultTokenSaver,
 		progBar:      progress.New(progress.WithDefaultGradient()),
 	}
 }
 
+func (m Model) buildContext(timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	if m.authToken != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "auth-token", m.authToken)
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
 func (m Model) fetchURL() tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		resp, err := m.client.GetURL(ctx, &pb.GetURLRequest{})
 		if err != nil {
@@ -186,7 +224,7 @@ func (m Model) fetchURL() tea.Cmd {
 
 func (m Model) pollLogin() tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		resp, err := m.client.GetLogin(ctx, &pb.GetLoginRequest{Token: m.loginToken})
 		if err != nil {
@@ -198,7 +236,7 @@ func (m Model) pollLogin() tea.Cmd {
 
 func (m Model) pollSync() tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		
 		userResp, err := m.client.GetUser(ctx, &pb.GetUserRequest{})
@@ -230,10 +268,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.state {
 	case StateStartupLogo:
 		switch msg.(type) {
-		case tea.KeyMsg:
-			m.state = StateLogin
-			return m, m.fetchURL()
-		case timeoutMsg:
+		case tea.KeyMsg, timeoutMsg:
+			if m.tokenLoader != nil {
+				token, err := m.tokenLoader()
+				if err == nil && token != "" {
+					m.authToken = token
+					m.state = StateLoadingSync
+					return m, m.pollSync()
+				}
+			}
 			m.state = StateLogin
 			return m, m.fetchURL()
 		}
@@ -254,6 +297,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.loginRetryCount = 0
+			if msg.auth != nil {
+				m.authToken = msg.auth.GetToken()
+			}
 			m.state = StateLoadingSync
 			return m, m.pollSync()
 		case loginErrMsg:
@@ -690,7 +736,7 @@ func (m *Model) initOrgConfigForm() {
 
 func (m Model) pollSetConfig(config *pb.GramophileConfig) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		_, err := m.client.SetConfig(ctx, &pb.SetConfigRequest{Config: config})
 		return setConfigMsg{err: err}
@@ -749,7 +795,7 @@ func parseOrgCommand(input string) (string, int32, string, bool, error) {
 
 func (m Model) fetchOrgCmd(orgName, hash string) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		if m.orgClient == nil {
 			return orgFetchedMsg{err: fmt.Errorf("no org client initialized")}
@@ -766,7 +812,7 @@ func (m Model) fetchOrgCmd(orgName, hash string) tea.Cmd {
 
 func (m Model) fetchRecordCmd(iid int64) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		if m.orgClient == nil {
 			return recordFetchedMsg{iid: iid, err: fmt.Errorf("no org client initialized")}
@@ -907,7 +953,7 @@ func parseLocateCommand(cmdStr string) (int64, error) {
 
 func (m Model) fetchLocateCmd(releaseID int64) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := m.buildContext(10 * time.Second)
 		defer cancel()
 		if m.locateClient == nil {
 			return locateFetchedMsg{releaseID: releaseID, err: fmt.Errorf("no locate client initialized")}

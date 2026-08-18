@@ -12,12 +12,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type mockClient struct {
 	getURLFunc       func() (*pb.GetURLResponse, error)
 	getLoginFunc     func() (*pb.GetLoginResponse, error)
 	getUserFunc      func() (*pb.GetUserResponse, error)
+	getUserCtxFunc   func(context.Context) (*pb.GetUserResponse, error)
 	getStateFunc     func() (*pb.GetStateResponse, error)
 	getOrgFunc       func(*pb.GetOrgRequest) (*pb.GetOrgResponse, error)
 	getRecordFunc    func(*pb.GetRecordRequest) (*pb.GetRecordResponse, error)
@@ -39,6 +41,9 @@ func (m *mockClient) GetLogin(ctx context.Context, in *pb.GetLoginRequest, opts 
 }
 
 func (m *mockClient) GetUser(ctx context.Context, in *pb.GetUserRequest, opts ...grpc.CallOption) (*pb.GetUserResponse, error) {
+	if m.getUserCtxFunc != nil {
+		return m.getUserCtxFunc(ctx)
+	}
 	if m.getUserFunc != nil {
 		return m.getUserFunc()
 	}
@@ -916,6 +921,130 @@ func TestLocateCommand_RPCError(t *testing.T) {
 	}
 }
 
+func TestStartup_ExistingToken(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.tokenLoader = func() (string, error) {
+		return "test-stored-token", nil
+	}
 
+	// 1. Key press transition
+	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, cmd := m.Update(keyMsg)
+	updatedModel, ok := newModel.(Model)
+	if !ok {
+		t.Fatalf("Expected model to be of type Model")
+	}
+	if updatedModel.state != StateLoadingSync {
+		t.Errorf("Expected state to transition directly to StateLoadingSync, got %v", updatedModel.state)
+	}
+	if updatedModel.authToken != "test-stored-token" {
+		t.Errorf("Expected authToken to be 'test-stored-token', got %v", updatedModel.authToken)
+	}
+	if cmd == nil {
+		t.Errorf("Expected pollSync cmd to be returned")
+	}
 
+	// 2. Timeout transition
+	timeoutMsgVal := timeoutMsg{}
+	newModel2, cmd2 := m.Update(timeoutMsgVal)
+	updatedModel2, ok := newModel2.(Model)
+	if !ok {
+		t.Fatalf("Expected model to be of type Model")
+	}
+	if updatedModel2.state != StateLoadingSync {
+		t.Errorf("Expected state to transition directly to StateLoadingSync on timeout, got %v", updatedModel2.state)
+	}
+	if updatedModel2.authToken != "test-stored-token" {
+		t.Errorf("Expected authToken to be 'test-stored-token', got %v", updatedModel2.authToken)
+	}
+	if cmd2 == nil {
+		t.Errorf("Expected pollSync cmd to be returned")
+	}
+}
 
+func TestStartup_NoToken(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.tokenLoader = func() (string, error) {
+		return "", fmt.Errorf("file not found")
+	}
+
+	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, cmd := m.Update(keyMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateLogin {
+		t.Errorf("Expected state to transition to StateLogin when no token exists, got %v", updatedModel.state)
+	}
+	if updatedModel.authToken != "" {
+		t.Errorf("Expected authToken to be empty, got %v", updatedModel.authToken)
+	}
+	if cmd == nil {
+		t.Errorf("Expected fetchURL cmd to be returned")
+	}
+}
+
+func TestDefaultTokenLoader_SuccessAndFailure(t *testing.T) {
+	tempDir := t.TempDir()
+	t.Setenv("HOME", tempDir)
+
+	// Failure when file does not exist
+	_, err := defaultTokenLoader()
+	if err == nil {
+		t.Errorf("Expected error when ~/.gramophile does not exist, got nil")
+	}
+
+	// Failure when token is empty
+	err = defaultTokenSaver("")
+	if err != nil {
+		t.Fatalf("Unexpected error saving empty token: %v", err)
+	}
+	_, err = defaultTokenLoader()
+	if err == nil {
+		t.Errorf("Expected error when token is empty, got nil")
+	}
+
+	// Success when valid token is saved
+	err = defaultTokenSaver("valid-auth-token-12345")
+	if err != nil {
+		t.Fatalf("Unexpected error saving token: %v", err)
+	}
+
+	token, err := defaultTokenLoader()
+	if err != nil {
+		t.Fatalf("Unexpected error loading token: %v", err)
+	}
+	if token != "valid-auth-token-12345" {
+		t.Errorf("Expected token 'valid-auth-token-12345', got %q", token)
+	}
+}
+
+func TestContextAuthTokenPropagation(t *testing.T) {
+	var capturedUserMD metadata.MD
+
+	mock := &mockClient{
+		getUserCtxFunc: func(ctx context.Context) (*pb.GetUserResponse, error) {
+			capturedUserMD, _ = metadata.FromOutgoingContext(ctx)
+			return &pb.GetUserResponse{User: &pb.StoredUser{}}, nil
+		},
+	}
+
+	m := InitialModel(mock, mock, mock)
+	m.authToken = "secret-token-xyz"
+
+	// pollSync with custom client to inspect metadata
+	pollSyncCmd := m.pollSync()
+	pollSyncCmd()
+	if vals := capturedUserMD.Get("auth-token"); len(vals) == 0 || vals[0] != "secret-token-xyz" {
+		t.Errorf("Expected auth-token metadata in pollSync, got %v", vals)
+	}
+
+	// buildContext directly
+	ctx, cancel := m.buildContext(10)
+	defer cancel()
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok || len(md.Get("auth-token")) == 0 || md.Get("auth-token")[0] != "secret-token-xyz" {
+		t.Errorf("Expected buildContext to attach auth-token metadata, got %v", md)
+	}
+}
