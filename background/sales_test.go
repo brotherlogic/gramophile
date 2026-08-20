@@ -956,4 +956,105 @@ func TestAddSale_FailsAndRaisesIssue_WhenConditionMissing(t *testing.T) {
 	}
 }
 
+func TestSyncSales_PreservesConditionOnUpdate(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	userId := int32(123)
+
+	// Existing sale 1: Empty condition, has sleeve condition -> should be backfilled from Discogs
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          12345,
+		ReleaseId:       100,
+		Condition:       "",
+		SleeveCondition: "Very Good (VG)",
+		CurrentPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 12345: %v", err)
+	}
+
+	// Existing sale 2: Non-empty condition and sleeve condition -> existing conditions should be preserved
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          12346,
+		ReleaseId:       101,
+		Condition:       "Mint (M)",
+		SleeveCondition: "Near Mint (NM)",
+		CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 12346: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    12345,
+				ReleaseId: 100,
+				Condition: "Very Good Plus (VG+)",
+				Price:     &pbd.Price{Value: 1000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+			{
+				SaleId:    12346,
+				ReleaseId: 101,
+				Condition: "Poor (P)",
+				Price:     &pbd.Price{Value: 2000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+			{
+				SaleId:    12347,
+				ReleaseId: 102,
+				Condition: "Near Mint (NM)",
+				Price:     &pbd.Price{Value: 3000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+		},
+	}
+
+	b := GetBackgroundRunner(d, "", "", "")
+	_, err = b.SyncSales(ctx, di, 1, time.Now().UnixNano())
+	if err != nil {
+		t.Fatalf("unexpected error from SyncSales: %v", err)
+	}
+
+	// Verify sale 12345: Condition backfilled, SleeveCondition preserved
+	sale1, err := d.GetSale(ctx, userId, 12345)
+	if err != nil {
+		t.Fatalf("failed to get sale 12345: %v", err)
+	}
+	if sale1.GetCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected sale 12345 Condition to be backfilled to 'Very Good Plus (VG+)', got %q", sale1.GetCondition())
+	}
+	if sale1.GetSleeveCondition() != "Very Good (VG)" {
+		t.Errorf("expected sale 12345 SleeveCondition to be preserved as 'Very Good (VG)', got %q", sale1.GetSleeveCondition())
+	}
+
+	// Verify sale 12346: Existing Condition and SleeveCondition preserved
+	sale2, err := d.GetSale(ctx, userId, 12346)
+	if err != nil {
+		t.Fatalf("failed to get sale 12346: %v", err)
+	}
+	if sale2.GetCondition() != "Mint (M)" {
+		t.Errorf("expected sale 12346 Condition to be preserved as 'Mint (M)', got %q", sale2.GetCondition())
+	}
+	if sale2.GetSleeveCondition() != "Near Mint (NM)" {
+		t.Errorf("expected sale 12346 SleeveCondition to be preserved as 'Near Mint (NM)', got %q", sale2.GetSleeveCondition())
+	}
+
+	// Verify sale 12347: Newly discovered sale populated with condition
+	sale3, err := d.GetSale(ctx, userId, 12347)
+	if err != nil {
+		t.Fatalf("failed to get sale 12347: %v", err)
+	}
+	if sale3.GetCondition() != "Near Mint (NM)" {
+		t.Errorf("expected sale 12347 Condition to be 'Near Mint (NM)', got %q", sale3.GetCondition())
+	}
+}
+
+
 
