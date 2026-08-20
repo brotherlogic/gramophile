@@ -29,13 +29,13 @@ Current Go version: 1.26.2
 You can install the Gramophile TUI using standard Go tooling:
 
 ```bash
-go install github.com/brotherlogic/gramophile/cmd/tui@latest
+go install github.com/brotherlogic/gramophile/cmd/gramophile@latest
 ```
 
 To run the TUI once installed, simply execute:
 
 ```bash
-tui
+gramophile
 ```
 
 ## Documentation
