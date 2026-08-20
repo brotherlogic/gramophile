@@ -19,6 +19,7 @@ Current Go version: 1.26.2
 - Resilient Sale Adjustments & Decoupled Refresh: Evaluates sale price reductions resiliently against missing pricing metadata (such as unlinked sales or missing median prices) and decouples sale adjustment processing from catalog refresh.
 - AdjustSales Queue Task Handler: Registers a dedicated background queue task handler for `QueueElement_AdjustSales` with deduplication key support to process collection sale price adjustments asynchronously.
 - Periodic Sale Adjustment Scheduling: Schedules `AdjustSales` queue tasks periodically in the background validator loop for users with automated price adjustments enabled.
+- Sale Condition & Sleeve Condition Metadata: Adds `sleeve_condition` fields to `SaleInfo` and `UpdateSale` protobuf definitions to support full condition retention and validation across sale synchronization and price adjustments.
 
 
 ## TUI (Terminal User Interface)

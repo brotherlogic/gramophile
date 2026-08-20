@@ -2146,6 +2146,7 @@ type SaleInfo struct {
 	TimeRefreshed      int64                  `protobuf:"varint,15,opt,name=time_refreshed,json=timeRefreshed,proto3" json:"time_refreshed,omitempty"`
 	SoldDate           int64                  `protobuf:"varint,16,opt,name=sold_date,json=soldDate,proto3" json:"sold_date,omitempty"`
 	SaleUpdateOverride SaleUpdateType         `protobuf:"varint,19,opt,name=sale_update_override,json=saleUpdateOverride,proto3,enum=gramophile.SaleUpdateType" json:"sale_update_override,omitempty"`
+	SleeveCondition    string                 `protobuf:"bytes,20,opt,name=sleeve_condition,json=sleeveCondition,proto3" json:"sleeve_condition,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -2311,6 +2312,13 @@ func (x *SaleInfo) GetSaleUpdateOverride() SaleUpdateType {
 		return x.SaleUpdateOverride
 	}
 	return SaleUpdateType_SALE_UPDATE_UNKNOWN
+}
+
+func (x *SaleInfo) GetSleeveCondition() string {
+	if x != nil {
+		return x.SleeveCondition
+	}
+	return ""
 }
 
 type PriceUpdate struct {
@@ -3864,14 +3872,15 @@ func (x *RefreshRelease) GetIntention() string {
 }
 
 type UpdateSale struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SaleId        int64                  `protobuf:"varint,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
-	NewPrice      int32                  `protobuf:"varint,2,opt,name=new_price,json=newPrice,proto3" json:"new_price,omitempty"`
-	ReleaseId     int64                  `protobuf:"varint,3,opt,name=release_id,json=releaseId,proto3" json:"release_id,omitempty"`
-	Condition     string                 `protobuf:"bytes,4,opt,name=condition,proto3" json:"condition,omitempty"`
-	Motivation    string                 `protobuf:"bytes,5,opt,name=motivation,proto3" json:"motivation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SaleId          int64                  `protobuf:"varint,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
+	NewPrice        int32                  `protobuf:"varint,2,opt,name=new_price,json=newPrice,proto3" json:"new_price,omitempty"`
+	ReleaseId       int64                  `protobuf:"varint,3,opt,name=release_id,json=releaseId,proto3" json:"release_id,omitempty"`
+	Condition       string                 `protobuf:"bytes,4,opt,name=condition,proto3" json:"condition,omitempty"`
+	Motivation      string                 `protobuf:"bytes,5,opt,name=motivation,proto3" json:"motivation,omitempty"`
+	SleeveCondition string                 `protobuf:"bytes,6,opt,name=sleeve_condition,json=sleeveCondition,proto3" json:"sleeve_condition,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateSale) Reset() {
@@ -3935,6 +3944,13 @@ func (x *UpdateSale) GetCondition() string {
 func (x *UpdateSale) GetMotivation() string {
 	if x != nil {
 		return x.Motivation
+	}
+	return ""
+}
+
+func (x *UpdateSale) GetSleeveCondition() string {
+	if x != nil {
+		return x.SleeveCondition
 	}
 	return ""
 }
@@ -8494,7 +8510,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"scoreValue\x12&\n" +
 	"\x0fscore_mapped_to\x18\x02 \x01(\x05R\rscoreMappedTo\x12=\n" +
 	"\rlisten_status\x18\x03 \x01(\x0e2\x18.gramophile.ListenStatusR\flistenStatus\x12?\n" +
-	"\x1capplied_to_discogs_timestamp\x18\x04 \x01(\x03R\x19appliedToDiscogsTimestamp\"\x9c\x06\n" +
+	"\x1capplied_to_discogs_timestamp\x18\x04 \x01(\x03R\x19appliedToDiscogsTimestamp\"\xc7\x06\n" +
 	"\bSaleInfo\x12\x17\n" +
 	"\asale_id\x18\x01 \x01(\x03R\x06saleId\x12*\n" +
 	"\x11last_price_update\x18\x02 \x01(\x03R\x0flastPriceUpdate\x122\n" +
@@ -8519,7 +8535,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\ftime_created\x18\x0e \x01(\x03R\vtimeCreated\x12%\n" +
 	"\x0etime_refreshed\x18\x0f \x01(\x03R\rtimeRefreshed\x12\x1b\n" +
 	"\tsold_date\x18\x10 \x01(\x03R\bsoldDate\x12L\n" +
-	"\x14sale_update_override\x18\x13 \x01(\x0e2\x1a.gramophile.SaleUpdateTypeR\x12saleUpdateOverride\"n\n" +
+	"\x14sale_update_override\x18\x13 \x01(\x0e2\x1a.gramophile.SaleUpdateTypeR\x12saleUpdateOverride\x12)\n" +
+	"\x10sleeve_condition\x18\x14 \x01(\tR\x0fsleeveCondition\"n\n" +
 	"\vPriceUpdate\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\x03R\x04date\x12+\n" +
 	"\tset_price\x18\x02 \x01(\v2\x0e.discogs.PriceR\bsetPrice\x12\x1e\n" +
@@ -8652,7 +8669,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\tintention\x18\x01 \x01(\tR\tintention\"@\n" +
 	"\x0eRefreshRelease\x12\x10\n" +
 	"\x03iid\x18\x01 \x01(\x03R\x03iid\x12\x1c\n" +
-	"\tintention\x18\x02 \x01(\tR\tintention\"\x9f\x01\n" +
+	"\tintention\x18\x02 \x01(\tR\tintention\"\xca\x01\n" +
 	"\n" +
 	"UpdateSale\x12\x17\n" +
 	"\asale_id\x18\x01 \x01(\x03R\x06saleId\x12\x1b\n" +
@@ -8662,7 +8679,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\tcondition\x18\x04 \x01(\tR\tcondition\x12\x1e\n" +
 	"\n" +
 	"motivation\x18\x05 \x01(\tR\n" +
-	"motivation\"_\n" +
+	"motivation\x12)\n" +
+	"\x10sleeve_condition\x18\x06 \x01(\tR\x0fsleeveCondition\"_\n" +
 	"\n" +
 	"MoveRecord\x12\x1c\n" +
 	"\trecordIid\x18\x01 \x01(\x03R\trecordIid\x12\x1f\n" +

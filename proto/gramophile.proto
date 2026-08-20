@@ -276,6 +276,7 @@ message SaleInfo {
     int64 sold_date = 16;
 
     SaleUpdateType sale_update_override = 19;
+    string sleeve_condition = 20;
 }
 
 message PriceUpdate {
@@ -448,6 +449,7 @@ message UpdateSale {
     int64 release_id = 3;
     string condition = 4;
     string motivation = 5;
+    string sleeve_condition = 6;
 }
 
 message MoveRecord {
