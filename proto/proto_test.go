@@ -33,3 +33,22 @@ func TestAdjustSalesProto(t *testing.T) {
 	}
 }
 
+func TestSaleInfoSleeveCondition(t *testing.T) {
+	sale := &SaleInfo{
+		SleeveCondition: "Mint (M)",
+	}
+	if sale.GetSleeveCondition() != "Mint (M)" {
+		t.Errorf("Expected sleeve condition 'Mint (M)', got %v", sale.GetSleeveCondition())
+	}
+}
+
+func TestUpdateSaleSleeveCondition(t *testing.T) {
+	update := &UpdateSale{
+		SleeveCondition: "Near Mint (NM or M-)",
+	}
+	if update.GetSleeveCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("Expected sleeve condition 'Near Mint (NM or M-)', got %v", update.GetSleeveCondition())
+	}
+}
+
+
