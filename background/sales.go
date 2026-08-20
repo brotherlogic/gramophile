@@ -222,6 +222,10 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 				Currency: sale.GetPrice().GetCurrency(),
 			}
 
+			if csale.GetCondition() == "" && sale.GetCondition() != "" {
+				csale.Condition = sale.GetCondition()
+			}
+
 			if priorState == pbd.SaleStatus_FOR_SALE && csale.SaleState == pbd.SaleStatus_SOLD {
 				// Record has been sold
 				csale.SoldDate = time.Now().UnixNano()
