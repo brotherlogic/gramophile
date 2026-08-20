@@ -9,6 +9,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -318,9 +319,15 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 	log.Printf("Adjusting %v sales", len(sales))
 
 	for _, sid := range sales {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
 		if err != nil {
-			return fmt.Errorf("unable to read sale: %w", err)
+			log.Printf("unable to read sale %v: %v", sid, err)
+			b.reportSaleAdjustmentError(ctx, sid, "GetSale", err)
+			continue
 		}
 
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE {
@@ -337,7 +344,13 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 						salesSkippedMissingMetadata.Inc()
 						continue
 					}
-					return fmt.Errorf("unable to adjust price: %w", err)
+					if strings.Contains(err.Error(), "Already reached low price") {
+						log.Printf("debug: sale %v already reached low price: %v", sid, err)
+						continue
+					}
+					log.Printf("unable to adjust price for sale %v: %v", sid, err)
+					b.reportSaleAdjustmentError(ctx, sid, "adjustPrice", err)
+					continue
 				}
 
 				// If we've reached the median price, then explicitly set this
@@ -349,7 +362,9 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
 					if err != nil {
-						return err
+						log.Printf("unable to save sale %v (median timestamp): %v", sid, err)
+						b.reportSaleAdjustmentError(ctx, sid, "SaveSale", err)
+						continue
 					}
 				}
 				// If we've reached the low price, then explicitly set this
@@ -360,18 +375,22 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
 					if err != nil {
-						return err
+						log.Printf("unable to save sale %v (low timestamp): %v", sid, err)
+						b.reportSaleAdjustmentError(ctx, sid, "SaveSale", err)
+						continue
 					}
 				}
 
-				// If we've reached the low price, then explicitly set this
+				// If we've reached the stale bound price, then explicitly set this
 				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
 					nsp == user.GetConfig().GetSaleConfig().GetStaleBound() && sale.TimeAtStale == 0 {
 					sale.TimeAtStale = time.Now().UnixNano()
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
 					if err != nil {
-						return err
+						log.Printf("unable to save sale %v (stale timestamp): %v", sid, err)
+						b.reportSaleAdjustmentError(ctx, sid, "SaveSale", err)
+						continue
 					}
 				}
 
@@ -392,7 +411,9 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 							}}},
 					}, enqueue)
 				if err != nil {
-					return fmt.Errorf("unable to queue sales: %v", err)
+					log.Printf("unable to queue sale %v: %v", sid, err)
+					b.reportSaleAdjustmentError(ctx, sid, "EnqueueWithIgnore", err)
+					continue
 				}
 			} else {
 				log.Printf("Not adjusting %v since %v is less than %v", sale.GetSaleId(), time.Since(time.Unix(0, sale.GetLastPriceUpdate())), getUpdateTime(c))
