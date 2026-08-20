@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/brotherlogic/discogs"
+	ghbclient "github.com/brotherlogic/githubridge/client"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,6 +51,7 @@ type BackgroundRunner struct {
 	key, secret, callback string
 	ReleaseRefresh        int64
 	handlers              map[string]TaskHandler
+	ghclient              ghbclient.GithubridgeClient
 }
 
 func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
