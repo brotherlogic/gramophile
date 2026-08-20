@@ -9,6 +9,8 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	ghbclient "github.com/brotherlogic/githubridge/client"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 	pstore_client "github.com/brotherlogic/pstore/client"
@@ -574,6 +576,235 @@ func TestAdjustSalesHandler(t *testing.T) {
 	}
 	if savedUser.GetLastSaleAdjust() == 0 {
 		t.Errorf("expected user.LastSaleAdjust to be set > 0, got %v", savedUser.GetLastSaleAdjust())
+	}
+}
+
+type failingGetSalesDB struct {
+	db.Database
+}
+
+func (f *failingGetSalesDB) GetSales(ctx context.Context, userId int32) ([]int64, error) {
+	return nil, errors.New("simulated GetSales failure")
+}
+
+func TestAdjustSales_ResilientLoopContinuesOnIndividualError(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	// Sale 1: Will fail in adjustPrice due to unknown update type
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:             100,
+		ReleaseId:          1000,
+		CurrentPrice:       &pbd.Price{Value: 500},
+		MedianPrice:        &pbd.Price{Value: 400},
+		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+		SaleUpdateOverride: pb.SaleUpdateType(999), // Invalid update type -> error in adjustPrice
+	})
+
+	// Sale 2: Valid sale, should be adjusted and enqueued
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:             200,
+		ReleaseId:          2000,
+		CurrentPrice:       &pbd.Price{Value: 500},
+		MedianPrice:        &pbd.Price{Value: 400},
+		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+	})
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	d.SaveUser(ctx, user)
+
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds: 10,
+		Reduction:              50,
+	}
+
+	var enqueuedSales []int64
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if req.GetElement().GetUpdateSale() != nil {
+			enqueuedSales = append(enqueuedSales, req.GetElement().GetUpdateSale().GetSaleId())
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err := b.AdjustSales(ctx, config, user, enqueue)
+	if err != nil {
+		t.Fatalf("expected AdjustSales to return nil (resilient loop), got: %v", err)
+	}
+
+	// Verify Sale 200 was enqueued
+	if len(enqueuedSales) != 1 || enqueuedSales[0] != 200 {
+		t.Errorf("expected only Sale 200 to be enqueued, got: %v", enqueuedSales)
+	}
+
+	// Verify GitHub issue was created for Sale 100 failure
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to query github issues: %v", err)
+	}
+	if len(resp.GetIssues()) != 1 {
+		t.Fatalf("expected 1 reported issue for failed sale 100, got %d", len(resp.GetIssues()))
+	}
+	if resp.GetIssues()[0].GetTitle() != "Sale Adjustment Failure: adjustPrice on sale 100" {
+		t.Errorf("unexpected issue title: %v", resp.GetIssues()[0].GetTitle())
+	}
+
+	// Verify user.LastSaleAdjust was updated
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("unable to load user: %v", err)
+	}
+	if savedUser.GetLastSaleAdjust() == 0 {
+		t.Errorf("expected LastSaleAdjust to be updated")
+	}
+}
+
+func TestAdjustSales_ExpectedLowPriceContinuesLoop(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	// Sale 1: Already reached low price (lowerBound == 0 with post-median conditions)
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:             100,
+		ReleaseId:          1000,
+		CurrentPrice:       &pbd.Price{Value: 50},
+		MedianPrice:        &pbd.Price{Value: 200},
+		LowPrice:           &pbd.Price{Value: 50},
+		TimeAtMedian:       time.Now().Add(-time.Hour * 48).UnixNano(),
+		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+	})
+
+	// Sale 2: Valid normal sale
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:             200,
+		ReleaseId:          2000,
+		CurrentPrice:       &pbd.Price{Value: 500},
+		MedianPrice:        &pbd.Price{Value: 400},
+		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+	})
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	d.SaveUser(ctx, user)
+
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds:       10,
+		Reduction:                    50,
+		PostMedianTime:               1,
+		PostMedianReduction:          10,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW, // lowerBound = 0 -> "Already reached low price"
+	}
+
+	var enqueuedSales []int64
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if req.GetElement().GetUpdateSale() != nil {
+			enqueuedSales = append(enqueuedSales, req.GetElement().GetUpdateSale().GetSaleId())
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err := b.AdjustSales(ctx, config, user, enqueue)
+	if err != nil {
+		t.Fatalf("expected AdjustSales to return nil (expected condition continues loop), got: %v", err)
+	}
+
+	// Verify Sale 200 was enqueued
+	if len(enqueuedSales) != 1 || enqueuedSales[0] != 200 {
+		t.Errorf("expected only Sale 200 to be enqueued, got: %v", enqueuedSales)
+	}
+
+	// Expected condition should NOT file a GitHub issue
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to query github issues: %v", err)
+	}
+	if len(resp.GetIssues()) != 0 {
+		t.Errorf("expected 0 issues for expected low price condition, got %d", len(resp.GetIssues()))
+	}
+}
+
+func TestAdjustSales_InitialGetSalesFailureReturnsError(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	failingDB := &failingGetSalesDB{Database: d}
+	b := GetBackgroundRunner(failingDB, "", "", "")
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds: 10,
+		Reduction:              50,
+	}
+
+	err := b.AdjustSales(ctx, config, user, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err == nil {
+		t.Fatalf("expected error from initial GetSales failure, got nil")
+	}
+}
+
+func TestAdjustSales_ContextCancellationExitsCleanly(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          100,
+		ReleaseId:       1000,
+		CurrentPrice:    &pbd.Price{Value: 500},
+		MedianPrice:     &pbd.Price{Value: 400},
+		LastPriceUpdate: time.Now().Add(-time.Hour * 48).UnixNano(),
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds: 10,
+		Reduction:              50,
+	}
+
+	enqueued := false
+	err := b.AdjustSales(ctx, config, user, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = true
+		return &pb.EnqueueResponse{}, nil
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled error, got: %v", err)
+	}
+	if enqueued {
+		t.Errorf("expected no sales to be enqueued when context is cancelled")
 	}
 }
 
