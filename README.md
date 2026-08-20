@@ -21,6 +21,7 @@ Current Go version: 1.26.2
 - Periodic Sale Adjustment Scheduling: Schedules `AdjustSales` queue tasks periodically in the background validator loop for users with automated price adjustments enabled.
 - Sale Adjustment Failure Reporting & Deduplication: Automatically reports unexpected sale adjustment failures to GitHub via `githubridge` with open-issue deduplication to prevent duplicate bug filings for recurring failure conditions.
 - Resilient Sales Adjustment Loop: Iterates over user sales resiliently in `AdjustSales`, cleanly handling context cancellation and expected pricing conditions while isolating and reporting individual sale failures without terminating the entire adjustment run.
+- Sale Creation Condition Validation & Metadata Persistence: Enforces media and sleeve condition requirements during sale creation in `AddSale`, raising a GitHub issue on missing condition metadata and persisting complete pricing, condition, and timestamp metadata on created sales.
 - Multi-Sale Adjustment Resilience Integration Testing: End-to-end integration tests verifying the complete asynchronous sale adjustment lifecycle across multi-sale collections with mixed valid and invalid sale states.
 
 

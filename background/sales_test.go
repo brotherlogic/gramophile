@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbclient "github.com/brotherlogic/githubridge/client"
@@ -807,4 +810,150 @@ func TestAdjustSales_ContextCancellationExitsCleanly(t *testing.T) {
 		t.Errorf("expected no sales to be enqueued when context is cancelled")
 	}
 }
+
+func TestAddSale_PopulatesConditionAndSleeveCondition(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				ListingStrategy: pb.SaleConfig_LISTING_STRATEGY_MEDIAN,
+			},
+		},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			InstanceId:      1001,
+			Id:              2001,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+		},
+		MedianPrice: &pbd.Price{Value: 1500},
+		LowPrice:    &pbd.Price{Value: 1000},
+		HighPrice:   &pbd.Price{Value: 2000},
+	})
+	if err != nil {
+		t.Fatalf("failed to save record: %v", err)
+	}
+
+	dc := &discogs.TestDiscogsClient{UserId: 123}
+	err = b.AddSale(ctx, dc, 1001, &pbd.SaleParams{ReleaseId: 2001}, user)
+	if err != nil {
+		t.Fatalf("unexpected error from AddSale: %v", err)
+	}
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("failed to get sales: %v", err)
+	}
+	if len(sales) == 0 {
+		t.Fatalf("expected at least 1 sale saved, got 0")
+	}
+
+	sale, err := d.GetSale(ctx, 123, sales[0])
+	if err != nil {
+		t.Fatalf("failed to get sale: %v", err)
+	}
+
+	if sale.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected Condition 'Near Mint (NM or M-)', got %q", sale.GetCondition())
+	}
+	if sale.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected SleeveCondition 'Very Good Plus (VG+)', got %q", sale.GetSleeveCondition())
+	}
+	if sale.GetMedianPrice().GetValue() != 1500 {
+		t.Errorf("expected MedianPrice 1500, got %v", sale.GetMedianPrice().GetValue())
+	}
+	if sale.GetLowPrice().GetValue() != 1000 {
+		t.Errorf("expected LowPrice 1000, got %v", sale.GetLowPrice().GetValue())
+	}
+	if sale.GetTimeCreated() == 0 {
+		t.Errorf("expected TimeCreated to be set, got 0")
+	}
+	if sale.GetTimeRefreshed() == 0 {
+		t.Errorf("expected TimeRefreshed to be set, got 0")
+	}
+	if sale.GetLastPriceUpdate() == 0 {
+		t.Errorf("expected LastPriceUpdate to be set, got 0")
+	}
+}
+
+func TestAddSale_FailsAndRaisesIssue_WhenConditionMissing(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				ListingStrategy: pb.SaleConfig_LISTING_STRATEGY_MEDIAN,
+			},
+		},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Record with empty condition
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			InstanceId:      1002,
+			Id:              2002,
+			Condition:       "",
+			SleeveCondition: "Very Good Plus (VG+)",
+		},
+		MedianPrice: &pbd.Price{Value: 1500},
+		LowPrice:    &pbd.Price{Value: 1000},
+		HighPrice:   &pbd.Price{Value: 2000},
+	})
+	if err != nil {
+		t.Fatalf("failed to save record: %v", err)
+	}
+
+	dc := &discogs.TestDiscogsClient{UserId: 123}
+	err = b.AddSale(ctx, dc, 1002, &pbd.SaleParams{ReleaseId: 2002}, user)
+	if err == nil {
+		t.Fatalf("expected error from AddSale when condition is missing, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.FailedPrecondition {
+		t.Errorf("expected FailedPrecondition status code, got %v", err)
+	}
+
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to get issues from test client: %v", err)
+	}
+
+	if len(resp.GetIssues()) != 1 {
+		t.Fatalf("expected 1 issue to be created, got %d", len(resp.GetIssues()))
+	}
+
+	issue := resp.GetIssues()[0]
+	expectedTitle := "Sale creation failed: record 1002 missing condition"
+	if issue.GetTitle() != expectedTitle {
+		t.Errorf("expected issue title %q, got %q", expectedTitle, issue.GetTitle())
+	}
+	if issue.GetRepo() != "gramophile" {
+		t.Errorf("expected issue repo 'gramophile', got %q", issue.GetRepo())
+	}
+}
+
 

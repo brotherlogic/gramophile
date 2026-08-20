@@ -20,6 +20,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	pbd "github.com/brotherlogic/discogs/proto"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -39,6 +40,28 @@ var (
 )
 
 func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Discogs, iid int64, saleParams *pbd.SaleParams, user *pb.StoredUser) (*pbd.SaleParams, error) {
+	// Load the record
+	r, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.GetRelease().GetCondition() == "" {
+		client, gerr := b.getGHClient()
+		if gerr == nil {
+			_, _ = client.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+				User:  "brotherlogic",
+				Repo:  "gramophile",
+				Title: fmt.Sprintf("Sale creation failed: record %v missing condition", iid),
+				Body:  fmt.Sprintf("Record %v for user %v has no condition set; cannot create sale on Discogs.", iid, user.GetUser().GetDiscogsUserId()),
+			})
+		}
+		return nil, status.Errorf(codes.FailedPrecondition, "cannot list record %v for sale: missing condition", iid)
+	}
+
+	saleParams.Condition = r.GetRelease().GetCondition()
+	saleParams.SleeveCondition = r.GetRelease().GetSleeveCondition()
+
 	// Fast exit if we already have set a price
 	if saleParams.Price > 0 {
 		return saleParams, nil
@@ -46,12 +69,6 @@ func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Disco
 
 	if user.GetConfig().GetSaleConfig().GetListingStrategy() == pb.SaleConfig_LISTING_STRATEGY_SPECIFY {
 		return nil, status.Errorf(codes.FailedPrecondition, "Specify is the strategy, but no price was set")
-	}
-
-	// Load the record
-	r, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
-	if err != nil {
-		return nil, err
 	}
 
 	// Ensure we have the stats
@@ -108,12 +125,25 @@ func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, iid i
 		return err
 	}
 
+	r, err := b.db.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), iid)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now().UnixNano()
 	// Save the sale
 	return b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
-		SaleId:       sid,
-		ReleaseId:    saleParams.GetReleaseId(),
-		SaleState:    pbd.SaleStatus_FOR_SALE,
-		CurrentPrice: &pbd.Price{Value: int32(nsp.GetPrice() * 100)},
+		SaleId:          sid,
+		ReleaseId:       saleParams.GetReleaseId(),
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       nsp.GetCondition(),
+		SleeveCondition: nsp.GetSleeveCondition(),
+		CurrentPrice:    &pbd.Price{Value: int32(nsp.GetPrice() * 100)},
+		MedianPrice:     r.GetMedianPrice(),
+		LowPrice:        r.GetLowPrice(),
+		TimeCreated:     now,
+		TimeRefreshed:   now,
+		LastPriceUpdate: now,
 	})
 }
 
