@@ -13,6 +13,8 @@ import (
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	"github.com/brotherlogic/gramophile/server"
 	pstore_client "github.com/brotherlogic/pstore/client"
+	rspb "github.com/brotherlogic/pstore/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database, *queuelogic.Queue) {
@@ -1166,3 +1168,196 @@ func TestAddSale_WithPriceStrategy(t *testing.T) {
 		t.Errorf("Record has wrong sale price: %v", rec)
 	}
 }
+
+func TestMultiSaleAdjustment_Resilience(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    104,
+				ReleaseId: 204,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Set configuration: enable automated price reduction
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   0,
+				PostMedianTime:               1,
+				PostMedianReduction:          10,
+				PostMedianReductionFrequency: 10,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// 1. Sale 101: Corrupt/missing record in DB that triggers unexpected GetSale unmarshal failure
+	_, err = pstore.Write(ctx, &rspb.WriteRequest{
+		Key:   "gramophile/user/123/sale/101",
+		Value: &anypb.Any{Value: []byte("invalid-corrupt-protobuf-bytes")},
+	})
+	if err != nil {
+		t.Fatalf("unable to write corrupt sale to pstore: %v", err)
+	}
+
+	// 2. Sale 102: Sale that has already reached low price bound ("Already reached low price for 102")
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         202,
+			InstanceId: 2020,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      102,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record 202: %v", err)
+	}
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleId:          102,
+		ReleaseId:       202,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		TimeAtMedian:    time.Now().Add(-time.Hour * 50).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale 102: %v", err)
+	}
+
+	// 3. Sale 103: Sale with missing pricing metadata (no median price)
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 1500, Currency: "USD"},
+		SaleId:          103,
+		ReleaseId:       203,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale 103: %v", err)
+	}
+
+	// 4. Sale 104: Valid sale requiring price adjustment (5000 -> 4900)
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         204,
+			InstanceId: 2040,
+			FolderId:   12,
+			Condition:  "Very Good Plus (VG+)",
+			Labels:     []*pbd.Label{{Name: "AAA"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 4000},
+		SaleId:      104,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record 204: %v", err)
+	}
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 4000, Currency: "USD"},
+		SaleId:          104,
+		ReleaseId:       204,
+		LastPriceUpdate: 12,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale 104: %v", err)
+	}
+
+	// Enqueue AdjustSales task to queue
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test MultiSale Resilient Adjustment",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales task: %v", err)
+	}
+
+	// Flush queue: executes AdjustSales and subsequently the enqueued UpdateSale task for Sale 104
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("bad flush queue: %v", err)
+	}
+
+	// Assertions:
+	// 1. Valid sale (104) should be successfully adjusted and saved to DB with new price 4900
+	sale104, err := d.GetSale(ctx, 123, 104)
+	if err != nil {
+		t.Fatalf("unable to get sale 104 from DB: %v", err)
+	}
+	if sale104.GetCurrentPrice().GetValue() != 4900 {
+		t.Errorf("expected sale 104 price to be adjusted to 4900, got: %v", sale104.GetCurrentPrice().GetValue())
+	}
+
+	// 2. Discogs client should reflect the updated price for sale 104
+	if len(di.Sales) == 0 || di.Sales[0].GetPrice().GetValue() != 4900 {
+		t.Errorf("expected discogs client sale 104 price to be 4900, got: %v", di.Sales)
+	}
+
+	// 3. Low-price bounded sale (102) should not have been modified
+	sale102, err := d.GetSale(ctx, 123, 102)
+	if err != nil {
+		t.Fatalf("unable to get sale 102 from DB: %v", err)
+	}
+	if sale102.GetCurrentPrice().GetValue() != 2000 {
+		t.Errorf("expected sale 102 price to remain 2000, got: %v", sale102.GetCurrentPrice().GetValue())
+	}
+
+	// 4. Missing metadata sale (103) should not have been modified
+	sale103, err := d.GetSale(ctx, 123, 103)
+	if err != nil {
+		t.Fatalf("unable to get sale 103 from DB: %v", err)
+	}
+	if sale103.GetCurrentPrice().GetValue() != 1500 {
+		t.Errorf("expected sale 103 price to remain 1500, got: %v", sale103.GetCurrentPrice().GetValue())
+	}
+
+	// 5. User's LastSaleAdjust timestamp must be updated in DB upon successful completion of the loop
+	user, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("unable to get user from DB: %v", err)
+	}
+	if user.GetLastSaleAdjust() == 0 {
+		t.Errorf("expected user LastSaleAdjust timestamp to be non-zero upon completion, got 0")
+	}
+}
+
