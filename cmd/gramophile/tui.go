@@ -608,17 +608,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+const logo = ` ██████╗ ██████╗  █████╗ ███╗   ███╗ ██████╗ ██████╗ ██╗  ██╗██╗██╗     ███████╗
+██╔════╝ ██╔══██╗██╔══██╗████╗ ████║██╔═══██╗██╔══██╗██║  ██║██║██║     ██╔════╝
+██║  ███╗██████╔╝███████║██╔████╔██║██║   ██║██████╔╝███████║██║██║     █████╗  
+██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║██║   ██║██╔═══╝ ██╔══██║██║██║     ██╔══╝  
+╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║╚██████╔╝██║     ██║  ██║██║███████╗███████╗
+ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝`
+
 func (m Model) View() string {
 	switch m.state {
 	case StateStartupLogo:
 		style := lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
-			Padding(2, 4).
-			Margin(1, 1)
+			Foreground(lipgloss.Color("#7D56F4")).
+			Margin(1, 2)
 
-		return style.Render("GRAMOPHILE") + "\n\nPress any key to continue..."
+		return style.Render(logo) + "\n\nPress any key to continue..."
 	case StateLogin:
 		if m.err != nil {
 			return fmt.Sprintf("Error: %v\nPress q to quit", m.err)
