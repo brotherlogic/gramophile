@@ -117,6 +117,15 @@ func TestStateTransitions(t *testing.T) {
 	}
 }
 
+func TestStartupLogoView(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	view := m.View()
+
+	if !strings.Contains(view, "██████╗") || !strings.Contains(view, "Press any key to continue...") {
+		t.Errorf("Expected startup logo view to contain ASCII art logo with '██████╗', got:\n%s", view)
+	}
+}
+
 func TestTimerTransition(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	
