@@ -12,11 +12,16 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
-func main() {
+func getHost() string {
 	host := os.Getenv("GRAMOPHILE_HOST")
 	if host == "" {
-		host = "gramophile.brotherlogic-backend.com:80"
+		host = "gramophile-grpc.brotherlogic-backend.com:80"
 	}
+	return host
+}
+
+func main() {
+	host := getHost()
 	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial gramophile: %v", err)
