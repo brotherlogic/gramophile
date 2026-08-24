@@ -641,11 +641,13 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 	slices.SortFunc(validSales, func(a, b *pb.SaleInfo) int {
 		return cmp.Compare(a.GetSaleId(), b.GetSaleId())
 	})
+	matchedSaleIds := make(map[int64]bool)
 	for _, sale := range validSales {
 		for _, record := range records {
 			changed := false
 			sale_changed := false
 			if record.GetRelease().GetId() == sale.GetReleaseId() {
+				matchedSaleIds[sale.GetSaleId()] = true
 				log.Printf("LINK %v or %v ($%v)", record.GetRelease().GetInstanceId(), record.GetSaleId(), sale)
 
 				// Ensure we copy over any changes to the median price
@@ -663,6 +665,15 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 						sale.LowPrice = record.GetLowPrice()
 						sale_changed = true
 					}
+				}
+
+				if sale.GetCondition() != record.GetRelease().GetCondition() || sale.GetSleeveCondition() != record.GetRelease().GetSleeveCondition() {
+					if !sale_changed {
+						sale = proto.Clone(sale).(*pb.SaleInfo)
+					}
+					sale.Condition = record.GetRelease().GetCondition()
+					sale.SleeveCondition = record.GetRelease().GetSleeveCondition()
+					sale_changed = true
 				}
 
 				if record.GetSaleId() != sale.GetSaleId() {
@@ -685,6 +696,24 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				if err != nil {
 					return fmt.Errorf("unable to save sale info: %w", err)
 				}
+			}
+		}
+	}
+
+	for _, sale := range validSales {
+		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE && !matchedSaleIds[sale.GetSaleId()] {
+			gclient, err := b.getGHClient()
+			if err != nil {
+				return err
+			}
+			_, err = gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+				User:  "brotherlogic",
+				Repo:  "gramophile",
+				Title: fmt.Sprintf("Active Discogs sale %v has no matching local record", sale.GetSaleId()),
+				Body:  fmt.Sprintf("Encountered active sale %v (release %v) on Discogs without any matching record in user collection.", sale.GetSaleId(), sale.GetReleaseId()),
+			})
+			if err != nil {
+				return err
 			}
 		}
 	}

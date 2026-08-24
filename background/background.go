@@ -54,6 +54,10 @@ type BackgroundRunner struct {
 	ghclient              ghbclient.GithubridgeClient
 }
 
+func (b *BackgroundRunner) SetGHClient(ghclient ghbclient.GithubridgeClient) {
+	b.ghclient = ghclient
+}
+
 func GetBackgroundRunner(db db.Database, key, secret, callback string) *BackgroundRunner {
 	br := &BackgroundRunner{
 		db:       db,

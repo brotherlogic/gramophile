@@ -1056,5 +1056,101 @@ func TestSyncSales_PreservesConditionOnUpdate(t *testing.T) {
 	}
 }
 
+func TestHardLink_PropagatesConditionFromRecord(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
 
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	record := &pb.Record{
+		Release: &pbd.Release{
+			Id:              100,
+			InstanceId:      1000,
+			Condition:       "Mint (M)",
+			SleeveCondition: "Near Mint (NM or M-)",
+		},
+	}
+	sale := &pb.SaleInfo{
+		SaleId:          50,
+		ReleaseId:       100,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good (VG)",
+	}
+
+	err := d.SaveSale(ctx, 123, sale)
+	if err != nil {
+		t.Fatalf("unable to save initial sale: %v", err)
+	}
+
+	err = b.HardLink(ctx, user, []*pb.Record{record}, []*pb.SaleInfo{sale})
+	if err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	savedSale, err := d.GetSale(ctx, 123, 50)
+	if err != nil {
+		t.Fatalf("unable to get updated sale: %v", err)
+	}
+
+	if savedSale.GetCondition() != "Mint (M)" {
+		t.Errorf("expected condition 'Mint (M)', got '%v'", savedSale.GetCondition())
+	}
+	if savedSale.GetSleeveCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected sleeve condition 'Near Mint (NM or M-)', got '%v'", savedSale.GetSleeveCondition())
+	}
+}
+
+func TestHardLink_RaisesIssueForUnmatchedActiveSale(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.SetGHClient(ghClient)
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+	records := []*pb.Record{
+		{
+			Release: &pbd.Release{Id: 100, InstanceId: 1000},
+		},
+	}
+	sales := []*pb.SaleInfo{
+		{
+			SaleId:    50,
+			ReleaseId: 100,
+			SaleState: pbd.SaleStatus_FOR_SALE,
+		},
+		{
+			SaleId:    999,
+			ReleaseId: 200,
+			SaleState: pbd.SaleStatus_FOR_SALE,
+		},
+		{
+			SaleId:    888,
+			ReleaseId: 300,
+			SaleState: pbd.SaleStatus_SOLD,
+		},
+	}
+
+	err := b.HardLink(ctx, user, records, sales)
+	if err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	issues, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("unable to get issues: %v", err)
+	}
+
+	if len(issues.GetIssues()) != 1 {
+		t.Fatalf("expected 1 issue to be raised, got %v: %v", len(issues.GetIssues()), issues.GetIssues())
+	}
+
+	expectedTitle := "Active Discogs sale 999 has no matching local record"
+	if issues.GetIssues()[0].GetTitle() != expectedTitle {
+		t.Errorf("expected issue title '%v', got '%v'", expectedTitle, issues.GetIssues()[0].GetTitle())
+	}
+}
 
