@@ -13,8 +13,6 @@ import (
 	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
 
-	ghbclient "github.com/brotherlogic/githubridge/client"
-
 	"github.com/brotherlogic/discogs"
 	"github.com/brotherlogic/gramophile/config"
 	"google.golang.org/grpc"
@@ -264,7 +262,7 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 		}
 	}
 
-	gclient, err := ghbclient.GetClientInternal()
+	gclient, err := b.getGHClient()
 	if err != nil {
 		return nil, err
 	}
