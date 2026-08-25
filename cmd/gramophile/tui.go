@@ -377,6 +377,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.err = nil
 			m.syncRetryCount = 0
+			if msg.user != nil {
+				m.user = msg.user
+			}
 			
 			if msg.userState == pb.StoredUser_USER_STATE_LIVE {
 				m.state = StateMainApp
@@ -645,7 +648,12 @@ func (m Model) View() string {
 			Bold(true).
 			Foreground(lipgloss.Color("#FFD700")).
 			Padding(1, 2)
-		return "\nSync Complete!\n\n" + style.Render("Waiting for Admin Approval...") + "\n"
+
+		waitMsg := "Waiting for Admin Approval..."
+		if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
+			waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s...", m.user.GetUser().GetUsername())
+		}
+		return "\nSync Complete!\n\n" + style.Render(waitMsg) + "\n"
 	case StateMainApp:
 		return "\nHandoff to main application complete.\n"
 	case StateOrgConfig:

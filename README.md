@@ -25,6 +25,7 @@ Current Go version: 1.26.2
 - Sale Creation Condition Validation & Metadata Persistence: Enforces media and sleeve condition requirements during sale creation in `AddSale`, raising a GitHub issue on missing condition metadata and persisting complete pricing, condition, and timestamp metadata on created sales.
 - Sale Condition Synchronization & Backfill: Preserves existing media and sleeve condition metadata on synced sales and backfills missing conditions from Discogs responses in `SyncSales`.
 - Multi-Sale Adjustment Resilience Integration Testing: End-to-end integration tests verifying the complete asynchronous sale adjustment lifecycle across multi-sale collections with mixed valid and invalid sale states.
+- Admin Approval Username Display: Displays the authenticated user's Discogs username on the waitlist status screen while waiting for administrator approval in the Gramophile TUI.
 
 
 ## TUI (Terminal User Interface)

@@ -266,6 +266,65 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 	}
 }
 
+func TestStateWaitlist_View(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	m.state = StateWaitlist
+
+	// Default view without user
+	view := m.View()
+	if !strings.Contains(view, "Waiting for Admin Approval...") {
+		t.Errorf("Expected default waitlist message, got %q", view)
+	}
+
+	// View with user and username
+	m.user = &pb.StoredUser{
+		User: &pbd.User{
+			Username: "brotherlogic",
+		},
+	}
+	view = m.View()
+	if !strings.Contains(view, "Waiting for Admin Approval for brotherlogic...") {
+		t.Errorf("Expected waitlist message with username, got %q", view)
+	}
+
+	// View with user but empty username
+	m.user = &pb.StoredUser{
+		User: &pbd.User{
+			Username: "",
+		},
+	}
+	view = m.View()
+	if !strings.Contains(view, "Waiting for Admin Approval...") || strings.Contains(view, "Waiting for Admin Approval for") {
+		t.Errorf("Expected fallback waitlist message for empty username, got %q", view)
+	}
+}
+
+func TestStateWaitlist_UpdateUser(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	m.state = StateWaitlist
+
+	respMsg := syncStatusMsg{
+		userState: pb.StoredUser_USER_STATE_IN_WAITLIST,
+		user: &pb.StoredUser{
+			User: &pbd.User{
+				Username: "testuser",
+			},
+		},
+	}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.user == nil || updatedModel.user.GetUser().GetUsername() != "testuser" {
+		t.Errorf("Expected user to be updated in StateWaitlist")
+	}
+
+	view := updatedModel.View()
+	if !strings.Contains(view, "Waiting for Admin Approval for testuser...") {
+		t.Errorf("Expected waitlist view to render testuser, got %q", view)
+	}
+}
+
 func TestFaultTolerance_ExponentialBackoff(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateLoadingSync
