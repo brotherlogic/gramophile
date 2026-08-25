@@ -93,6 +93,8 @@ const (
 
 	errUserQueueLimit = "User queue limit reached"
 	errQueueFull      = "Queue is full"
+
+	MaxUserQueueSize = 200
 )
 
 type Queue struct {
@@ -594,7 +596,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 		count := q.userCounts[req.GetElement().GetAuth()]
 		q.queueMutex.Unlock()
 
-		if count >= 100 {
+		if count >= MaxUserQueueSize {
 			return &pb.EnqueueResponse{}, status.Errorf(codes.ResourceExhausted, errUserQueueLimit)
 		}
 	}

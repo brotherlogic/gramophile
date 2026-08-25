@@ -484,3 +484,57 @@ func TestResourceExhausted_UserLimit(t *testing.T) {
 		t.Fatalf("Task was not deleted or queue stall triggered")
 	}
 }
+
+func TestUserQueueLimit(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	for i := 0; i < 200; i++ {
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: "From Test",
+				RunDate:   int64(i + 1),
+				Entry: &pb.QueueElement_RefreshRelease{
+					RefreshRelease: &pb.RefreshRelease{
+						Iid:       int64(i + 1),
+						Intention: fmt.Sprintf("Refresh %d", i+1),
+					},
+				},
+				Auth: "123",
+			},
+		})
+		if err != nil {
+			t.Fatalf("Failed to enqueue item %d: %v", i+1, err)
+		}
+	}
+
+	// The 201st enqueue should fail with ResourceExhausted
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   201,
+			Entry: &pb.QueueElement_RefreshRelease{
+				RefreshRelease: &pb.RefreshRelease{
+					Iid:       201,
+					Intention: "Refresh 201",
+				},
+			},
+			Auth: "123",
+		},
+	})
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("Expected ResourceExhausted on 201st item, got: %v", err)
+	}
+}
