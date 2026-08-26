@@ -25,7 +25,11 @@ Current Go version: 1.26.2
 - Sale Creation Condition Validation & Metadata Persistence: Enforces media and sleeve condition requirements during sale creation in `AddSale`, raising a GitHub issue on missing condition metadata and persisting complete pricing, condition, and timestamp metadata on created sales.
 - Sale Condition Synchronization & Backfill: Preserves existing media and sleeve condition metadata on synced sales and backfills missing conditions from Discogs responses in `SyncSales`.
 - Multi-Sale Adjustment Resilience Integration Testing: End-to-end integration tests verifying the complete asynchronous sale adjustment lifecycle across multi-sale collections with mixed valid and invalid sale states.
+- Record Condition Propagation & Orphan Sale Detection: Automatically propagates media and sleeve condition metadata from local records to linked sales in `HardLink`, and detects active Discogs sales without matching collection records, filing GitHub tracking issues for orphan sales.
+- Raised Max User Queue Size: Expanded per-user throttlable background task queue limit to 200 items.
+- Release Price Statistics Refresh: Updates `GetReleaseStats` integration against modern Discogs structured statistics, accurately recording Low, Median, and High pricing in integer cents and applying fallback defaults on missing or unsold releases.
 - Admin Approval Username Display: Displays the authenticated user's Discogs username on the waitlist status screen while waiting for administrator approval in the Gramophile TUI.
+
 
 
 ## TUI (Terminal User Interface)
