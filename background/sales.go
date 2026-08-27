@@ -317,8 +317,12 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 			if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
 				log.Printf("For %v in post reduction", s.GetSaleId())
 				if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
-					postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
-					log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds()-float64(c.GetPostMedianTime()), c.GetPostMedianReductionFrequency())
+					if c.GetPostMedianReductionFrequency() <= 0 {
+						return 0, "invalid post median reduction frequency", fmt.Errorf("post median reduction frequency must be > 0: %v", c.GetPostMedianReductionFrequency())
+					}
+					elapsedPostMedian := time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())
+					postMedianCycles := int32(math.Floor(elapsedPostMedian/float64(c.GetPostMedianReductionFrequency()))) + 1
+					log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, elapsedPostMedian, c.GetPostMedianReductionFrequency())
 
 					lowerBound := c.GetLowerBound()
 					if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
