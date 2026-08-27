@@ -441,11 +441,12 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 						Auth:      user.GetAuth().GetToken(),
 						Entry: &pb.QueueElement_UpdateSale{
 							UpdateSale: &pb.UpdateSale{
-								SaleId:     sid,
-								NewPrice:   nsp,
-								ReleaseId:  sale.GetReleaseId(),
-								Condition:  sale.GetCondition(),
-								Motivation: motivation,
+								SaleId:          sid,
+								NewPrice:        nsp,
+								ReleaseId:       sale.GetReleaseId(),
+								Condition:       sale.GetCondition(),
+								Motivation:      motivation,
+								SleeveCondition: sale.GetSleeveCondition(),
 							}}},
 					}, enqueue)
 				if err != nil {
