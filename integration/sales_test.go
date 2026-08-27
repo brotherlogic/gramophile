@@ -1361,3 +1361,159 @@ func TestMultiSaleAdjustment_Resilience(t *testing.T) {
 	}
 }
 
+func TestAdjustSales_EndToEndConditionPreservation(t *testing.T) {
+	ctx, s, d, qc := buildTestScaffold(t)
+
+	// Save user with SaleConfig
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:  100,
+			},
+		},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// 1. Save local record with complete condition metadata and pricing
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              501,
+			InstanceId:      1501,
+			FolderId:        123,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Value: 4000, Currency: "USD"},
+		LowPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("failed to save record: %v", err)
+	}
+
+	// 2. AddSale step: Create sale via server
+	_, err = s.AddSale(ctx, &pb.AddSaleRequest{
+		InstanceId: 1501,
+		Params: &pbd.SaleParams{
+			ReleaseId:       501,
+			Price:           50.00,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddSale request failed: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue after AddSale failed: %v", err)
+	}
+
+	// Verify sale was created and stored in DB with conditions
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil || len(sales) == 0 {
+		t.Fatalf("expected sales to be present in DB: %v", err)
+	}
+	saleId := sales[0]
+
+	sale, err := d.GetSale(ctx, 123, saleId)
+	if err != nil {
+		t.Fatalf("failed to get sale %v: %v", saleId, err)
+	}
+	if sale.GetCondition() != "Near Mint (NM or M-)" || sale.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Fatalf("unexpected conditions on sale after AddSale: condition=%q, sleeve=%q", sale.GetCondition(), sale.GetSleeveCondition())
+	}
+
+	// 3. HardLink step: Trigger LinkSales / HardLink and ensure record and sale are linked with conditions intact
+	records, err := d.GetRecords(ctx, 123)
+	if err != nil {
+		t.Fatalf("failed to get records: %v", err)
+	}
+	var recObjs []*pb.Record
+	for _, r := range records {
+		recObj, err := d.GetRecord(ctx, 123, r)
+		if err != nil {
+			t.Fatalf("failed to get record: %v", err)
+		}
+		recObjs = append(recObjs, recObj)
+	}
+	var saleObjs []*pb.SaleInfo
+	for _, sid := range sales {
+		saleObj, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("failed to get sale: %v", err)
+		}
+		saleObjs = append(saleObjs, saleObj)
+	}
+
+	bgRunner := background.GetBackgroundRunner(d, "", "", "")
+	u, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	err = bgRunner.HardLink(ctx, u, recObjs, saleObjs)
+	if err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	linkedSale, err := d.GetSale(ctx, 123, saleId)
+	if err != nil {
+		t.Fatalf("failed to get linked sale: %v", err)
+	}
+	if linkedSale.GetCondition() != "Near Mint (NM or M-)" || linkedSale.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Fatalf("unexpected conditions on sale after HardLink: condition=%q, sleeve=%q", linkedSale.GetCondition(), linkedSale.GetSleeveCondition())
+	}
+
+	// 4. AdjustSales step: Enqueue AdjustSales and flush queue (executing AdjustSales -> UpdateSale -> ProcessUpdateSale)
+	// Reset LastPriceUpdate so it qualifies for adjustment
+	linkedSale.LastPriceUpdate = 1
+	err = d.SaveSale(ctx, 123, linkedSale)
+	if err != nil {
+		t.Fatalf("failed to update sale timestamp: %v", err)
+	}
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test End-to-End AdjustSales",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue AdjustSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue after AdjustSales failed: %v", err)
+	}
+
+	// 5. Assertions:
+	// Verify sale in DB has adjusted price towards median (5000 -> 4900)
+	adjustedSale, err := d.GetSale(ctx, 123, saleId)
+	if err != nil {
+		t.Fatalf("failed to get adjusted sale: %v", err)
+	}
+	if adjustedSale.GetCurrentPrice().GetValue() != 4900 {
+		t.Errorf("expected adjusted price 4900, got: %v", adjustedSale.GetCurrentPrice().GetValue())
+	}
+
+	// Verify conditions are preserved after price adjustment
+	if adjustedSale.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected condition 'Near Mint (NM or M-)' to be preserved, got %q", adjustedSale.GetCondition())
+	}
+	if adjustedSale.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected sleeve condition 'Very Good Plus (VG+)' to be preserved, got %q", adjustedSale.GetSleeveCondition())
+	}
+}
+
+

@@ -1154,3 +1154,133 @@ func TestHardLink_RaisesIssueForUnmatchedActiveSale(t *testing.T) {
 	}
 }
 
+func TestAdjustSales_PropagatesSleeveCondition(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	var recordedUpdate *pb.UpdateSale
+
+	ctx := context.Background()
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		ReleaseId:       123,
+		SaleId:          12345,
+		CurrentPrice:    &pbd.Price{Value: 300},
+		MedianPrice:     &pbd.Price{Value: 200},
+		LowPrice:        &pbd.Price{Value: 50},
+		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Generic",
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+
+	b := GetBackgroundRunner(d, "", "", "")
+
+	err := b.AdjustSales(ctx, &pb.SaleConfig{
+		UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		recordedUpdate = req.GetElement().GetUpdateSale()
+		return &pb.EnqueueResponse{}, nil
+	})
+
+	if err != nil {
+		t.Fatalf("AdjustSales failed: %v", err)
+	}
+
+	if recordedUpdate == nil {
+		t.Fatalf("expected UpdateSale to be enqueued, got nil")
+	}
+
+	if recordedUpdate.GetCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected Condition to be 'Very Good Plus (VG+)', got '%v'", recordedUpdate.GetCondition())
+	}
+	if recordedUpdate.GetSleeveCondition() != "Generic" {
+		t.Errorf("expected SleeveCondition to be 'Generic', got '%v'", recordedUpdate.GetSleeveCondition())
+	}
+}
+
+func TestProcessUpdateSale_ConditionGuardAndPreservation(t *testing.T) {
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	ctx := context.Background()
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+
+	// Case 1: Empty condition should be skipped silently without updating sale
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		Condition:       "",
+		SleeveCondition: "Very Good Plus (VG+)",
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	dc := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Sales: []*pbd.SaleItem{
+			{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 5000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+	b := GetBackgroundRunner(d, "", "", "")
+
+	err := b.ProcessUpdateSale(ctx, dc, user, &pb.UpdateSale{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		NewPrice:        4900,
+		Condition:       "",
+		SleeveCondition: "Very Good Plus (VG+)",
+	})
+	if err != nil {
+		t.Fatalf("ProcessUpdateSale failed on empty condition: %v", err)
+	}
+	// Sale in DB should not have price updated because condition was empty
+	sale1001, err := d.GetSale(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("unable to get sale: %v", err)
+	}
+	if sale1001.GetCurrentPrice().GetValue() != 5000 {
+		t.Errorf("expected sale price to remain 5000 when skipped, got: %v", sale1001.GetCurrentPrice().GetValue())
+	}
+
+	// Case 2: Populated condition updates price and preserves conditions
+	d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1002,
+		ReleaseId:       2002,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	dc = &discogs.TestDiscogsClient{
+		UserId: 123,
+		Sales: []*pbd.SaleItem{
+			{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 5000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+
+	err = b.ProcessUpdateSale(ctx, dc, user, &pb.UpdateSale{
+		SaleId:          1002,
+		ReleaseId:       2002,
+		NewPrice:        4800,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		Motivation:      "Automated Reduction",
+	})
+	if err != nil {
+		t.Fatalf("ProcessUpdateSale failed on valid condition: %v", err)
+	}
+
+	sale1002, err := d.GetSale(ctx, 123, 1002)
+	if err != nil {
+		t.Fatalf("unable to get sale 1002: %v", err)
+	}
+	if sale1002.GetCurrentPrice().GetValue() != 4800 {
+		t.Errorf("expected updated price 4800, got: %v", sale1002.GetCurrentPrice().GetValue())
+	}
+	if sale1002.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected Condition to be preserved as 'Near Mint (NM or M-)', got '%v'", sale1002.GetCondition())
+	}
+	if sale1002.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected SleeveCondition to be preserved as 'Very Good Plus (VG+)', got '%v'", sale1002.GetSleeveCondition())
+	}
+}
+
+
