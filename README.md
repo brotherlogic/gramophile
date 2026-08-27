@@ -28,6 +28,7 @@ Current Go version: 1.26.2
 - Record Condition Propagation & Orphan Sale Detection: Automatically propagates media and sleeve condition metadata from local records to linked sales in `HardLink`, and detects active Discogs sales without matching collection records, filing GitHub tracking issues for orphan sales.
 - Raised Max User Queue Size: Expanded per-user throttlable background task queue limit to 200 items.
 - Release Price Statistics Refresh: Updates `GetReleaseStats` integration against modern Discogs structured statistics, accurately recording Low, Median, and High pricing in integer cents and applying fallback defaults on missing or unsold releases.
+- Admin Approval Username Display: Displays the authenticated user's Discogs username on the waitlist status screen while waiting for administrator approval in the Gramophile TUI.
 
 
 
