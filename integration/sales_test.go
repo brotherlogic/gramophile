@@ -684,8 +684,8 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 
 		if sale.GetSaleId() == 1836758812 {
 			found = true
-			if sale.GetCurrentPrice().Value != 3750 {
-				t.Errorf("Price was not updated (should be 3750): %v", sale)
+			if sale.GetCurrentPrice().Value != 3625 {
+				t.Errorf("Price was not updated (should be 3625): %v", sale)
 			}
 		}
 	}
@@ -814,7 +814,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
 		ReleaseId:       123,
-		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
+		TimeAtMedian:    time.Now().Add(-time.Minute * 25).UnixNano(),
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
 		Release: &pbd.Release{

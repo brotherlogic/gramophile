@@ -409,6 +409,179 @@ func TestAdjustPrice_MissingLowPrice(t *testing.T) {
 	}
 }
 
+func TestAdjustPrice_PostMedian_ImmediateFirstCycleReduction(t *testing.T) {
+	ctx := context.Background()
+	// Elapsed time since median is postMedianTime (100s) + 1s = 101s.
+	// Within the first frequency window (frequency = 10s), postMedianCycles should be 1.
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-101 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Expected: 400 - (1 * 50) = 350
+	if newPrice != 350 {
+		t.Errorf("expected newPrice 350 on immediate first cycle, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_MultipleCyclesReduction(t *testing.T) {
+	ctx := context.Background()
+	// Elapsed time since median is postMedianTime (100s) + 25s = 125s.
+	// With frequency = 10s: math.Floor(25/10) + 1 = 3 cycles.
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-125 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Expected: 400 - (3 * 50) = 250
+	if newPrice != 250 {
+		t.Errorf("expected newPrice 250 on multiple cycles, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_RespectsLowerBound(t *testing.T) {
+	ctx := context.Background()
+
+	// Subtest 1: Config lower bound
+	t.Run("ConfigLowerBound", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1234,
+			ReleaseId:    100,
+			CurrentPrice: &pbd.Price{Value: 400},
+			MedianPrice:  &pbd.Price{Value: 400},
+			TimeAtMedian: time.Now().Add(-300 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+			LowerBound:                   250,
+		}
+		// 200s elapsed post-median -> 21 cycles -> 400 - 1050 = -650 -> clamped to 250
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 250 {
+			t.Errorf("expected clamped price 250, got %v", newPrice)
+		}
+	})
+
+	// Subtest 2: Discogs Low lower bound
+	t.Run("DiscogsLowLowerBound", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1234,
+			ReleaseId:    100,
+			CurrentPrice: &pbd.Price{Value: 400},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 220},
+			TimeAtMedian: time.Now().Add(-300 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		}
+		// 200s elapsed post-median -> 21 cycles -> 400 - 1050 = -650 -> clamped to LowPrice (220)
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 220 {
+			t.Errorf("expected clamped price 220, got %v", newPrice)
+		}
+	})
+}
+
+func TestAdjustPrice_PostMedian_HoldingBeforePostMedianTime(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-50 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	// Has not reached postMedianTime (50s < 100s). Price should remain at median.
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if newPrice != 400 {
+		t.Errorf("expected price to hold at 400, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_ZeroFrequencyGuard(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-150 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 0,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	_, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err == nil {
+		t.Fatalf("expected error for zero frequency, got nil")
+	}
+}
+
+
 func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 	ctx := context.Background()
 	pstore := pstore_client.GetTestClient()
