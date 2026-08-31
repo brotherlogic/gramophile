@@ -51,4 +51,30 @@ func TestUpdateSaleSleeveCondition(t *testing.T) {
 	}
 }
 
+func TestSyncOrdersProto(t *testing.T) {
+	syncOrders := &SyncOrders{
+		Page:   1,
+		SyncId: 12345,
+	}
+	elem := &QueueElement{
+		Entry: &QueueElement_SyncOrders{
+			SyncOrders: syncOrders,
+		},
+	}
+	if elem.GetSyncOrders() == nil {
+		t.Errorf("Expected non-nil SyncOrders in QueueElement")
+	}
+	if elem.GetSyncOrders().GetPage() != 1 {
+		t.Errorf("Expected page 1, got %v", elem.GetSyncOrders().GetPage())
+	}
+	if elem.GetSyncOrders().GetSyncId() != 12345 {
+		t.Errorf("Expected sync_id 12345, got %v", elem.GetSyncOrders().GetSyncId())
+	}
 
+	user := &StoredUser{
+		LastOrderSync: 987654321,
+	}
+	if user.GetLastOrderSync() != 987654321 {
+		t.Errorf("Expected LastOrderSync to be 987654321, got %v", user.GetLastOrderSync())
+	}
+}
