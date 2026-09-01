@@ -32,6 +32,8 @@ Current Go version: 1.26.2
 - Sleeve Condition Propagation & End-to-End Sale Condition Preservation: Propagates sleeve condition metadata in `AdjustSales` when enqueuing price update queue tasks, and verifies complete end-to-end condition preservation through the `AddSale` -> `HardLink` -> `AdjustSales` pipeline with comprehensive integration tests.
 - Post-Median Reduction Cycle Calculation: Accurately calculates post-median price reduction cycles using immediate first-cycle triggering once post-median time has elapsed and adds zero-frequency guards to prevent division by zero in sale adjustments.
 - Post-Median Sale Reduction Integration Testing: Comprehensive end-to-end integration tests verifying the full asynchronous post-median price adjustment workflow, including immediate first-cycle reduction, multi-cycle intervals, static and Discogs Low lower bound constraints, holding states, and queue payload verification.
+- Incremental Listing Sync & Early Termination: Refactors `SyncSales` to support incremental sales sync with early termination when encountering previously synced listings sorted in reverse chronological order.
+
 
 
 
