@@ -165,10 +165,10 @@ func tidyUpdates(s *pb.SaleInfo) {
 	s.Updates = nupdates
 }
 
-func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, page int32, id int64) (*pbd.Pagination, error) {
+func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, page int32, id int64, lastSaleRefresh int64) (*pbd.Pagination, bool, error) {
 	sales, pagination, err := d.ListSales(ctx, page)
 	if err != nil {
-		return nil, fmt.Errorf("unable to list sales: %w", err)
+		return nil, false, fmt.Errorf("unable to list sales: %w", err)
 	}
 
 	if len(sales) > 0 {
@@ -197,12 +197,13 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 					Value:    sale.GetPrice().GetValue(),
 					Currency: sale.GetPrice().GetCurrency(),
 				},
+				ListedDate:    time.Now().UnixNano(),
 				TimeCreated:   time.Now().UnixNano(),
 				RefreshId:     id,
 				TimeRefreshed: time.Now().UnixNano(),
 			})
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 		} else if status.Code(err) == codes.OK {
 			log.Printf("Updating sale: %v, %v -> %v (%v)", d.GetUserId(), sale.GetSaleId(), err, id)
@@ -235,14 +236,23 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 			log.Printf("Setting sale state for %v and tidying updates: %v -> %v", csale.GetSaleId(), before, len(csale.GetUpdates()))
 			err := b.db.SaveSale(ctx, d.GetUserId(), csale)
 			if err != nil {
-				return nil, err
+				return nil, false, err
+			}
+
+			listedDate := csale.GetListedDate()
+			if listedDate == 0 {
+				listedDate = csale.GetTimeCreated()
+			}
+			if lastSaleRefresh > 0 && listedDate <= lastSaleRefresh {
+				log.Printf("Early termination triggered for user %v at sale %v (listed: %v <= last_refresh: %v)", d.GetUserId(), sale.GetSaleId(), listedDate, lastSaleRefresh)
+				return pagination, true, nil
 			}
 		} else {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
-	return pagination, nil
+	return pagination, false, nil
 }
 
 func getUpdateTime(c *pb.SaleConfig) time.Duration {
@@ -317,8 +327,12 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 			if s.GetTimeAtMedian() > 0 && c.GetPostMedianReduction() > 0 {
 				log.Printf("For %v in post reduction", s.GetSaleId())
 				if time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() > float64(c.GetPostMedianTime()) {
-					postMedianCycles := int32(math.Floor((time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())) / float64(c.GetPostMedianReductionFrequency())))
-					log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds()-float64(c.GetPostMedianTime()), c.GetPostMedianReductionFrequency())
+					if c.GetPostMedianReductionFrequency() <= 0 {
+						return 0, "invalid post median reduction frequency", fmt.Errorf("post median reduction frequency must be > 0: %v", c.GetPostMedianReductionFrequency())
+					}
+					elapsedPostMedian := time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds() - float64(c.GetPostMedianTime())
+					postMedianCycles := int32(math.Floor(elapsedPostMedian/float64(c.GetPostMedianReductionFrequency()))) + 1
+					log.Printf("Adjusting down from median: %v (%v / %v)", postMedianCycles, elapsedPostMedian, c.GetPostMedianReductionFrequency())
 
 					lowerBound := c.GetLowerBound()
 					if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
@@ -748,7 +762,7 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 	if entry.GetRefreshSales().GetPage() == 1 {
 		entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
 	}
-	pages, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId())
+	pages, _, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId(), user.GetLastSaleRefresh())
 
 	if err != nil {
 		return err

@@ -164,7 +164,7 @@ func TestSold(t *testing.T) {
 
 	b := GetBackgroundRunner(d, "", "", "")
 
-	_, err := b.SyncSales(context.Background(), di, 1, time.Now().UnixNano())
+	_, _, err := b.SyncSales(context.Background(), di, 1, time.Now().UnixNano(), 0)
 	if err != nil {
 		t.Fatalf("Bad sync: %v", err)
 	}
@@ -408,6 +408,179 @@ func TestAdjustPrice_MissingLowPrice(t *testing.T) {
 		t.Fatalf("expected ErrMissingMetadata, got: %v", err)
 	}
 }
+
+func TestAdjustPrice_PostMedian_ImmediateFirstCycleReduction(t *testing.T) {
+	ctx := context.Background()
+	// Elapsed time since median is postMedianTime (100s) + 1s = 101s.
+	// Within the first frequency window (frequency = 10s), postMedianCycles should be 1.
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-101 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Expected: 400 - (1 * 50) = 350
+	if newPrice != 350 {
+		t.Errorf("expected newPrice 350 on immediate first cycle, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_MultipleCyclesReduction(t *testing.T) {
+	ctx := context.Background()
+	// Elapsed time since median is postMedianTime (100s) + 25s = 125s.
+	// With frequency = 10s: math.Floor(25/10) + 1 = 3 cycles.
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-125 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Expected: 400 - (3 * 50) = 250
+	if newPrice != 250 {
+		t.Errorf("expected newPrice 250 on multiple cycles, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_RespectsLowerBound(t *testing.T) {
+	ctx := context.Background()
+
+	// Subtest 1: Config lower bound
+	t.Run("ConfigLowerBound", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1234,
+			ReleaseId:    100,
+			CurrentPrice: &pbd.Price{Value: 400},
+			MedianPrice:  &pbd.Price{Value: 400},
+			TimeAtMedian: time.Now().Add(-300 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+			LowerBound:                   250,
+		}
+		// 200s elapsed post-median -> 21 cycles -> 400 - 1050 = -650 -> clamped to 250
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 250 {
+			t.Errorf("expected clamped price 250, got %v", newPrice)
+		}
+	})
+
+	// Subtest 2: Discogs Low lower bound
+	t.Run("DiscogsLowLowerBound", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1234,
+			ReleaseId:    100,
+			CurrentPrice: &pbd.Price{Value: 400},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 220},
+			TimeAtMedian: time.Now().Add(-300 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		}
+		// 200s elapsed post-median -> 21 cycles -> 400 - 1050 = -650 -> clamped to LowPrice (220)
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 220 {
+			t.Errorf("expected clamped price 220, got %v", newPrice)
+		}
+	})
+}
+
+func TestAdjustPrice_PostMedian_HoldingBeforePostMedianTime(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-50 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 10,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	// Has not reached postMedianTime (50s < 100s). Price should remain at median.
+	newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if newPrice != 400 {
+		t.Errorf("expected price to hold at 400, got %v", newPrice)
+	}
+}
+
+func TestAdjustPrice_PostMedian_ZeroFrequencyGuard(t *testing.T) {
+	ctx := context.Background()
+	sale := &pb.SaleInfo{
+		SaleId:       1234,
+		ReleaseId:    100,
+		CurrentPrice: &pbd.Price{Value: 400},
+		MedianPrice:  &pbd.Price{Value: 400},
+		TimeAtMedian: time.Now().Add(-150 * time.Second).UnixNano(),
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+	}
+	config := &pb.SaleConfig{
+		UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		PostMedianTime:               100,
+		PostMedianReduction:          50,
+		PostMedianReductionFrequency: 0,
+		LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+		LowerBound:                   100,
+	}
+	_, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+	if err == nil {
+		t.Fatalf("expected error for zero frequency, got nil")
+	}
+}
+
 
 func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 	ctx := context.Background()
@@ -1017,7 +1190,7 @@ func TestSyncSales_PreservesConditionOnUpdate(t *testing.T) {
 	}
 
 	b := GetBackgroundRunner(d, "", "", "")
-	_, err = b.SyncSales(ctx, di, 1, time.Now().UnixNano())
+	_, _, err = b.SyncSales(ctx, di, 1, time.Now().UnixNano(), 0)
 	if err != nil {
 		t.Fatalf("unexpected error from SyncSales: %v", err)
 	}
@@ -1282,5 +1455,249 @@ func TestProcessUpdateSale_ConditionGuardAndPreservation(t *testing.T) {
 		t.Errorf("expected SleeveCondition to be preserved as 'Very Good Plus (VG+)', got '%v'", sale1002.GetSleeveCondition())
 	}
 }
+
+func TestSyncSales_Incremental_EarlyTermination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	userId := int32(123)
+	lastSaleRefresh := int64(2000)
+
+	// Existing sale in DB with ListedDate <= lastSaleRefresh (1000 <= 2000)
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   1000,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 4000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+
+	b := GetBackgroundRunner(d, "", "", "")
+	pagination, earlyTerminated, err := b.SyncSales(ctx, di, 1, 999, lastSaleRefresh)
+	if err != nil {
+		t.Fatalf("unexpected error from SyncSales: %v", err)
+	}
+	if pagination == nil {
+		t.Fatalf("expected non-nil pagination")
+	}
+	if !earlyTerminated {
+		t.Errorf("expected earlyTerminated to be true, got false")
+	}
+
+	// Verify sale 1002 (new sale before early termination) was saved
+	_, err = d.GetSale(ctx, userId, 1002)
+	if err != nil {
+		t.Errorf("expected sale 1002 to be saved in DB, got error: %v", err)
+	}
+
+	// Verify sale 1001 (existing sale that triggered early termination) was updated
+	_, err = d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Errorf("expected sale 1001 to be retrieved from DB, got error: %v", err)
+	}
+
+	// Verify sale 1003 (subsequent sale after early termination) was NOT processed/saved
+	_, err = d.GetSale(ctx, userId, 1003)
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("expected sale 1003 to NOT be saved in DB (NotFound), got err: %v", err)
+	}
+}
+
+func TestSyncSales_ColdStart_FullPagination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	userId := int32(123)
+
+	// Existing sale in DB
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   1000,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 4000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+
+	b := GetBackgroundRunner(d, "", "", "")
+	// lastSaleRefresh == 0 (cold start / baseline)
+	pagination, earlyTerminated, err := b.SyncSales(ctx, di, 1, 999, 0)
+	if err != nil {
+		t.Fatalf("unexpected error from SyncSales: %v", err)
+	}
+	if pagination == nil {
+		t.Fatalf("expected non-nil pagination")
+	}
+	if earlyTerminated {
+		t.Errorf("expected earlyTerminated to be false on cold start, got true")
+	}
+
+	// Verify all 3 sales are in DB
+	for _, saleId := range []int64{1001, 1002, 1003} {
+		_, err = d.GetSale(ctx, userId, saleId)
+		if err != nil {
+			t.Errorf("expected sale %v to be saved in DB, got error: %v", saleId, err)
+		}
+	}
+}
+
+func TestSyncSales_MetadataPreservation(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	userId := int32(123)
+
+	// Existing sale 1: Empty condition, has sleeve condition -> condition backfilled from Discogs
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          12345,
+		ReleaseId:       100,
+		Condition:       "",
+		SleeveCondition: "Very Good (VG)",
+		CurrentPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 12345: %v", err)
+	}
+
+	// Existing sale 2: Non-empty condition and sleeve condition -> existing conditions preserved
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          12346,
+		ReleaseId:       101,
+		Condition:       "Mint (M)",
+		SleeveCondition: "Near Mint (NM)",
+		CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 12346: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    12345,
+				ReleaseId: 100,
+				Condition: "Very Good Plus (VG+)",
+				Price:     &pbd.Price{Value: 1000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+			{
+				SaleId:    12346,
+				ReleaseId: 101,
+				Condition: "Poor (P)",
+				Price:     &pbd.Price{Value: 2000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+			{
+				SaleId:    12347,
+				ReleaseId: 102,
+				Condition: "Near Mint (NM)",
+				Price:     &pbd.Price{Value: 3000, Currency: "USD"},
+				Status:    pbd.SaleStatus_FOR_SALE,
+			},
+		},
+	}
+
+	b := GetBackgroundRunner(d, "", "", "")
+	_, earlyTerminated, err := b.SyncSales(ctx, di, 1, time.Now().UnixNano(), 0)
+	if err != nil {
+		t.Fatalf("unexpected error from SyncSales: %v", err)
+	}
+	if earlyTerminated {
+		t.Errorf("expected earlyTerminated to be false, got true")
+	}
+
+	// Verify sale 12345: Condition backfilled, SleeveCondition preserved
+	sale1, err := d.GetSale(ctx, userId, 12345)
+	if err != nil {
+		t.Fatalf("failed to get sale 12345: %v", err)
+	}
+	if sale1.GetCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected sale 12345 Condition to be backfilled to 'Very Good Plus (VG+)', got %q", sale1.GetCondition())
+	}
+	if sale1.GetSleeveCondition() != "Very Good (VG)" {
+		t.Errorf("expected sale 12345 SleeveCondition to be preserved as 'Very Good (VG)', got %q", sale1.GetSleeveCondition())
+	}
+
+	// Verify sale 12346: Existing Condition and SleeveCondition preserved
+	sale2, err := d.GetSale(ctx, userId, 12346)
+	if err != nil {
+		t.Fatalf("failed to get sale 12346: %v", err)
+	}
+	if sale2.GetCondition() != "Mint (M)" {
+		t.Errorf("expected sale 12346 Condition to be preserved as 'Mint (M)', got %q", sale2.GetCondition())
+	}
+	if sale2.GetSleeveCondition() != "Near Mint (NM)" {
+		t.Errorf("expected sale 12346 SleeveCondition to be preserved as 'Near Mint (NM)', got %q", sale2.GetSleeveCondition())
+	}
+
+	// Verify sale 12347: Newly discovered sale populated with condition and ListedDate
+	sale3, err := d.GetSale(ctx, userId, 12347)
+	if err != nil {
+		t.Fatalf("failed to get sale 12347: %v", err)
+	}
+	if sale3.GetCondition() != "Near Mint (NM)" {
+		t.Errorf("expected sale 12347 Condition to be 'Near Mint (NM)', got %q", sale3.GetCondition())
+	}
+	if sale3.GetListedDate() == 0 {
+		t.Errorf("expected sale 12347 ListedDate to be populated (>0), got %v", sale3.GetListedDate())
+	}
+}
+
+func TestSyncSales_EmptyInventory(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	userId := int32(123)
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales:  []*pbd.SaleItem{},
+	}
+
+	b := GetBackgroundRunner(d, "", "", "")
+	pagination, earlyTerminated, err := b.SyncSales(ctx, di, 1, 999, 1000)
+	if err != nil {
+		t.Fatalf("unexpected error from SyncSales: %v", err)
+	}
+	if pagination == nil {
+		t.Fatalf("expected non-nil pagination")
+	}
+	if earlyTerminated {
+		t.Errorf("expected earlyTerminated to be false on empty inventory, got true")
+	}
+}
+
 
 
