@@ -158,3 +158,134 @@ func TestAdjustSalesEnqueue_WithinOneHour(t *testing.T) {
 		}
 	}
 }
+
+func TestSyncOrdersEnqueue_Expired(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.Add(-2 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	found := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetSyncOrders() != nil {
+			found = true
+			if req.GetElement().GetIntention() != "From Validator" {
+				t.Errorf("expected intention 'From Validator', got '%v'", req.GetElement().GetIntention())
+			}
+			if req.GetElement().GetBackoffInSeconds() != 15 {
+				t.Errorf("expected backoff 15s, got %v", req.GetElement().GetBackoffInSeconds())
+			}
+			if req.GetElement().GetAuth() != "test_token" {
+				t.Errorf("expected auth 'test_token', got '%v'", req.GetElement().GetAuth())
+			}
+			if req.GetElement().GetSyncOrders().GetPage() != 1 {
+				t.Errorf("expected Page 1, got %v", req.GetElement().GetSyncOrders().GetPage())
+			}
+			if req.GetElement().GetSyncOrders().GetSyncId() <= 0 {
+				t.Errorf("expected SyncId > 0, got %v", req.GetElement().GetSyncOrders().GetSyncId())
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("expected SyncOrders to be enqueued when LastOrderSync is > 1 hour ago")
+	}
+}
+
+func TestSyncOrdersEnqueue_Unset(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         0,
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	found := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetSyncOrders() != nil {
+			found = true
+			if req.GetElement().GetSyncOrders().GetPage() != 1 {
+				t.Errorf("expected Page 1, got %v", req.GetElement().GetSyncOrders().GetPage())
+			}
+			if req.GetElement().GetSyncOrders().GetSyncId() <= 0 {
+				t.Errorf("expected SyncId > 0, got %v", req.GetElement().GetSyncOrders().GetSyncId())
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("expected SyncOrders to be enqueued when LastOrderSync is unset (0)")
+	}
+}
+
+func TestSyncOrdersEnqueue_WithinOneHour(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.Add(-30 * time.Minute).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetSyncOrders() != nil {
+			t.Errorf("expected SyncOrders NOT to be enqueued when LastOrderSync is within 1 hour")
+		}
+	}
+}
+
