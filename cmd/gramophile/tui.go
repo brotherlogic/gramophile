@@ -618,77 +618,88 @@ const logo = ` ██████╗ ██████╗  █████╗ �
 ╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║╚██████╔╝██║     ██║  ██║██║███████╗███████╗
  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝`
 
+func (m Model) renderLogo() string {
+	style := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#7D56F4")).
+		Margin(1, 2)
+
+	return style.Render(logo)
+}
+
 func (m Model) View() string {
+	var body string
 	switch m.state {
 	case StateStartupLogo:
-		style := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")).
-			Margin(1, 2)
-
-		return style.Render(logo) + "\n\nPress any key to continue..."
+		body = "Press any key to continue..."
 	case StateLogin:
 		if m.err != nil {
-			return fmt.Sprintf("Error: %v\nPress q to quit", m.err)
+			body = fmt.Sprintf("Error: %v\nPress q to quit", m.err)
+		} else if m.loginURL == "" {
+			body = "Fetching authentication URL..."
+		} else {
+			body = fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 		}
-		if m.loginURL == "" {
-			return "Fetching authentication URL..."
-		}
-		return fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 	case StateLoadingSync:
 		if m.err != nil {
-			return fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)
+			body = fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)
+		} else {
+			body = fmt.Sprintf("Syncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
 		}
-		return fmt.Sprintf("\nSyncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
 	case StateWaitlist:
 		if m.err != nil {
-			return fmt.Sprintf("Error polling waitlist status: %v\n\nReconnecting...", m.err)
-		}
-		style := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FFD700")).
-			Padding(1, 2)
-
-		waitMsg := "Waiting for Admin Approval..."
-		if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
-			waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s...", m.user.GetUser().GetUsername())
-		}
-		return "\nSync Complete!\n\n" + style.Render(waitMsg) + "\n"
-	case StateMainApp:
-		return "\nHandoff to main application complete.\n"
-	case StateOrgConfig:
-		var view string
-		if m.form != nil {
-			view = m.form.View()
+			body = fmt.Sprintf("Error polling waitlist status: %v\n\nReconnecting...", m.err)
 		} else {
-			view = "Loading wizard..."
+			style := lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#FFD700")).
+				Padding(1, 2)
+
+			waitMsg := "Waiting for Admin Approval..."
+			if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
+				waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s...", m.user.GetUser().GetUsername())
+			}
+			body = "Sync Complete!\n\n" + style.Render(waitMsg) + "\n"
+		}
+	case StateMainApp:
+		body = "Handoff to main application complete.\n"
+	case StateOrgConfig:
+		if m.form != nil {
+			body = m.form.View()
+		} else {
+			body = "Loading wizard..."
 		}
 		if m.orgErr != "" {
 			errStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FF0000")).
 				Bold(true)
-			view += "\n\n" + errStyle.Render(m.orgErr)
+			body += "\n\n" + errStyle.Render(m.orgErr)
 		} else if m.err != nil {
 			errStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FF0000")).
 				Bold(true)
-			view += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
+			body += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
 		}
-		return view
 	case StateOrgView:
 		if m.inlineErrMsg != "" {
-			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		} else {
+			body = fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
+				m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 		}
-		return fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
-			m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 	case StateLocateView:
 		if m.inlineErrMsg != "" {
-			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		} else {
+			body = m.locateViewport.View()
 		}
-		return m.locateViewport.View()
+	default:
+		body = "Gramophile TUI"
 	}
-	return "Gramophile TUI"
+
+	return m.renderLogo() + "\n\n" + body
 }
+
 
 func (m *Model) initOrgConfigForm() {
 	var folderOptions []huh.Option[string]
