@@ -266,36 +266,56 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 	}
 }
 
+func TestStateLoadingSync_LiveUserSkipsWaitlist(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	m.state = StateLoadingSync
+
+	respMsg := syncStatusMsg{
+		expectedSize: 100,
+		currentSize:  100,
+		userState:    pb.StoredUser_USER_STATE_LIVE,
+	}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected state to transition to StateMainApp for live user, got %v", updatedModel.state)
+	}
+}
+
 func TestStateWaitlist_View(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	// Default view without user
 	view := m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval...") {
-		t.Errorf("Expected default waitlist message, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval (USER_STATE_UNKNOWN)...") {
+		t.Errorf("Expected default waitlist message with enum, got %q", view)
 	}
 
 	// View with user and username
 	m.user = &pb.StoredUser{
+		State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		User: &pbd.User{
 			Username: "brotherlogic",
 		},
 	}
 	view = m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval for brotherlogic...") {
-		t.Errorf("Expected waitlist message with username, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval for brotherlogic (USER_STATE_IN_WAITLIST)...") {
+		t.Errorf("Expected waitlist message with username and enum, got %q", view)
 	}
 
 	// View with user but empty username
 	m.user = &pb.StoredUser{
+		State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		User: &pbd.User{
 			Username: "",
 		},
 	}
 	view = m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval...") || strings.Contains(view, "Waiting for Admin Approval for") {
-		t.Errorf("Expected fallback waitlist message for empty username, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval (USER_STATE_IN_WAITLIST)...") || strings.Contains(view, "Waiting for Admin Approval for") {
+		t.Errorf("Expected fallback waitlist message for empty username with enum, got %q", view)
 	}
 }
 
@@ -306,6 +326,7 @@ func TestStateWaitlist_UpdateUser(t *testing.T) {
 	respMsg := syncStatusMsg{
 		userState: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		user: &pb.StoredUser{
+			State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 			User: &pbd.User{
 				Username: "testuser",
 			},
@@ -320,8 +341,8 @@ func TestStateWaitlist_UpdateUser(t *testing.T) {
 	}
 
 	view := updatedModel.View()
-	if !strings.Contains(view, "Waiting for Admin Approval for testuser...") {
-		t.Errorf("Expected waitlist view to render testuser, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval for testuser (USER_STATE_IN_WAITLIST)...") {
+		t.Errorf("Expected waitlist view to render testuser and state enum, got %q", view)
 	}
 }
 
