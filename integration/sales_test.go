@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -1515,5 +1516,685 @@ func TestAdjustSales_EndToEndConditionPreservation(t *testing.T) {
 		t.Errorf("expected sleeve condition 'Very Good Plus (VG+)' to be preserved, got %q", adjustedSale.GetSleeveCondition())
 	}
 }
+
+func TestAdjustSales_PostMedian_ImmediateFirstCycleReduction(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    1001,
+				ReleaseId: 2001,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Set configuration: post-median reduction enabled
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   1000,
+				PostMedianTime:               600, // 10 minutes
+				PostMedianReduction:          200,
+				PostMedianReductionFrequency: 300, // 5 minutes
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// Save record and sale in DB:
+	// TimeAtMedian is 650s ago (PostMedianTime 600s + 50s elapsed).
+	// Within first frequency window of 300s -> Floor(50/300) + 1 = 1 cycle.
+	// Target price: 5000 - 1 * 200 = 4800.
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              2001,
+			InstanceId:      20010,
+			FolderId:        12,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 5000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      1001,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		TimeAtMedian:    time.Now().Add(-650 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale: %v", err)
+	}
+
+	// Enqueue AdjustSales task to queue
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test Post-Median Immediate First Cycle",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales: %v", err)
+	}
+
+	// Flush queue: executes AdjustSales -> enqueues UpdateSale -> executes ProcessUpdateSale
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	// Assertions:
+	sale1001, err := d.GetSale(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("unable to get sale from DB: %v", err)
+	}
+	if sale1001.GetCurrentPrice().GetValue() != 4800 {
+		t.Errorf("expected sale price to be 4800 on first cycle, got: %v", sale1001.GetCurrentPrice().GetValue())
+	}
+	if sale1001.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected condition 'Near Mint (NM or M-)', got: %v", sale1001.GetCondition())
+	}
+	if sale1001.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected sleeve condition 'Very Good Plus (VG+)', got: %v", sale1001.GetSleeveCondition())
+	}
+
+	// Discogs client updated price
+	if len(di.Sales) == 0 || di.Sales[0].GetPrice().GetValue() != 4800 {
+		t.Errorf("expected discogs client sale price 4800, got: %v", di.Sales)
+	}
+}
+
+func TestAdjustSales_PostMedian_MultipleCyclesReduction(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    1002,
+				ReleaseId: 2002,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Set configuration: post-median reduction enabled
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   1000,
+				PostMedianTime:               600, // 10 minutes
+				PostMedianReduction:          250,
+				PostMedianReductionFrequency: 300, // 5 minutes
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// TimeAtMedian is 1550s ago (PostMedianTime 600s + 950s elapsed post median).
+	// With frequency 300s: Floor(950/300) + 1 = 3 + 1 = 4 cycles.
+	// Target price: 5000 - 4 * 250 = 4000.
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              2002,
+			InstanceId:      20020,
+			FolderId:        12,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 5000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      1002,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1002,
+		ReleaseId:       2002,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		TimeAtMedian:    time.Now().Add(-1550 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale: %v", err)
+	}
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test Post-Median Multiple Cycles",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	sale1002, err := d.GetSale(ctx, 123, 1002)
+	if err != nil {
+		t.Fatalf("unable to get sale from DB: %v", err)
+	}
+	if sale1002.GetCurrentPrice().GetValue() != 4000 {
+		t.Errorf("expected sale price 4000 after 4 cycles, got: %v", sale1002.GetCurrentPrice().GetValue())
+	}
+	if len(di.Sales) == 0 || di.Sales[0].GetPrice().GetValue() != 4000 {
+		t.Errorf("expected discogs client sale price 4000, got: %v", di.Sales)
+	}
+}
+
+func TestAdjustSales_PostMedian_RespectsLowerBound_StaticLow(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    1003,
+				ReleaseId: 2003,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Set configuration: Static lower bound of 3800
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   3800,
+				PostMedianTime:               600,
+				PostMedianReduction:          500,
+				PostMedianReductionFrequency: 300,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// 2400s elapsed -> 1800s post median -> Floor(1800/300) + 1 = 7 cycles.
+	// Target before lower bound: 5000 - 7 * 500 = 1500.
+	// Clamped to LowerBound: 3800.
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              2003,
+			InstanceId:      20030,
+			FolderId:        12,
+			Condition:       "Very Good Plus (VG+)",
+			SleeveCondition: "Very Good (VG)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 5000},
+		SaleId:      1003,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1003,
+		ReleaseId:       2003,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good (VG)",
+		TimeAtMedian:    time.Now().Add(-2400 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale: %v", err)
+	}
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test Post-Median Static Lower Bound",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	sale1003, err := d.GetSale(ctx, 123, 1003)
+	if err != nil {
+		t.Fatalf("unable to get sale from DB: %v", err)
+	}
+	if sale1003.GetCurrentPrice().GetValue() != 3800 {
+		t.Errorf("expected sale price clamped to static lower bound 3800, got: %v", sale1003.GetCurrentPrice().GetValue())
+	}
+	if len(di.Sales) == 0 || di.Sales[0].GetPrice().GetValue() != 3800 {
+		t.Errorf("expected discogs client sale price 3800, got: %v", di.Sales)
+	}
+}
+
+func TestAdjustSales_PostMedian_RespectsLowerBound_DiscogsLow(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    1004,
+				ReleaseId: 2004,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Set configuration: Discogs Low strategy
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+				PostMedianTime:               600,
+				PostMedianReduction:          500,
+				PostMedianReductionFrequency: 300,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// 2400s elapsed -> 1800s post median -> Floor(1800/300) + 1 = 7 cycles.
+	// Target before lower bound: 5000 - 7 * 500 = 1500.
+	// Clamped to Discogs Low: 3200.
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              2004,
+			InstanceId:      20040,
+			FolderId:        12,
+			Condition:       "Very Good Plus (VG+)",
+			SleeveCondition: "Very Good (VG)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 5000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 3200},
+		SaleId:      1004,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1004,
+		ReleaseId:       2004,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 3200, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good (VG)",
+		TimeAtMedian:    time.Now().Add(-2400 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale: %v", err)
+	}
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test Post-Median Discogs Low Bound",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	sale1004, err := d.GetSale(ctx, 123, 1004)
+	if err != nil {
+		t.Fatalf("unable to get sale from DB: %v", err)
+	}
+	if sale1004.GetCurrentPrice().GetValue() != 3200 {
+		t.Errorf("expected sale price clamped to Discogs low 3200, got: %v", sale1004.GetCurrentPrice().GetValue())
+	}
+	if len(di.Sales) == 0 || di.Sales[0].GetPrice().GetValue() != 3200 {
+		t.Errorf("expected discogs client sale price 3200, got: %v", di.Sales)
+	}
+	if sale1004.GetTimeAtLow() == 0 {
+		t.Errorf("expected TimeAtLow timestamp to be set on sale reaching low price")
+	}
+}
+
+func TestAdjustSales_PostMedian_HoldingBeforePostMedianTime(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:    1005,
+				ReleaseId: 2005,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Price:     &pbd.Price{Value: 5000, Currency: "USD"},
+			},
+		},
+	}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	s := server.BuildServer(d, di, qc)
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   1000,
+				PostMedianTime:               600, // 10 minutes
+				PostMedianReduction:          200,
+				PostMedianReductionFrequency: 300,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// TimeAtMedian is only 300s ago (< 600s PostMedianTime).
+	// Should hold price at median (5000).
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              2005,
+			InstanceId:      20050,
+			FolderId:        12,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			Labels:          []*pbd.Label{{Name: "TestLabel"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 5000},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 2000},
+		SaleId:      1005,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("unable to save record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1005,
+		ReleaseId:       2005,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		TimeAtMedian:    time.Now().Add(-300 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("unable to save sale: %v", err)
+	}
+
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test Post-Median Holding State",
+			Auth:      "123",
+			Entry: &pb.QueueElement_AdjustSales{
+				AdjustSales: &pb.AdjustSales{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to enqueue AdjustSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	sale1005, err := d.GetSale(ctx, 123, 1005)
+	if err != nil {
+		t.Fatalf("unable to get sale from DB: %v", err)
+	}
+	if sale1005.GetCurrentPrice().GetValue() != 5000 {
+		t.Errorf("expected sale price to hold at 5000 before PostMedianTime, got: %v", sale1005.GetCurrentPrice().GetValue())
+	}
+}
+
+func TestAdjustSales_PostMedian_EnqueuedUpdateSalePayload(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test-auth-token-123"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                      pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       10,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_STATIC_LOW,
+				LowerBound:                   1000,
+				PostMedianTime:               600,
+				PostMedianReduction:          200,
+				PostMedianReductionFrequency: 300,
+			},
+		},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// 750s elapsed since median -> 150s post median -> 1 cycle (target 5000 - 200 = 4800)
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1006,
+		ReleaseId:       2006,
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 5000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		TimeAtMedian:    time.Now().Add(-750 * time.Second).UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale: %v", err)
+	}
+
+	var capturedRequests []*pb.EnqueueRequest
+	enqueueInterceptor := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		capturedRequests = append(capturedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	b := background.GetBackgroundRunner(d, "", "", "")
+	err = b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, enqueueInterceptor)
+	if err != nil {
+		t.Fatalf("AdjustSales failed: %v", err)
+	}
+
+	if len(capturedRequests) != 1 {
+		t.Fatalf("expected 1 enqueued request, got %v", len(capturedRequests))
+	}
+
+	req := capturedRequests[0]
+	if req.GetElement().GetAuth() != "test-auth-token-123" {
+		t.Errorf("expected Auth 'test-auth-token-123', got %v", req.GetElement().GetAuth())
+	}
+
+	updateSale := req.GetElement().GetUpdateSale()
+	if updateSale == nil {
+		t.Fatalf("expected UpdateSale payload in queue element, got nil")
+	}
+
+	if updateSale.GetSaleId() != 1006 {
+		t.Errorf("expected SaleId 1006, got %v", updateSale.GetSaleId())
+	}
+	if updateSale.GetReleaseId() != 2006 {
+		t.Errorf("expected ReleaseId 2006, got %v", updateSale.GetReleaseId())
+	}
+	if updateSale.GetNewPrice() != 4800 {
+		t.Errorf("expected NewPrice 4800, got %v", updateSale.GetNewPrice())
+	}
+	if updateSale.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected Condition 'Near Mint (NM or M-)', got %q", updateSale.GetCondition())
+	}
+	if updateSale.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected SleeveCondition 'Very Good Plus (VG+)', got %q", updateSale.GetSleeveCondition())
+	}
+	if !strings.Contains(updateSale.GetMotivation(), "reducing post median") {
+		t.Errorf("expected Motivation to mention 'reducing post median', got %q", updateSale.GetMotivation())
+	}
+}
+
 
 
