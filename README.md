@@ -34,6 +34,7 @@ Current Go version: 1.26.2
 - Post-Median Sale Reduction Integration Testing: Comprehensive end-to-end integration tests verifying the full asynchronous post-median price adjustment workflow, including immediate first-cycle reduction, multi-cycle intervals, static and Discogs Low lower bound constraints, holding states, and queue payload verification.
 - Incremental Listing Sync & Early Termination: Refactors `SyncSales` to support incremental sales sync with early termination when encountering previously synced listings sorted in reverse chronological order.
 - Incremental Order Sync Schema: Defines `SyncOrders` queue task element and adds `last_order_sync` timestamp tracking to `StoredUser` for incremental Discogs order syncing.
+- Waitlist User State Display & Live Bypass: Displays the authenticated user's `UserState` enum value during the waitlist admin approval screen in the Gramophile TUI, and bypasses the waitlist screen directly to the main application for live users.
 
 
 
