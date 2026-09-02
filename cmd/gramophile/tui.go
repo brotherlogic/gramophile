@@ -13,6 +13,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -123,6 +124,7 @@ type Model struct {
 	sortStrategy    string
 
 	commandInput    string
+	textInput       textinput.Model
 	orgViewport     viewport.Model
 	activeOrgName   string
 	activeSlot      int32
@@ -191,6 +193,12 @@ func defaultTokenSaver(tokenText string) error {
 }
 
 func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
+	ti := textinput.New()
+	ti.Placeholder = "locate <release_id> | org [--org <name>] | o | quit"
+	ti.Focus()
+	ti.CharLimit = 256
+	ti.Width = 60
+
 	return Model{
 		state:        StateStartupLogo,
 		client:       client,
@@ -199,6 +207,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		tokenLoader:  defaultTokenLoader,
 		tokenSaver:   defaultTokenSaver,
 		progBar:      progress.New(progress.WithDefaultGradient()),
+		textInput:    ti,
 	}
 }
 
@@ -393,13 +402,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateMainApp:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if msg.String() == "o" {
-				m.state = StateOrgConfig
-				m.orgErr = ""
-				m.initOrgConfigForm()
+			switch msg.Type {
+			case tea.KeyEnter:
+				cmdStr := strings.TrimSpace(m.textInput.Value())
+				m.textInput.SetValue("")
+				if cmdStr == "" {
+					return m, nil
+				}
+				if cmdStr == "q" || cmdStr == "quit" || cmdStr == "exit" {
+					return m, tea.Quit
+				}
+				if cmdStr == "o" || cmdStr == "config" || cmdStr == "org-config" {
+					m.state = StateOrgConfig
+					m.orgErr = ""
+					m.inlineErrMsg = ""
+					m.initOrgConfigForm()
+					return m, nil
+				}
+				return m.handleCommandInput(cmdStr)
+			case tea.KeyEsc:
+				m.textInput.SetValue("")
+				m.inlineErrMsg = ""
 				return m, nil
 			}
 		}
+
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
 	case StateOrgConfig:
 		if msg, ok := msg.(setConfigMsg); ok {
 			if msg.err != nil {
@@ -603,7 +633,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -662,7 +692,25 @@ func (m Model) View() string {
 			body = "Sync Complete!\n\n" + style.Render(waitMsg) + "\n"
 		}
 	case StateMainApp:
-		body = "Handoff to main application complete.\n"
+		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+
+		var sb strings.Builder
+		sb.WriteString("Handoff to main application complete.\n\n")
+		sb.WriteString("Commands:\n")
+		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
+		sb.WriteString("  org [--org <name>]    View organization layout and placements\n")
+		sb.WriteString("  o                     Configure organizations\n")
+		sb.WriteString("  quit                  Exit the application\n\n")
+		sb.WriteString(promptStyle.Render("Command: ") + m.textInput.View() + "\n")
+
+		if m.inlineErrMsg != "" {
+			errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Bold(true)
+			sb.WriteString("\n" + errStyle.Render(m.inlineErrMsg) + "\n")
+		}
+
+		sb.WriteString("\n" + helpStyle.Render("Press Enter to execute, Esc to clear, Ctrl+C to quit"))
+		body = sb.String()
 	case StateOrgConfig:
 		if m.form != nil {
 			body = m.form.View()
