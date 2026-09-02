@@ -13,6 +13,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -123,6 +124,7 @@ type Model struct {
 	sortStrategy    string
 
 	commandInput    string
+	textInput       textinput.Model
 	orgViewport     viewport.Model
 	activeOrgName   string
 	activeSlot      int32
@@ -191,6 +193,12 @@ func defaultTokenSaver(tokenText string) error {
 }
 
 func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
+	ti := textinput.New()
+	ti.Placeholder = "locate <release_id> | org [--org <name>] | o | quit"
+	ti.Focus()
+	ti.CharLimit = 256
+	ti.Width = 60
+
 	return Model{
 		state:        StateStartupLogo,
 		client:       client,
@@ -199,6 +207,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		tokenLoader:  defaultTokenLoader,
 		tokenSaver:   defaultTokenSaver,
 		progBar:      progress.New(progress.WithDefaultGradient()),
+		textInput:    ti,
 	}
 }
 
@@ -393,13 +402,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateMainApp:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if msg.String() == "o" {
-				m.state = StateOrgConfig
-				m.orgErr = ""
-				m.initOrgConfigForm()
+			switch msg.Type {
+			case tea.KeyEnter:
+				cmdStr := strings.TrimSpace(m.textInput.Value())
+				m.textInput.SetValue("")
+				if cmdStr == "" {
+					return m, nil
+				}
+				if cmdStr == "q" || cmdStr == "quit" || cmdStr == "exit" {
+					return m, tea.Quit
+				}
+				if cmdStr == "o" || cmdStr == "config" || cmdStr == "org-config" {
+					m.state = StateOrgConfig
+					m.orgErr = ""
+					m.inlineErrMsg = ""
+					m.initOrgConfigForm()
+					return m, nil
+				}
+				return m.handleCommandInput(cmdStr)
+			case tea.KeyEsc:
+				m.textInput.SetValue("")
+				m.inlineErrMsg = ""
 				return m, nil
 			}
 		}
+
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
 	case StateOrgConfig:
 		if msg, ok := msg.(setConfigMsg); ok {
 			if msg.err != nil {
@@ -603,7 +633,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -618,77 +648,106 @@ const logo = ` ██████╗ ██████╗  █████╗ �
 ╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║╚██████╔╝██║     ██║  ██║██║███████╗███████╗
  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝`
 
+func (m Model) renderLogo() string {
+	style := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#7D56F4")).
+		Margin(1, 2)
+
+	return style.Render(logo)
+}
+
 func (m Model) View() string {
+	var body string
 	switch m.state {
 	case StateStartupLogo:
-		style := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")).
-			Margin(1, 2)
-
-		return style.Render(logo) + "\n\nPress any key to continue..."
+		body = "Press any key to continue..."
 	case StateLogin:
 		if m.err != nil {
-			return fmt.Sprintf("Error: %v\nPress q to quit", m.err)
+			body = fmt.Sprintf("Error: %v\nPress q to quit", m.err)
+		} else if m.loginURL == "" {
+			body = "Fetching authentication URL..."
+		} else {
+			body = fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 		}
-		if m.loginURL == "" {
-			return "Fetching authentication URL..."
-		}
-		return fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
 	case StateLoadingSync:
 		if m.err != nil {
-			return fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)
+			body = fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)
+		} else {
+			body = fmt.Sprintf("Syncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
 		}
-		return fmt.Sprintf("\nSyncing Collection with Discogs...\n\n%s\n", m.progBar.ViewAs(m.progress))
 	case StateWaitlist:
 		if m.err != nil {
-			return fmt.Sprintf("Error polling waitlist status: %v\n\nReconnecting...", m.err)
-		}
-		style := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FFD700")).
-			Padding(1, 2)
-
-		waitMsg := "Waiting for Admin Approval..."
-		if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
-			waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s...", m.user.GetUser().GetUsername())
-		}
-		return "\nSync Complete!\n\n" + style.Render(waitMsg) + "\n"
-	case StateMainApp:
-		return "\nHandoff to main application complete.\n"
-	case StateOrgConfig:
-		var view string
-		if m.form != nil {
-			view = m.form.View()
+			body = fmt.Sprintf("Error polling waitlist status: %v\n\nReconnecting...", m.err)
 		} else {
-			view = "Loading wizard..."
+			style := lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#FFD700")).
+				Padding(1, 2)
+
+			waitMsg := fmt.Sprintf("Waiting for Admin Approval (%s)...", m.user.GetState())
+			if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
+				waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s (%s)...", m.user.GetUser().GetUsername(), m.user.GetState())
+			}
+			body = "Sync Complete!\n\n" + style.Render(waitMsg) + "\n"
+		}
+	case StateMainApp:
+		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+
+		var sb strings.Builder
+		sb.WriteString("Handoff to main application complete.\n\n")
+		sb.WriteString("Commands:\n")
+		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
+		sb.WriteString("  org [--org <name>]    View organization layout and placements\n")
+		sb.WriteString("  o                     Configure organizations\n")
+		sb.WriteString("  quit                  Exit the application\n\n")
+		sb.WriteString(promptStyle.Render("Command: ") + m.textInput.View() + "\n")
+
+		if m.inlineErrMsg != "" {
+			errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Bold(true)
+			sb.WriteString("\n" + errStyle.Render(m.inlineErrMsg) + "\n")
+		}
+
+		sb.WriteString("\n" + helpStyle.Render("Press Enter to execute, Esc to clear, Ctrl+C to quit"))
+		body = sb.String()
+	case StateOrgConfig:
+		if m.form != nil {
+			body = m.form.View()
+		} else {
+			body = "Loading wizard..."
 		}
 		if m.orgErr != "" {
 			errStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FF0000")).
 				Bold(true)
-			view += "\n\n" + errStyle.Render(m.orgErr)
+			body += "\n\n" + errStyle.Render(m.orgErr)
 		} else if m.err != nil {
 			errStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FF0000")).
 				Bold(true)
-			view += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
+			body += "\n\n" + errStyle.Render(fmt.Sprintf("Error: %v", m.err))
 		}
-		return view
 	case StateOrgView:
 		if m.inlineErrMsg != "" {
-			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		} else {
+			body = fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
+				m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 		}
-		return fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
-			m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
 	case StateLocateView:
 		if m.inlineErrMsg != "" {
-			return fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
+		} else {
+			body = m.locateViewport.View()
 		}
-		return m.locateViewport.View()
+	default:
+		body = "Gramophile TUI"
 	}
-	return "Gramophile TUI"
+
+	return m.renderLogo() + "\n\n" + body
 }
+
 
 func (m *Model) initOrgConfigForm() {
 	var folderOptions []huh.Option[string]

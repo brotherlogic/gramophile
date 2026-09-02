@@ -14,7 +14,7 @@ Current Go version: 1.26.2
 
 ## Features
 - LocateRecord: Provides functionality to query the location of records within the collection via the `gram locate` CLI command. It displays the artist name along with the title, and the shelf width percentage where the record is located.
-- Stylized ASCII Startup Logo: Terminal User Interface features a custom ANSI Shadow ASCII art startup logo styled with Lip Gloss, matching the beerkellar aesthetic.
+- Stylized ASCII Logo Header: Terminal User Interface features a custom ANSI Shadow ASCII art logo styled with Lip Gloss that persists across all views throughout the application session.
 - Organization Configuration Wizard: A guided interactive Terminal User Interface (TUI) wizard built with Bubble Tea and Charm Huh to help configure physical storage organizations (shelves, boxes) mapping to Discogs folders.
 - Organization View: Terminal User Interface mode for viewing physical record organization placement layout and snapshots via `org` / `orgview` command parsing (supporting `--org`, `--slot`, `--hash`, `--debug` flags).
 - Resilient Sale Adjustments & Decoupled Refresh: Evaluates sale price reductions resiliently against missing pricing metadata (such as unlinked sales or missing median prices) and decouples sale adjustment processing from catalog refresh.
@@ -35,6 +35,8 @@ Current Go version: 1.26.2
 - Incremental Listing Sync & Early Termination: Refactors `SyncSales` to support incremental sales sync with early termination when encountering previously synced listings sorted in reverse chronological order.
 - Incremental Order Sync Schema: Defines `SyncOrders` queue task element and adds `last_order_sync` timestamp tracking to `StoredUser` for incremental Discogs order syncing.
 - Periodic Order Sync Scheduling & Admin CLI: Schedules `SyncOrders` queue tasks periodically in the user validator loop for active users and provides `syncorders` admin CLI command to manually enqueue order synchronization tasks.
+- Waitlist User State Display & Live Bypass: Displays the authenticated user's `UserState` enum value during the waitlist admin approval screen in the Gramophile TUI, and bypasses the waitlist screen directly to the main application for live users.
+- Main Application Command Input Bar: Terminal User Interface provides an interactive command input bar in the main application state to issue commands (`locate <release_id>`, `org [--org <name>]`, `o` / `config`, `quit`) with inline error reporting and command execution.
 
 
 

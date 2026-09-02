@@ -126,6 +126,29 @@ func TestStartupLogoView(t *testing.T) {
 	}
 }
 
+func TestLogoPersistsAcrossViews(t *testing.T) {
+	mock := &mockClient{}
+	states := []appState{
+		StateStartupLogo,
+		StateLogin,
+		StateLoadingSync,
+		StateWaitlist,
+		StateMainApp,
+		StateOrgConfig,
+		StateOrgView,
+		StateLocateView,
+	}
+
+	for _, s := range states {
+		m := InitialModel(mock, mock, mock)
+		m.state = s
+		view := m.View()
+		if !strings.Contains(view, "██████╗") {
+			t.Errorf("Expected state %v view to contain ASCII art logo with '██████╗', got:\n%s", s, view)
+		}
+	}
+}
+
 func TestTimerTransition(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	
@@ -266,36 +289,56 @@ func TestStateWaitlist_Promoted(t *testing.T) {
 	}
 }
 
+func TestStateLoadingSync_LiveUserSkipsWaitlist(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	m.state = StateLoadingSync
+
+	respMsg := syncStatusMsg{
+		expectedSize: 100,
+		currentSize:  100,
+		userState:    pb.StoredUser_USER_STATE_LIVE,
+	}
+
+	newModel, _ := m.Update(respMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected state to transition to StateMainApp for live user, got %v", updatedModel.state)
+	}
+}
+
 func TestStateWaitlist_View(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	m.state = StateWaitlist
 
 	// Default view without user
 	view := m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval...") {
-		t.Errorf("Expected default waitlist message, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval (USER_STATE_UNKNOWN)...") {
+		t.Errorf("Expected default waitlist message with enum, got %q", view)
 	}
 
 	// View with user and username
 	m.user = &pb.StoredUser{
+		State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		User: &pbd.User{
 			Username: "brotherlogic",
 		},
 	}
 	view = m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval for brotherlogic...") {
-		t.Errorf("Expected waitlist message with username, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval for brotherlogic (USER_STATE_IN_WAITLIST)...") {
+		t.Errorf("Expected waitlist message with username and enum, got %q", view)
 	}
 
 	// View with user but empty username
 	m.user = &pb.StoredUser{
+		State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		User: &pbd.User{
 			Username: "",
 		},
 	}
 	view = m.View()
-	if !strings.Contains(view, "Waiting for Admin Approval...") || strings.Contains(view, "Waiting for Admin Approval for") {
-		t.Errorf("Expected fallback waitlist message for empty username, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval (USER_STATE_IN_WAITLIST)...") || strings.Contains(view, "Waiting for Admin Approval for") {
+		t.Errorf("Expected fallback waitlist message for empty username with enum, got %q", view)
 	}
 }
 
@@ -306,6 +349,7 @@ func TestStateWaitlist_UpdateUser(t *testing.T) {
 	respMsg := syncStatusMsg{
 		userState: pb.StoredUser_USER_STATE_IN_WAITLIST,
 		user: &pb.StoredUser{
+			State: pb.StoredUser_USER_STATE_IN_WAITLIST,
 			User: &pbd.User{
 				Username: "testuser",
 			},
@@ -320,8 +364,8 @@ func TestStateWaitlist_UpdateUser(t *testing.T) {
 	}
 
 	view := updatedModel.View()
-	if !strings.Contains(view, "Waiting for Admin Approval for testuser...") {
-		t.Errorf("Expected waitlist view to render testuser, got %q", view)
+	if !strings.Contains(view, "Waiting for Admin Approval for testuser (USER_STATE_IN_WAITLIST)...") {
+		t.Errorf("Expected waitlist view to render testuser and state enum, got %q", view)
 	}
 }
 
@@ -1116,3 +1160,198 @@ func TestContextAuthTokenPropagation(t *testing.T) {
 		t.Errorf("Expected buildContext to attach auth-token metadata, got %v", md)
 	}
 }
+
+func TestStateMainApp_View_ContainsInputBarAndCommands(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	view := m.View()
+	if !strings.Contains(view, "Handoff to main application complete") {
+		t.Errorf("Expected view to contain greeting, got:\n%s", view)
+	}
+	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [--org <name>]") {
+		t.Errorf("Expected view to list supported commands, got:\n%s", view)
+	}
+	if !strings.Contains(view, "Command: ") {
+		t.Errorf("Expected view to contain 'Command: ' input prompt, got:\n%s", view)
+	}
+}
+
+func TestStateMainApp_ExecuteLocate(t *testing.T) {
+	mock := &mockClient{
+		locateRecordFunc: func(req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
+			return &pb.LocateRecordResponse{}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "locate 12345"
+	for _, r := range "locate 12345" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	if m.textInput.Value() != "locate 12345" {
+		t.Fatalf("Expected textInput value 'locate 12345', got %q", m.textInput.Value())
+	}
+
+	// Press Enter
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateLocateView {
+		t.Errorf("Expected state to transition to StateLocateView, got %v", m.state)
+	}
+	if m.activeLocateID != 12345 {
+		t.Errorf("Expected activeLocateID 12345, got %d", m.activeLocateID)
+	}
+	if cmd == nil {
+		t.Errorf("Expected cmd to fetch locate record")
+	}
+}
+
+func TestStateMainApp_ExecuteOrg(t *testing.T) {
+	mock := &mockClient{
+		getOrgFunc: func(req *pb.GetOrgRequest) (*pb.GetOrgResponse, error) {
+			return &pb.GetOrgResponse{}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "org --org MyShelf --slot 2"
+	for _, r := range "org --org MyShelf --slot 2" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+
+	// Press Enter
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateOrgView {
+		t.Errorf("Expected state to transition to StateOrgView, got %v", m.state)
+	}
+	if m.activeOrgName != "MyShelf" {
+		t.Errorf("Expected activeOrgName 'MyShelf', got %q", m.activeOrgName)
+	}
+	if m.activeSlot != 2 {
+		t.Errorf("Expected activeSlot 2, got %d", m.activeSlot)
+	}
+	if cmd == nil {
+		t.Errorf("Expected cmd to fetch org")
+	}
+}
+
+func TestStateMainApp_ExecuteOrgConfig(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "o" and press enter
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	m = newModel.(Model)
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateOrgConfig {
+		t.Errorf("Expected state to transition to StateOrgConfig on 'o' command, got %v", m.state)
+	}
+	if m.form == nil {
+		t.Errorf("Expected org config form to be initialized")
+	}
+
+	// Test "config" command
+	m2 := InitialModel(mock, mock, mock)
+	m2.state = StateMainApp
+	for _, r := range "config" {
+		newModel, _ := m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2 = newModel.(Model)
+	}
+	newModel2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 = newModel2.(Model)
+	if m2.state != StateOrgConfig {
+		t.Errorf("Expected state to transition to StateOrgConfig on 'config' command, got %v", m2.state)
+	}
+}
+
+func TestStateMainApp_ExecuteQuit(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	for _, r := range "quit" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatalf("Expected quit command to return tea.Quit cmd")
+	}
+	msg := cmd()
+	if _, ok := msg.(tea.QuitMsg); !ok {
+		t.Errorf("Expected tea.QuitMsg, got %T", msg)
+	}
+}
+
+func TestStateMainApp_InvalidCommand_ShowsError(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	for _, r := range "unknown_command 123" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateMainApp {
+		t.Errorf("Expected state to remain StateMainApp on invalid command, got %v", m.state)
+	}
+	if cmd != nil {
+		t.Errorf("Expected no command to be returned on invalid input")
+	}
+	if m.inlineErrMsg == "" {
+		t.Errorf("Expected inlineErrMsg to be set on invalid command")
+	}
+	view := m.View()
+	if !strings.Contains(view, m.inlineErrMsg) {
+		t.Errorf("Expected view to render inline error message %q, got:\n%s", m.inlineErrMsg, view)
+	}
+
+	// Test Esc clears inline error and text input
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(Model)
+	if m.inlineErrMsg != "" {
+		t.Errorf("Expected Esc to clear inlineErrMsg, got %q", m.inlineErrMsg)
+	}
+	if m.textInput.Value() != "" {
+		t.Errorf("Expected Esc to clear textInput value, got %q", m.textInput.Value())
+	}
+}
+
+func TestStateMainApp_TypingQ_DoesNotQuit(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type 'q'
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = newModel.(Model)
+
+	if cmd != nil {
+		msg := cmd()
+		if _, isQuit := msg.(tea.QuitMsg); isQuit {
+			t.Fatalf("Typing 'q' in StateMainApp should not immediately quit the application")
+		}
+	}
+	if m.textInput.Value() != "q" {
+		t.Errorf("Expected textInput value 'q', got %q", m.textInput.Value())
+	}
+}
+
