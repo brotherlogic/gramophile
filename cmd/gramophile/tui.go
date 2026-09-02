@@ -655,9 +655,9 @@ func (m Model) View() string {
 				Foreground(lipgloss.Color("#FFD700")).
 				Padding(1, 2)
 
-			waitMsg := "Waiting for Admin Approval..."
+			waitMsg := fmt.Sprintf("Waiting for Admin Approval (%s)...", m.user.GetState())
 			if m.user != nil && m.user.GetUser() != nil && m.user.GetUser().GetUsername() != "" {
-				waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s...", m.user.GetUser().GetUsername())
+				waitMsg = fmt.Sprintf("Waiting for Admin Approval for %s (%s)...", m.user.GetUser().GetUsername(), m.user.GetState())
 			}
 			body = "Sync Complete!\n\n" + style.Render(waitMsg) + "\n"
 		}
