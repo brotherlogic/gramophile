@@ -131,6 +131,27 @@ func validateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 			}
 		}
 
+		log.Printf("Orders: %v", time.Since(time.Unix(0, user.GetLastOrderSync())))
+		if time.Since(time.Unix(0, user.GetLastOrderSync())) > time.Hour {
+			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention:        "From Validator",
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 15,
+					Entry: &pb.QueueElement_SyncOrders{
+						SyncOrders: &pb.SyncOrders{
+							Page:   1,
+							SyncId: time.Now().UnixNano(),
+						},
+					},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("unable to enqueue: %w", err)
+			}
+		}
+
 		log.Printf("Running print loop")
 		err := runPrintLoop(ctx, d, user)
 		if err != nil {
