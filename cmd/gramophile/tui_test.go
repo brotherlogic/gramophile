@@ -126,6 +126,29 @@ func TestStartupLogoView(t *testing.T) {
 	}
 }
 
+func TestLogoPersistsAcrossViews(t *testing.T) {
+	mock := &mockClient{}
+	states := []appState{
+		StateStartupLogo,
+		StateLogin,
+		StateLoadingSync,
+		StateWaitlist,
+		StateMainApp,
+		StateOrgConfig,
+		StateOrgView,
+		StateLocateView,
+	}
+
+	for _, s := range states {
+		m := InitialModel(mock, mock, mock)
+		m.state = s
+		view := m.View()
+		if !strings.Contains(view, "██████╗") {
+			t.Errorf("Expected state %v view to contain ASCII art logo with '██████╗', got:\n%s", s, view)
+		}
+	}
+}
+
 func TestTimerTransition(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	
