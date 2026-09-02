@@ -35,6 +35,7 @@ Current Go version: 1.26.2
 - Incremental Listing Sync & Early Termination: Refactors `SyncSales` to support incremental sales sync with early termination when encountering previously synced listings sorted in reverse chronological order.
 - Incremental Order Sync Schema: Defines `SyncOrders` queue task element and adds `last_order_sync` timestamp tracking to `StoredUser` for incremental Discogs order syncing.
 - Waitlist User State Display & Live Bypass: Displays the authenticated user's `UserState` enum value during the waitlist admin approval screen in the Gramophile TUI, and bypasses the waitlist screen directly to the main application for live users.
+- Main Application Command Input Bar: Terminal User Interface provides an interactive command input bar in the main application state to issue commands (`locate <release_id>`, `org [--org <name>]`, `o` / `config`, `quit`) with inline error reporting and command execution.
 
 
 
