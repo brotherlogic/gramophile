@@ -135,6 +135,17 @@ func main() {
 			Element: &pb.QueueElement{Auth: os.Args[3], Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}}},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "syncorders":
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Auth:      os.Args[3],
+				Intention: "from-cli",
+				Entry: &pb.QueueElement_SyncOrders{
+					SyncOrders: &pb.SyncOrders{Page: 1, SyncId: time.Now().UnixNano()},
+				},
+			},
+		})
+		fmt.Printf("%v and %v\n", a, b)
 	case "refresh_release":
 		iid, err := strconv.ParseInt(os.Args[4], 10, 64)
 		if err != nil {
