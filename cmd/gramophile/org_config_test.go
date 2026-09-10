@@ -36,9 +36,12 @@ func TestTransitionToOrgConfig(t *testing.T) {
 		Config: &pb.GramophileConfig{},
 	}
 
-	// Entering 'o' command in StateMainApp should transition to StateOrgConfig
-	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
-	newModel, cmd := newModel.(Model).Update(tea.KeyMsg{Type: tea.KeyEnter})
+	// Entering 'configure org' command in StateMainApp should transition to StateOrgConfig
+	for _, r := range "configure org" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	updatedModel := newModel.(Model)
 
 	if updatedModel.state != StateOrgConfig {
