@@ -13,6 +13,7 @@ import (
 
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -128,6 +129,7 @@ type Model struct {
 	commandInput    string
 	textInput       textinput.Model
 	orgViewport     viewport.Model
+	orgSpinner      spinner.Model
 	activeOrgName   string
 	activeSlot      int32
 	activeHash      string
@@ -195,6 +197,13 @@ func defaultTokenSaver(tokenText string) error {
 	return os.Rename(tmpFile, finalFile)
 }
 
+func newOrgSpinner() spinner.Model {
+	sp := spinner.New()
+	sp.Spinner = spinner.Dot
+	sp.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#7D56F4"))
+	return sp
+}
+
 func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
 	ti := textinput.New()
 	ti.Placeholder = "locate <release_id> | org [name] | configure | quit"
@@ -211,6 +220,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		tokenSaver:   defaultTokenSaver,
 		progBar:      progress.New(progress.WithDefaultGradient()),
 		textInput:    ti,
+		orgSpinner:   newOrgSpinner(),
 	}
 }
 
@@ -626,16 +636,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, m.fetchRecordCmd(p.GetIid()))
 				}
 			}
+			if len(cmds) > 0 {
+				cmds = append(cmds, m.orgSpinner.Tick)
+			}
 			return m, tea.Batch(cmds...)
 		case recordFetchedMsg:
-			if msg.err == nil && msg.record != nil {
-				if m.resolvedRecords == nil {
-					m.resolvedRecords = make(map[int64]*pb.Record)
-				}
-				m.resolvedRecords[msg.iid] = msg.record
-				m.renderOrgViewport()
+			if m.resolvedRecords == nil {
+				m.resolvedRecords = make(map[int64]*pb.Record)
 			}
+			if msg.err == nil && msg.record != nil {
+				m.resolvedRecords[msg.iid] = msg.record
+			} else {
+				m.resolvedRecords[msg.iid] = &pb.Record{}
+			}
+			m.renderOrgViewport()
 			return m, nil
+		case spinner.TickMsg:
+			var cmd tea.Cmd
+			m.orgSpinner, cmd = m.orgSpinner.Update(msg)
+			m.renderOrgViewport()
+			if !m.hasUnresolvedOrgRecords() {
+				return m, nil
+			}
+			return m, cmd
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "x", "q", "esc":
@@ -1004,6 +1027,27 @@ func (m Model) fetchRecordCmd(iid int64) tea.Cmd {
 	}
 }
 
+func (m *Model) getOrgSpinnerView() string {
+	if len(m.orgSpinner.Spinner.Frames) == 0 {
+		m.orgSpinner = newOrgSpinner()
+	}
+	return m.orgSpinner.View()
+}
+
+func (m Model) hasUnresolvedOrgRecords() bool {
+	if m.state != StateOrgView || len(m.orgPlacements) == 0 {
+		return false
+	}
+	for _, p := range m.orgPlacements {
+		if p.GetIid() > 0 {
+			if m.resolvedRecords == nil || m.resolvedRecords[p.GetIid()] == nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (m *Model) renderOrgViewport() {
 	var sb strings.Builder
 
@@ -1039,10 +1083,10 @@ func (m *Model) renderOrgViewport() {
 						titleStr = fmt.Sprintf("Release #%d", iid)
 					}
 				} else {
-					titleStr = "Loading..."
+					titleStr = m.getOrgSpinnerView()
 				}
 			} else {
-				titleStr = "Loading..."
+				titleStr = m.getOrgSpinnerView()
 			}
 
 			idx := p.GetIndex()
@@ -1177,6 +1221,7 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	m.orgPlacements = nil
 	m.resolvedRecords = nil
 	m.orgViewport = viewport.New(80, 20)
+	m.orgSpinner = newOrgSpinner()
 	return m, m.fetchOrgCmd(orgName, hash)
 }
 

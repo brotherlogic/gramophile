@@ -686,8 +686,11 @@ func TestOrgFetchedAndRecordResolution(t *testing.T) {
 	}
 
 	viewContent := m.orgViewport.View()
-	if !strings.Contains(viewContent, "Loading...") {
-		t.Errorf("Expected viewport to initially contain placeholder Loading..., got:\n%s", viewContent)
+	if !strings.Contains(viewContent, m.orgSpinner.View()) {
+		t.Errorf("Expected viewport to initially contain spinner %q, got:\n%s", m.orgSpinner.View(), viewContent)
+	}
+	if strings.Contains(viewContent, "Loading...") {
+		t.Errorf("Expected viewport not to contain placeholder 'Loading...', got:\n%s", viewContent)
 	}
 
 	if batchCmd == nil {
@@ -722,6 +725,90 @@ func TestOrgFetchedAndRecordResolution(t *testing.T) {
 	}
 	if !strings.Contains(fullView, "hash-123") {
 		t.Errorf("Expected full view header to contain snapshot hash 'hash-123', got:\n%s", fullView)
+	}
+}
+
+func TestOrgViewDisplaysSpinnerWhileLoadingRecords(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateOrgView
+	m.orgPlacements = []*pb.Placement{
+		{
+			Iid:   301,
+			Space: "Shelf A",
+			Unit:  1,
+			Index: 1,
+		},
+		{
+			Iid:   302,
+			Space: "Shelf A",
+			Unit:  2,
+			Index: 2,
+		},
+	}
+	m.resolvedRecords = make(map[int64]*pb.Record)
+	m.renderOrgViewport()
+
+	initialView := m.orgViewport.View()
+	if strings.Contains(initialView, "Loading...") {
+		t.Errorf("Expected viewport not to contain 'Loading...', got:\n%s", initialView)
+	}
+	if !strings.Contains(initialView, m.orgSpinner.View()) {
+		t.Errorf("Expected viewport to contain initial spinner frame %q, got:\n%s", m.orgSpinner.View(), initialView)
+	}
+
+	// Advance spinner by sending TickMsg
+	tickMsg := m.orgSpinner.Tick()
+	newModel, tickCmd := m.Update(tickMsg)
+	m = newModel.(Model)
+
+	tickedView := m.orgViewport.View()
+	if !strings.Contains(tickedView, m.orgSpinner.View()) {
+		t.Errorf("Expected viewport after tick to contain updated spinner frame %q, got:\n%s", m.orgSpinner.View(), tickedView)
+	}
+	if tickCmd == nil {
+		t.Fatalf("Expected tickCmd to be returned while records are unresolved")
+	}
+
+	// Resolve one record
+	newModel, _ = m.Update(recordFetchedMsg{
+		iid: 301,
+		record: &pb.Record{
+			Release: &pbd.Release{Title: "Record One", Artists: []*pbd.Artist{{Name: "Artist One"}}},
+		},
+	})
+	m = newModel.(Model)
+
+	partialView := m.orgViewport.View()
+	if !strings.Contains(partialView, "Artist One - Record One") {
+		t.Errorf("Expected viewport to contain resolved record one, got:\n%s", partialView)
+	}
+	if !strings.Contains(partialView, m.orgSpinner.View()) {
+		t.Errorf("Expected unresolved record two to still display spinner, got:\n%s", partialView)
+	}
+
+	// Resolve the second record
+	newModel, _ = m.Update(recordFetchedMsg{
+		iid: 302,
+		record: &pb.Record{
+			Release: &pbd.Release{Title: "Record Two", Artists: []*pbd.Artist{{Name: "Artist Two"}}},
+		},
+	})
+	m = newModel.(Model)
+
+	resolvedView := m.orgViewport.View()
+	if !strings.Contains(resolvedView, "Artist One - Record One") {
+		t.Errorf("Expected viewport to contain Artist One - Record One, got:\n%s", resolvedView)
+	}
+	if !strings.Contains(resolvedView, "Artist Two - Record Two") {
+		t.Errorf("Expected viewport to contain Artist Two - Record Two, got:\n%s", resolvedView)
+	}
+
+	// Subsequent tick should stop returning commands since all records are resolved
+	tickMsg = m.orgSpinner.Tick()
+	newModel, finalCmd := m.Update(tickMsg)
+	if finalCmd != nil {
+		t.Errorf("Expected nil command after all records resolved, got %v", finalCmd)
 	}
 }
 
