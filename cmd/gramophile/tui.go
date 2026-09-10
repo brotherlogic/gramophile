@@ -35,6 +35,7 @@ const (
 	StateOrgConfig
 	StateOrgView
 	StateLocateView
+	StateConfigSelect
 )
 
 type AuthClient interface {
@@ -122,6 +123,7 @@ type Model struct {
 	spaceWidth      string
 	selectedFolders []string
 	sortStrategy    string
+	configTarget    string
 
 	commandInput    string
 	textInput       textinput.Model
@@ -194,7 +196,7 @@ func defaultTokenSaver(tokenText string) error {
 
 func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
 	ti := textinput.New()
-	ti.Placeholder = "locate <release_id> | org [name] | o | quit"
+	ti.Placeholder = "locate <release_id> | org [name] | configure | quit"
 	ti.Focus()
 	ti.CharLimit = 256
 	ti.Width = 60
@@ -412,11 +414,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if cmdStr == "q" || cmdStr == "quit" || cmdStr == "exit" {
 					return m, tea.Quit
 				}
-				if cmdStr == "o" || cmdStr == "config" || cmdStr == "org-config" {
+				if cmdStr == "configure org" || cmdStr == "config org" {
 					m.state = StateOrgConfig
 					m.orgErr = ""
 					m.inlineErrMsg = ""
 					m.initOrgConfigForm()
+					return m, nil
+				}
+				if cmdStr == "configure" || cmdStr == "config" {
+					m.state = StateConfigSelect
+					m.orgErr = ""
+					m.inlineErrMsg = ""
+					m.initConfigSelectForm()
 					return m, nil
 				}
 				return m.handleCommandInput(cmdStr)
@@ -546,6 +555,45 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, cmd
 		}
+	case StateConfigSelect:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.Type == tea.KeyEsc {
+				m.state = StateMainApp
+				m.form = nil
+				m.inlineErrMsg = ""
+				return m, nil
+			}
+		}
+
+		if m.form != nil {
+			form, cmd := m.form.Update(msg)
+			if f, ok := form.(*huh.Form); ok {
+				m.form = f
+			}
+
+			if m.form.State == huh.StateCompleted {
+				if m.configTarget == "org" {
+					m.state = StateOrgConfig
+					m.orgErr = ""
+					m.inlineErrMsg = ""
+					m.initOrgConfigForm()
+					return m, nil
+				}
+				m.state = StateMainApp
+				m.form = nil
+				return m, nil
+			}
+
+			if m.form.State == huh.StateAborted {
+				m.state = StateMainApp
+				m.form = nil
+				m.inlineErrMsg = ""
+				return m, nil
+			}
+
+			return m, cmd
+		}
 	case StateOrgView:
 		switch msg := msg.(type) {
 		case orgFetchedMsg:
@@ -633,7 +681,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -699,7 +747,7 @@ func (m Model) View() string {
 		sb.WriteString("Commands:\n")
 		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
 		sb.WriteString("  org [name]            View organization layout and placements\n")
-		sb.WriteString("  o                     Configure organizations\n")
+		sb.WriteString("  configure             Configure organizations\n")
 		sb.WriteString("  quit                  Exit the application\n\n")
 		sb.WriteString(promptStyle.Render("Command: ") + m.textInput.View() + "\n")
 
@@ -710,6 +758,12 @@ func (m Model) View() string {
 
 		sb.WriteString("\n" + helpStyle.Render("Press Enter to execute, Esc to clear, Ctrl+C to quit"))
 		body = sb.String()
+	case StateConfigSelect:
+		if m.form != nil {
+			body = m.form.View()
+		} else {
+			body = "Loading configuration options..."
+		}
 	case StateOrgConfig:
 		if m.form != nil {
 			body = m.form.View()
@@ -747,6 +801,21 @@ func (m Model) View() string {
 	return m.renderLogo() + "\n\n" + body
 }
 
+
+func (m *Model) initConfigSelectForm() {
+	m.configTarget = "org"
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Configuration Target").
+				Options(
+					huh.NewOption("org", "org"),
+				).
+				Value(&m.configTarget),
+		),
+	)
+	m.form.Init()
+}
 
 func (m *Model) initOrgConfigForm() {
 	var folderOptions []huh.Option[string]
@@ -1058,6 +1127,11 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 		m.locateResponse = nil
 		m.locateViewport = viewport.New(80, 20)
 		return m, m.fetchLocateCmd(releaseID)
+	}
+
+	if len(fields) > 0 && (fields[0] == "configure" || fields[0] == "config") {
+		m.inlineErrMsg = fmt.Sprintf("Unknown configuration target: %s. Usage: configure [org]", strings.Join(fields[1:], " "))
+		return m, nil
 	}
 
 	orgName, slot, hash, debug, err := parseOrgCommand(cmdStr)

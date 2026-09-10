@@ -88,6 +88,10 @@ func TestInitialModel_LocateClient(t *testing.T) {
 	if m.locateClient == nil {
 		t.Errorf("Expected locateClient to be initialized")
 	}
+	expectedPlaceholder := "locate <release_id> | org [name] | configure | quit"
+	if m.textInput.Placeholder != expectedPlaceholder {
+		t.Errorf("Expected placeholder %q, got %q", expectedPlaceholder, m.textInput.Placeholder)
+	}
 }
 
 
@@ -137,6 +141,7 @@ func TestLogoPersistsAcrossViews(t *testing.T) {
 		StateOrgConfig,
 		StateOrgView,
 		StateLocateView,
+		StateConfigSelect,
 	}
 
 	for _, s := range states {
@@ -1203,8 +1208,11 @@ func TestStateMainApp_View_ContainsInputBarAndCommands(t *testing.T) {
 	if strings.Contains(view, "Handoff to main application complete") {
 		t.Errorf("Expected view not to contain handoff message, got:\n%s", view)
 	}
-	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [name]") {
-		t.Errorf("Expected view to list supported commands, got:\n%s", view)
+	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [name]") || !strings.Contains(view, "configure") {
+		t.Errorf("Expected view to list supported commands (locate, org, configure), got:\n%s", view)
+	}
+	if strings.Contains(view, "  o   ") {
+		t.Errorf("Expected view to not list 'o' as command, got:\n%s", view)
 	}
 	if !strings.Contains(view, "Command: ") {
 		t.Errorf("Expected view to contain 'Command: ' input prompt, got:\n%s", view)
@@ -1343,36 +1351,155 @@ func TestStateMainApp_ExecuteOrg(t *testing.T) {
 	}
 }
 
-func TestStateMainApp_ExecuteOrgConfig(t *testing.T) {
+func TestStateMainApp_ExecuteConfigure_TransitionsToConfigSelect(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
 
-	// Type "o" and press enter
-	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	// Type "configure" and press enter
+	for _, r := range "configure" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = newModel.(Model)
 
-	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if m.state != StateConfigSelect {
+		t.Fatalf("Expected state to transition to StateConfigSelect on 'configure' command, got %v", m.state)
+	}
+	if m.form == nil {
+		t.Fatalf("Expected config selection form to be initialized")
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "Configuration Target") || !strings.Contains(view, "org") {
+		t.Errorf("Expected StateConfigSelect view to show configuration selection, got:\n%s", view)
+	}
+
+	// Completing selection with "org" transitions to StateOrgConfig
+	m.configTarget = "org"
+	m.form.State = huh.StateCompleted
+	newModel, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	m = newModel.(Model)
 
 	if m.state != StateOrgConfig {
-		t.Errorf("Expected state to transition to StateOrgConfig on 'o' command, got %v", m.state)
+		t.Fatalf("Expected state to transition to StateOrgConfig after selecting 'org', got %v", m.state)
+	}
+	if m.form == nil {
+		t.Errorf("Expected org config form to be initialized")
+	}
+}
+
+func TestStateMainApp_ExecuteConfigure_AbortReturnsToMainApp(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	for _, r := range "configure" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateConfigSelect {
+		t.Fatalf("Expected StateConfigSelect, got %v", m.state)
+	}
+
+	// Pressing Esc aborts back to StateMainApp
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(Model)
+
+	if m.state != StateMainApp {
+		t.Errorf("Expected state to return to StateMainApp on Esc, got %v", m.state)
+	}
+}
+
+func TestStateMainApp_ExecuteConfigureOrg_DirectTransition(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "configure org" and press enter
+	for _, r := range "configure org" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateOrgConfig {
+		t.Errorf("Expected state to transition directly to StateOrgConfig on 'configure org', got %v", m.state)
 	}
 	if m.form == nil {
 		t.Errorf("Expected org config form to be initialized")
 	}
 
-	// Test "config" command
+	// Test "config org" command
 	m2 := InitialModel(mock, mock, mock)
 	m2.state = StateMainApp
-	for _, r := range "config" {
+	for _, r := range "config org" {
 		newModel, _ := m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		m2 = newModel.(Model)
 	}
 	newModel2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 = newModel2.(Model)
 	if m2.state != StateOrgConfig {
-		t.Errorf("Expected state to transition to StateOrgConfig on 'config' command, got %v", m2.state)
+		t.Errorf("Expected state to transition to StateOrgConfig on 'config org', got %v", m2.state)
+	}
+
+	// Test "config" command transitions to StateConfigSelect
+	m3 := InitialModel(mock, mock, mock)
+	m3.state = StateMainApp
+	for _, r := range "config" {
+		newModel, _ := m3.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m3 = newModel.(Model)
+	}
+	newModel3, _ := m3.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 = newModel3.(Model)
+	if m3.state != StateConfigSelect {
+		t.Errorf("Expected state to transition to StateConfigSelect on 'config', got %v", m3.state)
+	}
+}
+
+func TestStateMainApp_ExecuteConfigure_InvalidTarget(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	for _, r := range "configure unknown" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateMainApp {
+		t.Errorf("Expected state to remain StateMainApp on invalid configure target, got %v", m.state)
+	}
+	if !strings.Contains(m.inlineErrMsg, "Unknown configuration target: unknown") {
+		t.Errorf("Expected inline error for unknown configuration target, got %q", m.inlineErrMsg)
+	}
+}
+
+func TestStateMainApp_ExecuteO_NoLongerConfigures(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Typing "o" should no longer configure org
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})
+	m = newModel.(Model)
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state == StateOrgConfig || m.state == StateConfigSelect {
+		t.Errorf("Expected state NOT to transition to OrgConfig/ConfigSelect on 'o', got %v", m.state)
+	}
+	if m.inlineErrMsg != "unknown command: o" {
+		t.Errorf("Expected inlineErrMsg 'unknown command: o', got %q", m.inlineErrMsg)
 	}
 }
 
