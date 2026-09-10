@@ -804,8 +804,15 @@ func (m Model) View() string {
 		if m.inlineErrMsg != "" {
 			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
 		} else {
-			body = fmt.Sprintf("Organization View: %s (Slot: %d, Hash: %s, Debug: %t)\n%s",
-				m.activeOrgName, m.activeSlot, m.activeHash, m.activeDebug, m.orgViewport.View())
+			hash := m.activeHash
+			if hash == "" && m.orgSnapshot != nil {
+				hash = m.orgSnapshot.GetHash()
+			}
+			if hash != "" {
+				body = fmt.Sprintf("%s\n\n%s", hash, m.orgViewport.View())
+			} else {
+				body = m.orgViewport.View()
+			}
 		}
 	case StateLocateView:
 		if m.inlineErrMsg != "" {
@@ -999,19 +1006,6 @@ func (m Model) fetchRecordCmd(iid int64) tea.Cmd {
 
 func (m *Model) renderOrgViewport() {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Organization: %s", m.activeOrgName))
-	if m.activeSlot > 0 {
-		sb.WriteString(fmt.Sprintf(" | Slot: %d", m.activeSlot))
-	}
-	if m.activeHash != "" {
-		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.activeHash))
-	} else if m.orgSnapshot != nil && m.orgSnapshot.GetHash() != "" {
-		sb.WriteString(fmt.Sprintf(" | Hash: %s", m.orgSnapshot.GetHash()))
-	}
-	if m.activeDebug {
-		sb.WriteString(" [DEBUG]")
-	}
-	sb.WriteString("\n\n")
 
 	var sumWidth float32
 	for _, p := range m.orgPlacements {
@@ -1051,8 +1045,12 @@ func (m *Model) renderOrgViewport() {
 				titleStr = "Loading..."
 			}
 
-			sb.WriteString(fmt.Sprintf("[%d] Space: %s | Unit: %d | Index: %d | Title: %s | Width: %.1f\n",
-				i+1, p.GetSpace(), p.GetUnit(), p.GetIndex(), titleStr, p.GetWidth()))
+			idx := p.GetIndex()
+			if idx == 0 {
+				idx = int32(i + 1)
+			}
+			sb.WriteString(fmt.Sprintf("[%d] %s [ %s / %d]\n",
+				idx, titleStr, p.GetSpace(), p.GetUnit()))
 		}
 	}
 

@@ -708,8 +708,61 @@ func TestOrgFetchedAndRecordResolution(t *testing.T) {
 	m = newModel.(Model)
 
 	viewContentUpdated := m.orgViewport.View()
-	if !strings.Contains(viewContentUpdated, "John Coltrane - Blue Train") {
-		t.Errorf("Expected viewport to contain resolved title John Coltrane - Blue Train, got:\n%s", viewContentUpdated)
+	expectedLine := "[1] John Coltrane - Blue Train [ MainShelf / 1]"
+	if !strings.Contains(viewContentUpdated, expectedLine) {
+		t.Errorf("Expected viewport to contain %q, got:\n%s", expectedLine, viewContentUpdated)
+	}
+	if strings.Contains(viewContentUpdated, "Space:") || strings.Contains(viewContentUpdated, "Width:") || strings.Contains(viewContentUpdated, "Organization:") {
+		t.Errorf("Expected viewport not to contain verbose labels, got:\n%s", viewContentUpdated)
+	}
+
+	fullView := m.View()
+	if strings.Contains(fullView, "Organization View:") || strings.Contains(fullView, "Organization:") {
+		t.Errorf("Expected full view not to contain redundant Organization headers, got:\n%s", fullView)
+	}
+	if !strings.Contains(fullView, "hash-123") {
+		t.Errorf("Expected full view header to contain snapshot hash 'hash-123', got:\n%s", fullView)
+	}
+}
+
+func TestOrgViewFormattingAndHashHeader(t *testing.T) {
+	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
+	m.state = StateOrgView
+	m.activeHash = "my-test-org-hash-999"
+	m.orgPlacements = []*pb.Placement{
+		{
+			Iid:   200,
+			Space: "Main Shelves",
+			Unit:  1,
+			Index: 1,
+		},
+	}
+	m.resolvedRecords = map[int64]*pb.Record{
+		200: {
+			Release: &pbd.Release{
+				Id:      200,
+				Title:   "Are You Serious",
+				Artists: []*pbd.Artist{{Name: "Andrew Bird"}},
+			},
+		},
+	}
+	m.renderOrgViewport()
+
+	expectedPlacement := "[1] Andrew Bird - Are You Serious [ Main Shelves / 1]"
+	vpContent := m.orgViewport.View()
+	if !strings.Contains(vpContent, expectedPlacement) {
+		t.Errorf("Expected viewport content to contain %q, got:\n%s", expectedPlacement, vpContent)
+	}
+	if strings.Contains(vpContent, "Space:") || strings.Contains(vpContent, "Organization:") {
+		t.Errorf("Expected viewport content not to contain 'Space:' or 'Organization:', got:\n%s", vpContent)
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "my-test-org-hash-999") {
+		t.Errorf("Expected View() to contain the org hash in header, got:\n%s", view)
+	}
+	if strings.Contains(view, "Organization View:") || strings.Contains(view, "Organization:") {
+		t.Errorf("Expected View() not to contain 'Organization View:' or 'Organization:', got:\n%s", view)
 	}
 }
 
