@@ -78,3 +78,14 @@ func TestSyncOrdersProto(t *testing.T) {
 		t.Errorf("Expected LastOrderSync to be 987654321, got %v", user.GetLastOrderSync())
 	}
 }
+
+func TestGetRecordRequestGetAllRecords(t *testing.T) {
+	req := &GetRecordRequest{
+		Request: &GetRecordRequest_GetAllRecords{
+			GetAllRecords: true,
+		},
+	}
+	if !req.GetGetAllRecords() {
+		t.Errorf("Expected GetAllRecords to be true, got %v", req.GetGetAllRecords())
+	}
+}

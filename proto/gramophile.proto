@@ -654,6 +654,7 @@ message GetRecordRequest {
         GetRecordWithId get_record_with_id = 3;
         GetRecordsPurchasedBetween get_records_purchased_between = 6;
         bool get_records_mint_up = 5;
+        bool get_all_records = 7;
     }
 
     bool include_history = 4;
