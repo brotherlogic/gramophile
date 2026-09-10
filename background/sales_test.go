@@ -1699,5 +1699,200 @@ func TestSyncSales_EmptyInventory(t *testing.T) {
 	}
 }
 
+type paginatedDiscogsTestClient struct {
+	*discogs.TestDiscogsClient
+	pages      map[int32][]*pbd.SaleItem
+	totalPages int32
+}
+
+func (p *paginatedDiscogsTestClient) ListSales(ctx context.Context, page int32) ([]*pbd.SaleItem, *pbd.Pagination, error) {
+	return p.pages[page], &pbd.Pagination{Pages: p.totalPages, Page: page}, nil
+}
+
+func TestProcessRefreshSales_EarlyTerminationEnqueuesLinkAndStopsPagination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	lastSaleRefresh := int64(2000)
+
+	user := &pb.StoredUser{
+		User:            &pbd.User{DiscogsUserId: userId},
+		Auth:            &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh: lastSaleRefresh,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Existing sale in DB with ListedDate <= lastSaleRefresh (1000 <= 2000)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   1000,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	refreshId := int64(88888)
+	entry := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: refreshId,
+			},
+		},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	// 1. Verify user's LastSaleRefresh is updated
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleRefresh() <= lastSaleRefresh {
+		t.Errorf("expected LastSaleRefresh > %v, got %v", lastSaleRefresh, savedUser.GetLastSaleRefresh())
+	}
+
+	// 2. Verify LinkSales was enqueued with matching RefreshId
+	var foundLinkSales bool
+	for _, req := range enqueuedRequests {
+		if req.GetElement().GetLinkSales() != nil {
+			foundLinkSales = true
+			if req.GetElement().GetLinkSales().GetRefreshId() != refreshId {
+				t.Errorf("expected LinkSales RefreshId %v, got %v", refreshId, req.GetElement().GetLinkSales().GetRefreshId())
+			}
+		}
+		if req.GetElement().GetRefreshSales() != nil {
+			t.Errorf("expected no RefreshSales to be enqueued after early termination, got page %v", req.GetElement().GetRefreshSales().GetPage())
+		}
+	}
+	if !foundLinkSales {
+		t.Errorf("expected LinkSales to be enqueued upon early termination")
+	}
+}
+
+func TestProcessRefreshSales_SequentialPagination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User:            &pbd.User{DiscogsUserId: userId},
+		Auth:            &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh: 1000,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Multi-page inventory (3 pages) where Page 1 has all new listings -> early termination NOT triggered
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 5001, ReleaseId: 501, Price: &pbd.Price{Value: 2500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 5002, ReleaseId: 502, Price: &pbd.Price{Value: 3500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 5003, ReleaseId: 503, Price: &pbd.Price{Value: 4500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			3: {
+				{SaleId: 5004, ReleaseId: 504, Price: &pbd.Price{Value: 5500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	refreshId := int64(99999)
+	entry := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: refreshId,
+			},
+		},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	// 1. Should have enqueued exactly 1 task: page 2
+	if len(enqueuedRequests) != 1 {
+		t.Fatalf("expected exactly 1 enqueued request (page 2), got %v", len(enqueuedRequests))
+	}
+
+	req := enqueuedRequests[0]
+	refreshSales := req.GetElement().GetRefreshSales()
+	if refreshSales == nil {
+		t.Fatalf("expected enqueued request to be RefreshSales, got %v", req.GetElement())
+	}
+	if refreshSales.GetPage() != 2 {
+		t.Errorf("expected enqueued page 2, got %v", refreshSales.GetPage())
+	}
+	if refreshSales.GetRefreshId() != refreshId {
+		t.Errorf("expected enqueued RefreshId %v, got %v", refreshId, refreshSales.GetRefreshId())
+	}
+	if req.GetElement().GetForce() != entry.GetForce() {
+		t.Errorf("expected Force to be preserved (%v), got %v", entry.GetForce(), req.GetElement().GetForce())
+	}
+
+	// 2. User's LastSaleRefresh should NOT be updated yet (since sync is still ongoing)
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleRefresh() != 1000 {
+		t.Errorf("expected LastSaleRefresh to remain 1000, got %v", savedUser.GetLastSaleRefresh())
+	}
+}
+
+
 
 
