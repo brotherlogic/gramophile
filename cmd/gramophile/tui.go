@@ -194,7 +194,7 @@ func defaultTokenSaver(tokenText string) error {
 
 func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateClient) Model {
 	ti := textinput.New()
-	ti.Placeholder = "locate <release_id> | org [--org <name>] | o | quit"
+	ti.Placeholder = "locate <release_id> | org [name] | o | quit"
 	ti.Focus()
 	ti.CharLimit = 256
 	ti.Width = 60
@@ -699,7 +699,7 @@ func (m Model) View() string {
 		sb.WriteString("Handoff to main application complete.\n\n")
 		sb.WriteString("Commands:\n")
 		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
-		sb.WriteString("  org [--org <name>]    View organization layout and placements\n")
+		sb.WriteString("  org [name]            View organization layout and placements\n")
 		sb.WriteString("  o                     Configure organizations\n")
 		sb.WriteString("  quit                  Exit the application\n\n")
 		sb.WriteString(promptStyle.Render("Command: ") + m.textInput.View() + "\n")
@@ -815,7 +815,7 @@ func (m Model) pollSetConfig(config *pb.GramophileConfig) tea.Cmd {
 	}
 }
 
-// parseOrgCommand parses command string input for org / orgview commands and flags (--org, --slot, --hash, --debug).
+// parseOrgCommand parses command string input for org / orgview commands, supporting positional organization name (e.g. org 12 Inches) and optional flags (--org, --slot, --hash, --debug).
 func parseOrgCommand(input string) (string, int32, string, bool, error) {
 	fields := strings.Fields(strings.TrimSpace(input))
 	if len(fields) == 0 {
@@ -844,7 +844,7 @@ func parseOrgCommand(input string) (string, int32, string, bool, error) {
 		arg := args[i]
 		if strings.HasPrefix(arg, "-") {
 			flagArgs = append(flagArgs, arg)
-			if !strings.Contains(arg, "=") && arg != "--debug" && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+			if !strings.Contains(arg, "=") && arg != "--debug" && arg != "-debug" && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
 				flagArgs = append(flagArgs, args[i+1])
 				i++
 			}
@@ -859,8 +859,11 @@ func parseOrgCommand(input string) (string, int32, string, bool, error) {
 	}
 
 	if orgName == "" && len(posArgs) > 0 {
-		orgName = posArgs[0]
+		orgName = strings.Join(posArgs, " ")
+	} else if orgName != "" && len(posArgs) > 0 {
+		orgName = orgName + " " + strings.Join(posArgs, " ")
 	}
+	orgName = strings.Trim(orgName, "\"'")
 
 	return orgName, int32(slot), hash, debug, nil
 }
@@ -1062,6 +1065,15 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	if err != nil {
 		m.inlineErrMsg = err.Error()
 		return m, nil
+	}
+
+	if orgName == "" {
+		if m.user != nil && m.user.GetConfig() != nil && m.user.GetConfig().GetOrganisationConfig() != nil && len(m.user.GetConfig().GetOrganisationConfig().GetOrganisations()) > 0 {
+			orgName = m.user.GetConfig().GetOrganisationConfig().GetOrganisations()[0].GetName()
+		} else {
+			m.inlineErrMsg = "No organization specified. Usage: org [name]"
+			return m, nil
+		}
 	}
 
 	m.commandInput = cmdStr

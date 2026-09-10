@@ -521,6 +521,39 @@ func TestOrgCommandParsing(t *testing.T) {
 		t.Errorf("Expected default values for slot/hash/debug, got slot=%v, hash=%v, debug=%v", slot2, hash2, debug2)
 	}
 
+	// Test multi-word positional org name without flag (Issue #2356: org 12 Inches -> "12 Inches")
+	orgName3, _, _, _, err3 := parseOrgCommand("org 12 Inches")
+	if err3 != nil {
+		t.Fatalf("Unexpected error parsing multi-word org: %v", err3)
+	}
+	if orgName3 != "12 Inches" {
+		t.Errorf("Expected orgName to be '12 Inches', got %q", orgName3)
+	}
+
+	// Test multi-word positional org name with flags
+	orgName4, slot4, _, _, err4 := parseOrgCommand("org 12 Inches --slot 3")
+	if err4 != nil {
+		t.Fatalf("Unexpected error parsing multi-word org with flags: %v", err4)
+	}
+	if orgName4 != "12 Inches" {
+		t.Errorf("Expected orgName to be '12 Inches', got %q", orgName4)
+	}
+	if slot4 != 3 {
+		t.Errorf("Expected slot to be 3, got %d", slot4)
+	}
+
+	// Test flags before multi-word positional org name
+	orgName5, slot5, _, _, err5 := parseOrgCommand("org --slot 4 12 Inches")
+	if err5 != nil {
+		t.Fatalf("Unexpected error parsing flags before multi-word org: %v", err5)
+	}
+	if orgName5 != "12 Inches" {
+		t.Errorf("Expected orgName to be '12 Inches', got %q", orgName5)
+	}
+	if slot5 != 4 {
+		t.Errorf("Expected slot to be 4, got %d", slot5)
+	}
+
 	// Test invalid command prefix
 	_, _, _, _, errInvalid := parseOrgCommand("invalidcommand MyOrg")
 	if errInvalid == nil {
@@ -1170,7 +1203,7 @@ func TestStateMainApp_View_ContainsInputBarAndCommands(t *testing.T) {
 	if !strings.Contains(view, "Handoff to main application complete") {
 		t.Errorf("Expected view to contain greeting, got:\n%s", view)
 	}
-	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [--org <name>]") {
+	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [name]") {
 		t.Errorf("Expected view to list supported commands, got:\n%s", view)
 	}
 	if !strings.Contains(view, "Command: ") {
@@ -1241,6 +1274,72 @@ func TestStateMainApp_ExecuteOrg(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Errorf("Expected cmd to fetch org")
+	}
+
+	// Test multi-word org command: "org 12 Inches"
+	m2 := InitialModel(mock, mock, mock)
+	m2.state = StateMainApp
+	for _, r := range "org 12 Inches" {
+		newModel, _ := m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m2 = newModel.(Model)
+	}
+	newModel2, cmd2 := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 = newModel2.(Model)
+	if m2.state != StateOrgView {
+		t.Errorf("Expected state to transition to StateOrgView, got %v", m2.state)
+	}
+	if m2.activeOrgName != "12 Inches" {
+		t.Errorf("Expected activeOrgName '12 Inches', got %q", m2.activeOrgName)
+	}
+	if cmd2 == nil {
+		t.Errorf("Expected cmd to fetch org")
+	}
+
+	// Test "org" with configured organization defaults to first org
+	m3 := InitialModel(mock, mock, mock)
+	m3.state = StateMainApp
+	m3.user = &pb.StoredUser{
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "Default Shelf"},
+				},
+			},
+		},
+	}
+	for _, r := range "org" {
+		newModel, _ := m3.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m3 = newModel.(Model)
+	}
+	newModel3, cmd3 := m3.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 = newModel3.(Model)
+	if m3.state != StateOrgView {
+		t.Errorf("Expected state to transition to StateOrgView, got %v", m3.state)
+	}
+	if m3.activeOrgName != "Default Shelf" {
+		t.Errorf("Expected activeOrgName 'Default Shelf', got %q", m3.activeOrgName)
+	}
+	if cmd3 == nil {
+		t.Errorf("Expected cmd to fetch org")
+	}
+
+	// Test "org" without configured organization shows inline error
+	m4 := InitialModel(mock, mock, mock)
+	m4.state = StateMainApp
+	for _, r := range "org" {
+		newModel, _ := m4.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m4 = newModel.(Model)
+	}
+	newModel4, cmd4 := m4.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m4 = newModel4.(Model)
+	if m4.state != StateMainApp {
+		t.Errorf("Expected state to remain StateMainApp when no org configured, got %v", m4.state)
+	}
+	if m4.inlineErrMsg != "No organization specified. Usage: org [name]" {
+		t.Errorf("Expected inline error message for missing org, got %q", m4.inlineErrMsg)
+	}
+	if cmd4 != nil {
+		t.Errorf("Expected cmd to be nil when org validation fails")
 	}
 }
 
