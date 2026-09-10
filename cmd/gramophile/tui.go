@@ -137,6 +137,7 @@ type Model struct {
 	resolvedRecords map[int64]*pb.Record
 	totalWidth      int32
 	inlineErrMsg    string
+	showHelp        bool
 
 	locateViewport viewport.Model
 	activeLocateID int64
@@ -404,6 +405,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateMainApp:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
+			if m.textInput.Value() == "" && (msg.String() == "h" || msg.String() == "?") {
+				m.showHelp = !m.showHelp
+				return m, nil
+			}
+
 			switch msg.Type {
 			case tea.KeyEnter:
 				cmdStr := strings.TrimSpace(m.textInput.Value())
@@ -413,6 +419,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				if cmdStr == "q" || cmdStr == "quit" || cmdStr == "exit" {
 					return m, tea.Quit
+				}
+				if cmdStr == "h" || cmdStr == "help" {
+					m.showHelp = !m.showHelp
+					return m, nil
 				}
 				if cmdStr == "configure org" || cmdStr == "config org" {
 					m.state = StateOrgConfig
@@ -430,6 +440,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m.handleCommandInput(cmdStr)
 			case tea.KeyEsc:
+				if m.showHelp {
+					m.showHelp = false
+				}
 				m.textInput.SetValue("")
 				m.inlineErrMsg = ""
 				return m, nil
@@ -744,11 +757,13 @@ func (m Model) View() string {
 		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
 
 		var sb strings.Builder
-		sb.WriteString("Commands:\n")
-		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
-		sb.WriteString("  org [name]            View organization layout and placements\n")
-		sb.WriteString("  configure             Configure organizations\n")
-		sb.WriteString("  quit                  Exit the application\n\n")
+		if m.showHelp {
+			sb.WriteString("Commands:\n")
+			sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
+			sb.WriteString("  org [name]            View organization layout and placements\n")
+			sb.WriteString("  configure             Configure organizations\n")
+			sb.WriteString("  quit                  Exit the application\n\n")
+		}
 		sb.WriteString(promptStyle.Render("Command: ") + m.textInput.View() + "\n")
 
 		if m.inlineErrMsg != "" {
@@ -756,7 +771,11 @@ func (m Model) View() string {
 			sb.WriteString("\n" + errStyle.Render(m.inlineErrMsg) + "\n")
 		}
 
-		sb.WriteString("\n" + helpStyle.Render("Press Enter to execute, Esc to clear, Ctrl+C to quit"))
+		if m.showHelp {
+			sb.WriteString("\n" + helpStyle.Render("press h to hide help"))
+		} else {
+			sb.WriteString("\n" + helpStyle.Render("press h for help"))
+		}
 		body = sb.String()
 	case StateConfigSelect:
 		if m.form != nil {

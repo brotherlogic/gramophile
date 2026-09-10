@@ -40,6 +40,7 @@ Current Go version: 1.26.2
 - Flagless & Multi-Word Organization Search: The TUI allows viewing organizations directly via `org [name]` without requiring the `--org` flag, correctly preserving multi-word organization names (e.g., `org 12 Inches`) and defaulting to the configured organization when run without arguments.
 - Interactive Configuration Command & Selection: Supports the core `configure` command in the TUI main application which opens an interactive selection menu with `org` configuration, as well as the `configure org` direct shortcut.
 - Streamlined Main Application Screen: Cleared the transitional "Handoff to main application complete" placeholder from the TUI main application view for a cleaner command interface.
+- Toggleable Command Help in TUI: The main application view hides the command list by default and allows users to toggle the list of commands on and off by pressing "h", replacing the static footer with contextual "press h for help" / "press h to hide help" guidance.
 
 
 

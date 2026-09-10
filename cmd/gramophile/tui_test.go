@@ -1204,18 +1204,49 @@ func TestStateMainApp_View_ContainsInputBarAndCommands(t *testing.T) {
 	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
 
+	// Initially, commands list is hidden and footer shows "press h for help"
 	view := m.View()
 	if strings.Contains(view, "Handoff to main application complete") {
 		t.Errorf("Expected view not to contain handoff message, got:\n%s", view)
 	}
-	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [name]") || !strings.Contains(view, "configure") {
-		t.Errorf("Expected view to list supported commands (locate, org, configure), got:\n%s", view)
+	if strings.Contains(view, "Commands:\n") || strings.Contains(view, "Locate a record in your organization") {
+		t.Errorf("Expected commands list to be hidden initially, got:\n%s", view)
 	}
-	if strings.Contains(view, "  o   ") {
-		t.Errorf("Expected view to not list 'o' as command, got:\n%s", view)
+	if !strings.Contains(view, "press h for help") {
+		t.Errorf("Expected view to prompt 'press h for help', got:\n%s", view)
 	}
 	if !strings.Contains(view, "Command: ") {
 		t.Errorf("Expected view to contain 'Command: ' input prompt, got:\n%s", view)
+	}
+
+	// Press 'h' to toggle commands visible
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	m = newModel.(Model)
+
+	viewHelp := m.View()
+	if !strings.Contains(viewHelp, "Commands:\n") || !strings.Contains(viewHelp, "Locate a record in your organization") {
+		t.Errorf("Expected view to list supported commands after pressing 'h', got:\n%s", viewHelp)
+	}
+	if !strings.Contains(viewHelp, "locate <release_id>") || !strings.Contains(viewHelp, "org [name]") || !strings.Contains(viewHelp, "configure") {
+		t.Errorf("Expected view to list supported commands (locate, org, configure), got:\n%s", viewHelp)
+	}
+	if strings.Contains(viewHelp, "  o   ") {
+		t.Errorf("Expected view to not list 'o' as command, got:\n%s", viewHelp)
+	}
+	if !strings.Contains(viewHelp, "press h to hide help") {
+		t.Errorf("Expected view to prompt 'press h to hide help', got:\n%s", viewHelp)
+	}
+
+	// Press 'h' again to toggle commands hidden
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	m = newModel.(Model)
+
+	viewHidden := m.View()
+	if strings.Contains(viewHidden, "Commands:\n") || strings.Contains(viewHidden, "Locate a record in your organization") {
+		t.Errorf("Expected commands list to be hidden after pressing 'h' again, got:\n%s", viewHidden)
+	}
+	if !strings.Contains(viewHidden, "press h for help") {
+		t.Errorf("Expected view to prompt 'press h for help', got:\n%s", viewHidden)
 	}
 }
 
@@ -1580,4 +1611,78 @@ func TestStateMainApp_TypingQ_DoesNotQuit(t *testing.T) {
 		t.Errorf("Expected textInput value 'q', got %q", m.textInput.Value())
 	}
 }
+
+func TestStateMainApp_TypingHWithText_DoesNotToggleHelp(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "locate 12"
+	for _, r := range "locate 12" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+
+	// Type 'h'
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	m = newModel.(Model)
+
+	if m.textInput.Value() != "locate 12h" {
+		t.Errorf("Expected textInput value 'locate 12h', got %q", m.textInput.Value())
+	}
+	if m.showHelp {
+		t.Errorf("Expected showHelp to remain false when typing 'h' in non-empty input")
+	}
+}
+
+func TestStateMainApp_EscDismissesHelp(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Toggle help on with 'h'
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	m = newModel.(Model)
+	if !m.showHelp {
+		t.Fatalf("Expected showHelp to be true after pressing 'h'")
+	}
+
+	// Press Esc
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(Model)
+	if m.showHelp {
+		t.Errorf("Expected Esc to dismiss help (showHelp=false)")
+	}
+}
+
+func TestStateMainApp_HelpCommand_TogglesHelp(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Type "help" and press Enter
+	for _, r := range "help" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if !m.showHelp {
+		t.Errorf("Expected 'help' command to enable showHelp")
+	}
+
+	// Type "h" and press Enter to toggle off
+	for _, r := range "h" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.showHelp {
+		t.Errorf("Expected 'h' command to toggle showHelp off")
+	}
+}
+
 
