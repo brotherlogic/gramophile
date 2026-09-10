@@ -36,8 +36,10 @@ Current Go version: 1.26.2
 - Incremental Order Sync Schema: Defines `SyncOrders` queue task element and adds `last_order_sync` timestamp tracking to `StoredUser` for incremental Discogs order syncing.
 - Periodic Order Sync Scheduling & Admin CLI: Schedules `SyncOrders` queue tasks periodically in the user validator loop for active users and provides `syncorders` admin CLI command to manually enqueue order synchronization tasks.
 - Waitlist User State Display & Live Bypass: Displays the authenticated user's `UserState` enum value during the waitlist admin approval screen in the Gramophile TUI, and bypasses the waitlist screen directly to the main application for live users.
-- Main Application Command Input Bar: Terminal User Interface provides an interactive command input bar in the main application state to issue commands (`locate <release_id>`, `org [name]`, `o` / `config`, `quit`) with inline error reporting and command execution.
+- Main Application Command Input Bar: Terminal User Interface provides an interactive command input bar in the main application state to issue commands (`locate <release_id>`, `org [name]`, `configure`, `quit`) with inline error reporting and command execution.
 - Flagless & Multi-Word Organization Search: The TUI allows viewing organizations directly via `org [name]` without requiring the `--org` flag, correctly preserving multi-word organization names (e.g., `org 12 Inches`) and defaulting to the configured organization when run without arguments.
+- Interactive Configuration Command & Selection: Supports the core `configure` command in the TUI main application which opens an interactive selection menu with `org` configuration, as well as the `configure org` direct shortcut.
+- Streamlined Main Application Screen: Cleared the transitional "Handoff to main application complete" placeholder from the TUI main application view for a cleaner command interface.
 - Toggleable Command Help in TUI: The main application view hides the command list by default and allows users to toggle the list of commands on and off by pressing "h", replacing the static footer with contextual "press h for help" / "press h to hide help" guidance.
 
 
