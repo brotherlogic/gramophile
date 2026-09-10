@@ -39,6 +39,7 @@ Current Go version: 1.26.2
 - Main Application Command Input Bar: Terminal User Interface provides an interactive command input bar in the main application state to issue commands (`locate <release_id>`, `org [name]`, `configure`, `quit`) with inline error reporting and command execution.
 - Flagless & Multi-Word Organization Search: The TUI allows viewing organizations directly via `org [name]` without requiring the `--org` flag, correctly preserving multi-word organization names (e.g., `org 12 Inches`) and defaulting to the configured organization when run without arguments.
 - Interactive Configuration Command & Selection: Supports the core `configure` command in the TUI main application which opens an interactive selection menu with `org` configuration, as well as the `configure org` direct shortcut.
+- Streamlined Main Application Screen: Cleared the transitional "Handoff to main application complete" placeholder from the TUI main application view for a cleaner command interface.
 
 
 

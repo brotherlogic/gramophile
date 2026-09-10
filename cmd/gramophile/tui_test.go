@@ -1205,8 +1205,8 @@ func TestStateMainApp_View_ContainsInputBarAndCommands(t *testing.T) {
 	m.state = StateMainApp
 
 	view := m.View()
-	if !strings.Contains(view, "Handoff to main application complete") {
-		t.Errorf("Expected view to contain greeting, got:\n%s", view)
+	if strings.Contains(view, "Handoff to main application complete") {
+		t.Errorf("Expected view not to contain handoff message, got:\n%s", view)
 	}
 	if !strings.Contains(view, "locate <release_id>") || !strings.Contains(view, "org [name]") || !strings.Contains(view, "configure") {
 		t.Errorf("Expected view to list supported commands (locate, org, configure), got:\n%s", view)

@@ -744,7 +744,6 @@ func (m Model) View() string {
 		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
 
 		var sb strings.Builder
-		sb.WriteString("Handoff to main application complete.\n\n")
 		sb.WriteString("Commands:\n")
 		sb.WriteString("  locate <release_id>   Locate a record in your organization\n")
 		sb.WriteString("  org [name]            View organization layout and placements\n")
