@@ -151,21 +151,37 @@ func TestSyncSales_DeleteSuccess(t *testing.T) {
 		UserId: 123,
 		Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
 		Sales:  []*pbd.SaleItem{}}
-	qc = queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	b := background.GetBackgroundRunner(d, "", "", "")
+	qc = queuelogic.GetQueue(pstore, b, di, d)
 	s = server.BuildServer(d, di, qc)
 
+	refreshId := time.Now().UnixNano()
 	qc.Enqueue(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention: "From Test",
 			Auth:      "123",
 			Force:     true, // Forcing a sale refresh here
-			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1, RefreshId: refreshId}},
 		},
 	})
 
 	err = qc.FlushQueue(ctx)
 	if err != nil {
 		t.Fatalf("Bad flush: %v", err)
+	}
+
+	// Deletion pruning is decoupled from routine RefreshSales; trigger CleanSales and LinkSales reconciliation
+	err = b.CleanSales(ctx, 123, refreshId)
+	if err != nil {
+		t.Fatalf("Bad clean: %v", err)
+	}
+	u, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("Unable to get user: %v", err)
+	}
+	err = b.LinkSales(ctx, u)
+	if err != nil {
+		t.Fatalf("Unable to link sales: %v", err)
 	}
 
 	sales, err = s.GetRecord(ctx, &pb.GetRecordRequest{
