@@ -113,3 +113,55 @@ func TestRefreshReleaseJustStateWithHighPrice(t *testing.T) {
 		t.Errorf("Expected 1 queue element (only state) when high price is present, got %v", len(elems.GetElements()))
 	}
 }
+
+func TestRefreshRecordRecordNotFound(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.RefreshRecord(ctx, &pb.RefreshRecordRequest{
+		InstanceId: 9999,
+		JustState:  true,
+	})
+	if err == nil {
+		t.Errorf("Expected error when refreshing non-existent record, got nil")
+	}
+}
+
+func TestRefreshRecordZerothElement(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{&pbd.Folder{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: qc}
+
+	_, err = s.RefreshRecord(ctx, &pb.RefreshRecordRequest{
+		InstanceId: 0,
+		JustState:  true,
+	})
+	if err == nil {
+		t.Errorf("Expected error when refreshing zeroth element, got nil")
+	}
+}
