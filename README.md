@@ -42,8 +42,7 @@ Current Go version: 1.26.2
 - Streamlined Main Application Screen: Cleared the transitional "Handoff to main application complete" placeholder from the TUI main application view for a cleaner command interface.
 - Toggleable Command Help in TUI: The main application view hides the command list by default and allows users to toggle the list of commands on and off by pressing "h", replacing the static footer with contextual "press h for help" / "press h to hide help" guidance.
 - Streamlined Organization View Layout: Formats organization placements cleanly as `[<index>] <artist - title> [ <shelf> / <slot> ]` (e.g. `[1] Andrew Bird - Are You Serious [ Main Shelves / 1]`), omitting verbose labels and width metrics, and streamlines the view to display the organization hash in the header without redundant organization header lines.
-
-
+- Async Refresh for Missing High Price: Triggers an asynchronous release refresh task during `RefreshRecord` whenever a record has no high price recorded, ensuring pricing statistics are updated even if `JustState` is requested.
 
 ## TUI (Terminal User Interface)
 
