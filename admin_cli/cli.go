@@ -132,7 +132,16 @@ func main() {
 		}
 	case "syncsales":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force: true, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}}},
+			Element: &pb.QueueElement{
+				Intention: "from-cli",
+				Priority:  pb.QueueElement_PRIORITY_HIGH,
+				Force:     true,
+				RunDate:   time.Now().UnixNano(),
+				Auth:      os.Args[3],
+				Entry: &pb.QueueElement_RefreshSales{
+					RefreshSales: &pb.RefreshSales{Page: 1},
+				},
+			},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	case "syncorders":
@@ -213,7 +222,14 @@ func main() {
 		fmt.Printf("%v and %v\n", a, b)
 	case "adjustsales":
 		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
-			Element: &pb.QueueElement{Force: true, RunDate: 1718597532322472889, Auth: os.Args[3], Entry: &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}}},
+			Element: &pb.QueueElement{
+				Intention: "from-cli",
+				Priority:  pb.QueueElement_PRIORITY_HIGH,
+				Force:     true,
+				RunDate:   time.Now().UnixNano(),
+				Auth:      os.Args[3],
+				Entry:     &pb.QueueElement_AdjustSales{AdjustSales: &pb.AdjustSales{}},
+			},
 		})
 		fmt.Printf("%v and %v\n", a, b)
 	}
