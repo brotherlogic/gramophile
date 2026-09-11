@@ -25,4 +25,5 @@ func (b *BackgroundRunner) RegisterAllHandlers() {
 	b.RegisterTaskHandler("*proto.QueueElement_RefreshEarliestReleaseDates", &refreshEarliestReleaseDatesHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_RefreshEarliestReleaseDate", &refreshEarliestReleaseDateHandler{b: b})
 	b.RegisterTaskHandler("*proto.QueueElement_DeleteRecord", &deleteRecordHandler{b: b})
+	b.RegisterTaskHandler("*proto.QueueElement_SyncOrders", &syncOrdersHandler{b: b})
 }
