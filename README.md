@@ -50,6 +50,7 @@ Current Go version: 1.26.2
 - Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
 - GetRecord All Records Handler: Implements backend support in `server/getrecord.go` for retrieving all collection records via `GetRecordRequest` with `get_all_records = true`, bypassing expensive history and sales lookups unless explicitly requested.
 - Forced Full Sales Synchronization: Disables early termination and bypasses the 24-hour rate limit when `Force: true` is provided on `RefreshSales` queue elements, and sets `Force: true` on `admin_cli syncsales` to support manual full inventory resynchronization.
+- Record Cache Manager: Provides thread-safe in-memory and persistent on-disk caching of record instances and releases in `~/.gramophile_cache` with 7-day TTL expiration, stale-while-revalidate background refresh, singleflight deduplication, worker concurrency rate limiting, and exponential backoff gRPC retries.
 
 ## TUI (Terminal User Interface)
 
