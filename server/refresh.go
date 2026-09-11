@@ -20,7 +20,12 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot refresh zeroth element")
 	}
 
-	if !req.JustState {
+	record, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
+	if err != nil {
+		return nil, err
+	}
+
+	if !req.JustState || record.GetHighPrice().GetValue() == 0 {
 		_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Force:     true,
@@ -60,10 +65,5 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 		return nil, err
 	}
 
-	record, err := s.d.GetRecord(ctx, user.GetUser().GetDiscogsUserId(), req.GetInstanceId())
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.RefreshRecordResponse{SaleId: record.GetSaleId(), HighPrice: record.GetHighPrice().GetValue()}, err
+	return &pb.RefreshRecordResponse{SaleId: record.GetSaleId(), HighPrice: record.GetHighPrice().GetValue()}, nil
 }
