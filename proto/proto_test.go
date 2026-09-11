@@ -2,6 +2,8 @@ package proto
 
 import (
 	"testing"
+
+	protov2 "google.golang.org/protobuf/proto"
 )
 
 func TestLocationRecord(t *testing.T) {
@@ -87,5 +89,56 @@ func TestGetRecordRequestGetAllRecords(t *testing.T) {
 	}
 	if !req.GetGetAllRecords() {
 		t.Errorf("Expected GetAllRecords to be true, got %v", req.GetGetAllRecords())
+	}
+}
+
+func TestRecordCacheProto(t *testing.T) {
+	entry1 := &RecordCacheEntry{
+		ArtistTitle:       "Artist A - Album A",
+		ResolvedTimestamp: 1700000000,
+	}
+	entry2 := &RecordCacheEntry{
+		ArtistTitle:       "Artist B - Album B",
+		ResolvedTimestamp: 1700000100,
+	}
+
+	if entry1.GetArtistTitle() != "Artist A - Album A" {
+		t.Errorf("Expected ArtistTitle 'Artist A - Album A', got %v", entry1.GetArtistTitle())
+	}
+	if entry1.GetResolvedTimestamp() != 1700000000 {
+		t.Errorf("Expected ResolvedTimestamp 1700000000, got %v", entry1.GetResolvedTimestamp())
+	}
+
+	cache := &RecordCache{
+		InstanceCache: map[int64]*RecordCacheEntry{
+			1001: entry1,
+		},
+		ReleaseCache: map[int64]*RecordCacheEntry{
+			2001: entry2,
+		},
+	}
+
+	if len(cache.GetInstanceCache()) != 1 || cache.GetInstanceCache()[1001].GetArtistTitle() != "Artist A - Album A" {
+		t.Errorf("Unexpected instance cache content: %v", cache.GetInstanceCache())
+	}
+	if len(cache.GetReleaseCache()) != 1 || cache.GetReleaseCache()[2001].GetArtistTitle() != "Artist B - Album B" {
+		t.Errorf("Unexpected release cache content: %v", cache.GetReleaseCache())
+	}
+
+	data, err := protov2.Marshal(cache)
+	if err != nil {
+		t.Fatalf("Failed to marshal RecordCache: %v", err)
+	}
+
+	unmarshaled := &RecordCache{}
+	if err := protov2.Unmarshal(data, unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal RecordCache: %v", err)
+	}
+
+	if unmarshaled.GetInstanceCache()[1001].GetArtistTitle() != "Artist A - Album A" {
+		t.Errorf("Unmarshaled instance cache mismatch: %v", unmarshaled.GetInstanceCache())
+	}
+	if unmarshaled.GetReleaseCache()[2001].GetArtistTitle() != "Artist B - Album B" {
+		t.Errorf("Unmarshaled release cache mismatch: %v", unmarshaled.GetReleaseCache())
 	}
 }

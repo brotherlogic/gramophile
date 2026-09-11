@@ -47,6 +47,7 @@ Current Go version: 1.26.2
 - Animated Spinner on Organization View Loading: Replaces static "Loading..." placeholders with an animated Bubble Tea spinner in the TUI organization view while record details are asynchronously loaded for placements.
 - Async Refresh for Missing High Price: Triggers an asynchronous release refresh task during `RefreshRecord` whenever a record has no high price recorded, ensuring pricing statistics are updated even if `JustState` is requested.
 - Incremental Order Sync Worker: Implements `SyncOrders` and `ProcessSyncOrders` background processing logic to synchronize Discogs marketplace orders incrementally, detect sold marketplace items, transition sale records to SOLD status with exact sold dates and price updates, and trigger downstream sale linking.
+- Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
 
 ## TUI (Terminal User Interface)
 
