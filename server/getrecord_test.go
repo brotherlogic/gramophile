@@ -291,3 +291,70 @@ func TestGetRecord_GetAllRecords_Error(t *testing.T) {
 	}
 }
 
+func TestGetRecord_GetAllRecords_IncludeHistory(t *testing.T) {
+	ctx := getTestContext(123)
+
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	err := d.SaveUser(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 201, FolderId: 10}, SaleId: 999})
+	if err != nil {
+		t.Fatalf("Can't save initial record: %v", err)
+	}
+	err = d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 201, FolderId: 11}, SaleId: 999})
+	if err != nil {
+		t.Fatalf("Can't update record: %v", err)
+	}
+
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{SaleId: 999, CurrentPrice: &pbd.Price{Value: 2500}})
+	if err != nil {
+		t.Fatalf("Can't save sale: %v", err)
+	}
+
+	s := Server{d: d}
+
+	// 1. Without IncludeHistory: expensive history and sales lookups must be bypassed
+	resNoHist, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetAllRecords{
+			GetAllRecords: true,
+		},
+		IncludeHistory: false,
+	})
+	if err != nil {
+		t.Fatalf("GetRecord (no history) failed: %v", err)
+	}
+	if len(resNoHist.GetRecords()) != 1 {
+		t.Fatalf("Expected 1 record, got %v", len(resNoHist.GetRecords()))
+	}
+	if resNoHist.GetRecords()[0].GetSaleInfo() != nil {
+		t.Errorf("Expected SaleInfo to be bypassed without IncludeHistory, got %v", resNoHist.GetRecords()[0].GetSaleInfo())
+	}
+	if len(resNoHist.GetRecords()[0].GetUpdates()) > 0 {
+		t.Errorf("Expected Updates to be empty without IncludeHistory, got %v", resNoHist.GetRecords()[0].GetUpdates())
+	}
+
+	// 2. With IncludeHistory: history and sales lookups are populated
+	resWithHist, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetAllRecords{
+			GetAllRecords: true,
+		},
+		IncludeHistory: true,
+	})
+	if err != nil {
+		t.Fatalf("GetRecord (with history) failed: %v", err)
+	}
+	if len(resWithHist.GetRecords()) != 1 {
+		t.Fatalf("Expected 1 record, got %v", len(resWithHist.GetRecords()))
+	}
+	if resWithHist.GetRecords()[0].GetSaleInfo() == nil || resWithHist.GetRecords()[0].GetSaleInfo().GetSaleId() != 999 {
+		t.Errorf("Expected SaleInfo to be populated with IncludeHistory, got %v", resWithHist.GetRecords()[0].GetSaleInfo())
+	}
+	if len(resWithHist.GetRecords()[0].GetUpdates()) == 0 {
+		t.Errorf("Expected Updates to be populated with IncludeHistory, got 0 updates")
+	}
+}
+
+
