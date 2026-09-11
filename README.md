@@ -48,6 +48,7 @@ Current Go version: 1.26.2
 - Async Refresh for Missing High Price: Triggers an asynchronous release refresh task during `RefreshRecord` whenever a record has no high price recorded, ensuring pricing statistics are updated even if `JustState` is requested.
 - Incremental Order Sync Worker: Implements `SyncOrders` and `ProcessSyncOrders` background processing logic to synchronize Discogs marketplace orders incrementally, detect sold marketplace items, transition sale records to SOLD status with exact sold dates and price updates, and trigger downstream sale linking.
 - Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
+- GetRecord All Records Handler: Implements backend support in `server/getrecord.go` for retrieving all collection records via `GetRecordRequest` with `get_all_records = true`, bypassing expensive history and sales lookups unless explicitly requested.
 
 ## TUI (Terminal User Interface)
 
