@@ -53,16 +53,19 @@ func (s *Server) GetRecord(ctx context.Context, req *pb.GetRecordRequest) (*pb.G
 	}
 
 	// Get any sale data
-	for _, r := range resp.GetRecords() {
-		if r.GetRecord().GetSaleId() > 0 {
-			sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetRecord().GetSaleId())
-			if err == nil {
-				r.SaleInfo = sale
+	if !req.GetGetAllRecords() || req.IncludeHistory {
+		for _, r := range resp.GetRecords() {
+			if r.GetRecord().GetSaleId() > 0 {
+				sale, err := s.d.GetSale(ctx, u.GetUser().GetDiscogsUserId(), r.GetRecord().GetSaleId())
+				if err == nil {
+					r.SaleInfo = sale
+				}
 			}
 		}
 	}
 
 	if req.IncludeHistory {
+
 		for _, r := range resp.GetRecords() {
 			up, err := s.d.GetUpdates(ctx, u.GetUser().DiscogsUserId, r.GetRecord())
 			if err != nil {
@@ -102,6 +105,18 @@ func (s *Server) getRecordsPurchasedBetween(ctx context.Context, u *pb.StoredUse
 }
 
 func (s *Server) getRecordInternal(ctx context.Context, u *pb.StoredUser, req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+	if req.GetGetAllRecords() {
+		records, err := s.d.LoadAllRecords(ctx, u.GetUser().GetDiscogsUserId())
+		if err != nil {
+			return nil, err
+		}
+		var recResponses []*pb.RecordResponse
+		for _, r := range records {
+			recResponses = append(recResponses, &pb.RecordResponse{Record: r})
+		}
+		return &pb.GetRecordResponse{Records: recResponses}, nil
+	}
+
 	if req.GetGetRecordsPurchasedBetween() != nil {
 		return s.getRecordsPurchasedBetween(ctx, u, req.GetGetRecordsPurchasedBetween())
 	}
