@@ -53,6 +53,7 @@ Current Go version: 1.26.2
 - End-to-End Incremental Order Sync Integration Testing: Comprehensive integration tests validating the full incremental order sync pipeline, including background queue execution, sale status transitions to SOLD with price updates, LinkSales dispatch and record metadata linking, cold start and subsequent sync lookback behavior, multi-page order pagination, cancelled order filtering, and idempotency.
 - Gram Sales CLI Module: Added `gram sales` command in `gram/sales.go` to list active marketplace listings (`FOR_SALE`), inspect sale prices, conditions, and listing dates, with `--all` support for inspecting all listings.
 - Admin CLI Queue Intention and Priority Fixes: Ensures `admin_cli syncsales` and `adjustsales` configure `Intention`, `Priority: HIGH`, and current `RunDate` to prevent tasks from being dropped by the queue worker for missing intentions.
+- Version Tracking & Build Stamping: Implements package-level version tracking and resolution in the Gramophile TUI supporting injected build flags (via `-ldflags "-X main.Version=..."`), module build info, VCS git commit revisions, and development fallbacks.
 
 ## TUI (Terminal User Interface)
 
