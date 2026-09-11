@@ -50,6 +50,9 @@ Current Go version: 1.26.2
 - Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
 - GetRecord All Records Handler: Implements backend support in `server/getrecord.go` for retrieving all collection records via `GetRecordRequest` with `get_all_records = true`, bypassing expensive history and sales lookups unless explicitly requested.
 - Forced Full Sales Synchronization: Disables early termination and bypasses the 24-hour rate limit when `Force: true` is provided on `RefreshSales` queue elements, and sets `Force: true` on `admin_cli syncsales` to support manual full inventory resynchronization.
+- End-to-End Incremental Order Sync Integration Testing: Comprehensive integration tests validating the full incremental order sync pipeline, including background queue execution, sale status transitions to SOLD with price updates, LinkSales dispatch and record metadata linking, cold start and subsequent sync lookback behavior, multi-page order pagination, cancelled order filtering, and idempotency.
+- Gram Sales CLI Module: Added `gram sales` command in `gram/sales.go` to list active marketplace listings (`FOR_SALE`), inspect sale prices, conditions, and listing dates, with `--all` support for inspecting all listings.
+- Admin CLI Queue Intention and Priority Fixes: Ensures `admin_cli syncsales` and `adjustsales` configure `Intention`, `Priority: HIGH`, and current `RunDate` to prevent tasks from being dropped by the queue worker for missing intentions.
 - Record Cache Manager: Provides thread-safe in-memory and persistent on-disk caching of record instances and releases in `~/.gramophile_cache` with 7-day TTL expiration, stale-while-revalidate background refresh, singleflight deduplication, worker concurrency rate limiting, and exponential backoff gRPC retries.
 
 ## TUI (Terminal User Interface)
