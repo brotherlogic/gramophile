@@ -43,9 +43,11 @@ Current Go version: 1.26.2
 - Toggleable Command Help in TUI: The main application view hides the command list by default and allows users to toggle the list of commands on and off by pressing "h", replacing the static footer with contextual "press h for help" / "press h to hide help" guidance.
 - Streamlined Organization View Layout: Formats organization placements cleanly as `[<index>] <artist - title> [ <shelf> / <slot> ]` (e.g. `[1] Andrew Bird - Are You Serious [ Main Shelves / 1]`), omitting verbose labels and width metrics, and streamlines the view to display the organization hash in the header without redundant organization header lines.
 - GetRecord All Records Schema: Extends the `GetRecordRequest` protobuf message with `bool get_all_records = 7` in the request oneof to support retrieving all records in a collection.
+- Sequential Sales Pagination & LinkSales Triggering: Refactors `ProcessRefreshSales` to fetch inventory pages sequentially, trigger `LinkSales` upon completion or early termination, and decouple deletion pruning from routine incremental syncs.
 - Animated Spinner on Organization View Loading: Replaces static "Loading..." placeholders with an animated Bubble Tea spinner in the TUI organization view while record details are asynchronously loaded for placements.
 - Async Refresh for Missing High Price: Triggers an asynchronous release refresh task during `RefreshRecord` whenever a record has no high price recorded, ensuring pricing statistics are updated even if `JustState` is requested.
 - Incremental Order Sync Worker: Implements `SyncOrders` and `ProcessSyncOrders` background processing logic to synchronize Discogs marketplace orders incrementally, detect sold marketplace items, transition sale records to SOLD status with exact sold dates and price updates, and trigger downstream sale linking.
+- Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
 - GetRecord All Records Handler: Implements backend support in `server/getrecord.go` for retrieving all collection records via `GetRecordRequest` with `get_all_records = true`, bypassing expensive history and sales lookups unless explicitly requested.
 
 ## TUI (Terminal User Interface)

@@ -909,6 +909,16 @@ message LocateRecordResponse {
     repeated Location locations = 1;
 }
 
+message RecordCacheEntry {
+    string artist_title = 1;
+    int64 resolved_timestamp = 2;
+}
+
+message RecordCache {
+    map<int64, RecordCacheEntry> instance_cache = 1;
+    map<int64, RecordCacheEntry> release_cache = 2;
+}
+
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};

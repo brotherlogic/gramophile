@@ -759,10 +759,10 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 		return nil
 	}
 
-	if entry.GetRefreshSales().GetPage() == 1 {
+	if entry.GetRefreshSales().GetPage() == 1 && entry.GetRefreshSales().GetRefreshId() == 0 {
 		entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
 	}
-	pages, _, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId(), user.GetLastSaleRefresh())
+	pages, earlyTerminated, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId(), user.GetLastSaleRefresh())
 
 	if err != nil {
 		return err
@@ -770,44 +770,44 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 
 	qlog(ctx, "Got user: %v with %v", user, entry.GetRefreshSales())
 
-	if entry.GetRefreshSales().GetPage() == 1 {
-		for i := int32(2); i <= pages.GetPages(); i++ {
-			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-				Intention: entry.GetIntention(),
-				RunDate:   time.Now().UnixNano() + int64(i),
-				Force:     entry.GetForce(),
-				Entry: &pb.QueueElement_RefreshSales{
-
-					RefreshSales: &pb.RefreshSales{
-						Page: i, RefreshId: entry.GetRefreshSales().GetRefreshId()}},
-				Auth: entry.GetAuth(),
-			}}, enqueue)
-			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
-			}
-		}
-
-		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
-			Intention: entry.GetIntention(),
-			RunDate:   time.Now().UnixNano() + int64(pages.GetPages()) + 10,
-			Entry: &pb.QueueElement_LinkSales{
-				LinkSales: &pb.LinkSales{
-					RefreshId: entry.GetRefreshSales().GetRefreshId()}},
-			Auth: entry.GetAuth(),
-		}}, enqueue)
-		if err != nil {
-			return fmt.Errorf("dunable to enqueue link job: %v", err)
-		}
-	}
-
-	qlog(ctx, "Checking for Clean %v vs %v", entry.GetRefreshSales().GetPage(), pages.GetPages())
-	if entry.GetRefreshSales().GetPage() >= pages.GetPages() {
+	if earlyTerminated || entry.GetRefreshSales().GetPage() >= pages.GetPages() {
 		user.LastSaleRefresh = time.Now().UnixNano()
 		err = b.db.SaveUser(ctx, user)
 		if err != nil {
-			return fmt.Errorf("unable to sell user: %w", err)
+			return fmt.Errorf("unable to save user: %w", err)
 		}
-		return b.CleanSales(ctx, user.GetUser().GetDiscogsUserId(), entry.GetRefreshSales().GetRefreshId())
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano() + 10,
+				Entry: &pb.QueueElement_LinkSales{
+					LinkSales: &pb.LinkSales{RefreshId: entry.GetRefreshSales().GetRefreshId()},
+				},
+				Auth: entry.GetAuth(),
+			},
+		}, enqueue)
+		if err != nil {
+			return fmt.Errorf("unable to enqueue link job: %w", err)
+		}
+		return nil
+	}
+
+	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: entry.GetIntention(),
+			RunDate:   time.Now().UnixNano() + 1,
+			Force:     entry.GetForce(),
+			Entry: &pb.QueueElement_RefreshSales{
+				RefreshSales: &pb.RefreshSales{
+					Page:      entry.GetRefreshSales().GetPage() + 1,
+					RefreshId: entry.GetRefreshSales().GetRefreshId(),
+				},
+			},
+			Auth: entry.GetAuth(),
+		},
+	}, enqueue)
+	if err != nil {
+		return fmt.Errorf("unable to enqueue: %w", err)
 	}
 
 	return nil
