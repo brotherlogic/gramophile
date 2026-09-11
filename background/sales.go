@@ -762,7 +762,11 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 	if entry.GetRefreshSales().GetPage() == 1 && entry.GetRefreshSales().GetRefreshId() == 0 {
 		entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
 	}
-	pages, earlyTerminated, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId(), user.GetLastSaleRefresh())
+	lastRefresh := user.GetLastSaleRefresh()
+	if entry.GetForce() {
+		lastRefresh = 0
+	}
+	pages, earlyTerminated, err := b.SyncSales(ctx, d, entry.GetRefreshSales().GetPage(), entry.GetRefreshSales().GetRefreshId(), lastRefresh)
 
 	if err != nil {
 		return err

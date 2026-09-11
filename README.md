@@ -49,6 +49,7 @@ Current Go version: 1.26.2
 - Incremental Order Sync Worker: Implements `SyncOrders` and `ProcessSyncOrders` background processing logic to synchronize Discogs marketplace orders incrementally, detect sold marketplace items, transition sale records to SOLD status with exact sold dates and price updates, and trigger downstream sale linking.
 - Record Cache Protobuf Schema: Defines protobuf messages `RecordCacheEntry` and `RecordCache` in `proto/gramophile.proto` with generated Go bindings to support local client-side caching of resolved records.
 - GetRecord All Records Handler: Implements backend support in `server/getrecord.go` for retrieving all collection records via `GetRecordRequest` with `get_all_records = true`, bypassing expensive history and sales lookups unless explicitly requested.
+- Forced Full Sales Synchronization: Disables early termination and bypasses the 24-hour rate limit when `Force: true` is provided on `RefreshSales` queue elements, and sets `Force: true` on `admin_cli syncsales` to support manual full inventory resynchronization.
 
 ## TUI (Terminal User Interface)
 

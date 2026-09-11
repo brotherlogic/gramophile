@@ -1758,7 +1758,7 @@ func TestProcessRefreshSales_EarlyTerminationEnqueuesLinkAndStopsPagination(t *t
 	refreshId := int64(88888)
 	entry := &pb.QueueElement{
 		Auth:  user.GetAuth().GetToken(),
-		Force: true,
+		Force: false,
 		Entry: &pb.QueueElement_RefreshSales{
 			RefreshSales: &pb.RefreshSales{
 				Page:      1,
@@ -1890,6 +1890,94 @@ func TestProcessRefreshSales_SequentialPagination(t *testing.T) {
 	}
 	if savedUser.GetLastSaleRefresh() != 1000 {
 		t.Errorf("expected LastSaleRefresh to remain 1000, got %v", savedUser.GetLastSaleRefresh())
+	}
+}
+
+func TestProcessRefreshSales_ForceDisablesEarlyTermination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	lastSaleRefresh := int64(2000)
+
+	user := &pb.StoredUser{
+		User:            &pbd.User{DiscogsUserId: userId},
+		Auth:            &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh: lastSaleRefresh,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Existing sale in DB with ListedDate <= lastSaleRefresh (1000 <= 2000)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   1000,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	refreshId := int64(88888)
+	// Force: true must bypass early termination even though sale 1001 was listed <= lastSaleRefresh
+	entry := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: refreshId,
+			},
+		},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	// With Force: true, early termination must NOT trigger, so page 2 must be enqueued
+	if len(enqueuedRequests) != 1 {
+		t.Fatalf("expected exactly 1 enqueued request (page 2), got %v", len(enqueuedRequests))
+	}
+
+	req := enqueuedRequests[0]
+	refreshSales := req.GetElement().GetRefreshSales()
+	if refreshSales == nil {
+		t.Fatalf("expected enqueued request to be RefreshSales, got %v", req.GetElement())
+	}
+	if refreshSales.GetPage() != 2 {
+		t.Errorf("expected enqueued page 2, got %v", refreshSales.GetPage())
+	}
+	if !req.GetElement().GetForce() {
+		t.Errorf("expected enqueued request to preserve Force: true")
 	}
 }
 
