@@ -2212,5 +2212,240 @@ func TestAdjustSales_PostMedian_EnqueuedUpdateSalePayload(t *testing.T) {
 	}
 }
 
+type paginatedSalesDiscogsClient struct {
+	*discogs.TestDiscogsClient
+	pages      map[int32][]*pbd.SaleItem
+	totalPages int32
+	listCalls  []int32
+}
 
+func (p *paginatedSalesDiscogsClient) ListSales(ctx context.Context, page int32) ([]*pbd.SaleItem, *pbd.Pagination, error) {
+	p.listCalls = append(p.listCalls, page)
+	return p.pages[page], &pbd.Pagination{Pages: p.totalPages, Page: page}, nil
+}
 
+func (p *paginatedSalesDiscogsClient) ForUser(user *pbd.User) discogs.Discogs {
+	p.TestDiscogsClient.ForUser(user)
+	return p
+}
+
+func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	// Pre-populate collection records in DB corresponding to Discogs sales
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 2001, InstanceId: 3001, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}},
+		{Release: &pbd.Release{Id: 2002, InstanceId: 3002, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}},
+		{Release: &pbd.Release{Id: 2000, InstanceId: 3000, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}},
+		{Release: &pbd.Release{Id: 2003, InstanceId: 3003, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}}, // Will be listed in Phase 2
+	}
+	for _, rec := range records {
+		err := d.SaveRecord(ctx, 123, rec, &db.SaveOptions{})
+		if err != nil {
+			t.Fatalf("failed to save initial record %v: %v", rec.GetRelease().GetInstanceId(), err)
+		}
+	}
+
+	// Phase 1 (Cold Start): user.LastSaleRefresh == 0
+	user := &pb.StoredUser{
+		Folders:         []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:            &pbd.User{DiscogsUserId: 123},
+		Auth:            &pb.GramophileAuth{Token: "123"},
+		LastSaleRefresh: 0,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Mock Discogs client across multiple pages (2 pages) with descending listed dates
+	mockDiscogs := &paginatedSalesDiscogsClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{
+			UserId: 123,
+			Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		},
+		totalPages: 2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
+	s := server.BuildServer(d, mockDiscogs, qc)
+
+	// Enqueue initial RefreshSales (Cold Start)
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "Cold Start Sales Refresh",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue cold start RefreshSales: %v", err)
+	}
+
+	// Flush queue to process all enqueued jobs (Page 1 -> Page 2 -> LinkSales)
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Phase 1 FlushQueue failed: %v", err)
+	}
+
+	// Phase 1 Verifications:
+	// 1. Verify multi-page pagination occurred (page 1 and page 2 fetched)
+	if len(mockDiscogs.listCalls) < 2 || mockDiscogs.listCalls[0] != 1 || mockDiscogs.listCalls[1] != 2 {
+		t.Errorf("expected pagination calls [1, 2], got %v", mockDiscogs.listCalls)
+	}
+
+	// 2. Verify user's LastSaleRefresh timestamp was updated
+	savedUser, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after Phase 1: %v", err)
+	}
+	coldStartRefreshTime := savedUser.GetLastSaleRefresh()
+	if coldStartRefreshTime == 0 {
+		t.Errorf("expected LastSaleRefresh to be updated from 0, got 0")
+	}
+
+	// 3. Verify sales ingested into DB
+	for _, sid := range []int64{1000, 1001, 1002} {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Errorf("expected sale %v to be saved in DB: %v", sid, err)
+		} else if sale.GetSaleState() != pbd.SaleStatus_FOR_SALE {
+			t.Errorf("expected sale %v to be FOR_SALE, got %v", sid, sale.GetSaleState())
+		}
+	}
+
+	// 4. Verify LinkSales execution: records 3001, 3002, 3000 linked to respective sales
+	expectedLinks := map[int64]int64{
+		3001: 1001,
+		3002: 1002,
+		3000: 1000,
+	}
+	for iid, expectedSaleId := range expectedLinks {
+		recResp, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{InstanceId: iid},
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to get record %v: %v", iid, err)
+		}
+		if len(recResp.GetRecords()) == 0 {
+			t.Fatalf("no record returned for instanceId %v", iid)
+		}
+		actualSaleId := recResp.GetRecords()[0].GetRecord().GetSaleId()
+		if actualSaleId != expectedSaleId {
+			t.Errorf("record %v expected saleId %v, got %v", iid, expectedSaleId, actualSaleId)
+		}
+	}
+
+	// Record 3003 should not yet be linked
+	rec3003Pre, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 3003},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to get record 3003: %v", err)
+	}
+	if rec3003Pre.GetRecords()[0].GetRecord().GetSaleId() != 0 {
+		t.Errorf("record 3003 should have saleId 0 before Phase 2, got %v", rec3003Pre.GetRecords()[0].GetRecord().GetSaleId())
+	}
+
+	// Phase 2 (Incremental Run with Early Termination):
+	// Simulate that 25 hours have passed since cold start so routine sync runs without skipping
+	pastTime := time.Now().Add(-25 * time.Hour).UnixNano()
+	savedUser.LastSaleRefresh = pastTime
+	err = d.SaveUser(ctx, savedUser)
+	if err != nil {
+		t.Fatalf("failed to update user timestamp for Phase 2: %v", err)
+	}
+	for _, sid := range []int64{1000, 1001, 1002} {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Fatalf("failed to get sale %v: %v", sid, err)
+		}
+		sale.ListedDate = pastTime
+		err = d.SaveSale(ctx, 123, sale)
+		if err != nil {
+			t.Fatalf("failed to update sale %v listed date: %v", sid, err)
+		}
+	}
+
+	// Update Discogs inventory: add new listing (1003) on page 1 with newer timestamp
+	mockDiscogs.pages[1] = []*pbd.SaleItem{
+		{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 3500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+	}
+	mockDiscogs.pages[2] = []*pbd.SaleItem{
+		{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+	}
+	mockDiscogs.listCalls = nil // reset tracking
+
+	// Enqueue incremental RefreshSales
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "Incremental Sales Refresh",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue incremental RefreshSales: %v", err)
+	}
+
+	// Flush queue
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("Phase 2 FlushQueue failed: %v", err)
+	}
+
+	// Phase 2 Verifications:
+	// 1. Verify early termination stopped pagination at page 1 (page 2 was NOT fetched/enqueued)
+	if len(mockDiscogs.listCalls) != 1 || mockDiscogs.listCalls[0] != 1 {
+		t.Errorf("expected only page 1 to be fetched in Phase 2 due to early termination, got %v", mockDiscogs.listCalls)
+	}
+
+	// 2. Verify new listing 1003 is ingested into DB
+	sale1003, err := d.GetSale(ctx, 123, 1003)
+	if err != nil {
+		t.Fatalf("expected new sale 1003 to be in DB: %v", err)
+	}
+	if sale1003.GetReleaseId() != 2003 {
+		t.Errorf("expected sale 1003 to have releaseId 2003, got %v", sale1003.GetReleaseId())
+	}
+
+	// 3. Verify LinkSales was enqueued and linked new listing to collection record 3003
+	rec3003Post, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 3003},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to get record 3003 after Phase 2: %v", err)
+	}
+	if rec3003Post.GetRecords()[0].GetRecord().GetSaleId() != 1003 {
+		t.Errorf("expected record 3003 to be linked to sale 1003, got %v", rec3003Post.GetRecords()[0].GetRecord().GetSaleId())
+	}
+
+	// 4. Verify user.LastSaleRefresh was updated to the latest run timestamp (> pastTime)
+	userAfterPhase2, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after Phase 2: %v", err)
+	}
+	if userAfterPhase2.GetLastSaleRefresh() <= pastTime {
+		t.Errorf("expected LastSaleRefresh to be updated after pastTime %v, got %v", pastTime, userAfterPhase2.GetLastSaleRefresh())
+	}
+}

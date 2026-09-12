@@ -55,6 +55,7 @@ Current Go version: 1.26.2
 - Admin CLI Queue Intention and Priority Fixes: Ensures `admin_cli syncsales` and `adjustsales` configure `Intention`, `Priority: HIGH`, and current `RunDate` to prevent tasks from being dropped by the queue worker for missing intentions.
 - Record Cache Manager: Provides thread-safe in-memory and persistent on-disk caching of record instances and releases in `~/.gramophile_cache` with 7-day TTL expiration, stale-while-revalidate background refresh, singleflight deduplication, worker concurrency rate limiting, and exponential backoff gRPC retries.
 - Auto-Updater Engine: Implements the `Updater` engine and GitHub Releases client for the Gramophile TUI, supporting update checks against the latest releases, platform asset matching, atomic binary downloads with permission validation, and automated process restart.
+- Incremental Sales Sync Integration Testing: End-to-end integration tests in `integration/sales_test.go` verifying the complete sales synchronization lifecycle across multiple pages, including cold-start pagination, incremental sync with early termination on previously seen listings, record linking, and timestamp progression.
 
 ## TUI (Terminal User Interface)
 
