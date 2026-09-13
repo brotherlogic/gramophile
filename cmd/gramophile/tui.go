@@ -37,6 +37,7 @@ const (
 	StateOrgView
 	StateLocateView
 	StateConfigSelect
+	StateLocateSearch
 )
 
 type AuthClient interface {
@@ -97,6 +98,11 @@ type locateFetchedMsg struct {
 	err       error
 }
 
+type collectionFetchedMsg struct {
+	records []*pb.Record
+	err     error
+}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
@@ -144,6 +150,13 @@ type Model struct {
 	locateViewport viewport.Model
 	activeLocateID int64
 	locateResponse *pb.LocateRecordResponse
+
+	locateSearchInput     textinput.Model
+	locateSearchCursor    int
+	collectionIndex       []*pb.Record
+	collectionLoading     bool
+	filteredLocateRecords []*pb.Record
+	locateSearchErr       string
 }
 
 func defaultTokenLoader() (string, error) {
@@ -211,16 +224,22 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 	ti.CharLimit = 256
 	ti.Width = 60
 
+	lsi := textinput.New()
+	lsi.Placeholder = "Search collection by artist or title..."
+	lsi.CharLimit = 256
+	lsi.Width = 60
+
 	return Model{
-		state:        StateStartupLogo,
-		client:       client,
-		orgClient:    orgClient,
-		locateClient: locateClient,
-		tokenLoader:  defaultTokenLoader,
-		tokenSaver:   defaultTokenSaver,
-		progBar:      progress.New(progress.WithDefaultGradient()),
-		textInput:    ti,
-		orgSpinner:   newOrgSpinner(),
+		state:             StateStartupLogo,
+		client:            client,
+		orgClient:         orgClient,
+		locateClient:      locateClient,
+		tokenLoader:       defaultTokenLoader,
+		tokenSaver:        defaultTokenSaver,
+		progBar:           progress.New(progress.WithDefaultGradient()),
+		textInput:         ti,
+		locateSearchInput: lsi,
+		orgSpinner:        newOrgSpinner(),
 	}
 }
 
@@ -287,6 +306,18 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if cMsg, ok := msg.(collectionFetchedMsg); ok {
+		m.collectionLoading = false
+		if cMsg.err != nil {
+			m.locateSearchErr = cMsg.err.Error()
+		} else {
+			m.locateSearchErr = ""
+			m.collectionIndex = cMsg.records
+			m.filteredLocateRecords = cMsg.records
+		}
+		return m, nil
+	}
+
 	switch m.state {
 	case StateStartupLogo:
 		switch msg.(type) {
@@ -712,12 +743,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+	case StateLocateSearch:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "esc":
+				m.locateSearchInput.SetValue("")
+				m.locateSearchCursor = 0
+				m.state = StateMainApp
+				return m, nil
+			}
+			var cmd tea.Cmd
+			m.locateSearchInput, cmd = m.locateSearchInput.Update(msg)
+			return m, cmd
+		}
 	}
 
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && m.state != StateLocateSearch && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -842,6 +887,14 @@ func (m Model) View() string {
 			body = fmt.Sprintf("Error: %s\n\nPress any key to return...", m.inlineErrMsg)
 		} else {
 			body = m.locateViewport.View()
+		}
+	case StateLocateSearch:
+		if m.collectionLoading {
+			body = "Loading collection records..."
+		} else if m.locateSearchErr != "" {
+			body = fmt.Sprintf("Error loading collection: %s", m.locateSearchErr)
+		} else {
+			body = m.locateSearchInput.View()
 		}
 	default:
 		body = "Gramophile TUI"
@@ -1104,15 +1157,18 @@ func (m *Model) renderOrgViewport() {
 	m.orgViewport.SetContent(sb.String())
 }
 
-// parseLocateCommand parses command string input for locate commands supporting locate <release_id> and locate --id <release_id>.
-func parseLocateCommand(cmdStr string) (int64, error) {
+// parseLocateCommand parses command string input for locate commands supporting locate, locate <release_id> and locate --id <release_id>.
+func parseLocateCommand(cmdStr string) (int64, bool, error) {
 	fields := strings.Fields(strings.TrimSpace(cmdStr))
 	usageErr := fmt.Errorf("Invalid release ID format. Usage: locate <release_id> or locate --id <release_id>")
 	if len(fields) == 0 {
-		return 0, usageErr
+		return 0, false, usageErr
 	}
 	if fields[0] != "locate" {
-		return 0, fmt.Errorf("unknown command: %s", fields[0])
+		return 0, false, fmt.Errorf("unknown command: %s", fields[0])
+	}
+	if len(fields) == 1 {
+		return 0, true, nil
 	}
 
 	fs := flag.NewFlagSet("locate", flag.ContinueOnError)
@@ -1138,10 +1194,14 @@ func parseLocateCommand(cmdStr string) (int64, error) {
 
 	err := fs.Parse(flagArgs)
 	if err != nil {
-		return 0, usageErr
+		return 0, false, usageErr
 	}
 
-	if releaseID <= 0 && len(posArgs) > 0 {
+	if len(posArgs) > 1 {
+		return 0, false, usageErr
+	}
+
+	if releaseID <= 0 && len(posArgs) == 1 {
 		parsed, parseErr := strconv.ParseInt(posArgs[0], 10, 64)
 		if parseErr == nil && parsed > 0 {
 			releaseID = parsed
@@ -1149,10 +1209,10 @@ func parseLocateCommand(cmdStr string) (int64, error) {
 	}
 
 	if releaseID <= 0 {
-		return 0, usageErr
+		return 0, false, usageErr
 	}
 
-	return releaseID, nil
+	return releaseID, false, nil
 }
 
 func (m Model) fetchLocateCmd(releaseID int64) tea.Cmd {
@@ -1172,13 +1232,55 @@ func (m Model) fetchLocateCmd(releaseID int64) tea.Cmd {
 	}
 }
 
+func (m Model) fetchCollectionIndexCmd() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := m.buildContext(30 * time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return collectionFetchedMsg{err: fmt.Errorf("no org client initialized")}
+		}
+		resp, err := m.orgClient.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetAllRecords{
+				GetAllRecords: true,
+			},
+		})
+		if err != nil {
+			return collectionFetchedMsg{err: err}
+		}
+		var records []*pb.Record
+		if resp != nil {
+			for _, r := range resp.GetRecords() {
+				if r != nil && r.GetRecord() != nil {
+					records = append(records, r.GetRecord())
+				}
+			}
+		}
+		return collectionFetchedMsg{records: records}
+	}
+}
+
 // handleCommandInput parses the command string and transitions state to StateOrgView or StateLocateView.
 func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	fields := strings.Fields(strings.TrimSpace(cmdStr))
 	if len(fields) > 0 && fields[0] == "locate" {
-		releaseID, err := parseLocateCommand(cmdStr)
+		releaseID, isSearch, err := parseLocateCommand(cmdStr)
 		if err != nil {
 			m.inlineErrMsg = err.Error()
+			return m, nil
+		}
+		if isSearch {
+			m.commandInput = cmdStr
+			m.state = StateLocateSearch
+			m.inlineErrMsg = ""
+			m.locateSearchInput.SetValue("")
+			m.locateSearchInput.Focus()
+			m.locateSearchInput.Placeholder = "Search collection by artist or title..."
+			m.locateSearchCursor = 0
+			if m.collectionIndex == nil && !m.collectionLoading {
+				m.collectionLoading = true
+				return m, m.fetchCollectionIndexCmd()
+			}
+			m.filteredLocateRecords = m.collectionIndex
 			return m, nil
 		}
 		m.commandInput = cmdStr
