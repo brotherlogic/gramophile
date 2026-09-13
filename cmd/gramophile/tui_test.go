@@ -923,37 +923,206 @@ func TestStateLocateView_FieldsAndMsg(t *testing.T) {
 	}
 }
 
-func TestParseLocateCommand(t *testing.T) {
+func TestParseLocateCommand_ZeroArgs(t *testing.T) {
+	id, isSearch, err := parseLocateCommand("locate")
+	if err != nil {
+		t.Fatalf("Unexpected error for 'locate': %v", err)
+	}
+	if !isSearch {
+		t.Errorf("Expected isSearch=true for 'locate', got false")
+	}
+	if id != 0 {
+		t.Errorf("Expected id=0 for zero-argument locate, got %d", id)
+	}
+
+	// Whitespace variations
+	id, isSearch, err = parseLocateCommand("   locate   ")
+	if err != nil {
+		t.Fatalf("Unexpected error for '   locate   ': %v", err)
+	}
+	if !isSearch || id != 0 {
+		t.Errorf("Expected isSearch=true and id=0, got isSearch=%v, id=%d", isSearch, id)
+	}
+}
+
+func TestParseLocateCommand_DirectID(t *testing.T) {
 	tests := []struct {
-		input       string
-		expectedID  int64
-		expectError bool
+		input      string
+		expectedID int64
 	}{
-		{"locate 12345", 12345, false},
-		{"locate --id 67890", 67890, false},
-		{"locate --id=54321", 54321, false},
-		{"locate", 0, true},
-		{"locate invalid", 0, true},
-		{"locate --id invalid", 0, true},
-		{"locate --invalidflag", 0, true},
+		{"locate 12345", 12345},
+		{"locate --id 67890", 67890},
+		{"locate --id=54321", 54321},
 	}
 
 	for _, tt := range tests {
-		id, err := parseLocateCommand(tt.input)
-		if tt.expectError {
-			if err == nil {
-				t.Errorf("Expected error for input %q, got nil", tt.input)
-			} else if !strings.Contains(err.Error(), "Invalid release ID format. Usage: locate <release_id> or locate --id <release_id>") {
-				t.Errorf("Expected error message to contain usage info for input %q, got %v", tt.input, err)
-			}
-		} else {
-			if err != nil {
-				t.Errorf("Unexpected error for input %q: %v", tt.input, err)
-			}
-			if id != tt.expectedID {
-				t.Errorf("Expected release ID %d for input %q, got %d", tt.expectedID, tt.input, id)
-			}
+		id, isSearch, err := parseLocateCommand(tt.input)
+		if err != nil {
+			t.Fatalf("Unexpected error for %q: %v", tt.input, err)
 		}
+		if isSearch {
+			t.Errorf("Expected isSearch=false for %q, got true", tt.input)
+		}
+		if id != tt.expectedID {
+			t.Errorf("Expected id=%d for %q, got %d", tt.expectedID, tt.input, id)
+		}
+	}
+}
+
+func TestParseLocateCommand_InvalidArgs(t *testing.T) {
+	tests := []string{
+		"locate invalid",
+		"locate --id invalid",
+		"locate --invalidflag",
+		"locate 0",
+		"locate -10",
+		"locate --id 0",
+		"locate --id -5",
+		"locate 12345 67890",
+		"",
+		"othercommand",
+	}
+
+	for _, input := range tests {
+		_, _, err := parseLocateCommand(input)
+		if err == nil {
+			t.Errorf("Expected error for input %q, got nil", input)
+		}
+	}
+}
+
+func TestFetchCollectionIndexCmd(t *testing.T) {
+	var requestedWithGetAllRecords bool
+	mock := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			requestedWithGetAllRecords = req.GetGetAllRecords()
+			return &pb.GetRecordResponse{
+				Records: []*pb.RecordResponse{
+					{Record: &pb.Record{Release: &pbd.Release{Id: 101, Title: "Test Record 1"}}},
+					{Record: &pb.Record{Release: &pbd.Release{Id: 102, Title: "Test Record 2"}}},
+				},
+			}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	cmd := m.fetchCollectionIndexCmd()
+	if cmd == nil {
+		t.Fatalf("Expected fetchCollectionIndexCmd to return a tea.Cmd")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(collectionFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected collectionFetchedMsg, got %T", msg)
+	}
+	if fetchedMsg.err != nil {
+		t.Fatalf("Unexpected error in collectionFetchedMsg: %v", fetchedMsg.err)
+	}
+	if !requestedWithGetAllRecords {
+		t.Errorf("Expected GetRecord to be called with GetAllRecords=true")
+	}
+	if len(fetchedMsg.records) != 2 {
+		t.Errorf("Expected 2 records in collectionFetchedMsg, got %d", len(fetchedMsg.records))
+	}
+
+	// Test error branch
+	mockErr := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			return nil, fmt.Errorf("injected fetch error")
+		},
+	}
+	mErr := InitialModel(mockErr, mockErr, mockErr)
+	cmdErr := mErr.fetchCollectionIndexCmd()
+	msgErr := cmdErr()
+	fetchedMsgErr, ok := msgErr.(collectionFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected collectionFetchedMsg, got %T", msgErr)
+	}
+	if fetchedMsgErr.err == nil || !strings.Contains(fetchedMsgErr.err.Error(), "injected fetch error") {
+		t.Errorf("Expected injected fetch error, got %v", fetchedMsgErr.err)
+	}
+}
+
+func TestHandleCommandInput_LocateSearch(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateMainApp
+
+	// Zero-arg locate should transition to StateLocateSearch and dispatch fetchCollectionIndexCmd if collectionIndex is nil
+	newModel, cmd := m.handleCommandInput("locate")
+	updatedModel, ok := newModel.(Model)
+	if !ok {
+		t.Fatalf("Expected model to be of type Model")
+	}
+	if updatedModel.state != StateLocateSearch {
+		t.Errorf("Expected state to transition to StateLocateSearch, got %v", updatedModel.state)
+	}
+	if !updatedModel.collectionLoading {
+		t.Errorf("Expected collectionLoading=true when collectionIndex is nil")
+	}
+	if cmd == nil {
+		t.Errorf("Expected fetchCollectionIndexCmd to be returned")
+	}
+	if updatedModel.locateSearchCursor != 0 {
+		t.Errorf("Expected locateSearchCursor to be reset to 0, got %d", updatedModel.locateSearchCursor)
+	}
+
+	// When collectionIndex is already cached, does not dispatch cmd and populates filteredLocateRecords
+	cachedRecords := []*pb.Record{
+		{Release: &pbd.Release{Id: 999, Title: "Cached Record"}},
+	}
+	updatedModel.collectionIndex = cachedRecords
+	updatedModel.collectionLoading = false
+	updatedModel.state = StateMainApp
+
+	newModelCached, cmdCached := updatedModel.handleCommandInput("locate")
+	cachedModel := newModelCached.(Model)
+	if cachedModel.state != StateLocateSearch {
+		t.Errorf("Expected state to be StateLocateSearch, got %v", cachedModel.state)
+	}
+	if cmdCached != nil {
+		t.Errorf("Expected cmd to be nil when collectionIndex is already cached")
+	}
+	if len(cachedModel.filteredLocateRecords) != 1 {
+		t.Errorf("Expected filteredLocateRecords to be populated from cache, got %d", len(cachedModel.filteredLocateRecords))
+	}
+}
+
+func TestUpdate_CollectionFetchedMsg(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.collectionLoading = true
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 201, Title: "Record A"}},
+		{Release: &pbd.Release{Id: 202, Title: "Record B"}},
+	}
+
+	newModel, _ := m.Update(collectionFetchedMsg{records: records})
+	updatedModel := newModel.(Model)
+
+	if updatedModel.collectionLoading {
+		t.Errorf("Expected collectionLoading=false after collectionFetchedMsg")
+	}
+	if len(updatedModel.collectionIndex) != 2 {
+		t.Errorf("Expected collectionIndex to have 2 records, got %d", len(updatedModel.collectionIndex))
+	}
+	if len(updatedModel.filteredLocateRecords) != 2 {
+		t.Errorf("Expected filteredLocateRecords to have 2 records, got %d", len(updatedModel.filteredLocateRecords))
+	}
+	if updatedModel.locateSearchErr != "" {
+		t.Errorf("Expected locateSearchErr to be empty, got %s", updatedModel.locateSearchErr)
+	}
+
+	// Test error handling
+	newModelErr, _ := m.Update(collectionFetchedMsg{err: fmt.Errorf("failed to fetch")})
+	updatedModelErr := newModelErr.(Model)
+	if updatedModelErr.collectionLoading {
+		t.Errorf("Expected collectionLoading=false after error")
+	}
+	if updatedModelErr.locateSearchErr != "failed to fetch" {
+		t.Errorf("Expected locateSearchErr='failed to fetch', got %s", updatedModelErr.locateSearchErr)
 	}
 }
 
