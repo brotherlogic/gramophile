@@ -1824,5 +1824,165 @@ func TestStateMainApp_HelpCommand_TogglesHelp(t *testing.T) {
 		t.Errorf("Expected 'h' command to toggle showHelp off")
 	}
 }
+func (m *mockUpdater) CheckForUpdate(ctx context.Context, currentVersion string) (*UpdateRelease, error) {
+	if m.checkFunc != nil {
+		return m.checkFunc(ctx, currentVersion)
+	}
+	return nil, nil
+}
 
+func (m *mockUpdater) DownloadAndApply(ctx context.Context, downloadURL string, targetPath string) error {
+	if m.downloadAndApplyFunc != nil {
+		return m.downloadAndApplyFunc(ctx, downloadURL, targetPath)
+	}
+	return nil
+}
 
+func (m *mockUpdater) Restart(targetPath string) error {
+	if m.restartFunc != nil {
+		return m.restartFunc(targetPath)
+	}
+	return nil
+}
+
+type mockUpdater struct {
+	checkFunc            func(ctx context.Context, currentVersion string) (*UpdateRelease, error)
+	downloadAndApplyFunc func(ctx context.Context, downloadURL string, targetPath string) error
+	restartFunc          func(targetPath string) error
+}
+
+func TestTUI_DevMode_Disabled(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.version = "dev"
+	
+	checked := false
+	m.updater = &mockUpdater{
+		checkFunc: func(ctx context.Context, currentVersion string) (*UpdateRelease, error) {
+			checked = true
+			return &UpdateRelease{Version: "v1.2.0"}, nil
+		},
+	}
+
+	initCmd := m.Init()
+	if initCmd == nil {
+		t.Fatalf("Expected non-nil initCmd")
+	}
+
+	// Dev mode: init should only produce timeoutMsg (logo ticker), not checkUpdateCmd or checkForUpdateMsg
+	msg := initCmd()
+	if _, ok := msg.(timeoutMsg); !ok {
+		t.Errorf("Expected timeoutMsg from Init in dev mode, got %T", msg)
+	}
+	if checked {
+		t.Errorf("Expected updater.CheckForUpdate NOT to be called in dev mode")
+	}
+
+	// In non-dev mode, Init should return a batch command that dispatches update checking
+	mNonDev := InitialModel(mock, mock, mock)
+	mNonDev.version = "v1.0.0"
+	mNonDev.updater = m.updater
+
+	nonDevCmd := mNonDev.Init()
+	if nonDevCmd == nil {
+		t.Fatalf("Expected non-nil nonDevCmd")
+	}
+	// Execute checkUpdateCmd directly on non-dev model
+	cmd := checkUpdateCmd(mNonDev)
+	if cmd == nil {
+		t.Fatalf("Expected non-nil checkUpdateCmd")
+	}
+	resultMsg := cmd()
+	if !checked {
+		t.Errorf("Expected CheckForUpdate to be called for non-dev version")
+	}
+	availMsg, ok := resultMsg.(updateAvailableMsg)
+	if !ok || availMsg.release == nil || availMsg.release.Version != "v1.2.0" {
+		t.Errorf("Expected updateAvailableMsg with version v1.2.0, got %#v", resultMsg)
+	}
+}
+
+func TestTUI_UpdateLifecycle(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.version = "v1.0.0"
+
+	downloadCalled := false
+	restartCalled := false
+
+	m.updater = &mockUpdater{
+		checkFunc: func(ctx context.Context, currentVersion string) (*UpdateRelease, error) {
+			return &UpdateRelease{Version: "v1.5.0", DownloadURL: "https://example.com/bin"}, nil
+		},
+		downloadAndApplyFunc: func(ctx context.Context, downloadURL string, targetPath string) error {
+			downloadCalled = true
+			return nil
+		},
+		restartFunc: func(targetPath string) error {
+			restartCalled = true
+			return nil
+		},
+	}
+
+	// 1. Test checkForUpdateMsg dispatches checkUpdateCmd
+	newModel, cmd := m.Update(checkForUpdateMsg{})
+	m = newModel.(Model)
+	if cmd == nil {
+		t.Fatalf("Expected cmd from checkForUpdateMsg")
+	}
+
+	// 2. Test updateAvailableMsg transitions status and sets isUpdating
+	release := &UpdateRelease{Version: "v1.5.0", DownloadURL: "https://example.com/bin"}
+	newModel, cmd = m.Update(updateAvailableMsg{release: release})
+	m = newModel.(Model)
+
+	if !m.isUpdating {
+		t.Errorf("Expected isUpdating=true after updateAvailableMsg")
+	}
+	if !strings.Contains(m.updateStatus, "v1.5.0") {
+		t.Errorf("Expected updateStatus to mention v1.5.0, got %q", m.updateStatus)
+	}
+	if cmd == nil {
+		t.Fatalf("Expected cmd for downloadAndRestartCmd")
+	}
+
+	// Execute download and restart command
+	doneMsg := cmd()
+	if !downloadCalled {
+		t.Errorf("Expected downloadAndApply to be called")
+	}
+	if !restartCalled {
+		t.Errorf("Expected restart to be called")
+	}
+	if _, ok := doneMsg.(updateCompleteMsg); !ok {
+		t.Errorf("Expected updateCompleteMsg, got %T", doneMsg)
+	}
+
+	// 3. Test updateStatusMsg updates updateStatus
+	newModel, _ = m.Update(updateStatusMsg{status: "Custom progress status"})
+	m = newModel.(Model)
+	if m.updateStatus != "Custom progress status" {
+		t.Errorf("Expected updateStatus to be 'Custom progress status', got %q", m.updateStatus)
+	}
+
+	// 4. Test updateErrorMsg resets isUpdating
+	newModel, _ = m.Update(updateErrorMsg{err: fmt.Errorf("download failed")})
+	m = newModel.(Model)
+	if m.isUpdating {
+		t.Errorf("Expected isUpdating=false after updateErrorMsg")
+	}
+
+	// 5. Test download error handling in downloadAndRestartCmd
+	mErr := InitialModel(mock, mock, mock)
+	mErr.version = "v1.0.0"
+	mErr.updater = &mockUpdater{
+		downloadAndApplyFunc: func(ctx context.Context, downloadURL string, targetPath string) error {
+			return fmt.Errorf("permission denied")
+		},
+	}
+	errCmd := downloadAndRestartCmd(mErr, release)
+	errMsg := errCmd()
+	if uErr, ok := errMsg.(updateErrorMsg); !ok || uErr.err == nil || !strings.Contains(uErr.err.Error(), "permission denied") {
+		t.Errorf("Expected updateErrorMsg with permission denied, got %#v", errMsg)
+	}
+}

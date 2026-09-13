@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -97,6 +98,12 @@ type locateFetchedMsg struct {
 	err       error
 }
 
+type checkForUpdateMsg struct{}
+type updateAvailableMsg struct{ release *UpdateRelease }
+type updateStatusMsg struct{ status string }
+type updateErrorMsg struct{ err error }
+type updateCompleteMsg struct{}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
@@ -144,6 +151,11 @@ type Model struct {
 	locateViewport viewport.Model
 	activeLocateID int64
 	locateResponse *pb.LocateRecordResponse
+
+	version      string
+	updater      Updater
+	updateStatus string
+	isUpdating   bool
 }
 
 func defaultTokenLoader() (string, error) {
@@ -221,6 +233,42 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		progBar:      progress.New(progress.WithDefaultGradient()),
 		textInput:    ti,
 		orgSpinner:   newOrgSpinner(),
+		version:      "dev",
+	}
+}
+
+func checkUpdateCmd(m Model) tea.Cmd {
+	return func() tea.Msg {
+		if m.updater == nil {
+			return nil
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		release, err := m.updater.CheckForUpdate(ctx, m.version)
+		if err != nil {
+			return updateErrorMsg{err: err}
+		}
+		if release != nil {
+			return updateAvailableMsg{release: release}
+		}
+		return nil
+	}
+}
+
+func downloadAndRestartCmd(m Model, release *UpdateRelease) tea.Cmd {
+	return func() tea.Msg {
+		if m.updater == nil || release == nil {
+			return nil
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		if err := m.updater.DownloadAndApply(ctx, release.DownloadURL, ""); err != nil {
+			return updateErrorMsg{err: err}
+		}
+		if err := m.updater.Restart(""); err != nil {
+			return updateErrorMsg{err: err}
+		}
+		return updateCompleteMsg{}
 	}
 }
 
@@ -281,12 +329,51 @@ func (m Model) pollSync() tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
+	logoCmd := tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
 		return timeoutMsg{}
 	})
+	if m.version == "dev" || m.version == "" {
+		return logoCmd
+	}
+	return tea.Batch(
+		logoCmd,
+		checkUpdateCmd(m),
+		tea.Tick(15*time.Minute, func(t time.Time) tea.Msg {
+			return checkForUpdateMsg{}
+		}),
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case checkForUpdateMsg:
+		return m, tea.Batch(
+			checkUpdateCmd(m),
+			tea.Tick(15*time.Minute, func(t time.Time) tea.Msg {
+				return checkForUpdateMsg{}
+			}),
+		)
+	case updateAvailableMsg:
+		m.isUpdating = true
+		if msg.release != nil {
+			m.updateStatus = fmt.Sprintf("Updating to %s...", msg.release.Version)
+		} else {
+			m.updateStatus = "Updating..."
+		}
+		return m, downloadAndRestartCmd(m, msg.release)
+	case updateStatusMsg:
+		m.updateStatus = msg.status
+		return m, nil
+	case updateErrorMsg:
+		m.isUpdating = false
+		log.Printf("Update warning: %v", msg.err)
+		return m, nil
+	case updateCompleteMsg:
+		m.isUpdating = false
+		m.updateStatus = "Update complete"
+		return m, nil
+	}
+
 	switch m.state {
 	case StateStartupLogo:
 		switch msg.(type) {
