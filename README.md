@@ -58,6 +58,7 @@ Current Go version: 1.26.2
 - Auto-Updater Engine: Implements the `Updater` engine and GitHub Releases client for the Gramophile TUI, supporting update checks against the latest releases, platform asset matching, atomic binary downloads with permission validation, and automated process restart.
 - Incremental Sales Sync Integration Testing: End-to-end integration tests in `integration/sales_test.go` verifying the complete sales synchronization lifecycle across multiple pages, including cold-start pagination, incremental sync with early termination on previously seen listings, record linking, and timestamp progression.
 - Interactive Locate Search Infrastructure: Adds support for zero-argument `locate` invocations in the Gramophile TUI, introducing `StateLocateSearch` and asynchronous background collection index caching via `GetRecordRequest.get_all_records` to prepare for interactive fuzzy and substring search.
+- Interactive Locate Search & Filtering: Adds real-time substring filtering, duplicate release disambiguation (displaying release ID and folder location metadata), keyboard navigation (`up`/`down`/`k`/`j`), selection execution, and view rendering in the Gramophile TUI locate search interface.
 
 ## TUI (Terminal User Interface)
 

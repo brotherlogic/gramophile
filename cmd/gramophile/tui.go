@@ -226,6 +226,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 
 	lsi := textinput.New()
 	lsi.Placeholder = "Search collection by artist or title..."
+	lsi.Focus()
 	lsi.CharLimit = 256
 	lsi.Width = 60
 
@@ -313,7 +314,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.locateSearchErr = ""
 			m.collectionIndex = cMsg.records
-			m.filteredLocateRecords = cMsg.records
+			m.filterCollectionIndex()
 		}
 		return m, nil
 	}
@@ -750,12 +751,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.locateSearchInput.SetValue("")
 				m.locateSearchCursor = 0
+				m.filteredLocateRecords = m.collectionIndex
 				m.state = StateMainApp
 				return m, nil
+			case "up", "k":
+				if m.locateSearchCursor > 0 {
+					m.locateSearchCursor--
+				}
+				return m, nil
+			case "down", "j":
+				if m.locateSearchCursor < len(m.filteredLocateRecords)-1 {
+					m.locateSearchCursor++
+				}
+				return m, nil
+			case "enter":
+				if len(m.filteredLocateRecords) == 0 {
+					return m, nil
+				}
+				if m.locateSearchCursor >= len(m.filteredLocateRecords) {
+					m.locateSearchCursor = len(m.filteredLocateRecords) - 1
+				}
+				if m.locateSearchCursor < 0 {
+					m.locateSearchCursor = 0
+				}
+				rec := m.filteredLocateRecords[m.locateSearchCursor]
+				releaseID := rec.GetRelease().GetId()
+				m.activeLocateID = releaseID
+				m.state = StateLocateView
+				m.locateViewport.SetContent("Loading location...")
+				m.locateViewport.GotoTop()
+				return m, m.fetchLocateCmd(releaseID)
+			default:
+				oldVal := m.locateSearchInput.Value()
+				var cmd tea.Cmd
+				m.locateSearchInput, cmd = m.locateSearchInput.Update(msg)
+				newVal := m.locateSearchInput.Value()
+				if newVal != oldVal {
+					m.locateSearchCursor = 0
+					m.filterCollectionIndex()
+				}
+				return m, cmd
 			}
-			var cmd tea.Cmd
-			m.locateSearchInput, cmd = m.locateSearchInput.Update(msg)
-			return m, cmd
 		}
 	}
 
@@ -889,13 +925,44 @@ func (m Model) View() string {
 			body = m.locateViewport.View()
 		}
 	case StateLocateSearch:
+		var sb strings.Builder
+		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+		footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+
+		sb.WriteString(promptStyle.Render("Search: ") + m.locateSearchInput.View() + "\n\n")
+
 		if m.collectionLoading {
-			body = "Loading collection records..."
+			sb.WriteString("Loading collection records...\n")
 		} else if m.locateSearchErr != "" {
-			body = fmt.Sprintf("Error loading collection: %s", m.locateSearchErr)
+			sb.WriteString(fmt.Sprintf("Error loading collection: %s\n", m.locateSearchErr))
+		} else if len(m.filteredLocateRecords) == 0 {
+			sb.WriteString("No matching records found.\n")
 		} else {
-			body = m.locateSearchInput.View()
+			dupPool := m.filteredLocateRecords
+			if len(m.collectionIndex) > len(dupPool) {
+				dupPool = m.collectionIndex
+			}
+			dupCounts := make(map[string]int)
+			for _, r := range dupPool {
+				k := strings.ToLower(getRecordArtist(r)) + "|" + strings.ToLower(getRecordTitle(r))
+				dupCounts[k]++
+			}
+
+			for i, rec := range m.filteredLocateRecords {
+				k := strings.ToLower(getRecordArtist(rec)) + "|" + strings.ToLower(getRecordTitle(rec))
+				isDup := dupCounts[k] > 1
+				label := m.formatLocateRecordLabel(rec, isDup)
+				if i == m.locateSearchCursor {
+					sb.WriteString(selectedStyle.Render(fmt.Sprintf("> %s", label)) + "\n")
+				} else {
+					sb.WriteString(fmt.Sprintf("  %s\n", label))
+				}
+			}
 		}
+
+		sb.WriteString("\n" + footerStyle.Render("↑/↓: Navigate • Enter: Locate • Esc: Cancel"))
+		body = sb.String()
 	default:
 		body = "Gramophile TUI"
 	}
@@ -1362,4 +1429,82 @@ func formatLocateOutput(res *pb.LocateRecordResponse) string {
 	}
 	return sb.String()
 }
+
+func getRecordArtist(rec *pb.Record) string {
+	if rec == nil || rec.GetRelease() == nil {
+		return ""
+	}
+	if len(rec.GetRelease().GetArtists()) > 0 {
+		var names []string
+		for _, a := range rec.GetRelease().GetArtists() {
+			if a.GetName() != "" {
+				names = append(names, a.GetName())
+			}
+		}
+		if len(names) > 0 {
+			return strings.Join(names, ", ")
+		}
+	}
+	return ""
+}
+
+func getRecordTitle(rec *pb.Record) string {
+	if rec == nil || rec.GetRelease() == nil {
+		return ""
+	}
+	return rec.GetRelease().GetTitle()
+}
+
+func (m Model) resolveRecordFolder(rec *pb.Record) string {
+	if rec == nil {
+		return ""
+	}
+	folderID := rec.GetRelease().GetFolderId()
+	if folderID != 0 && m.user != nil {
+		for _, f := range m.user.GetFolders() {
+			if f.GetId() == folderID && f.GetName() != "" {
+				return f.GetName()
+			}
+		}
+	}
+	return rec.GetGoalFolder()
+}
+
+func (m Model) formatLocateRecordLabel(rec *pb.Record, isDuplicate bool) string {
+	artist := getRecordArtist(rec)
+	title := getRecordTitle(rec)
+	var base string
+	if artist != "" && title != "" {
+		base = fmt.Sprintf("%s - %s", artist, title)
+	} else if title != "" {
+		base = title
+	} else if artist != "" {
+		base = artist
+	} else {
+		base = fmt.Sprintf("%d", rec.GetRelease().GetId())
+	}
+	if isDuplicate {
+		folderName := m.resolveRecordFolder(rec)
+		return fmt.Sprintf("%s [ID: %d | Location: %s]", base, rec.GetRelease().GetId(), folderName)
+	}
+	return base
+}
+
+func (m *Model) filterCollectionIndex() {
+	query := strings.TrimSpace(strings.ToLower(m.locateSearchInput.Value()))
+	if query == "" {
+		m.filteredLocateRecords = m.collectionIndex
+		return
+	}
+	var filtered []*pb.Record
+	for _, rec := range m.collectionIndex {
+		artist := strings.ToLower(getRecordArtist(rec))
+		title := strings.ToLower(getRecordTitle(rec))
+		if strings.Contains(artist, query) || strings.Contains(title, query) || strings.Contains(artist+" - "+title, query) {
+			filtered = append(filtered, rec)
+		}
+	}
+	m.filteredLocateRecords = filtered
+}
+
 
