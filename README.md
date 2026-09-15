@@ -60,6 +60,7 @@ Current Go version: 1.26.2
 - Terminal TTY Spinner and In-Place Resolution Helper: Implements `TerminalRenderer` and `ResolutionSession` in `gram/render.go` supporting interactive ANSI in-place spinners (`Loading...` and dynamic retry indicators `Loading [Cache Failure #N]...`) for uncached record resolutions in TTY sessions, with clean text fallback suppressing ANSI escape sequences in redirected and piped environments.
 - Interactive Locate Search Infrastructure: Adds support for zero-argument `locate` invocations in the Gramophile TUI, introducing `StateLocateSearch` and asynchronous background collection index caching via `GetRecordRequest.get_all_records` to prepare for interactive fuzzy and substring search.
 - Interactive Locate Search & Filtering: Adds real-time substring filtering, duplicate release disambiguation (displaying release ID and folder location metadata), keyboard navigation (`up`/`down`/`k`/`j`), selection execution, and view rendering in the Gramophile TUI locate search interface.
+- Record Cache & Interactive Resolution in Org CLI: Integrates `RecordCacheManager` and `TerminalRenderer` into the `gram org` CLI command, replacing per-placement remote lookups with cached reads, in-place interactive spinners for uncached placements in TTY environments, and clean synchronous line rendering without ANSI escapes when piped or redirected.
 
 ## TUI (Terminal User Interface)
 

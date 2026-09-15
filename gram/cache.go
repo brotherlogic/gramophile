@@ -152,6 +152,21 @@ func formatArtistTitle(r *pbd.Release) string {
 	return fmt.Sprintf("%v - %v", getArtist(r), r.GetTitle())
 }
 
+// HasInstance reports whether a fresh, non-expired cache entry exists for the given instance ID.
+func (m *RecordCacheManager) HasInstance(iid int64) bool {
+	if m == nil {
+		return false
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	entry, exists := m.data.GetInstanceCache()[iid]
+	if !exists || entry == nil {
+		return false
+	}
+	age := time.Since(time.Unix(entry.GetResolvedTimestamp(), 0))
+	return age <= defaultCacheTTL
+}
+
 // ResolveInstance resolves the artist-title for an instance ID.
 // Fresh hit (<= 7 days): returns cached value immediately.
 // Stale hit (> 7 days): returns cached value immediately and triggers background refresh.
