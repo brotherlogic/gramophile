@@ -59,6 +59,7 @@ Current Go version: 1.26.2
 - Incremental Sales Sync Integration Testing: End-to-end integration tests in `integration/sales_test.go` verifying the complete sales synchronization lifecycle across multiple pages, including cold-start pagination, incremental sync with early termination on previously seen listings, record linking, and timestamp progression.
 - Terminal TTY Spinner and In-Place Resolution Helper: Implements `TerminalRenderer` and `ResolutionSession` in `gram/render.go` supporting interactive ANSI in-place spinners (`Loading...` and dynamic retry indicators `Loading [Cache Failure #N]...`) for uncached record resolutions in TTY sessions, with clean text fallback suppressing ANSI escape sequences in redirected and piped environments.
 - Interactive Locate Search Infrastructure: Adds support for zero-argument `locate` invocations in the Gramophile TUI, introducing `StateLocateSearch` and asynchronous background collection index caching via `GetRecordRequest.get_all_records` to prepare for interactive fuzzy and substring search.
+- Interactive Locate Search & Filtering: Adds real-time substring filtering, duplicate release disambiguation (displaying release ID and folder location metadata), keyboard navigation (`up`/`down`/`k`/`j`), selection execution, and view rendering in the Gramophile TUI locate search interface.
 
 ## TUI (Terminal User Interface)
 

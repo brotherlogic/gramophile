@@ -1994,4 +1994,266 @@ func TestStateMainApp_HelpCommand_TogglesHelp(t *testing.T) {
 	}
 }
 
+func TestLocateSearch_Filtering(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.collectionIndex = []*pb.Record{
+		{Release: &pbd.Release{Id: 101, Title: "The Wall", Artists: []*pbd.Artist{{Name: "Pink Floyd"}}}},
+		{Release: &pbd.Release{Id: 102, Title: "Kind of Blue", Artists: []*pbd.Artist{{Name: "Miles Davis"}}}},
+		{Release: &pbd.Release{Id: 103, Title: "Blue Train", Artists: []*pbd.Artist{{Name: "John Coltrane"}}}},
+	}
+	m.filteredLocateRecords = m.collectionIndex
+
+	// Type "mIlEs" (case-insensitive substring match on artist)
+	for _, r := range "mIlEs" {
+		newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newM.(Model)
+	}
+	if len(m.filteredLocateRecords) != 1 {
+		t.Fatalf("Expected 1 match for 'mIlEs', got %d", len(m.filteredLocateRecords))
+	}
+	if m.filteredLocateRecords[0].GetRelease().GetId() != 102 {
+		t.Errorf("Expected release ID 102, got %d", m.filteredLocateRecords[0].GetRelease().GetId())
+	}
+
+	// Change search cursor to non-zero, then change query to verify cursor resets
+	m.locateSearchCursor = 1
+
+	// Clear and search for "blue" (case-insensitive substring match on title)
+	m.locateSearchInput.SetValue("")
+	for _, r := range "blue" {
+		newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newM.(Model)
+	}
+	if len(m.filteredLocateRecords) != 2 {
+		t.Fatalf("Expected 2 matches for 'blue', got %d", len(m.filteredLocateRecords))
+	}
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected locateSearchCursor to be reset to 0, got %d", m.locateSearchCursor)
+	}
+
+	// Non-matching query
+	for _, r := range "xyz123" {
+		newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newM.(Model)
+	}
+	if len(m.filteredLocateRecords) != 0 {
+		t.Errorf("Expected 0 matches for non-matching query, got %d", len(m.filteredLocateRecords))
+	}
+}
+
+func TestLocateSearch_Disambiguation(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 12, Name: "Listening Pile"},
+		},
+	}
+	// Two records with identical artist and title (duplicate pressings) + one unique record
+	rec1 := &pb.Record{
+		Release: &pbd.Release{
+			Id:       102,
+			Title:    "Kind of Blue",
+			Artists:  []*pbd.Artist{{Name: "Miles Davis"}},
+			FolderId: 12,
+		},
+	}
+	rec2 := &pb.Record{
+		Release: &pbd.Release{
+			Id:       104,
+			Title:    "Kind of Blue",
+			Artists:  []*pbd.Artist{{Name: "Miles Davis"}},
+			FolderId: 99, // not in user.Folders -> fallback to GoalFolder
+		},
+		GoalFolder: "Archive Box",
+	}
+	rec3 := &pb.Record{
+		Release: &pbd.Release{
+			Id:       103,
+			Title:    "Blue Train",
+			Artists:  []*pbd.Artist{{Name: "John Coltrane"}},
+			FolderId: 12,
+		},
+	}
+	m.collectionIndex = []*pb.Record{rec1, rec2, rec3}
+	m.filteredLocateRecords = m.collectionIndex
+
+	view := m.View()
+
+	// rec1 has folder resolved from user.Folders
+	expectedRec1 := "Miles Davis - Kind of Blue [ID: 102 | Location: Listening Pile]"
+	if !strings.Contains(view, expectedRec1) {
+		t.Errorf("Expected view to contain disambiguated record 1 %q, got:\n%s", expectedRec1, view)
+	}
+
+	// rec2 has folder resolved from GoalFolder
+	expectedRec2 := "Miles Davis - Kind of Blue [ID: 104 | Location: Archive Box]"
+	if !strings.Contains(view, expectedRec2) {
+		t.Errorf("Expected view to contain disambiguated record 2 %q, got:\n%s", expectedRec2, view)
+	}
+
+	// rec3 is unique, so should render standard <Artist> - <Title> without ID or Location
+	if !strings.Contains(view, "John Coltrane - Blue Train") {
+		t.Errorf("Expected view to contain standard format for unique record %q, got:\n%s", "John Coltrane - Blue Train", view)
+	}
+	if strings.Contains(view, "John Coltrane - Blue Train [ID:") {
+		t.Errorf("Expected unique record not to contain disambiguation metadata, got:\n%s", view)
+	}
+}
+
+func TestLocateSearch_NavigationAndSelection(t *testing.T) {
+	mock := &mockClient{
+		locateRecordFunc: func(req *pb.LocateRecordRequest) (*pb.LocateRecordResponse, error) {
+			return &pb.LocateRecordResponse{}, nil
+		},
+	}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.filteredLocateRecords = []*pb.Record{
+		{Release: &pbd.Release{Id: 101, Title: "Record 1"}},
+		{Release: &pbd.Release{Id: 102, Title: "Record 2"}},
+		{Release: &pbd.Release{Id: 103, Title: "Record 3"}},
+	}
+	m.locateSearchCursor = 0
+
+	// Test arrow down navigation
+	newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 1 {
+		t.Errorf("Expected cursor 1 after down arrow, got %d", m.locateSearchCursor)
+	}
+
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 2 {
+		t.Errorf("Expected cursor 2 after down arrow, got %d", m.locateSearchCursor)
+	}
+
+	// Down arrow clamped at end
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 2 {
+		t.Errorf("Expected cursor clamped to 2, got %d", m.locateSearchCursor)
+	}
+
+	// Test up arrow navigation
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = newM.(Model)
+	if m.locateSearchCursor != 1 {
+		t.Errorf("Expected cursor 1 after up arrow, got %d", m.locateSearchCursor)
+	}
+
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = newM.(Model)
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected cursor 0 after up arrow, got %d", m.locateSearchCursor)
+	}
+
+	// Up arrow clamped at 0
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = newM.(Model)
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected cursor clamped to 0, got %d", m.locateSearchCursor)
+	}
+
+	// Also test j / k navigation
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = newM.(Model)
+	if m.locateSearchCursor != 1 {
+		t.Errorf("Expected cursor 1 after 'j', got %d", m.locateSearchCursor)
+	}
+
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	m = newM.(Model)
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected cursor 0 after 'k', got %d", m.locateSearchCursor)
+	}
+
+	// Move cursor to 1 (Record 2, ID 102) and press Enter to select
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 1 {
+		t.Fatalf("Expected cursor at 1 before Enter, got %d", m.locateSearchCursor)
+	}
+
+	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newM.(Model)
+
+	if m.state != StateLocateView {
+		t.Errorf("Expected state StateLocateView after Enter, got %v", m.state)
+	}
+	if m.activeLocateID != 102 {
+		t.Errorf("Expected activeLocateID 102, got %d", m.activeLocateID)
+	}
+	if cmd == nil {
+		t.Fatalf("Expected cmd to fetch locate record on Enter")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(locateFetchedMsg)
+	if !ok {
+		t.Fatalf("Expected locateFetchedMsg, got %T", msg)
+	}
+	if fetchedMsg.releaseID != 102 {
+		t.Errorf("Expected fetchedMsg.releaseID 102, got %d", fetchedMsg.releaseID)
+	}
+}
+
+func TestLocateSearch_EmptySelectionDisabled(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.filteredLocateRecords = []*pb.Record{}
+
+	// When filtered records are empty, pressing Enter does nothing (returns m, nil)
+	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newM.(Model)
+
+	if m.state != StateLocateSearch {
+		t.Errorf("Expected state to remain StateLocateSearch, got %v", m.state)
+	}
+	if cmd != nil {
+		t.Errorf("Expected nil cmd when selecting from empty results")
+	}
+
+	// Verify View() displays "No matching records found."
+	view := m.View()
+	if !strings.Contains(view, "No matching records found.") {
+		t.Errorf("Expected view to contain 'No matching records found.', got:\n%s", view)
+	}
+	// Verify footer
+	if !strings.Contains(view, "↑/↓: Navigate • Enter: Locate • Esc: Cancel") {
+		t.Errorf("Expected view to contain footer '↑/↓: Navigate • Enter: Locate • Esc: Cancel', got:\n%s", view)
+	}
+}
+
+func TestLocateSearch_Cancellation(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+	m.locateSearchInput.SetValue("some query")
+	m.locateSearchCursor = 3
+
+	// Press Esc
+	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newM.(Model)
+
+	if m.state != StateMainApp {
+		t.Errorf("Expected state to transition to StateMainApp on Esc, got %v", m.state)
+	}
+	if m.locateSearchInput.Value() != "" {
+		t.Errorf("Expected search input to be cleared, got %q", m.locateSearchInput.Value())
+	}
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected locateSearchCursor to be reset to 0, got %d", m.locateSearchCursor)
+	}
+	if cmd != nil {
+		t.Errorf("Expected nil cmd on cancel, got %v", cmd)
+	}
+}
+
+
 
