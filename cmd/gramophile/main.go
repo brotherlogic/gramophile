@@ -69,7 +69,10 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewGramophileEServiceClient(conn)
-	p := tea.NewProgram(InitialModel(client, client, client))
+	m := InitialModel(client, client, client)
+	m.version = resolveVersion()
+	m.updater = NewGitHubUpdater()
+	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v\n", err)
 		os.Exit(1)
