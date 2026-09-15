@@ -398,6 +398,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case updateErrorMsg:
 		m.isUpdating = false
+		m.updateStatus = "Update check failed (retrying in 15m)"
 		log.Printf("Update warning: %v", msg.err)
 		return m, nil
 	case updateCompleteMsg:
@@ -1054,8 +1055,35 @@ func (m Model) View() string {
 		body = "Gramophile TUI"
 	}
 
-	return m.renderLogo() + "\n\n" + body
+	return m.renderLogo() + "\n\n" + body + "\n\n" + renderFooter(m)
 }
+
+func renderFooter(m Model) string {
+	footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+
+	if m.version == "dev" || m.version == "vdev" || m.version == "" {
+		return footerStyle.Render("vdev (auto-update disabled)")
+	}
+
+	v := m.version
+	if !strings.HasPrefix(v, "v") {
+		v = "v" + v
+	}
+
+	if m.updateStatus != "" {
+		if strings.HasPrefix(m.updateStatus, v+" | ") {
+			return footerStyle.Render(m.updateStatus)
+		}
+		return footerStyle.Render(fmt.Sprintf("%s | %s", v, m.updateStatus))
+	}
+
+	return footerStyle.Render(fmt.Sprintf("Gramophile %s", v))
+}
+
+func (m Model) renderFooter() string {
+	return renderFooter(m)
+}
+
 
 
 func (m *Model) initConfigSelectForm() {
