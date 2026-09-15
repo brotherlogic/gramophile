@@ -2416,3 +2416,109 @@ func TestTUI_UpdateLifecycle(t *testing.T) {
 		t.Errorf("Expected updateErrorMsg with permission denied, got %#v", errMsg)
 	}
 }
+
+func TestTUI_Footer_AllStates(t *testing.T) {
+	mock := &mockClient{}
+	states := []appState{
+		StateStartupLogo,
+		StateLogin,
+		StateLoadingSync,
+		StateWaitlist,
+		StateMainApp,
+		StateOrgConfig,
+		StateOrgView,
+		StateLocateView,
+		StateConfigSelect,
+		StateLocateSearch,
+	}
+
+	for _, s := range states {
+		m := InitialModel(mock, mock, mock)
+		m.state = s
+		m.version = "v0.1561.0"
+		view := m.View()
+
+		expectedFooter := "Gramophile v0.1561.0"
+		if !strings.Contains(view, expectedFooter) {
+			t.Errorf("State %v: expected view to contain footer %q, got:\n%s", s, expectedFooter, view)
+		}
+
+		// Also verify dev mode footer rendering
+		mDev := InitialModel(mock, mock, mock)
+		mDev.state = s
+		mDev.version = "dev"
+		devView := mDev.View()
+		expectedDevFooter := "vdev (auto-update disabled)"
+		if !strings.Contains(devView, expectedDevFooter) {
+			t.Errorf("State %v: expected view to contain dev footer %q, got:\n%s", s, expectedDevFooter, devView)
+		}
+	}
+}
+
+func TestTUI_Footer_UpdateStatuses(t *testing.T) {
+	mock := &mockClient{}
+
+	// 1. Dev mode
+	mDev := InitialModel(mock, mock, mock)
+	mDev.version = "dev"
+	if footer := renderFooter(mDev); !strings.Contains(footer, "vdev (auto-update disabled)") {
+		t.Errorf("Expected dev footer 'vdev (auto-update disabled)', got %q", footer)
+	}
+
+	// 2. Idle state
+	mIdle := InitialModel(mock, mock, mock)
+	mIdle.version = "v0.1561.0"
+	mIdle.updateStatus = ""
+	if footer := renderFooter(mIdle); !strings.Contains(footer, "Gramophile v0.1561.0") {
+		t.Errorf("Expected idle footer 'Gramophile v0.1561.0', got %q", footer)
+	}
+
+	// Idle state without leading 'v' in version
+	mIdleNoV := InitialModel(mock, mock, mock)
+	mIdleNoV.version = "0.1561.0"
+	if footer := renderFooter(mIdleNoV); !strings.Contains(footer, "Gramophile v0.1561.0") {
+		t.Errorf("Expected idle footer 'Gramophile v0.1561.0' for un-prefixed version, got %q", footer)
+	}
+
+	// 3. Checking state
+	mChecking := InitialModel(mock, mock, mock)
+	mChecking.version = "v0.1561.0"
+	mChecking.updateStatus = "Checking for updates..."
+	if footer := renderFooter(mChecking); !strings.Contains(footer, "v0.1561.0 | Checking for updates...") {
+		t.Errorf("Expected checking footer 'v0.1561.0 | Checking for updates...', got %q", footer)
+	}
+
+	// 4. Updating / Downloading state
+	mUpdating := InitialModel(mock, mock, mock)
+	mUpdating.version = "v0.1561.0"
+	mUpdating.updateStatus = "Updating to v0.1562.0..."
+	if footer := renderFooter(mUpdating); !strings.Contains(footer, "v0.1561.0 | Updating to v0.1562.0...") {
+		t.Errorf("Expected updating footer 'v0.1561.0 | Updating to v0.1562.0...', got %q", footer)
+	}
+
+	// 5. Restarting state
+	mRestarting := InitialModel(mock, mock, mock)
+	mRestarting.version = "v0.1561.0"
+	mRestarting.updateStatus = "Restarting..."
+	if footer := renderFooter(mRestarting); !strings.Contains(footer, "v0.1561.0 | Restarting...") {
+		t.Errorf("Expected restarting footer 'v0.1561.0 | Restarting...', got %q", footer)
+	}
+
+	// 6. Error state
+	mError := InitialModel(mock, mock, mock)
+	mError.version = "v0.1561.0"
+	mError.updateStatus = "Update check failed (retrying in 15m)"
+	if footer := renderFooter(mError); !strings.Contains(footer, "v0.1561.0 | Update check failed (retrying in 15m)") {
+		t.Errorf("Expected error footer 'v0.1561.0 | Update check failed (retrying in 15m)', got %q", footer)
+	}
+
+	// 7. Lifecycle Update() handling for updateErrorMsg setting error status
+	mUpdateLifecycle := InitialModel(mock, mock, mock)
+	mUpdateLifecycle.version = "v0.1561.0"
+	newModel, _ := mUpdateLifecycle.Update(updateErrorMsg{err: fmt.Errorf("connection timeout")})
+	mUpdated := newModel.(Model)
+	if footer := renderFooter(mUpdated); !strings.Contains(footer, "v0.1561.0 | Update check failed (retrying in 15m)") {
+		t.Errorf("Expected footer after updateErrorMsg to contain error message, got %q", footer)
+	}
+}
+
