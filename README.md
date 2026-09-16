@@ -67,6 +67,7 @@ Current Go version: 1.26.2
 - ReconcileSales Protobuf Schema: Defines the `ReconcileSales` queue task element and adds `last_sale_reconcile` timestamp tracking to `StoredUser` to support full inventory sales reconciliation and sale pruning.
 - ReconcileSales Worker & Inventory Traversal: Implements the background queue task handler and full multi-page inventory traversal for `ReconcileSales` with early termination disabled, atomic deletion pruning via `CleanSales` and user reconciliation timestamp updates upon final page completion, downstream `LinkSales` dispatch, and Prometheus metric tracking.
 - ReconcileSales Periodic Scheduling & Admin CLI: Evaluates and schedules weekly `ReconcileSales` tasks in the background validator loop when the cadence exceeds 7 days, and provides the `reconcilesales` admin CLI command to manually trigger full sales inventory reconciliation.
+- End-to-End Sales Reconciliation Integration Testing: Comprehensive integration tests in `integration/sales_test.go` validating the complete decoupled sales reconciliation pipeline, including full multi-page inventory traversal with early termination disabled, atomic deletion pruning via `CleanSales`, dangling reference cleanup via `LinkSales`, user reconciliation timestamp persistence, and non-pruning behavior during standard incremental sales refreshes.
 
 ## TUI (Terminal User Interface)
 
