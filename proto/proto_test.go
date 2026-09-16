@@ -81,6 +81,34 @@ func TestSyncOrdersProto(t *testing.T) {
 	}
 }
 
+func TestReconcileSalesProto(t *testing.T) {
+	reconcileSales := &ReconcileSales{
+		Page:      1,
+		RefreshId: 12345,
+	}
+	elem := &QueueElement{
+		Entry: &QueueElement_ReconcileSales{
+			ReconcileSales: reconcileSales,
+		},
+	}
+	if elem.GetReconcileSales() == nil {
+		t.Errorf("Expected non-nil ReconcileSales in QueueElement")
+	}
+	if elem.GetReconcileSales().GetPage() != 1 {
+		t.Errorf("Expected page 1, got %v", elem.GetReconcileSales().GetPage())
+	}
+	if elem.GetReconcileSales().GetRefreshId() != 12345 {
+		t.Errorf("Expected refresh_id 12345, got %v", elem.GetReconcileSales().GetRefreshId())
+	}
+
+	user := &StoredUser{
+		LastSaleReconcile: 987654321,
+	}
+	if user.GetLastSaleReconcile() != 987654321 {
+		t.Errorf("Expected LastSaleReconcile to be 987654321, got %v", user.GetLastSaleReconcile())
+	}
+}
+
 func TestGetRecordRequestGetAllRecords(t *testing.T) {
 	req := &GetRecordRequest{
 		Request: &GetRecordRequest_GetAllRecords{

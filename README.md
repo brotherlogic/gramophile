@@ -64,6 +64,7 @@ Current Go version: 1.26.2
 - Record Cache & Interactive Resolution in Org CLI: Integrates `RecordCacheManager` and `TerminalRenderer` into the `gram org` CLI command, replacing per-placement remote lookups with cached reads, in-place interactive spinners for uncached placements in TTY environments, and clean synchronous line rendering without ANSI escapes when piped or redirected.
 - Persistent TUI Version and Update Status Footer: Displays a persistent styled footer (Lip Gloss dimmed `#666666`) across all views in the Gramophile TUI, showing current version information and dynamic auto-updater statuses (idle, checking, updating with version targets, restarting, error retries, and dev-mode indicators).
 - Record Cache & Context Resolution in Locate CLI: Integrates `RecordCacheManager` and `TerminalRenderer` into the `gram locate` CLI command, caching target release and surrounding context records (`before` / `after`), displaying interactive in-place spinners during resolution in TTY sessions, and outputting clean formatted text in piped or non-interactive environments.
+- ReconcileSales Protobuf Schema: Defines the `ReconcileSales` queue task element and adds `last_sale_reconcile` timestamp tracking to `StoredUser` to support full inventory sales reconciliation and sale pruning.
 
 ## TUI (Terminal User Interface)
 
