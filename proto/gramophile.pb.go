@@ -582,7 +582,7 @@ func (x DrainRequest_DrainType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DrainRequest_DrainType.Descriptor instead.
 func (DrainRequest_DrainType) EnumDescriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{56, 0}
+	return file_gramophile_proto_rawDescGZIP(), []int{57, 0}
 }
 
 type StoredUser_UserState int32
@@ -634,7 +634,7 @@ func (x StoredUser_UserState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StoredUser_UserState.Descriptor instead.
 func (StoredUser_UserState) EnumDescriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{58, 0}
+	return file_gramophile_proto_rawDescGZIP(), []int{59, 0}
 }
 
 type CleanRequest_CleanType int32
@@ -683,7 +683,7 @@ func (x CleanRequest_CleanType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CleanRequest_CleanType.Descriptor instead.
 func (CleanRequest_CleanType) EnumDescriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{119, 0}
+	return file_gramophile_proto_rawDescGZIP(), []int{120, 0}
 }
 
 type DBChange struct {
@@ -2691,6 +2691,7 @@ type QueueElement struct {
 	//	*QueueElement_DeleteRecord
 	//	*QueueElement_AdjustSales
 	//	*QueueElement_SyncOrders
+	//	*QueueElement_ReconcileSales
 	Entry         isQueueElement_Entry  `protobuf_oneof:"entry"`
 	RefreshId     int64                 `protobuf:"varint,7,opt,name=refresh_id,json=refreshId,proto3" json:"refresh_id,omitempty"`
 	Intention     string                `protobuf:"bytes,27,opt,name=intention,proto3" json:"intention,omitempty"`
@@ -3002,6 +3003,15 @@ func (x *QueueElement) GetSyncOrders() *SyncOrders {
 	return nil
 }
 
+func (x *QueueElement) GetReconcileSales() *ReconcileSales {
+	if x != nil {
+		if x, ok := x.Entry.(*QueueElement_ReconcileSales); ok {
+			return x.ReconcileSales
+		}
+	}
+	return nil
+}
+
 func (x *QueueElement) GetRefreshId() int64 {
 	if x != nil {
 		return x.RefreshId
@@ -3149,6 +3159,10 @@ type QueueElement_SyncOrders struct {
 	SyncOrders *SyncOrders `protobuf:"bytes,36,opt,name=sync_orders,json=syncOrders,proto3,oneof"`
 }
 
+type QueueElement_ReconcileSales struct {
+	ReconcileSales *ReconcileSales `protobuf:"bytes,37,opt,name=reconcile_sales,json=reconcileSales,proto3,oneof"`
+}
+
 func (*QueueElement_RefreshUser) isQueueElement_Entry() {}
 
 func (*QueueElement_RefreshCollectionEntry) isQueueElement_Entry() {}
@@ -3202,6 +3216,8 @@ func (*QueueElement_DeleteRecord) isQueueElement_Entry() {}
 func (*QueueElement_AdjustSales) isQueueElement_Entry() {}
 
 func (*QueueElement_SyncOrders) isQueueElement_Entry() {}
+
+func (*QueueElement_ReconcileSales) isQueueElement_Entry() {}
 
 type AddSale struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -4287,6 +4303,58 @@ func (x *SyncOrders) GetSyncId() int64 {
 	return 0
 }
 
+type ReconcileSales struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	RefreshId     int64                  `protobuf:"varint,2,opt,name=refresh_id,json=refreshId,proto3" json:"refresh_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReconcileSales) Reset() {
+	*x = ReconcileSales{}
+	mi := &file_gramophile_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReconcileSales) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReconcileSales) ProtoMessage() {}
+
+func (x *ReconcileSales) ProtoReflect() protoreflect.Message {
+	mi := &file_gramophile_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReconcileSales.ProtoReflect.Descriptor instead.
+func (*ReconcileSales) Descriptor() ([]byte, []int) {
+	return file_gramophile_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ReconcileSales) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ReconcileSales) GetRefreshId() int64 {
+	if x != nil {
+		return x.RefreshId
+	}
+	return 0
+}
+
 type LinkSales struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RefreshId     int64                  `protobuf:"varint,1,opt,name=refresh_id,json=refreshId,proto3" json:"refresh_id,omitempty"`
@@ -4296,7 +4364,7 @@ type LinkSales struct {
 
 func (x *LinkSales) Reset() {
 	*x = LinkSales{}
-	mi := &file_gramophile_proto_msgTypes[44]
+	mi := &file_gramophile_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4308,7 +4376,7 @@ func (x *LinkSales) String() string {
 func (*LinkSales) ProtoMessage() {}
 
 func (x *LinkSales) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[44]
+	mi := &file_gramophile_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4321,7 +4389,7 @@ func (x *LinkSales) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkSales.ProtoReflect.Descriptor instead.
 func (*LinkSales) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{44}
+	return file_gramophile_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *LinkSales) GetRefreshId() int64 {
@@ -4341,7 +4409,7 @@ type RefreshSales struct {
 
 func (x *RefreshSales) Reset() {
 	*x = RefreshSales{}
-	mi := &file_gramophile_proto_msgTypes[45]
+	mi := &file_gramophile_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4353,7 +4421,7 @@ func (x *RefreshSales) String() string {
 func (*RefreshSales) ProtoMessage() {}
 
 func (x *RefreshSales) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[45]
+	mi := &file_gramophile_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4366,7 +4434,7 @@ func (x *RefreshSales) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSales.ProtoReflect.Descriptor instead.
 func (*RefreshSales) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{45}
+	return file_gramophile_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RefreshSales) GetPage() int32 {
@@ -4392,7 +4460,7 @@ type AddFolderUpdate struct {
 
 func (x *AddFolderUpdate) Reset() {
 	*x = AddFolderUpdate{}
-	mi := &file_gramophile_proto_msgTypes[46]
+	mi := &file_gramophile_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4404,7 +4472,7 @@ func (x *AddFolderUpdate) String() string {
 func (*AddFolderUpdate) ProtoMessage() {}
 
 func (x *AddFolderUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[46]
+	mi := &file_gramophile_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4417,7 +4485,7 @@ func (x *AddFolderUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddFolderUpdate.ProtoReflect.Descriptor instead.
 func (*AddFolderUpdate) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{46}
+	return file_gramophile_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *AddFolderUpdate) GetFolderName() string {
@@ -4435,7 +4503,7 @@ type RefreshUpdates struct {
 
 func (x *RefreshUpdates) Reset() {
 	*x = RefreshUpdates{}
-	mi := &file_gramophile_proto_msgTypes[47]
+	mi := &file_gramophile_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4447,7 +4515,7 @@ func (x *RefreshUpdates) String() string {
 func (*RefreshUpdates) ProtoMessage() {}
 
 func (x *RefreshUpdates) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[47]
+	mi := &file_gramophile_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4460,7 +4528,7 @@ func (x *RefreshUpdates) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshUpdates.ProtoReflect.Descriptor instead.
 func (*RefreshUpdates) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{47}
+	return file_gramophile_proto_rawDescGZIP(), []int{48}
 }
 
 type RefreshUserEntry struct {
@@ -4472,7 +4540,7 @@ type RefreshUserEntry struct {
 
 func (x *RefreshUserEntry) Reset() {
 	*x = RefreshUserEntry{}
-	mi := &file_gramophile_proto_msgTypes[48]
+	mi := &file_gramophile_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4484,7 +4552,7 @@ func (x *RefreshUserEntry) String() string {
 func (*RefreshUserEntry) ProtoMessage() {}
 
 func (x *RefreshUserEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[48]
+	mi := &file_gramophile_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4497,7 +4565,7 @@ func (x *RefreshUserEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshUserEntry.ProtoReflect.Descriptor instead.
 func (*RefreshUserEntry) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{48}
+	return file_gramophile_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *RefreshUserEntry) GetAuth() string {
@@ -4517,7 +4585,7 @@ type RefreshCollectionEntry struct {
 
 func (x *RefreshCollectionEntry) Reset() {
 	*x = RefreshCollectionEntry{}
-	mi := &file_gramophile_proto_msgTypes[49]
+	mi := &file_gramophile_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4529,7 +4597,7 @@ func (x *RefreshCollectionEntry) String() string {
 func (*RefreshCollectionEntry) ProtoMessage() {}
 
 func (x *RefreshCollectionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[49]
+	mi := &file_gramophile_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4542,7 +4610,7 @@ func (x *RefreshCollectionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshCollectionEntry.ProtoReflect.Descriptor instead.
 func (*RefreshCollectionEntry) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{49}
+	return file_gramophile_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *RefreshCollectionEntry) GetPage() int32 {
@@ -4568,7 +4636,7 @@ type CleanCollectionEntry struct {
 
 func (x *CleanCollectionEntry) Reset() {
 	*x = CleanCollectionEntry{}
-	mi := &file_gramophile_proto_msgTypes[50]
+	mi := &file_gramophile_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4580,7 +4648,7 @@ func (x *CleanCollectionEntry) String() string {
 func (*CleanCollectionEntry) ProtoMessage() {}
 
 func (x *CleanCollectionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[50]
+	mi := &file_gramophile_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4593,7 +4661,7 @@ func (x *CleanCollectionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanCollectionEntry.ProtoReflect.Descriptor instead.
 func (*CleanCollectionEntry) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{50}
+	return file_gramophile_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *CleanCollectionEntry) GetRefreshId() int64 {
@@ -4613,7 +4681,7 @@ type RefreshIntents struct {
 
 func (x *RefreshIntents) Reset() {
 	*x = RefreshIntents{}
-	mi := &file_gramophile_proto_msgTypes[51]
+	mi := &file_gramophile_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4625,7 +4693,7 @@ func (x *RefreshIntents) String() string {
 func (*RefreshIntents) ProtoMessage() {}
 
 func (x *RefreshIntents) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[51]
+	mi := &file_gramophile_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4638,7 +4706,7 @@ func (x *RefreshIntents) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshIntents.ProtoReflect.Descriptor instead.
 func (*RefreshIntents) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{51}
+	return file_gramophile_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *RefreshIntents) GetInstanceId() int64 {
@@ -4664,7 +4732,7 @@ type EnqueueRequest struct {
 
 func (x *EnqueueRequest) Reset() {
 	*x = EnqueueRequest{}
-	mi := &file_gramophile_proto_msgTypes[52]
+	mi := &file_gramophile_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4676,7 +4744,7 @@ func (x *EnqueueRequest) String() string {
 func (*EnqueueRequest) ProtoMessage() {}
 
 func (x *EnqueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[52]
+	mi := &file_gramophile_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4689,7 +4757,7 @@ func (x *EnqueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueRequest.ProtoReflect.Descriptor instead.
 func (*EnqueueRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{52}
+	return file_gramophile_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *EnqueueRequest) GetElement() *QueueElement {
@@ -4707,7 +4775,7 @@ type EnqueueResponse struct {
 
 func (x *EnqueueResponse) Reset() {
 	*x = EnqueueResponse{}
-	mi := &file_gramophile_proto_msgTypes[53]
+	mi := &file_gramophile_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4719,7 +4787,7 @@ func (x *EnqueueResponse) String() string {
 func (*EnqueueResponse) ProtoMessage() {}
 
 func (x *EnqueueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[53]
+	mi := &file_gramophile_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4732,7 +4800,7 @@ func (x *EnqueueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueResponse.ProtoReflect.Descriptor instead.
 func (*EnqueueResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{53}
+	return file_gramophile_proto_rawDescGZIP(), []int{54}
 }
 
 type ListRequest struct {
@@ -4743,7 +4811,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_gramophile_proto_msgTypes[54]
+	mi := &file_gramophile_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4755,7 +4823,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[54]
+	mi := &file_gramophile_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4768,7 +4836,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{54}
+	return file_gramophile_proto_rawDescGZIP(), []int{55}
 }
 
 type ListResponse struct {
@@ -4781,7 +4849,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_gramophile_proto_msgTypes[55]
+	mi := &file_gramophile_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4793,7 +4861,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[55]
+	mi := &file_gramophile_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4806,7 +4874,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{55}
+	return file_gramophile_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListResponse) GetSkippedCount() int32 {
@@ -4832,7 +4900,7 @@ type DrainRequest struct {
 
 func (x *DrainRequest) Reset() {
 	*x = DrainRequest{}
-	mi := &file_gramophile_proto_msgTypes[56]
+	mi := &file_gramophile_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4844,7 +4912,7 @@ func (x *DrainRequest) String() string {
 func (*DrainRequest) ProtoMessage() {}
 
 func (x *DrainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[56]
+	mi := &file_gramophile_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4857,7 +4925,7 @@ func (x *DrainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DrainRequest.ProtoReflect.Descriptor instead.
 func (*DrainRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{56}
+	return file_gramophile_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *DrainRequest) GetDrainType() DrainRequest_DrainType {
@@ -4876,7 +4944,7 @@ type DrainResponse struct {
 
 func (x *DrainResponse) Reset() {
 	*x = DrainResponse{}
-	mi := &file_gramophile_proto_msgTypes[57]
+	mi := &file_gramophile_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4888,7 +4956,7 @@ func (x *DrainResponse) String() string {
 func (*DrainResponse) ProtoMessage() {}
 
 func (x *DrainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[57]
+	mi := &file_gramophile_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4901,7 +4969,7 @@ func (x *DrainResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DrainResponse.ProtoReflect.Descriptor instead.
 func (*DrainResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{57}
+	return file_gramophile_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *DrainResponse) GetCount() int32 {
@@ -4935,13 +5003,14 @@ type StoredUser struct {
 	WaitlistIssueNumber    int64                  `protobuf:"varint,20,opt,name=waitlist_issue_number,json=waitlistIssueNumber,proto3" json:"waitlist_issue_number,omitempty"`
 	LastSaleAdjust         int64                  `protobuf:"varint,21,opt,name=last_sale_adjust,json=lastSaleAdjust,proto3" json:"last_sale_adjust,omitempty"`
 	LastOrderSync          int64                  `protobuf:"varint,22,opt,name=last_order_sync,json=lastOrderSync,proto3" json:"last_order_sync,omitempty"`
+	LastSaleReconcile      int64                  `protobuf:"varint,23,opt,name=last_sale_reconcile,json=lastSaleReconcile,proto3" json:"last_sale_reconcile,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
 
 func (x *StoredUser) Reset() {
 	*x = StoredUser{}
-	mi := &file_gramophile_proto_msgTypes[58]
+	mi := &file_gramophile_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4953,7 +5022,7 @@ func (x *StoredUser) String() string {
 func (*StoredUser) ProtoMessage() {}
 
 func (x *StoredUser) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[58]
+	mi := &file_gramophile_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4966,7 +5035,7 @@ func (x *StoredUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoredUser.ProtoReflect.Descriptor instead.
 func (*StoredUser) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{58}
+	return file_gramophile_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *StoredUser) GetAuth() *GramophileAuth {
@@ -5123,6 +5192,13 @@ func (x *StoredUser) GetLastOrderSync() int64 {
 	return 0
 }
 
+func (x *StoredUser) GetLastSaleReconcile() int64 {
+	if x != nil {
+		return x.LastSaleReconcile
+	}
+	return 0
+}
+
 type GramophileAuth struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
@@ -5132,7 +5208,7 @@ type GramophileAuth struct {
 
 func (x *GramophileAuth) Reset() {
 	*x = GramophileAuth{}
-	mi := &file_gramophile_proto_msgTypes[59]
+	mi := &file_gramophile_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5144,7 +5220,7 @@ func (x *GramophileAuth) String() string {
 func (*GramophileAuth) ProtoMessage() {}
 
 func (x *GramophileAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[59]
+	mi := &file_gramophile_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5157,7 +5233,7 @@ func (x *GramophileAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GramophileAuth.ProtoReflect.Descriptor instead.
 func (*GramophileAuth) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{59}
+	return file_gramophile_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GramophileAuth) GetToken() string {
@@ -5176,7 +5252,7 @@ type UserLoginAttempts struct {
 
 func (x *UserLoginAttempts) Reset() {
 	*x = UserLoginAttempts{}
-	mi := &file_gramophile_proto_msgTypes[60]
+	mi := &file_gramophile_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5188,7 +5264,7 @@ func (x *UserLoginAttempts) String() string {
 func (*UserLoginAttempts) ProtoMessage() {}
 
 func (x *UserLoginAttempts) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[60]
+	mi := &file_gramophile_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5201,7 +5277,7 @@ func (x *UserLoginAttempts) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginAttempts.ProtoReflect.Descriptor instead.
 func (*UserLoginAttempts) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{60}
+	return file_gramophile_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *UserLoginAttempts) GetAttempts() []*UserLoginAttempt {
@@ -5224,7 +5300,7 @@ type UserLoginAttempt struct {
 
 func (x *UserLoginAttempt) Reset() {
 	*x = UserLoginAttempt{}
-	mi := &file_gramophile_proto_msgTypes[61]
+	mi := &file_gramophile_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5236,7 +5312,7 @@ func (x *UserLoginAttempt) String() string {
 func (*UserLoginAttempt) ProtoMessage() {}
 
 func (x *UserLoginAttempt) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[61]
+	mi := &file_gramophile_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5249,7 +5325,7 @@ func (x *UserLoginAttempt) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginAttempt.ProtoReflect.Descriptor instead.
 func (*UserLoginAttempt) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{61}
+	return file_gramophile_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *UserLoginAttempt) GetRequestToken() string {
@@ -5295,7 +5371,7 @@ type GetURLRequest struct {
 
 func (x *GetURLRequest) Reset() {
 	*x = GetURLRequest{}
-	mi := &file_gramophile_proto_msgTypes[62]
+	mi := &file_gramophile_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5307,7 +5383,7 @@ func (x *GetURLRequest) String() string {
 func (*GetURLRequest) ProtoMessage() {}
 
 func (x *GetURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[62]
+	mi := &file_gramophile_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5320,7 +5396,7 @@ func (x *GetURLRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetURLRequest.ProtoReflect.Descriptor instead.
 func (*GetURLRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{62}
+	return file_gramophile_proto_rawDescGZIP(), []int{63}
 }
 
 type GetURLResponse struct {
@@ -5333,7 +5409,7 @@ type GetURLResponse struct {
 
 func (x *GetURLResponse) Reset() {
 	*x = GetURLResponse{}
-	mi := &file_gramophile_proto_msgTypes[63]
+	mi := &file_gramophile_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5345,7 +5421,7 @@ func (x *GetURLResponse) String() string {
 func (*GetURLResponse) ProtoMessage() {}
 
 func (x *GetURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[63]
+	mi := &file_gramophile_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5358,7 +5434,7 @@ func (x *GetURLResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetURLResponse.ProtoReflect.Descriptor instead.
 func (*GetURLResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{63}
+	return file_gramophile_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *GetURLResponse) GetURL() string {
@@ -5384,7 +5460,7 @@ type GetLoginRequest struct {
 
 func (x *GetLoginRequest) Reset() {
 	*x = GetLoginRequest{}
-	mi := &file_gramophile_proto_msgTypes[64]
+	mi := &file_gramophile_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5396,7 +5472,7 @@ func (x *GetLoginRequest) String() string {
 func (*GetLoginRequest) ProtoMessage() {}
 
 func (x *GetLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[64]
+	mi := &file_gramophile_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5409,7 +5485,7 @@ func (x *GetLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoginRequest.ProtoReflect.Descriptor instead.
 func (*GetLoginRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{64}
+	return file_gramophile_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetLoginRequest) GetToken() string {
@@ -5428,7 +5504,7 @@ type GetLoginResponse struct {
 
 func (x *GetLoginResponse) Reset() {
 	*x = GetLoginResponse{}
-	mi := &file_gramophile_proto_msgTypes[65]
+	mi := &file_gramophile_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5440,7 +5516,7 @@ func (x *GetLoginResponse) String() string {
 func (*GetLoginResponse) ProtoMessage() {}
 
 func (x *GetLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[65]
+	mi := &file_gramophile_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5453,7 +5529,7 @@ func (x *GetLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoginResponse.ProtoReflect.Descriptor instead.
 func (*GetLoginResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{65}
+	return file_gramophile_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetLoginResponse) GetAuth() *GramophileAuth {
@@ -5471,7 +5547,7 @@ type GetStateRequest struct {
 
 func (x *GetStateRequest) Reset() {
 	*x = GetStateRequest{}
-	mi := &file_gramophile_proto_msgTypes[66]
+	mi := &file_gramophile_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5483,7 +5559,7 @@ func (x *GetStateRequest) String() string {
 func (*GetStateRequest) ProtoMessage() {}
 
 func (x *GetStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[66]
+	mi := &file_gramophile_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5496,7 +5572,7 @@ func (x *GetStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStateRequest.ProtoReflect.Descriptor instead.
 func (*GetStateRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{66}
+	return file_gramophile_proto_rawDescGZIP(), []int{67}
 }
 
 type GetStateResponse struct {
@@ -5517,7 +5593,7 @@ type GetStateResponse struct {
 
 func (x *GetStateResponse) Reset() {
 	*x = GetStateResponse{}
-	mi := &file_gramophile_proto_msgTypes[67]
+	mi := &file_gramophile_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5529,7 +5605,7 @@ func (x *GetStateResponse) String() string {
 func (*GetStateResponse) ProtoMessage() {}
 
 func (x *GetStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[67]
+	mi := &file_gramophile_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5542,7 +5618,7 @@ func (x *GetStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStateResponse.ProtoReflect.Descriptor instead.
 func (*GetStateResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{67}
+	return file_gramophile_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GetStateResponse) GetLastUserRefresh() int64 {
@@ -5624,7 +5700,7 @@ type SetConfigRequest struct {
 
 func (x *SetConfigRequest) Reset() {
 	*x = SetConfigRequest{}
-	mi := &file_gramophile_proto_msgTypes[68]
+	mi := &file_gramophile_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5636,7 +5712,7 @@ func (x *SetConfigRequest) String() string {
 func (*SetConfigRequest) ProtoMessage() {}
 
 func (x *SetConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[68]
+	mi := &file_gramophile_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5649,7 +5725,7 @@ func (x *SetConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetConfigRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{68}
+	return file_gramophile_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *SetConfigRequest) GetConfig() *GramophileConfig {
@@ -5667,7 +5743,7 @@ type SetConfigResponse struct {
 
 func (x *SetConfigResponse) Reset() {
 	*x = SetConfigResponse{}
-	mi := &file_gramophile_proto_msgTypes[69]
+	mi := &file_gramophile_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5679,7 +5755,7 @@ func (x *SetConfigResponse) String() string {
 func (*SetConfigResponse) ProtoMessage() {}
 
 func (x *SetConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[69]
+	mi := &file_gramophile_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5692,7 +5768,7 @@ func (x *SetConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetConfigResponse.ProtoReflect.Descriptor instead.
 func (*SetConfigResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{69}
+	return file_gramophile_proto_rawDescGZIP(), []int{70}
 }
 
 type SetIntentRequest struct {
@@ -5705,7 +5781,7 @@ type SetIntentRequest struct {
 
 func (x *SetIntentRequest) Reset() {
 	*x = SetIntentRequest{}
-	mi := &file_gramophile_proto_msgTypes[70]
+	mi := &file_gramophile_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5717,7 +5793,7 @@ func (x *SetIntentRequest) String() string {
 func (*SetIntentRequest) ProtoMessage() {}
 
 func (x *SetIntentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[70]
+	mi := &file_gramophile_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5730,7 +5806,7 @@ func (x *SetIntentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntentRequest.ProtoReflect.Descriptor instead.
 func (*SetIntentRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{70}
+	return file_gramophile_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *SetIntentRequest) GetInstanceId() int64 {
@@ -5755,7 +5831,7 @@ type SetIntentResponse struct {
 
 func (x *SetIntentResponse) Reset() {
 	*x = SetIntentResponse{}
-	mi := &file_gramophile_proto_msgTypes[71]
+	mi := &file_gramophile_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5767,7 +5843,7 @@ func (x *SetIntentResponse) String() string {
 func (*SetIntentResponse) ProtoMessage() {}
 
 func (x *SetIntentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[71]
+	mi := &file_gramophile_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5780,7 +5856,7 @@ func (x *SetIntentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntentResponse.ProtoReflect.Descriptor instead.
 func (*SetIntentResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{71}
+	return file_gramophile_proto_rawDescGZIP(), []int{72}
 }
 
 type GetRecordRequest struct {
@@ -5801,7 +5877,7 @@ type GetRecordRequest struct {
 
 func (x *GetRecordRequest) Reset() {
 	*x = GetRecordRequest{}
-	mi := &file_gramophile_proto_msgTypes[72]
+	mi := &file_gramophile_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5813,7 +5889,7 @@ func (x *GetRecordRequest) String() string {
 func (*GetRecordRequest) ProtoMessage() {}
 
 func (x *GetRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[72]
+	mi := &file_gramophile_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5826,7 +5902,7 @@ func (x *GetRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordRequest.ProtoReflect.Descriptor instead.
 func (*GetRecordRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{72}
+	return file_gramophile_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *GetRecordRequest) GetRequest() isGetRecordRequest_Request {
@@ -5947,7 +6023,7 @@ type GetRecordsPurchasedBetween struct {
 
 func (x *GetRecordsPurchasedBetween) Reset() {
 	*x = GetRecordsPurchasedBetween{}
-	mi := &file_gramophile_proto_msgTypes[73]
+	mi := &file_gramophile_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5959,7 +6035,7 @@ func (x *GetRecordsPurchasedBetween) String() string {
 func (*GetRecordsPurchasedBetween) ProtoMessage() {}
 
 func (x *GetRecordsPurchasedBetween) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[73]
+	mi := &file_gramophile_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5972,7 +6048,7 @@ func (x *GetRecordsPurchasedBetween) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordsPurchasedBetween.ProtoReflect.Descriptor instead.
 func (*GetRecordsPurchasedBetween) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{73}
+	return file_gramophile_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetRecordsPurchasedBetween) GetStartDate() int64 {
@@ -6001,7 +6077,7 @@ type RecordResponse struct {
 
 func (x *RecordResponse) Reset() {
 	*x = RecordResponse{}
-	mi := &file_gramophile_proto_msgTypes[74]
+	mi := &file_gramophile_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6013,7 +6089,7 @@ func (x *RecordResponse) String() string {
 func (*RecordResponse) ProtoMessage() {}
 
 func (x *RecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[74]
+	mi := &file_gramophile_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6026,7 +6102,7 @@ func (x *RecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordResponse.ProtoReflect.Descriptor instead.
 func (*RecordResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{74}
+	return file_gramophile_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *RecordResponse) GetRecord() *Record {
@@ -6066,7 +6142,7 @@ type RecordSet struct {
 
 func (x *RecordSet) Reset() {
 	*x = RecordSet{}
-	mi := &file_gramophile_proto_msgTypes[75]
+	mi := &file_gramophile_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6078,7 +6154,7 @@ func (x *RecordSet) String() string {
 func (*RecordSet) ProtoMessage() {}
 
 func (x *RecordSet) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[75]
+	mi := &file_gramophile_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6091,7 +6167,7 @@ func (x *RecordSet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordSet.ProtoReflect.Descriptor instead.
 func (*RecordSet) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{75}
+	return file_gramophile_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *RecordSet) GetRecords() []*Record {
@@ -6112,7 +6188,7 @@ type GetRecordWithId struct {
 
 func (x *GetRecordWithId) Reset() {
 	*x = GetRecordWithId{}
-	mi := &file_gramophile_proto_msgTypes[76]
+	mi := &file_gramophile_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6124,7 +6200,7 @@ func (x *GetRecordWithId) String() string {
 func (*GetRecordWithId) ProtoMessage() {}
 
 func (x *GetRecordWithId) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[76]
+	mi := &file_gramophile_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6137,7 +6213,7 @@ func (x *GetRecordWithId) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordWithId.ProtoReflect.Descriptor instead.
 func (*GetRecordWithId) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{76}
+	return file_gramophile_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *GetRecordWithId) GetInstanceId() int64 {
@@ -6169,7 +6245,7 @@ type GetRecordWithIssue struct {
 
 func (x *GetRecordWithIssue) Reset() {
 	*x = GetRecordWithIssue{}
-	mi := &file_gramophile_proto_msgTypes[77]
+	mi := &file_gramophile_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6181,7 +6257,7 @@ func (x *GetRecordWithIssue) String() string {
 func (*GetRecordWithIssue) ProtoMessage() {}
 
 func (x *GetRecordWithIssue) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[77]
+	mi := &file_gramophile_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6194,7 +6270,7 @@ func (x *GetRecordWithIssue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordWithIssue.ProtoReflect.Descriptor instead.
 func (*GetRecordWithIssue) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{77}
+	return file_gramophile_proto_rawDescGZIP(), []int{78}
 }
 
 type GetRecordToListenTo struct {
@@ -6206,7 +6282,7 @@ type GetRecordToListenTo struct {
 
 func (x *GetRecordToListenTo) Reset() {
 	*x = GetRecordToListenTo{}
-	mi := &file_gramophile_proto_msgTypes[78]
+	mi := &file_gramophile_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6218,7 +6294,7 @@ func (x *GetRecordToListenTo) String() string {
 func (*GetRecordToListenTo) ProtoMessage() {}
 
 func (x *GetRecordToListenTo) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[78]
+	mi := &file_gramophile_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6231,7 +6307,7 @@ func (x *GetRecordToListenTo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordToListenTo.ProtoReflect.Descriptor instead.
 func (*GetRecordToListenTo) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{78}
+	return file_gramophile_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *GetRecordToListenTo) GetFilter() string {
@@ -6250,7 +6326,7 @@ type GetRecordResponse struct {
 
 func (x *GetRecordResponse) Reset() {
 	*x = GetRecordResponse{}
-	mi := &file_gramophile_proto_msgTypes[79]
+	mi := &file_gramophile_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6262,7 +6338,7 @@ func (x *GetRecordResponse) String() string {
 func (*GetRecordResponse) ProtoMessage() {}
 
 func (x *GetRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[79]
+	mi := &file_gramophile_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6275,7 +6351,7 @@ func (x *GetRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecordResponse.ProtoReflect.Descriptor instead.
 func (*GetRecordResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{79}
+	return file_gramophile_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *GetRecordResponse) GetRecords() []*RecordResponse {
@@ -6298,7 +6374,7 @@ type GetOrgRequest struct {
 
 func (x *GetOrgRequest) Reset() {
 	*x = GetOrgRequest{}
-	mi := &file_gramophile_proto_msgTypes[80]
+	mi := &file_gramophile_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6310,7 +6386,7 @@ func (x *GetOrgRequest) String() string {
 func (*GetOrgRequest) ProtoMessage() {}
 
 func (x *GetOrgRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[80]
+	mi := &file_gramophile_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6323,7 +6399,7 @@ func (x *GetOrgRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgRequest.ProtoReflect.Descriptor instead.
 func (*GetOrgRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{80}
+	return file_gramophile_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GetOrgRequest) GetOrgName() string {
@@ -6370,7 +6446,7 @@ type GetOrgResponse struct {
 
 func (x *GetOrgResponse) Reset() {
 	*x = GetOrgResponse{}
-	mi := &file_gramophile_proto_msgTypes[81]
+	mi := &file_gramophile_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6382,7 +6458,7 @@ func (x *GetOrgResponse) String() string {
 func (*GetOrgResponse) ProtoMessage() {}
 
 func (x *GetOrgResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[81]
+	mi := &file_gramophile_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6395,7 +6471,7 @@ func (x *GetOrgResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgResponse.ProtoReflect.Descriptor instead.
 func (*GetOrgResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{81}
+	return file_gramophile_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *GetOrgResponse) GetSnapshot() *OrganisationSnapshot {
@@ -6416,7 +6492,7 @@ type SetOrgSnapshotRequest struct {
 
 func (x *SetOrgSnapshotRequest) Reset() {
 	*x = SetOrgSnapshotRequest{}
-	mi := &file_gramophile_proto_msgTypes[82]
+	mi := &file_gramophile_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6428,7 +6504,7 @@ func (x *SetOrgSnapshotRequest) String() string {
 func (*SetOrgSnapshotRequest) ProtoMessage() {}
 
 func (x *SetOrgSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[82]
+	mi := &file_gramophile_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6441,7 +6517,7 @@ func (x *SetOrgSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetOrgSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*SetOrgSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{82}
+	return file_gramophile_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *SetOrgSnapshotRequest) GetOrgName() string {
@@ -6473,7 +6549,7 @@ type SetOrgSnapshotResponse struct {
 
 func (x *SetOrgSnapshotResponse) Reset() {
 	*x = SetOrgSnapshotResponse{}
-	mi := &file_gramophile_proto_msgTypes[83]
+	mi := &file_gramophile_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6485,7 +6561,7 @@ func (x *SetOrgSnapshotResponse) String() string {
 func (*SetOrgSnapshotResponse) ProtoMessage() {}
 
 func (x *SetOrgSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[83]
+	mi := &file_gramophile_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6498,7 +6574,7 @@ func (x *SetOrgSnapshotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetOrgSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*SetOrgSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{83}
+	return file_gramophile_proto_rawDescGZIP(), []int{84}
 }
 
 type AddWantlistRequest struct {
@@ -6513,7 +6589,7 @@ type AddWantlistRequest struct {
 
 func (x *AddWantlistRequest) Reset() {
 	*x = AddWantlistRequest{}
-	mi := &file_gramophile_proto_msgTypes[84]
+	mi := &file_gramophile_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6525,7 +6601,7 @@ func (x *AddWantlistRequest) String() string {
 func (*AddWantlistRequest) ProtoMessage() {}
 
 func (x *AddWantlistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[84]
+	mi := &file_gramophile_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6538,7 +6614,7 @@ func (x *AddWantlistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWantlistRequest.ProtoReflect.Descriptor instead.
 func (*AddWantlistRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{84}
+	return file_gramophile_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *AddWantlistRequest) GetName() string {
@@ -6577,7 +6653,7 @@ type AddWantlistResponse struct {
 
 func (x *AddWantlistResponse) Reset() {
 	*x = AddWantlistResponse{}
-	mi := &file_gramophile_proto_msgTypes[85]
+	mi := &file_gramophile_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6589,7 +6665,7 @@ func (x *AddWantlistResponse) String() string {
 func (*AddWantlistResponse) ProtoMessage() {}
 
 func (x *AddWantlistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[85]
+	mi := &file_gramophile_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6602,7 +6678,7 @@ func (x *AddWantlistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWantlistResponse.ProtoReflect.Descriptor instead.
 func (*AddWantlistResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{85}
+	return file_gramophile_proto_rawDescGZIP(), []int{86}
 }
 
 type RefreshRecordRequest struct {
@@ -6615,7 +6691,7 @@ type RefreshRecordRequest struct {
 
 func (x *RefreshRecordRequest) Reset() {
 	*x = RefreshRecordRequest{}
-	mi := &file_gramophile_proto_msgTypes[86]
+	mi := &file_gramophile_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6627,7 +6703,7 @@ func (x *RefreshRecordRequest) String() string {
 func (*RefreshRecordRequest) ProtoMessage() {}
 
 func (x *RefreshRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[86]
+	mi := &file_gramophile_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6640,7 +6716,7 @@ func (x *RefreshRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRecordRequest.ProtoReflect.Descriptor instead.
 func (*RefreshRecordRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{86}
+	return file_gramophile_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *RefreshRecordRequest) GetInstanceId() int64 {
@@ -6667,7 +6743,7 @@ type RefreshRecordResponse struct {
 
 func (x *RefreshRecordResponse) Reset() {
 	*x = RefreshRecordResponse{}
-	mi := &file_gramophile_proto_msgTypes[87]
+	mi := &file_gramophile_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6679,7 +6755,7 @@ func (x *RefreshRecordResponse) String() string {
 func (*RefreshRecordResponse) ProtoMessage() {}
 
 func (x *RefreshRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[87]
+	mi := &file_gramophile_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6692,7 +6768,7 @@ func (x *RefreshRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRecordResponse.ProtoReflect.Descriptor instead.
 func (*RefreshRecordResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{87}
+	return file_gramophile_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *RefreshRecordResponse) GetSaleId() int64 {
@@ -6717,7 +6793,7 @@ type GetStatsRequest struct {
 
 func (x *GetStatsRequest) Reset() {
 	*x = GetStatsRequest{}
-	mi := &file_gramophile_proto_msgTypes[88]
+	mi := &file_gramophile_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6729,7 +6805,7 @@ func (x *GetStatsRequest) String() string {
 func (*GetStatsRequest) ProtoMessage() {}
 
 func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[88]
+	mi := &file_gramophile_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6742,7 +6818,7 @@ func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatsRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{88}
+	return file_gramophile_proto_rawDescGZIP(), []int{89}
 }
 
 type GetStatsResponse struct {
@@ -6755,7 +6831,7 @@ type GetStatsResponse struct {
 
 func (x *GetStatsResponse) Reset() {
 	*x = GetStatsResponse{}
-	mi := &file_gramophile_proto_msgTypes[89]
+	mi := &file_gramophile_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6767,7 +6843,7 @@ func (x *GetStatsResponse) String() string {
 func (*GetStatsResponse) ProtoMessage() {}
 
 func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[89]
+	mi := &file_gramophile_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6780,7 +6856,7 @@ func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetStatsResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{89}
+	return file_gramophile_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *GetStatsResponse) GetCollectionStats() *CollectionStats {
@@ -6807,7 +6883,7 @@ type AddSaleRequest struct {
 
 func (x *AddSaleRequest) Reset() {
 	*x = AddSaleRequest{}
-	mi := &file_gramophile_proto_msgTypes[90]
+	mi := &file_gramophile_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6819,7 +6895,7 @@ func (x *AddSaleRequest) String() string {
 func (*AddSaleRequest) ProtoMessage() {}
 
 func (x *AddSaleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[90]
+	mi := &file_gramophile_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6832,7 +6908,7 @@ func (x *AddSaleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSaleRequest.ProtoReflect.Descriptor instead.
 func (*AddSaleRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{90}
+	return file_gramophile_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *AddSaleRequest) GetParams() *proto.SaleParams {
@@ -6857,7 +6933,7 @@ type AddSaleResponse struct {
 
 func (x *AddSaleResponse) Reset() {
 	*x = AddSaleResponse{}
-	mi := &file_gramophile_proto_msgTypes[91]
+	mi := &file_gramophile_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6869,7 +6945,7 @@ func (x *AddSaleResponse) String() string {
 func (*AddSaleResponse) ProtoMessage() {}
 
 func (x *AddSaleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[91]
+	mi := &file_gramophile_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6882,7 +6958,7 @@ func (x *AddSaleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSaleResponse.ProtoReflect.Descriptor instead.
 func (*AddSaleResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{91}
+	return file_gramophile_proto_rawDescGZIP(), []int{92}
 }
 
 type AddRecordRequest struct {
@@ -6896,7 +6972,7 @@ type AddRecordRequest struct {
 
 func (x *AddRecordRequest) Reset() {
 	*x = AddRecordRequest{}
-	mi := &file_gramophile_proto_msgTypes[92]
+	mi := &file_gramophile_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6908,7 +6984,7 @@ func (x *AddRecordRequest) String() string {
 func (*AddRecordRequest) ProtoMessage() {}
 
 func (x *AddRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[92]
+	mi := &file_gramophile_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6921,7 +6997,7 @@ func (x *AddRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddRecordRequest.ProtoReflect.Descriptor instead.
 func (*AddRecordRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{92}
+	return file_gramophile_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *AddRecordRequest) GetId() int64 {
@@ -6954,7 +7030,7 @@ type AddRecordResponse struct {
 
 func (x *AddRecordResponse) Reset() {
 	*x = AddRecordResponse{}
-	mi := &file_gramophile_proto_msgTypes[93]
+	mi := &file_gramophile_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6966,7 +7042,7 @@ func (x *AddRecordResponse) String() string {
 func (*AddRecordResponse) ProtoMessage() {}
 
 func (x *AddRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[93]
+	mi := &file_gramophile_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6979,7 +7055,7 @@ func (x *AddRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddRecordResponse.ProtoReflect.Descriptor instead.
 func (*AddRecordResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{93}
+	return file_gramophile_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *AddRecordResponse) GetInstanceId() int64 {
@@ -6999,7 +7075,7 @@ type GetSaleRequest struct {
 
 func (x *GetSaleRequest) Reset() {
 	*x = GetSaleRequest{}
-	mi := &file_gramophile_proto_msgTypes[94]
+	mi := &file_gramophile_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7011,7 +7087,7 @@ func (x *GetSaleRequest) String() string {
 func (*GetSaleRequest) ProtoMessage() {}
 
 func (x *GetSaleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[94]
+	mi := &file_gramophile_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7024,7 +7100,7 @@ func (x *GetSaleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSaleRequest.ProtoReflect.Descriptor instead.
 func (*GetSaleRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{94}
+	return file_gramophile_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *GetSaleRequest) GetId() int64 {
@@ -7050,7 +7126,7 @@ type GetSaleResponse struct {
 
 func (x *GetSaleResponse) Reset() {
 	*x = GetSaleResponse{}
-	mi := &file_gramophile_proto_msgTypes[95]
+	mi := &file_gramophile_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7062,7 +7138,7 @@ func (x *GetSaleResponse) String() string {
 func (*GetSaleResponse) ProtoMessage() {}
 
 func (x *GetSaleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[95]
+	mi := &file_gramophile_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7075,7 +7151,7 @@ func (x *GetSaleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSaleResponse.ProtoReflect.Descriptor instead.
 func (*GetSaleResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{95}
+	return file_gramophile_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *GetSaleResponse) GetSales() []*SaleInfo {
@@ -7093,7 +7169,7 @@ type ListWantlistsRequest struct {
 
 func (x *ListWantlistsRequest) Reset() {
 	*x = ListWantlistsRequest{}
-	mi := &file_gramophile_proto_msgTypes[96]
+	mi := &file_gramophile_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7105,7 +7181,7 @@ func (x *ListWantlistsRequest) String() string {
 func (*ListWantlistsRequest) ProtoMessage() {}
 
 func (x *ListWantlistsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[96]
+	mi := &file_gramophile_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7118,7 +7194,7 @@ func (x *ListWantlistsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWantlistsRequest.ProtoReflect.Descriptor instead.
 func (*ListWantlistsRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{96}
+	return file_gramophile_proto_rawDescGZIP(), []int{97}
 }
 
 type ListWantlistsResponse struct {
@@ -7130,7 +7206,7 @@ type ListWantlistsResponse struct {
 
 func (x *ListWantlistsResponse) Reset() {
 	*x = ListWantlistsResponse{}
-	mi := &file_gramophile_proto_msgTypes[97]
+	mi := &file_gramophile_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7142,7 +7218,7 @@ func (x *ListWantlistsResponse) String() string {
 func (*ListWantlistsResponse) ProtoMessage() {}
 
 func (x *ListWantlistsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[97]
+	mi := &file_gramophile_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7155,7 +7231,7 @@ func (x *ListWantlistsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWantlistsResponse.ProtoReflect.Descriptor instead.
 func (*ListWantlistsResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{97}
+	return file_gramophile_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *ListWantlistsResponse) GetLists() []*Wantlist {
@@ -7177,7 +7253,7 @@ type UpdateWantlistRequest struct {
 
 func (x *UpdateWantlistRequest) Reset() {
 	*x = UpdateWantlistRequest{}
-	mi := &file_gramophile_proto_msgTypes[98]
+	mi := &file_gramophile_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7189,7 +7265,7 @@ func (x *UpdateWantlistRequest) String() string {
 func (*UpdateWantlistRequest) ProtoMessage() {}
 
 func (x *UpdateWantlistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[98]
+	mi := &file_gramophile_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7202,7 +7278,7 @@ func (x *UpdateWantlistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWantlistRequest.ProtoReflect.Descriptor instead.
 func (*UpdateWantlistRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{98}
+	return file_gramophile_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *UpdateWantlistRequest) GetName() string {
@@ -7241,7 +7317,7 @@ type UpdateWantlistResponse struct {
 
 func (x *UpdateWantlistResponse) Reset() {
 	*x = UpdateWantlistResponse{}
-	mi := &file_gramophile_proto_msgTypes[99]
+	mi := &file_gramophile_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7253,7 +7329,7 @@ func (x *UpdateWantlistResponse) String() string {
 func (*UpdateWantlistResponse) ProtoMessage() {}
 
 func (x *UpdateWantlistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[99]
+	mi := &file_gramophile_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7266,7 +7342,7 @@ func (x *UpdateWantlistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWantlistResponse.ProtoReflect.Descriptor instead.
 func (*UpdateWantlistResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{99}
+	return file_gramophile_proto_rawDescGZIP(), []int{100}
 }
 
 type GetWantsRequest struct {
@@ -7279,7 +7355,7 @@ type GetWantsRequest struct {
 
 func (x *GetWantsRequest) Reset() {
 	*x = GetWantsRequest{}
-	mi := &file_gramophile_proto_msgTypes[100]
+	mi := &file_gramophile_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7291,7 +7367,7 @@ func (x *GetWantsRequest) String() string {
 func (*GetWantsRequest) ProtoMessage() {}
 
 func (x *GetWantsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[100]
+	mi := &file_gramophile_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7304,7 +7380,7 @@ func (x *GetWantsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWantsRequest.ProtoReflect.Descriptor instead.
 func (*GetWantsRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{100}
+	return file_gramophile_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *GetWantsRequest) GetIncludeUpdates() bool {
@@ -7330,7 +7406,7 @@ type GetWantsResponse struct {
 
 func (x *GetWantsResponse) Reset() {
 	*x = GetWantsResponse{}
-	mi := &file_gramophile_proto_msgTypes[101]
+	mi := &file_gramophile_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7342,7 +7418,7 @@ func (x *GetWantsResponse) String() string {
 func (*GetWantsResponse) ProtoMessage() {}
 
 func (x *GetWantsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[101]
+	mi := &file_gramophile_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7355,7 +7431,7 @@ func (x *GetWantsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWantsResponse.ProtoReflect.Descriptor instead.
 func (*GetWantsResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{101}
+	return file_gramophile_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *GetWantsResponse) GetWants() []*WantResponse {
@@ -7375,7 +7451,7 @@ type WantResponse struct {
 
 func (x *WantResponse) Reset() {
 	*x = WantResponse{}
-	mi := &file_gramophile_proto_msgTypes[102]
+	mi := &file_gramophile_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7387,7 +7463,7 @@ func (x *WantResponse) String() string {
 func (*WantResponse) ProtoMessage() {}
 
 func (x *WantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[102]
+	mi := &file_gramophile_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7400,7 +7476,7 @@ func (x *WantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WantResponse.ProtoReflect.Descriptor instead.
 func (*WantResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{102}
+	return file_gramophile_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *WantResponse) GetWant() *Want {
@@ -7426,7 +7502,7 @@ type RefreshWantRequest struct {
 
 func (x *RefreshWantRequest) Reset() {
 	*x = RefreshWantRequest{}
-	mi := &file_gramophile_proto_msgTypes[103]
+	mi := &file_gramophile_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7438,7 +7514,7 @@ func (x *RefreshWantRequest) String() string {
 func (*RefreshWantRequest) ProtoMessage() {}
 
 func (x *RefreshWantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[103]
+	mi := &file_gramophile_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7451,7 +7527,7 @@ func (x *RefreshWantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshWantRequest.ProtoReflect.Descriptor instead.
 func (*RefreshWantRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{103}
+	return file_gramophile_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *RefreshWantRequest) GetWantId() int64 {
@@ -7469,7 +7545,7 @@ type RefreshWantResponse struct {
 
 func (x *RefreshWantResponse) Reset() {
 	*x = RefreshWantResponse{}
-	mi := &file_gramophile_proto_msgTypes[104]
+	mi := &file_gramophile_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7481,7 +7557,7 @@ func (x *RefreshWantResponse) String() string {
 func (*RefreshWantResponse) ProtoMessage() {}
 
 func (x *RefreshWantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[104]
+	mi := &file_gramophile_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7494,7 +7570,7 @@ func (x *RefreshWantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshWantResponse.ProtoReflect.Descriptor instead.
 func (*RefreshWantResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{104}
+	return file_gramophile_proto_rawDescGZIP(), []int{105}
 }
 
 type AddWantRequest struct {
@@ -7508,7 +7584,7 @@ type AddWantRequest struct {
 
 func (x *AddWantRequest) Reset() {
 	*x = AddWantRequest{}
-	mi := &file_gramophile_proto_msgTypes[105]
+	mi := &file_gramophile_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7520,7 +7596,7 @@ func (x *AddWantRequest) String() string {
 func (*AddWantRequest) ProtoMessage() {}
 
 func (x *AddWantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[105]
+	mi := &file_gramophile_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7533,7 +7609,7 @@ func (x *AddWantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWantRequest.ProtoReflect.Descriptor instead.
 func (*AddWantRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{105}
+	return file_gramophile_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *AddWantRequest) GetWantId() int64 {
@@ -7565,7 +7641,7 @@ type AddWantResponse struct {
 
 func (x *AddWantResponse) Reset() {
 	*x = AddWantResponse{}
-	mi := &file_gramophile_proto_msgTypes[106]
+	mi := &file_gramophile_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7577,7 +7653,7 @@ func (x *AddWantResponse) String() string {
 func (*AddWantResponse) ProtoMessage() {}
 
 func (x *AddWantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[106]
+	mi := &file_gramophile_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7590,7 +7666,7 @@ func (x *AddWantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddWantResponse.ProtoReflect.Descriptor instead.
 func (*AddWantResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{106}
+	return file_gramophile_proto_rawDescGZIP(), []int{107}
 }
 
 type DeleteWantlistRequest struct {
@@ -7602,7 +7678,7 @@ type DeleteWantlistRequest struct {
 
 func (x *DeleteWantlistRequest) Reset() {
 	*x = DeleteWantlistRequest{}
-	mi := &file_gramophile_proto_msgTypes[107]
+	mi := &file_gramophile_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7614,7 +7690,7 @@ func (x *DeleteWantlistRequest) String() string {
 func (*DeleteWantlistRequest) ProtoMessage() {}
 
 func (x *DeleteWantlistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[107]
+	mi := &file_gramophile_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7627,7 +7703,7 @@ func (x *DeleteWantlistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWantlistRequest.ProtoReflect.Descriptor instead.
 func (*DeleteWantlistRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{107}
+	return file_gramophile_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *DeleteWantlistRequest) GetName() string {
@@ -7645,7 +7721,7 @@ type DeleteWantlistResponse struct {
 
 func (x *DeleteWantlistResponse) Reset() {
 	*x = DeleteWantlistResponse{}
-	mi := &file_gramophile_proto_msgTypes[108]
+	mi := &file_gramophile_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7657,7 +7733,7 @@ func (x *DeleteWantlistResponse) String() string {
 func (*DeleteWantlistResponse) ProtoMessage() {}
 
 func (x *DeleteWantlistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[108]
+	mi := &file_gramophile_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7670,7 +7746,7 @@ func (x *DeleteWantlistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWantlistResponse.ProtoReflect.Descriptor instead.
 func (*DeleteWantlistResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{108}
+	return file_gramophile_proto_rawDescGZIP(), []int{109}
 }
 
 type GetWantlistRequest struct {
@@ -7682,7 +7758,7 @@ type GetWantlistRequest struct {
 
 func (x *GetWantlistRequest) Reset() {
 	*x = GetWantlistRequest{}
-	mi := &file_gramophile_proto_msgTypes[109]
+	mi := &file_gramophile_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7694,7 +7770,7 @@ func (x *GetWantlistRequest) String() string {
 func (*GetWantlistRequest) ProtoMessage() {}
 
 func (x *GetWantlistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[109]
+	mi := &file_gramophile_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7707,7 +7783,7 @@ func (x *GetWantlistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWantlistRequest.ProtoReflect.Descriptor instead.
 func (*GetWantlistRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{109}
+	return file_gramophile_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *GetWantlistRequest) GetName() string {
@@ -7726,7 +7802,7 @@ type GetWantlistResponse struct {
 
 func (x *GetWantlistResponse) Reset() {
 	*x = GetWantlistResponse{}
-	mi := &file_gramophile_proto_msgTypes[110]
+	mi := &file_gramophile_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7738,7 +7814,7 @@ func (x *GetWantlistResponse) String() string {
 func (*GetWantlistResponse) ProtoMessage() {}
 
 func (x *GetWantlistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[110]
+	mi := &file_gramophile_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7751,7 +7827,7 @@ func (x *GetWantlistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWantlistResponse.ProtoReflect.Descriptor instead.
 func (*GetWantlistResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{110}
+	return file_gramophile_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *GetWantlistResponse) GetList() *Wantlist {
@@ -7769,7 +7845,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_gramophile_proto_msgTypes[111]
+	mi := &file_gramophile_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7781,7 +7857,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[111]
+	mi := &file_gramophile_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7794,7 +7870,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{111}
+	return file_gramophile_proto_rawDescGZIP(), []int{112}
 }
 
 type GetUserResponse struct {
@@ -7806,7 +7882,7 @@ type GetUserResponse struct {
 
 func (x *GetUserResponse) Reset() {
 	*x = GetUserResponse{}
-	mi := &file_gramophile_proto_msgTypes[112]
+	mi := &file_gramophile_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7818,7 +7894,7 @@ func (x *GetUserResponse) String() string {
 func (*GetUserResponse) ProtoMessage() {}
 
 func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[112]
+	mi := &file_gramophile_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7831,7 +7907,7 @@ func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserResponse.ProtoReflect.Descriptor instead.
 func (*GetUserResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{112}
+	return file_gramophile_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *GetUserResponse) GetUser() *StoredUser {
@@ -7850,7 +7926,7 @@ type GetUsersRequest struct {
 
 func (x *GetUsersRequest) Reset() {
 	*x = GetUsersRequest{}
-	mi := &file_gramophile_proto_msgTypes[113]
+	mi := &file_gramophile_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7862,7 +7938,7 @@ func (x *GetUsersRequest) String() string {
 func (*GetUsersRequest) ProtoMessage() {}
 
 func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[113]
+	mi := &file_gramophile_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7875,7 +7951,7 @@ func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersRequest.ProtoReflect.Descriptor instead.
 func (*GetUsersRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{113}
+	return file_gramophile_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *GetUsersRequest) GetState() StoredUser_UserState {
@@ -7894,7 +7970,7 @@ type GetUsersResponse struct {
 
 func (x *GetUsersResponse) Reset() {
 	*x = GetUsersResponse{}
-	mi := &file_gramophile_proto_msgTypes[114]
+	mi := &file_gramophile_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7906,7 +7982,7 @@ func (x *GetUsersResponse) String() string {
 func (*GetUsersResponse) ProtoMessage() {}
 
 func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[114]
+	mi := &file_gramophile_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7919,7 +7995,7 @@ func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersResponse.ProtoReflect.Descriptor instead.
 func (*GetUsersResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{114}
+	return file_gramophile_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *GetUsersResponse) GetUsers() []*StoredUser {
@@ -7939,7 +8015,7 @@ type DeleteUserRequest struct {
 
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
-	mi := &file_gramophile_proto_msgTypes[115]
+	mi := &file_gramophile_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7951,7 +8027,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[115]
+	mi := &file_gramophile_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7964,7 +8040,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{115}
+	return file_gramophile_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *DeleteUserRequest) GetId() string {
@@ -7989,7 +8065,7 @@ type DeleteUserResponse struct {
 
 func (x *DeleteUserResponse) Reset() {
 	*x = DeleteUserResponse{}
-	mi := &file_gramophile_proto_msgTypes[116]
+	mi := &file_gramophile_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8001,7 +8077,7 @@ func (x *DeleteUserResponse) String() string {
 func (*DeleteUserResponse) ProtoMessage() {}
 
 func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[116]
+	mi := &file_gramophile_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8014,7 +8090,7 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{116}
+	return file_gramophile_proto_rawDescGZIP(), []int{117}
 }
 
 type UpgradeUserRequest struct {
@@ -8028,7 +8104,7 @@ type UpgradeUserRequest struct {
 
 func (x *UpgradeUserRequest) Reset() {
 	*x = UpgradeUserRequest{}
-	mi := &file_gramophile_proto_msgTypes[117]
+	mi := &file_gramophile_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8040,7 +8116,7 @@ func (x *UpgradeUserRequest) String() string {
 func (*UpgradeUserRequest) ProtoMessage() {}
 
 func (x *UpgradeUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[117]
+	mi := &file_gramophile_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8053,7 +8129,7 @@ func (x *UpgradeUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpgradeUserRequest.ProtoReflect.Descriptor instead.
 func (*UpgradeUserRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{117}
+	return file_gramophile_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *UpgradeUserRequest) GetUsername() string {
@@ -8085,7 +8161,7 @@ type UpgradeUserResponse struct {
 
 func (x *UpgradeUserResponse) Reset() {
 	*x = UpgradeUserResponse{}
-	mi := &file_gramophile_proto_msgTypes[118]
+	mi := &file_gramophile_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8097,7 +8173,7 @@ func (x *UpgradeUserResponse) String() string {
 func (*UpgradeUserResponse) ProtoMessage() {}
 
 func (x *UpgradeUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[118]
+	mi := &file_gramophile_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8110,7 +8186,7 @@ func (x *UpgradeUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpgradeUserResponse.ProtoReflect.Descriptor instead.
 func (*UpgradeUserResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{118}
+	return file_gramophile_proto_rawDescGZIP(), []int{119}
 }
 
 type CleanRequest struct {
@@ -8122,7 +8198,7 @@ type CleanRequest struct {
 
 func (x *CleanRequest) Reset() {
 	*x = CleanRequest{}
-	mi := &file_gramophile_proto_msgTypes[119]
+	mi := &file_gramophile_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8134,7 +8210,7 @@ func (x *CleanRequest) String() string {
 func (*CleanRequest) ProtoMessage() {}
 
 func (x *CleanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[119]
+	mi := &file_gramophile_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8147,7 +8223,7 @@ func (x *CleanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanRequest.ProtoReflect.Descriptor instead.
 func (*CleanRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{119}
+	return file_gramophile_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *CleanRequest) GetType() CleanRequest_CleanType {
@@ -8165,7 +8241,7 @@ type CleanResponse struct {
 
 func (x *CleanResponse) Reset() {
 	*x = CleanResponse{}
-	mi := &file_gramophile_proto_msgTypes[120]
+	mi := &file_gramophile_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8177,7 +8253,7 @@ func (x *CleanResponse) String() string {
 func (*CleanResponse) ProtoMessage() {}
 
 func (x *CleanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[120]
+	mi := &file_gramophile_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8190,7 +8266,7 @@ func (x *CleanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanResponse.ProtoReflect.Descriptor instead.
 func (*CleanResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{120}
+	return file_gramophile_proto_rawDescGZIP(), []int{121}
 }
 
 type WaitlistUser struct {
@@ -8207,7 +8283,7 @@ type WaitlistUser struct {
 
 func (x *WaitlistUser) Reset() {
 	*x = WaitlistUser{}
-	mi := &file_gramophile_proto_msgTypes[121]
+	mi := &file_gramophile_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8219,7 +8295,7 @@ func (x *WaitlistUser) String() string {
 func (*WaitlistUser) ProtoMessage() {}
 
 func (x *WaitlistUser) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[121]
+	mi := &file_gramophile_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8232,7 +8308,7 @@ func (x *WaitlistUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitlistUser.ProtoReflect.Descriptor instead.
 func (*WaitlistUser) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{121}
+	return file_gramophile_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *WaitlistUser) GetUser() *StoredUser {
@@ -8285,7 +8361,7 @@ type GetWaitlistStatusRequest struct {
 
 func (x *GetWaitlistStatusRequest) Reset() {
 	*x = GetWaitlistStatusRequest{}
-	mi := &file_gramophile_proto_msgTypes[122]
+	mi := &file_gramophile_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8297,7 +8373,7 @@ func (x *GetWaitlistStatusRequest) String() string {
 func (*GetWaitlistStatusRequest) ProtoMessage() {}
 
 func (x *GetWaitlistStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[122]
+	mi := &file_gramophile_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8310,7 +8386,7 @@ func (x *GetWaitlistStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWaitlistStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetWaitlistStatusRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{122}
+	return file_gramophile_proto_rawDescGZIP(), []int{123}
 }
 
 type GetWaitlistStatusResponse struct {
@@ -8322,7 +8398,7 @@ type GetWaitlistStatusResponse struct {
 
 func (x *GetWaitlistStatusResponse) Reset() {
 	*x = GetWaitlistStatusResponse{}
-	mi := &file_gramophile_proto_msgTypes[123]
+	mi := &file_gramophile_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8334,7 +8410,7 @@ func (x *GetWaitlistStatusResponse) String() string {
 func (*GetWaitlistStatusResponse) ProtoMessage() {}
 
 func (x *GetWaitlistStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[123]
+	mi := &file_gramophile_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8347,7 +8423,7 @@ func (x *GetWaitlistStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWaitlistStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetWaitlistStatusResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{123}
+	return file_gramophile_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *GetWaitlistStatusResponse) GetUsers() []*WaitlistUser {
@@ -8366,7 +8442,7 @@ type LocateRecordRequest struct {
 
 func (x *LocateRecordRequest) Reset() {
 	*x = LocateRecordRequest{}
-	mi := &file_gramophile_proto_msgTypes[124]
+	mi := &file_gramophile_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8378,7 +8454,7 @@ func (x *LocateRecordRequest) String() string {
 func (*LocateRecordRequest) ProtoMessage() {}
 
 func (x *LocateRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[124]
+	mi := &file_gramophile_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8391,7 +8467,7 @@ func (x *LocateRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocateRecordRequest.ProtoReflect.Descriptor instead.
 func (*LocateRecordRequest) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{124}
+	return file_gramophile_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *LocateRecordRequest) GetReleaseId() int64 {
@@ -8411,7 +8487,7 @@ type LocateRecordResponse struct {
 
 func (x *LocateRecordResponse) Reset() {
 	*x = LocateRecordResponse{}
-	mi := &file_gramophile_proto_msgTypes[125]
+	mi := &file_gramophile_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8423,7 +8499,7 @@ func (x *LocateRecordResponse) String() string {
 func (*LocateRecordResponse) ProtoMessage() {}
 
 func (x *LocateRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[125]
+	mi := &file_gramophile_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8436,7 +8512,7 @@ func (x *LocateRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocateRecordResponse.ProtoReflect.Descriptor instead.
 func (*LocateRecordResponse) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{125}
+	return file_gramophile_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *LocateRecordResponse) GetLocations() []*Location {
@@ -8456,7 +8532,7 @@ type RecordCacheEntry struct {
 
 func (x *RecordCacheEntry) Reset() {
 	*x = RecordCacheEntry{}
-	mi := &file_gramophile_proto_msgTypes[126]
+	mi := &file_gramophile_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8468,7 +8544,7 @@ func (x *RecordCacheEntry) String() string {
 func (*RecordCacheEntry) ProtoMessage() {}
 
 func (x *RecordCacheEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[126]
+	mi := &file_gramophile_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8481,7 +8557,7 @@ func (x *RecordCacheEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordCacheEntry.ProtoReflect.Descriptor instead.
 func (*RecordCacheEntry) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{126}
+	return file_gramophile_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *RecordCacheEntry) GetArtistTitle() string {
@@ -8508,7 +8584,7 @@ type RecordCache struct {
 
 func (x *RecordCache) Reset() {
 	*x = RecordCache{}
-	mi := &file_gramophile_proto_msgTypes[127]
+	mi := &file_gramophile_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8520,7 +8596,7 @@ func (x *RecordCache) String() string {
 func (*RecordCache) ProtoMessage() {}
 
 func (x *RecordCache) ProtoReflect() protoreflect.Message {
-	mi := &file_gramophile_proto_msgTypes[127]
+	mi := &file_gramophile_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8533,7 +8609,7 @@ func (x *RecordCache) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordCache.ProtoReflect.Descriptor instead.
 func (*RecordCache) Descriptor() ([]byte, []int) {
-	return file_gramophile_proto_rawDescGZIP(), []int{127}
+	return file_gramophile_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *RecordCache) GetInstanceCache() map[int64]*RecordCacheEntry {
@@ -8773,7 +8849,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x06queues\x18\x01 \x03(\v2\x11.gramophile.QueueR\x06queues\"Q\n" +
 	"\x05Queue\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x124\n" +
-	"\belements\x18\x02 \x03(\v2\x18.gramophile.QueueElementR\belements\"\xf0\x11\n" +
+	"\belements\x18\x02 \x03(\v2\x18.gramophile.QueueElementR\belements\"\xb7\x12\n" +
 	"\fQueueElement\x12\x19\n" +
 	"\brun_date\x18\x01 \x01(\x03R\arunDate\x12\x12\n" +
 	"\x04auth\x18\x02 \x01(\tR\x04auth\x12,\n" +
@@ -8810,7 +8886,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\rdelete_record\x18\" \x01(\v2\x18.gramophile.DeleteRecordH\x00R\fdeleteRecord\x12<\n" +
 	"\fadjust_sales\x18# \x01(\v2\x17.gramophile.AdjustSalesH\x00R\vadjustSales\x129\n" +
 	"\vsync_orders\x18$ \x01(\v2\x16.gramophile.SyncOrdersH\x00R\n" +
-	"syncOrders\x12\x1d\n" +
+	"syncOrders\x12E\n" +
+	"\x0freconcile_sales\x18% \x01(\v2\x1a.gramophile.ReconcileSalesH\x00R\x0ereconcileSales\x12\x1d\n" +
 	"\n" +
 	"refresh_id\x18\a \x01(\x03R\trefreshId\x12\x1c\n" +
 	"\tintention\x18\x1b \x01(\tR\tintention\x12\x14\n" +
@@ -8896,7 +8973,11 @@ const file_gramophile_proto_rawDesc = "" +
 	"\n" +
 	"SyncOrders\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x17\n" +
-	"\async_id\x18\x02 \x01(\x03R\x06syncId\"*\n" +
+	"\async_id\x18\x02 \x01(\x03R\x06syncId\"C\n" +
+	"\x0eReconcileSales\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1d\n" +
+	"\n" +
+	"refresh_id\x18\x02 \x01(\x03R\trefreshId\"*\n" +
 	"\tLinkSales\x12\x1d\n" +
 	"\n" +
 	"refresh_id\x18\x01 \x01(\x03R\trefreshId\"A\n" +
@@ -8940,7 +9021,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\n" +
 	"JUST_SALES\x10\x04\"%\n" +
 	"\rDrainResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"\x87\t\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"\xb7\t\n" +
 	"\n" +
 	"StoredUser\x12.\n" +
 	"\x04auth\x18\x01 \x01(\v2\x1a.gramophile.GramophileAuthR\x04auth\x12!\n" +
@@ -8967,7 +9048,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x15last_item_synced_time\x18\x13 \x01(\x03R\x12lastItemSyncedTime\x122\n" +
 	"\x15waitlist_issue_number\x18\x14 \x01(\x03R\x13waitlistIssueNumber\x12(\n" +
 	"\x10last_sale_adjust\x18\x15 \x01(\x03R\x0elastSaleAdjust\x12&\n" +
-	"\x0flast_order_sync\x18\x16 \x01(\x03R\rlastOrderSync\"o\n" +
+	"\x0flast_order_sync\x18\x16 \x01(\x03R\rlastOrderSync\x12.\n" +
+	"\x13last_sale_reconcile\x18\x17 \x01(\x03R\x11lastSaleReconcile\"o\n" +
 	"\tUserState\x12\x16\n" +
 	"\x12USER_STATE_UNKNOWN\x10\x00\x12\x19\n" +
 	"\x15USER_STATE_REFRESHING\x10\x01\x12\x1a\n" +
@@ -9261,7 +9343,7 @@ func file_gramophile_proto_rawDescGZIP() []byte {
 }
 
 var file_gramophile_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 131)
+var file_gramophile_proto_msgTypes = make([]protoimpl.MessageInfo, 132)
 var file_gramophile_proto_goTypes = []any{
 	(WantState)(0),                           // 0: gramophile.WantState
 	(NoncomplianceIssue)(0),                  // 1: gramophile.NoncomplianceIssue
@@ -9320,106 +9402,107 @@ var file_gramophile_proto_goTypes = []any{
 	(*RefreshWantlists)(nil),                 // 54: gramophile.RefreshWantlists
 	(*AdjustSales)(nil),                      // 55: gramophile.AdjustSales
 	(*SyncOrders)(nil),                       // 56: gramophile.SyncOrders
-	(*LinkSales)(nil),                        // 57: gramophile.LinkSales
-	(*RefreshSales)(nil),                     // 58: gramophile.RefreshSales
-	(*AddFolderUpdate)(nil),                  // 59: gramophile.AddFolderUpdate
-	(*RefreshUpdates)(nil),                   // 60: gramophile.RefreshUpdates
-	(*RefreshUserEntry)(nil),                 // 61: gramophile.RefreshUserEntry
-	(*RefreshCollectionEntry)(nil),           // 62: gramophile.RefreshCollectionEntry
-	(*CleanCollectionEntry)(nil),             // 63: gramophile.CleanCollectionEntry
-	(*RefreshIntents)(nil),                   // 64: gramophile.RefreshIntents
-	(*EnqueueRequest)(nil),                   // 65: gramophile.EnqueueRequest
-	(*EnqueueResponse)(nil),                  // 66: gramophile.EnqueueResponse
-	(*ListRequest)(nil),                      // 67: gramophile.ListRequest
-	(*ListResponse)(nil),                     // 68: gramophile.ListResponse
-	(*DrainRequest)(nil),                     // 69: gramophile.DrainRequest
-	(*DrainResponse)(nil),                    // 70: gramophile.DrainResponse
-	(*StoredUser)(nil),                       // 71: gramophile.StoredUser
-	(*GramophileAuth)(nil),                   // 72: gramophile.GramophileAuth
-	(*UserLoginAttempts)(nil),                // 73: gramophile.UserLoginAttempts
-	(*UserLoginAttempt)(nil),                 // 74: gramophile.UserLoginAttempt
-	(*GetURLRequest)(nil),                    // 75: gramophile.GetURLRequest
-	(*GetURLResponse)(nil),                   // 76: gramophile.GetURLResponse
-	(*GetLoginRequest)(nil),                  // 77: gramophile.GetLoginRequest
-	(*GetLoginResponse)(nil),                 // 78: gramophile.GetLoginResponse
-	(*GetStateRequest)(nil),                  // 79: gramophile.GetStateRequest
-	(*GetStateResponse)(nil),                 // 80: gramophile.GetStateResponse
-	(*SetConfigRequest)(nil),                 // 81: gramophile.SetConfigRequest
-	(*SetConfigResponse)(nil),                // 82: gramophile.SetConfigResponse
-	(*SetIntentRequest)(nil),                 // 83: gramophile.SetIntentRequest
-	(*SetIntentResponse)(nil),                // 84: gramophile.SetIntentResponse
-	(*GetRecordRequest)(nil),                 // 85: gramophile.GetRecordRequest
-	(*GetRecordsPurchasedBetween)(nil),       // 86: gramophile.GetRecordsPurchasedBetween
-	(*RecordResponse)(nil),                   // 87: gramophile.RecordResponse
-	(*RecordSet)(nil),                        // 88: gramophile.RecordSet
-	(*GetRecordWithId)(nil),                  // 89: gramophile.GetRecordWithId
-	(*GetRecordWithIssue)(nil),               // 90: gramophile.GetRecordWithIssue
-	(*GetRecordToListenTo)(nil),              // 91: gramophile.GetRecordToListenTo
-	(*GetRecordResponse)(nil),                // 92: gramophile.GetRecordResponse
-	(*GetOrgRequest)(nil),                    // 93: gramophile.GetOrgRequest
-	(*GetOrgResponse)(nil),                   // 94: gramophile.GetOrgResponse
-	(*SetOrgSnapshotRequest)(nil),            // 95: gramophile.SetOrgSnapshotRequest
-	(*SetOrgSnapshotResponse)(nil),           // 96: gramophile.SetOrgSnapshotResponse
-	(*AddWantlistRequest)(nil),               // 97: gramophile.AddWantlistRequest
-	(*AddWantlistResponse)(nil),              // 98: gramophile.AddWantlistResponse
-	(*RefreshRecordRequest)(nil),             // 99: gramophile.RefreshRecordRequest
-	(*RefreshRecordResponse)(nil),            // 100: gramophile.RefreshRecordResponse
-	(*GetStatsRequest)(nil),                  // 101: gramophile.GetStatsRequest
-	(*GetStatsResponse)(nil),                 // 102: gramophile.GetStatsResponse
-	(*AddSaleRequest)(nil),                   // 103: gramophile.AddSaleRequest
-	(*AddSaleResponse)(nil),                  // 104: gramophile.AddSaleResponse
-	(*AddRecordRequest)(nil),                 // 105: gramophile.AddRecordRequest
-	(*AddRecordResponse)(nil),                // 106: gramophile.AddRecordResponse
-	(*GetSaleRequest)(nil),                   // 107: gramophile.GetSaleRequest
-	(*GetSaleResponse)(nil),                  // 108: gramophile.GetSaleResponse
-	(*ListWantlistsRequest)(nil),             // 109: gramophile.ListWantlistsRequest
-	(*ListWantlistsResponse)(nil),            // 110: gramophile.ListWantlistsResponse
-	(*UpdateWantlistRequest)(nil),            // 111: gramophile.UpdateWantlistRequest
-	(*UpdateWantlistResponse)(nil),           // 112: gramophile.UpdateWantlistResponse
-	(*GetWantsRequest)(nil),                  // 113: gramophile.GetWantsRequest
-	(*GetWantsResponse)(nil),                 // 114: gramophile.GetWantsResponse
-	(*WantResponse)(nil),                     // 115: gramophile.WantResponse
-	(*RefreshWantRequest)(nil),               // 116: gramophile.RefreshWantRequest
-	(*RefreshWantResponse)(nil),              // 117: gramophile.RefreshWantResponse
-	(*AddWantRequest)(nil),                   // 118: gramophile.AddWantRequest
-	(*AddWantResponse)(nil),                  // 119: gramophile.AddWantResponse
-	(*DeleteWantlistRequest)(nil),            // 120: gramophile.DeleteWantlistRequest
-	(*DeleteWantlistResponse)(nil),           // 121: gramophile.DeleteWantlistResponse
-	(*GetWantlistRequest)(nil),               // 122: gramophile.GetWantlistRequest
-	(*GetWantlistResponse)(nil),              // 123: gramophile.GetWantlistResponse
-	(*GetUserRequest)(nil),                   // 124: gramophile.GetUserRequest
-	(*GetUserResponse)(nil),                  // 125: gramophile.GetUserResponse
-	(*GetUsersRequest)(nil),                  // 126: gramophile.GetUsersRequest
-	(*GetUsersResponse)(nil),                 // 127: gramophile.GetUsersResponse
-	(*DeleteUserRequest)(nil),                // 128: gramophile.DeleteUserRequest
-	(*DeleteUserResponse)(nil),               // 129: gramophile.DeleteUserResponse
-	(*UpgradeUserRequest)(nil),               // 130: gramophile.UpgradeUserRequest
-	(*UpgradeUserResponse)(nil),              // 131: gramophile.UpgradeUserResponse
-	(*CleanRequest)(nil),                     // 132: gramophile.CleanRequest
-	(*CleanResponse)(nil),                    // 133: gramophile.CleanResponse
-	(*WaitlistUser)(nil),                     // 134: gramophile.WaitlistUser
-	(*GetWaitlistStatusRequest)(nil),         // 135: gramophile.GetWaitlistStatusRequest
-	(*GetWaitlistStatusResponse)(nil),        // 136: gramophile.GetWaitlistStatusResponse
-	(*LocateRecordRequest)(nil),              // 137: gramophile.LocateRecordRequest
-	(*LocateRecordResponse)(nil),             // 138: gramophile.LocateRecordResponse
-	(*RecordCacheEntry)(nil),                 // 139: gramophile.RecordCacheEntry
-	(*RecordCache)(nil),                      // 140: gramophile.RecordCache
-	nil,                                      // 141: gramophile.UpdateControl.LastBackfillEntry
-	nil,                                      // 142: gramophile.RecordCache.InstanceCacheEntry
-	nil,                                      // 143: gramophile.RecordCache.ReleaseCacheEntry
-	(WantlistType)(0),                        // 144: gramophile.WantlistType
-	(*proto.Release)(nil),                    // 145: discogs.Release
-	(*proto.Price)(nil),                      // 146: discogs.Price
-	(proto.SaleStatus)(0),                    // 147: discogs.SaleStatus
-	(SaleUpdateType)(0),                      // 148: gramophile.SaleUpdateType
-	(*proto.SaleParams)(nil),                 // 149: discogs.SaleParams
-	(*proto.User)(nil),                       // 150: discogs.User
-	(*GramophileConfig)(nil),                 // 151: gramophile.GramophileConfig
-	(*proto.Folder)(nil),                     // 152: discogs.Folder
-	(*FolderMove)(nil),                       // 153: gramophile.FolderMove
-	(*OrganisationSnapshot)(nil),             // 154: gramophile.OrganisationSnapshot
-	(*CollectionStats)(nil),                  // 155: gramophile.CollectionStats
-	(*SaleStats)(nil),                        // 156: gramophile.SaleStats
+	(*ReconcileSales)(nil),                   // 57: gramophile.ReconcileSales
+	(*LinkSales)(nil),                        // 58: gramophile.LinkSales
+	(*RefreshSales)(nil),                     // 59: gramophile.RefreshSales
+	(*AddFolderUpdate)(nil),                  // 60: gramophile.AddFolderUpdate
+	(*RefreshUpdates)(nil),                   // 61: gramophile.RefreshUpdates
+	(*RefreshUserEntry)(nil),                 // 62: gramophile.RefreshUserEntry
+	(*RefreshCollectionEntry)(nil),           // 63: gramophile.RefreshCollectionEntry
+	(*CleanCollectionEntry)(nil),             // 64: gramophile.CleanCollectionEntry
+	(*RefreshIntents)(nil),                   // 65: gramophile.RefreshIntents
+	(*EnqueueRequest)(nil),                   // 66: gramophile.EnqueueRequest
+	(*EnqueueResponse)(nil),                  // 67: gramophile.EnqueueResponse
+	(*ListRequest)(nil),                      // 68: gramophile.ListRequest
+	(*ListResponse)(nil),                     // 69: gramophile.ListResponse
+	(*DrainRequest)(nil),                     // 70: gramophile.DrainRequest
+	(*DrainResponse)(nil),                    // 71: gramophile.DrainResponse
+	(*StoredUser)(nil),                       // 72: gramophile.StoredUser
+	(*GramophileAuth)(nil),                   // 73: gramophile.GramophileAuth
+	(*UserLoginAttempts)(nil),                // 74: gramophile.UserLoginAttempts
+	(*UserLoginAttempt)(nil),                 // 75: gramophile.UserLoginAttempt
+	(*GetURLRequest)(nil),                    // 76: gramophile.GetURLRequest
+	(*GetURLResponse)(nil),                   // 77: gramophile.GetURLResponse
+	(*GetLoginRequest)(nil),                  // 78: gramophile.GetLoginRequest
+	(*GetLoginResponse)(nil),                 // 79: gramophile.GetLoginResponse
+	(*GetStateRequest)(nil),                  // 80: gramophile.GetStateRequest
+	(*GetStateResponse)(nil),                 // 81: gramophile.GetStateResponse
+	(*SetConfigRequest)(nil),                 // 82: gramophile.SetConfigRequest
+	(*SetConfigResponse)(nil),                // 83: gramophile.SetConfigResponse
+	(*SetIntentRequest)(nil),                 // 84: gramophile.SetIntentRequest
+	(*SetIntentResponse)(nil),                // 85: gramophile.SetIntentResponse
+	(*GetRecordRequest)(nil),                 // 86: gramophile.GetRecordRequest
+	(*GetRecordsPurchasedBetween)(nil),       // 87: gramophile.GetRecordsPurchasedBetween
+	(*RecordResponse)(nil),                   // 88: gramophile.RecordResponse
+	(*RecordSet)(nil),                        // 89: gramophile.RecordSet
+	(*GetRecordWithId)(nil),                  // 90: gramophile.GetRecordWithId
+	(*GetRecordWithIssue)(nil),               // 91: gramophile.GetRecordWithIssue
+	(*GetRecordToListenTo)(nil),              // 92: gramophile.GetRecordToListenTo
+	(*GetRecordResponse)(nil),                // 93: gramophile.GetRecordResponse
+	(*GetOrgRequest)(nil),                    // 94: gramophile.GetOrgRequest
+	(*GetOrgResponse)(nil),                   // 95: gramophile.GetOrgResponse
+	(*SetOrgSnapshotRequest)(nil),            // 96: gramophile.SetOrgSnapshotRequest
+	(*SetOrgSnapshotResponse)(nil),           // 97: gramophile.SetOrgSnapshotResponse
+	(*AddWantlistRequest)(nil),               // 98: gramophile.AddWantlistRequest
+	(*AddWantlistResponse)(nil),              // 99: gramophile.AddWantlistResponse
+	(*RefreshRecordRequest)(nil),             // 100: gramophile.RefreshRecordRequest
+	(*RefreshRecordResponse)(nil),            // 101: gramophile.RefreshRecordResponse
+	(*GetStatsRequest)(nil),                  // 102: gramophile.GetStatsRequest
+	(*GetStatsResponse)(nil),                 // 103: gramophile.GetStatsResponse
+	(*AddSaleRequest)(nil),                   // 104: gramophile.AddSaleRequest
+	(*AddSaleResponse)(nil),                  // 105: gramophile.AddSaleResponse
+	(*AddRecordRequest)(nil),                 // 106: gramophile.AddRecordRequest
+	(*AddRecordResponse)(nil),                // 107: gramophile.AddRecordResponse
+	(*GetSaleRequest)(nil),                   // 108: gramophile.GetSaleRequest
+	(*GetSaleResponse)(nil),                  // 109: gramophile.GetSaleResponse
+	(*ListWantlistsRequest)(nil),             // 110: gramophile.ListWantlistsRequest
+	(*ListWantlistsResponse)(nil),            // 111: gramophile.ListWantlistsResponse
+	(*UpdateWantlistRequest)(nil),            // 112: gramophile.UpdateWantlistRequest
+	(*UpdateWantlistResponse)(nil),           // 113: gramophile.UpdateWantlistResponse
+	(*GetWantsRequest)(nil),                  // 114: gramophile.GetWantsRequest
+	(*GetWantsResponse)(nil),                 // 115: gramophile.GetWantsResponse
+	(*WantResponse)(nil),                     // 116: gramophile.WantResponse
+	(*RefreshWantRequest)(nil),               // 117: gramophile.RefreshWantRequest
+	(*RefreshWantResponse)(nil),              // 118: gramophile.RefreshWantResponse
+	(*AddWantRequest)(nil),                   // 119: gramophile.AddWantRequest
+	(*AddWantResponse)(nil),                  // 120: gramophile.AddWantResponse
+	(*DeleteWantlistRequest)(nil),            // 121: gramophile.DeleteWantlistRequest
+	(*DeleteWantlistResponse)(nil),           // 122: gramophile.DeleteWantlistResponse
+	(*GetWantlistRequest)(nil),               // 123: gramophile.GetWantlistRequest
+	(*GetWantlistResponse)(nil),              // 124: gramophile.GetWantlistResponse
+	(*GetUserRequest)(nil),                   // 125: gramophile.GetUserRequest
+	(*GetUserResponse)(nil),                  // 126: gramophile.GetUserResponse
+	(*GetUsersRequest)(nil),                  // 127: gramophile.GetUsersRequest
+	(*GetUsersResponse)(nil),                 // 128: gramophile.GetUsersResponse
+	(*DeleteUserRequest)(nil),                // 129: gramophile.DeleteUserRequest
+	(*DeleteUserResponse)(nil),               // 130: gramophile.DeleteUserResponse
+	(*UpgradeUserRequest)(nil),               // 131: gramophile.UpgradeUserRequest
+	(*UpgradeUserResponse)(nil),              // 132: gramophile.UpgradeUserResponse
+	(*CleanRequest)(nil),                     // 133: gramophile.CleanRequest
+	(*CleanResponse)(nil),                    // 134: gramophile.CleanResponse
+	(*WaitlistUser)(nil),                     // 135: gramophile.WaitlistUser
+	(*GetWaitlistStatusRequest)(nil),         // 136: gramophile.GetWaitlistStatusRequest
+	(*GetWaitlistStatusResponse)(nil),        // 137: gramophile.GetWaitlistStatusResponse
+	(*LocateRecordRequest)(nil),              // 138: gramophile.LocateRecordRequest
+	(*LocateRecordResponse)(nil),             // 139: gramophile.LocateRecordResponse
+	(*RecordCacheEntry)(nil),                 // 140: gramophile.RecordCacheEntry
+	(*RecordCache)(nil),                      // 141: gramophile.RecordCache
+	nil,                                      // 142: gramophile.UpdateControl.LastBackfillEntry
+	nil,                                      // 143: gramophile.RecordCache.InstanceCacheEntry
+	nil,                                      // 144: gramophile.RecordCache.ReleaseCacheEntry
+	(WantlistType)(0),                        // 145: gramophile.WantlistType
+	(*proto.Release)(nil),                    // 146: discogs.Release
+	(*proto.Price)(nil),                      // 147: discogs.Price
+	(proto.SaleStatus)(0),                    // 148: discogs.SaleStatus
+	(SaleUpdateType)(0),                      // 149: gramophile.SaleUpdateType
+	(*proto.SaleParams)(nil),                 // 150: discogs.SaleParams
+	(*proto.User)(nil),                       // 151: discogs.User
+	(*GramophileConfig)(nil),                 // 152: gramophile.GramophileConfig
+	(*proto.Folder)(nil),                     // 153: discogs.Folder
+	(*FolderMove)(nil),                       // 154: gramophile.FolderMove
+	(*OrganisationSnapshot)(nil),             // 155: gramophile.OrganisationSnapshot
+	(*CollectionStats)(nil),                  // 156: gramophile.CollectionStats
+	(*SaleStats)(nil),                        // 157: gramophile.SaleStats
 }
 var file_gramophile_proto_depIdxs = []int32{
 	5,   // 0: gramophile.DBChange.type:type_name -> gramophile.DBChange.Type
@@ -9431,49 +9514,49 @@ var file_gramophile_proto_depIdxs = []int32{
 	15,  // 6: gramophile.PrintMove.destination:type_name -> gramophile.Location
 	16,  // 7: gramophile.Location.before:type_name -> gramophile.Context
 	16,  // 8: gramophile.Location.after:type_name -> gramophile.Context
-	144, // 9: gramophile.Wantlist.type:type_name -> gramophile.WantlistType
+	145, // 9: gramophile.Wantlist.type:type_name -> gramophile.WantlistType
 	18,  // 10: gramophile.Wantlist.entries:type_name -> gramophile.WantlistEntry
 	19,  // 11: gramophile.Wantlist.global_filter:type_name -> gramophile.WantFilter
 	0,   // 12: gramophile.WantlistEntry.state:type_name -> gramophile.WantState
 	0,   // 13: gramophile.Want.state:type_name -> gramophile.WantState
 	0,   // 14: gramophile.Want.intended_state:type_name -> gramophile.WantState
 	19,  // 15: gramophile.Want.master_filter:type_name -> gramophile.WantFilter
-	141, // 16: gramophile.UpdateControl.lastBackfill:type_name -> gramophile.UpdateControl.LastBackfillEntry
+	142, // 16: gramophile.UpdateControl.lastBackfill:type_name -> gramophile.UpdateControl.LastBackfillEntry
 	23,  // 17: gramophile.RecordUpdates.updates:type_name -> gramophile.RecordUpdate
 	2,   // 18: gramophile.RecordUpdate.type:type_name -> gramophile.UpdateType
 	25,  // 19: gramophile.WantUpdate.updates:type_name -> gramophile.Update
 	26,  // 20: gramophile.Update.changes:type_name -> gramophile.Change
 	6,   // 21: gramophile.Change.type:type_name -> gramophile.Change.ChangeType
-	145, // 22: gramophile.Record.release:type_name -> discogs.Release
+	146, // 22: gramophile.Record.release:type_name -> discogs.Release
 	1,   // 23: gramophile.Record.issues:type_name -> gramophile.NoncomplianceIssue
 	3,   // 24: gramophile.Record.keep_status:type_name -> gramophile.KeepStatus
-	146, // 25: gramophile.Record.median_price:type_name -> discogs.Price
-	146, // 26: gramophile.Record.low_price:type_name -> discogs.Price
-	146, // 27: gramophile.Record.high_price:type_name -> discogs.Price
+	147, // 25: gramophile.Record.median_price:type_name -> discogs.Price
+	147, // 26: gramophile.Record.low_price:type_name -> discogs.Price
+	147, // 27: gramophile.Record.high_price:type_name -> discogs.Price
 	28,  // 28: gramophile.Record.digital_versions:type_name -> gramophile.DigitalVersion
 	29,  // 29: gramophile.Record.score_history:type_name -> gramophile.Score
 	7,   // 30: gramophile.DigitalVersion.digital_version_source:type_name -> gramophile.DigitalVersion.DigitalVersionSource
 	4,   // 31: gramophile.Score.listen_status:type_name -> gramophile.ListenStatus
-	147, // 32: gramophile.SaleInfo.sale_state:type_name -> discogs.SaleStatus
-	146, // 33: gramophile.SaleInfo.current_price:type_name -> discogs.Price
-	146, // 34: gramophile.SaleInfo.initial_price:type_name -> discogs.Price
-	146, // 35: gramophile.SaleInfo.median_price:type_name -> discogs.Price
-	146, // 36: gramophile.SaleInfo.low_price:type_name -> discogs.Price
+	148, // 32: gramophile.SaleInfo.sale_state:type_name -> discogs.SaleStatus
+	147, // 33: gramophile.SaleInfo.current_price:type_name -> discogs.Price
+	147, // 34: gramophile.SaleInfo.initial_price:type_name -> discogs.Price
+	147, // 35: gramophile.SaleInfo.median_price:type_name -> discogs.Price
+	147, // 36: gramophile.SaleInfo.low_price:type_name -> discogs.Price
 	31,  // 37: gramophile.SaleInfo.updates:type_name -> gramophile.PriceUpdate
-	148, // 38: gramophile.SaleInfo.sale_update_override:type_name -> gramophile.SaleUpdateType
-	146, // 39: gramophile.PriceUpdate.set_price:type_name -> discogs.Price
+	149, // 38: gramophile.SaleInfo.sale_update_override:type_name -> gramophile.SaleUpdateType
+	147, // 39: gramophile.PriceUpdate.set_price:type_name -> discogs.Price
 	3,   // 40: gramophile.Intent.keep:type_name -> gramophile.KeepStatus
 	4,   // 41: gramophile.Intent.new_score_listen:type_name -> gramophile.ListenStatus
 	8,   // 42: gramophile.Intent.set_oversize:type_name -> gramophile.Intent.SetOversize
 	34,  // 43: gramophile.Queues.queues:type_name -> gramophile.Queue
 	35,  // 44: gramophile.Queue.elements:type_name -> gramophile.QueueElement
-	61,  // 45: gramophile.QueueElement.refresh_user:type_name -> gramophile.RefreshUserEntry
-	62,  // 46: gramophile.QueueElement.refresh_collection_entry:type_name -> gramophile.RefreshCollectionEntry
-	64,  // 47: gramophile.QueueElement.refresh_intents:type_name -> gramophile.RefreshIntents
-	60,  // 48: gramophile.QueueElement.refresh_updates:type_name -> gramophile.RefreshUpdates
-	59,  // 49: gramophile.QueueElement.add_folder_update:type_name -> gramophile.AddFolderUpdate
-	58,  // 50: gramophile.QueueElement.refresh_sales:type_name -> gramophile.RefreshSales
-	57,  // 51: gramophile.QueueElement.link_sales:type_name -> gramophile.LinkSales
+	62,  // 45: gramophile.QueueElement.refresh_user:type_name -> gramophile.RefreshUserEntry
+	63,  // 46: gramophile.QueueElement.refresh_collection_entry:type_name -> gramophile.RefreshCollectionEntry
+	65,  // 47: gramophile.QueueElement.refresh_intents:type_name -> gramophile.RefreshIntents
+	61,  // 48: gramophile.QueueElement.refresh_updates:type_name -> gramophile.RefreshUpdates
+	60,  // 49: gramophile.QueueElement.add_folder_update:type_name -> gramophile.AddFolderUpdate
+	59,  // 50: gramophile.QueueElement.refresh_sales:type_name -> gramophile.RefreshSales
+	58,  // 51: gramophile.QueueElement.link_sales:type_name -> gramophile.LinkSales
 	54,  // 52: gramophile.QueueElement.refresh_wantlists:type_name -> gramophile.RefreshWantlists
 	52,  // 53: gramophile.QueueElement.refresh_wants:type_name -> gramophile.RefreshWants
 	49,  // 54: gramophile.QueueElement.update_sale:type_name -> gramophile.UpdateSale
@@ -9494,126 +9577,127 @@ var file_gramophile_proto_depIdxs = []int32{
 	37,  // 69: gramophile.QueueElement.delete_record:type_name -> gramophile.DeleteRecord
 	55,  // 70: gramophile.QueueElement.adjust_sales:type_name -> gramophile.AdjustSales
 	56,  // 71: gramophile.QueueElement.sync_orders:type_name -> gramophile.SyncOrders
-	9,   // 72: gramophile.QueueElement.priority:type_name -> gramophile.QueueElement.Priority
-	149, // 73: gramophile.AddSale.saleParams:type_name -> discogs.SaleParams
-	2,   // 74: gramophile.FanoutHistory.type:type_name -> gramophile.UpdateType
-	2,   // 75: gramophile.RecordHistory.type:type_name -> gramophile.UpdateType
-	20,  // 76: gramophile.AddMasterWant.want:type_name -> gramophile.Want
-	20,  // 77: gramophile.UpdateMasterWant.want:type_name -> gramophile.Want
-	0,   // 78: gramophile.UpdateMasterWant.new_state:type_name -> gramophile.WantState
-	20,  // 79: gramophile.RefreshWant.want:type_name -> gramophile.Want
-	19,  // 80: gramophile.AddWant.filter:type_name -> gramophile.WantFilter
-	35,  // 81: gramophile.EnqueueRequest.element:type_name -> gramophile.QueueElement
-	35,  // 82: gramophile.ListResponse.elements:type_name -> gramophile.QueueElement
-	10,  // 83: gramophile.DrainRequest.drain_type:type_name -> gramophile.DrainRequest.DrainType
-	72,  // 84: gramophile.StoredUser.auth:type_name -> gramophile.GramophileAuth
-	150, // 85: gramophile.StoredUser.user:type_name -> discogs.User
-	151, // 86: gramophile.StoredUser.config:type_name -> gramophile.GramophileConfig
-	152, // 87: gramophile.StoredUser.folders:type_name -> discogs.Folder
-	153, // 88: gramophile.StoredUser.moves:type_name -> gramophile.FolderMove
-	21,  // 89: gramophile.StoredUser.updates:type_name -> gramophile.UpdateControl
-	11,  // 90: gramophile.StoredUser.state:type_name -> gramophile.StoredUser.UserState
-	74,  // 91: gramophile.UserLoginAttempts.attempts:type_name -> gramophile.UserLoginAttempt
-	72,  // 92: gramophile.GetLoginResponse.auth:type_name -> gramophile.GramophileAuth
-	151, // 93: gramophile.SetConfigRequest.config:type_name -> gramophile.GramophileConfig
-	32,  // 94: gramophile.SetIntentRequest.intent:type_name -> gramophile.Intent
-	90,  // 95: gramophile.GetRecordRequest.get_record_with_issue:type_name -> gramophile.GetRecordWithIssue
-	91,  // 96: gramophile.GetRecordRequest.get_record_to_listen_to:type_name -> gramophile.GetRecordToListenTo
-	89,  // 97: gramophile.GetRecordRequest.get_record_with_id:type_name -> gramophile.GetRecordWithId
-	86,  // 98: gramophile.GetRecordRequest.get_records_purchased_between:type_name -> gramophile.GetRecordsPurchasedBetween
-	27,  // 99: gramophile.RecordResponse.record:type_name -> gramophile.Record
-	23,  // 100: gramophile.RecordResponse.updates:type_name -> gramophile.RecordUpdate
-	30,  // 101: gramophile.RecordResponse.sale_info:type_name -> gramophile.SaleInfo
-	27,  // 102: gramophile.RecordSet.records:type_name -> gramophile.Record
-	87,  // 103: gramophile.GetRecordResponse.records:type_name -> gramophile.RecordResponse
-	154, // 104: gramophile.GetOrgResponse.snapshot:type_name -> gramophile.OrganisationSnapshot
-	144, // 105: gramophile.AddWantlistRequest.type:type_name -> gramophile.WantlistType
-	155, // 106: gramophile.GetStatsResponse.collection_stats:type_name -> gramophile.CollectionStats
-	156, // 107: gramophile.GetStatsResponse.sale_stats:type_name -> gramophile.SaleStats
-	149, // 108: gramophile.AddSaleRequest.params:type_name -> discogs.SaleParams
-	30,  // 109: gramophile.GetSaleResponse.sales:type_name -> gramophile.SaleInfo
-	17,  // 110: gramophile.ListWantlistsResponse.lists:type_name -> gramophile.Wantlist
-	144, // 111: gramophile.UpdateWantlistRequest.new_type:type_name -> gramophile.WantlistType
-	115, // 112: gramophile.GetWantsResponse.wants:type_name -> gramophile.WantResponse
-	20,  // 113: gramophile.WantResponse.want:type_name -> gramophile.Want
-	25,  // 114: gramophile.WantResponse.updates:type_name -> gramophile.Update
-	19,  // 115: gramophile.AddWantRequest.filter:type_name -> gramophile.WantFilter
-	17,  // 116: gramophile.GetWantlistResponse.list:type_name -> gramophile.Wantlist
-	71,  // 117: gramophile.GetUserResponse.user:type_name -> gramophile.StoredUser
-	11,  // 118: gramophile.GetUsersRequest.state:type_name -> gramophile.StoredUser.UserState
-	71,  // 119: gramophile.GetUsersResponse.users:type_name -> gramophile.StoredUser
-	11,  // 120: gramophile.UpgradeUserRequest.new_state:type_name -> gramophile.StoredUser.UserState
-	12,  // 121: gramophile.CleanRequest.type:type_name -> gramophile.CleanRequest.CleanType
-	71,  // 122: gramophile.WaitlistUser.user:type_name -> gramophile.StoredUser
-	134, // 123: gramophile.GetWaitlistStatusResponse.users:type_name -> gramophile.WaitlistUser
-	15,  // 124: gramophile.LocateRecordResponse.locations:type_name -> gramophile.Location
-	142, // 125: gramophile.RecordCache.instance_cache:type_name -> gramophile.RecordCache.InstanceCacheEntry
-	143, // 126: gramophile.RecordCache.release_cache:type_name -> gramophile.RecordCache.ReleaseCacheEntry
-	139, // 127: gramophile.RecordCache.InstanceCacheEntry.value:type_name -> gramophile.RecordCacheEntry
-	139, // 128: gramophile.RecordCache.ReleaseCacheEntry.value:type_name -> gramophile.RecordCacheEntry
-	65,  // 129: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
-	65,  // 130: gramophile.QueueService.Execute:input_type -> gramophile.EnqueueRequest
-	67,  // 131: gramophile.QueueService.List:input_type -> gramophile.ListRequest
-	69,  // 132: gramophile.QueueService.Drain:input_type -> gramophile.DrainRequest
-	75,  // 133: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
-	77,  // 134: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
-	124, // 135: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
-	79,  // 136: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
-	81,  // 137: gramophile.GramophileEService.SetConfig:input_type -> gramophile.SetConfigRequest
-	83,  // 138: gramophile.GramophileEService.SetIntent:input_type -> gramophile.SetIntentRequest
-	85,  // 139: gramophile.GramophileEService.GetRecord:input_type -> gramophile.GetRecordRequest
-	99,  // 140: gramophile.GramophileEService.RefreshRecord:input_type -> gramophile.RefreshRecordRequest
-	93,  // 141: gramophile.GramophileEService.GetOrg:input_type -> gramophile.GetOrgRequest
-	95,  // 142: gramophile.GramophileEService.SetOrgSnapshot:input_type -> gramophile.SetOrgSnapshotRequest
-	118, // 143: gramophile.GramophileEService.AddWant:input_type -> gramophile.AddWantRequest
-	113, // 144: gramophile.GramophileEService.GetWants:input_type -> gramophile.GetWantsRequest
-	116, // 145: gramophile.GramophileEService.RefreshWant:input_type -> gramophile.RefreshWantRequest
-	122, // 146: gramophile.GramophileEService.GetWantlist:input_type -> gramophile.GetWantlistRequest
-	109, // 147: gramophile.GramophileEService.ListWantlists:input_type -> gramophile.ListWantlistsRequest
-	107, // 148: gramophile.GramophileEService.GetSale:input_type -> gramophile.GetSaleRequest
-	103, // 149: gramophile.GramophileEService.AddSale:input_type -> gramophile.AddSaleRequest
-	101, // 150: gramophile.GramophileEService.GetStats:input_type -> gramophile.GetStatsRequest
-	105, // 151: gramophile.GramophileEService.AddRecord:input_type -> gramophile.AddRecordRequest
-	137, // 152: gramophile.GramophileEService.LocateRecord:input_type -> gramophile.LocateRecordRequest
-	126, // 153: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
-	128, // 154: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
-	132, // 155: gramophile.GramophileService.Clean:input_type -> gramophile.CleanRequest
-	130, // 156: gramophile.GramophileService.UpgradeUser:input_type -> gramophile.UpgradeUserRequest
-	135, // 157: gramophile.GramophileService.GetWaitlistStatus:input_type -> gramophile.GetWaitlistStatusRequest
-	66,  // 158: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
-	66,  // 159: gramophile.QueueService.Execute:output_type -> gramophile.EnqueueResponse
-	68,  // 160: gramophile.QueueService.List:output_type -> gramophile.ListResponse
-	70,  // 161: gramophile.QueueService.Drain:output_type -> gramophile.DrainResponse
-	76,  // 162: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
-	78,  // 163: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
-	125, // 164: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
-	80,  // 165: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
-	82,  // 166: gramophile.GramophileEService.SetConfig:output_type -> gramophile.SetConfigResponse
-	84,  // 167: gramophile.GramophileEService.SetIntent:output_type -> gramophile.SetIntentResponse
-	92,  // 168: gramophile.GramophileEService.GetRecord:output_type -> gramophile.GetRecordResponse
-	100, // 169: gramophile.GramophileEService.RefreshRecord:output_type -> gramophile.RefreshRecordResponse
-	94,  // 170: gramophile.GramophileEService.GetOrg:output_type -> gramophile.GetOrgResponse
-	96,  // 171: gramophile.GramophileEService.SetOrgSnapshot:output_type -> gramophile.SetOrgSnapshotResponse
-	119, // 172: gramophile.GramophileEService.AddWant:output_type -> gramophile.AddWantResponse
-	114, // 173: gramophile.GramophileEService.GetWants:output_type -> gramophile.GetWantsResponse
-	117, // 174: gramophile.GramophileEService.RefreshWant:output_type -> gramophile.RefreshWantResponse
-	123, // 175: gramophile.GramophileEService.GetWantlist:output_type -> gramophile.GetWantlistResponse
-	110, // 176: gramophile.GramophileEService.ListWantlists:output_type -> gramophile.ListWantlistsResponse
-	108, // 177: gramophile.GramophileEService.GetSale:output_type -> gramophile.GetSaleResponse
-	104, // 178: gramophile.GramophileEService.AddSale:output_type -> gramophile.AddSaleResponse
-	102, // 179: gramophile.GramophileEService.GetStats:output_type -> gramophile.GetStatsResponse
-	106, // 180: gramophile.GramophileEService.AddRecord:output_type -> gramophile.AddRecordResponse
-	138, // 181: gramophile.GramophileEService.LocateRecord:output_type -> gramophile.LocateRecordResponse
-	127, // 182: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
-	129, // 183: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
-	133, // 184: gramophile.GramophileService.Clean:output_type -> gramophile.CleanResponse
-	131, // 185: gramophile.GramophileService.UpgradeUser:output_type -> gramophile.UpgradeUserResponse
-	136, // 186: gramophile.GramophileService.GetWaitlistStatus:output_type -> gramophile.GetWaitlistStatusResponse
-	158, // [158:187] is the sub-list for method output_type
-	129, // [129:158] is the sub-list for method input_type
-	129, // [129:129] is the sub-list for extension type_name
-	129, // [129:129] is the sub-list for extension extendee
-	0,   // [0:129] is the sub-list for field type_name
+	57,  // 72: gramophile.QueueElement.reconcile_sales:type_name -> gramophile.ReconcileSales
+	9,   // 73: gramophile.QueueElement.priority:type_name -> gramophile.QueueElement.Priority
+	150, // 74: gramophile.AddSale.saleParams:type_name -> discogs.SaleParams
+	2,   // 75: gramophile.FanoutHistory.type:type_name -> gramophile.UpdateType
+	2,   // 76: gramophile.RecordHistory.type:type_name -> gramophile.UpdateType
+	20,  // 77: gramophile.AddMasterWant.want:type_name -> gramophile.Want
+	20,  // 78: gramophile.UpdateMasterWant.want:type_name -> gramophile.Want
+	0,   // 79: gramophile.UpdateMasterWant.new_state:type_name -> gramophile.WantState
+	20,  // 80: gramophile.RefreshWant.want:type_name -> gramophile.Want
+	19,  // 81: gramophile.AddWant.filter:type_name -> gramophile.WantFilter
+	35,  // 82: gramophile.EnqueueRequest.element:type_name -> gramophile.QueueElement
+	35,  // 83: gramophile.ListResponse.elements:type_name -> gramophile.QueueElement
+	10,  // 84: gramophile.DrainRequest.drain_type:type_name -> gramophile.DrainRequest.DrainType
+	73,  // 85: gramophile.StoredUser.auth:type_name -> gramophile.GramophileAuth
+	151, // 86: gramophile.StoredUser.user:type_name -> discogs.User
+	152, // 87: gramophile.StoredUser.config:type_name -> gramophile.GramophileConfig
+	153, // 88: gramophile.StoredUser.folders:type_name -> discogs.Folder
+	154, // 89: gramophile.StoredUser.moves:type_name -> gramophile.FolderMove
+	21,  // 90: gramophile.StoredUser.updates:type_name -> gramophile.UpdateControl
+	11,  // 91: gramophile.StoredUser.state:type_name -> gramophile.StoredUser.UserState
+	75,  // 92: gramophile.UserLoginAttempts.attempts:type_name -> gramophile.UserLoginAttempt
+	73,  // 93: gramophile.GetLoginResponse.auth:type_name -> gramophile.GramophileAuth
+	152, // 94: gramophile.SetConfigRequest.config:type_name -> gramophile.GramophileConfig
+	32,  // 95: gramophile.SetIntentRequest.intent:type_name -> gramophile.Intent
+	91,  // 96: gramophile.GetRecordRequest.get_record_with_issue:type_name -> gramophile.GetRecordWithIssue
+	92,  // 97: gramophile.GetRecordRequest.get_record_to_listen_to:type_name -> gramophile.GetRecordToListenTo
+	90,  // 98: gramophile.GetRecordRequest.get_record_with_id:type_name -> gramophile.GetRecordWithId
+	87,  // 99: gramophile.GetRecordRequest.get_records_purchased_between:type_name -> gramophile.GetRecordsPurchasedBetween
+	27,  // 100: gramophile.RecordResponse.record:type_name -> gramophile.Record
+	23,  // 101: gramophile.RecordResponse.updates:type_name -> gramophile.RecordUpdate
+	30,  // 102: gramophile.RecordResponse.sale_info:type_name -> gramophile.SaleInfo
+	27,  // 103: gramophile.RecordSet.records:type_name -> gramophile.Record
+	88,  // 104: gramophile.GetRecordResponse.records:type_name -> gramophile.RecordResponse
+	155, // 105: gramophile.GetOrgResponse.snapshot:type_name -> gramophile.OrganisationSnapshot
+	145, // 106: gramophile.AddWantlistRequest.type:type_name -> gramophile.WantlistType
+	156, // 107: gramophile.GetStatsResponse.collection_stats:type_name -> gramophile.CollectionStats
+	157, // 108: gramophile.GetStatsResponse.sale_stats:type_name -> gramophile.SaleStats
+	150, // 109: gramophile.AddSaleRequest.params:type_name -> discogs.SaleParams
+	30,  // 110: gramophile.GetSaleResponse.sales:type_name -> gramophile.SaleInfo
+	17,  // 111: gramophile.ListWantlistsResponse.lists:type_name -> gramophile.Wantlist
+	145, // 112: gramophile.UpdateWantlistRequest.new_type:type_name -> gramophile.WantlistType
+	116, // 113: gramophile.GetWantsResponse.wants:type_name -> gramophile.WantResponse
+	20,  // 114: gramophile.WantResponse.want:type_name -> gramophile.Want
+	25,  // 115: gramophile.WantResponse.updates:type_name -> gramophile.Update
+	19,  // 116: gramophile.AddWantRequest.filter:type_name -> gramophile.WantFilter
+	17,  // 117: gramophile.GetWantlistResponse.list:type_name -> gramophile.Wantlist
+	72,  // 118: gramophile.GetUserResponse.user:type_name -> gramophile.StoredUser
+	11,  // 119: gramophile.GetUsersRequest.state:type_name -> gramophile.StoredUser.UserState
+	72,  // 120: gramophile.GetUsersResponse.users:type_name -> gramophile.StoredUser
+	11,  // 121: gramophile.UpgradeUserRequest.new_state:type_name -> gramophile.StoredUser.UserState
+	12,  // 122: gramophile.CleanRequest.type:type_name -> gramophile.CleanRequest.CleanType
+	72,  // 123: gramophile.WaitlistUser.user:type_name -> gramophile.StoredUser
+	135, // 124: gramophile.GetWaitlistStatusResponse.users:type_name -> gramophile.WaitlistUser
+	15,  // 125: gramophile.LocateRecordResponse.locations:type_name -> gramophile.Location
+	143, // 126: gramophile.RecordCache.instance_cache:type_name -> gramophile.RecordCache.InstanceCacheEntry
+	144, // 127: gramophile.RecordCache.release_cache:type_name -> gramophile.RecordCache.ReleaseCacheEntry
+	140, // 128: gramophile.RecordCache.InstanceCacheEntry.value:type_name -> gramophile.RecordCacheEntry
+	140, // 129: gramophile.RecordCache.ReleaseCacheEntry.value:type_name -> gramophile.RecordCacheEntry
+	66,  // 130: gramophile.QueueService.Enqueue:input_type -> gramophile.EnqueueRequest
+	66,  // 131: gramophile.QueueService.Execute:input_type -> gramophile.EnqueueRequest
+	68,  // 132: gramophile.QueueService.List:input_type -> gramophile.ListRequest
+	70,  // 133: gramophile.QueueService.Drain:input_type -> gramophile.DrainRequest
+	76,  // 134: gramophile.GramophileEService.GetURL:input_type -> gramophile.GetURLRequest
+	78,  // 135: gramophile.GramophileEService.GetLogin:input_type -> gramophile.GetLoginRequest
+	125, // 136: gramophile.GramophileEService.GetUser:input_type -> gramophile.GetUserRequest
+	80,  // 137: gramophile.GramophileEService.GetState:input_type -> gramophile.GetStateRequest
+	82,  // 138: gramophile.GramophileEService.SetConfig:input_type -> gramophile.SetConfigRequest
+	84,  // 139: gramophile.GramophileEService.SetIntent:input_type -> gramophile.SetIntentRequest
+	86,  // 140: gramophile.GramophileEService.GetRecord:input_type -> gramophile.GetRecordRequest
+	100, // 141: gramophile.GramophileEService.RefreshRecord:input_type -> gramophile.RefreshRecordRequest
+	94,  // 142: gramophile.GramophileEService.GetOrg:input_type -> gramophile.GetOrgRequest
+	96,  // 143: gramophile.GramophileEService.SetOrgSnapshot:input_type -> gramophile.SetOrgSnapshotRequest
+	119, // 144: gramophile.GramophileEService.AddWant:input_type -> gramophile.AddWantRequest
+	114, // 145: gramophile.GramophileEService.GetWants:input_type -> gramophile.GetWantsRequest
+	117, // 146: gramophile.GramophileEService.RefreshWant:input_type -> gramophile.RefreshWantRequest
+	123, // 147: gramophile.GramophileEService.GetWantlist:input_type -> gramophile.GetWantlistRequest
+	110, // 148: gramophile.GramophileEService.ListWantlists:input_type -> gramophile.ListWantlistsRequest
+	108, // 149: gramophile.GramophileEService.GetSale:input_type -> gramophile.GetSaleRequest
+	104, // 150: gramophile.GramophileEService.AddSale:input_type -> gramophile.AddSaleRequest
+	102, // 151: gramophile.GramophileEService.GetStats:input_type -> gramophile.GetStatsRequest
+	106, // 152: gramophile.GramophileEService.AddRecord:input_type -> gramophile.AddRecordRequest
+	138, // 153: gramophile.GramophileEService.LocateRecord:input_type -> gramophile.LocateRecordRequest
+	127, // 154: gramophile.GramophileService.GetUsers:input_type -> gramophile.GetUsersRequest
+	129, // 155: gramophile.GramophileService.DeleteUser:input_type -> gramophile.DeleteUserRequest
+	133, // 156: gramophile.GramophileService.Clean:input_type -> gramophile.CleanRequest
+	131, // 157: gramophile.GramophileService.UpgradeUser:input_type -> gramophile.UpgradeUserRequest
+	136, // 158: gramophile.GramophileService.GetWaitlistStatus:input_type -> gramophile.GetWaitlistStatusRequest
+	67,  // 159: gramophile.QueueService.Enqueue:output_type -> gramophile.EnqueueResponse
+	67,  // 160: gramophile.QueueService.Execute:output_type -> gramophile.EnqueueResponse
+	69,  // 161: gramophile.QueueService.List:output_type -> gramophile.ListResponse
+	71,  // 162: gramophile.QueueService.Drain:output_type -> gramophile.DrainResponse
+	77,  // 163: gramophile.GramophileEService.GetURL:output_type -> gramophile.GetURLResponse
+	79,  // 164: gramophile.GramophileEService.GetLogin:output_type -> gramophile.GetLoginResponse
+	126, // 165: gramophile.GramophileEService.GetUser:output_type -> gramophile.GetUserResponse
+	81,  // 166: gramophile.GramophileEService.GetState:output_type -> gramophile.GetStateResponse
+	83,  // 167: gramophile.GramophileEService.SetConfig:output_type -> gramophile.SetConfigResponse
+	85,  // 168: gramophile.GramophileEService.SetIntent:output_type -> gramophile.SetIntentResponse
+	93,  // 169: gramophile.GramophileEService.GetRecord:output_type -> gramophile.GetRecordResponse
+	101, // 170: gramophile.GramophileEService.RefreshRecord:output_type -> gramophile.RefreshRecordResponse
+	95,  // 171: gramophile.GramophileEService.GetOrg:output_type -> gramophile.GetOrgResponse
+	97,  // 172: gramophile.GramophileEService.SetOrgSnapshot:output_type -> gramophile.SetOrgSnapshotResponse
+	120, // 173: gramophile.GramophileEService.AddWant:output_type -> gramophile.AddWantResponse
+	115, // 174: gramophile.GramophileEService.GetWants:output_type -> gramophile.GetWantsResponse
+	118, // 175: gramophile.GramophileEService.RefreshWant:output_type -> gramophile.RefreshWantResponse
+	124, // 176: gramophile.GramophileEService.GetWantlist:output_type -> gramophile.GetWantlistResponse
+	111, // 177: gramophile.GramophileEService.ListWantlists:output_type -> gramophile.ListWantlistsResponse
+	109, // 178: gramophile.GramophileEService.GetSale:output_type -> gramophile.GetSaleResponse
+	105, // 179: gramophile.GramophileEService.AddSale:output_type -> gramophile.AddSaleResponse
+	103, // 180: gramophile.GramophileEService.GetStats:output_type -> gramophile.GetStatsResponse
+	107, // 181: gramophile.GramophileEService.AddRecord:output_type -> gramophile.AddRecordResponse
+	139, // 182: gramophile.GramophileEService.LocateRecord:output_type -> gramophile.LocateRecordResponse
+	128, // 183: gramophile.GramophileService.GetUsers:output_type -> gramophile.GetUsersResponse
+	130, // 184: gramophile.GramophileService.DeleteUser:output_type -> gramophile.DeleteUserResponse
+	134, // 185: gramophile.GramophileService.Clean:output_type -> gramophile.CleanResponse
+	132, // 186: gramophile.GramophileService.UpgradeUser:output_type -> gramophile.UpgradeUserResponse
+	137, // 187: gramophile.GramophileService.GetWaitlistStatus:output_type -> gramophile.GetWaitlistStatusResponse
+	159, // [159:188] is the sub-list for method output_type
+	130, // [130:159] is the sub-list for method input_type
+	130, // [130:130] is the sub-list for extension type_name
+	130, // [130:130] is the sub-list for extension extendee
+	0,   // [0:130] is the sub-list for field type_name
 }
 
 func init() { file_gramophile_proto_init() }
@@ -9652,8 +9736,9 @@ func file_gramophile_proto_init() {
 		(*QueueElement_DeleteRecord)(nil),
 		(*QueueElement_AdjustSales)(nil),
 		(*QueueElement_SyncOrders)(nil),
+		(*QueueElement_ReconcileSales)(nil),
 	}
-	file_gramophile_proto_msgTypes[72].OneofWrappers = []any{
+	file_gramophile_proto_msgTypes[73].OneofWrappers = []any{
 		(*GetRecordRequest_GetRecordWithIssue)(nil),
 		(*GetRecordRequest_GetRecordToListenTo)(nil),
 		(*GetRecordRequest_GetRecordWithId)(nil),
@@ -9661,14 +9746,14 @@ func file_gramophile_proto_init() {
 		(*GetRecordRequest_GetRecordsMintUp)(nil),
 		(*GetRecordRequest_GetAllRecords)(nil),
 	}
-	file_gramophile_proto_msgTypes[80].OneofWrappers = []any{}
+	file_gramophile_proto_msgTypes[81].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gramophile_proto_rawDesc), len(file_gramophile_proto_rawDesc)),
 			NumEnums:      13,
-			NumMessages:   131,
+			NumMessages:   132,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

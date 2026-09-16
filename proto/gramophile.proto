@@ -360,6 +360,7 @@ message QueueElement {
         DeleteRecord delete_record = 34;
         AdjustSales adjust_sales = 35;
         SyncOrders sync_orders = 36;
+        ReconcileSales reconcile_sales = 37;
     }
 
     int64 refresh_id = 7;
@@ -483,6 +484,11 @@ message SyncOrders {
     int64 sync_id = 2;
 }
 
+message ReconcileSales {
+    int32 page = 1;
+    int64 refresh_id = 2;
+}
+
 message LinkSales {
     int64 refresh_id = 1;
 }
@@ -587,6 +593,7 @@ message StoredUser {
     int64 waitlist_issue_number = 20;
     int64 last_sale_adjust = 21;
     int64 last_order_sync = 22;
+    int64 last_sale_reconcile = 23;
 }
 
 message GramophileAuth {
