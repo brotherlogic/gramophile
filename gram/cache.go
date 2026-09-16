@@ -167,6 +167,21 @@ func (m *RecordCacheManager) HasInstance(iid int64) bool {
 	return age <= defaultCacheTTL
 }
 
+// HasRelease reports whether a fresh, non-expired cache entry exists for the given release ID.
+func (m *RecordCacheManager) HasRelease(releaseId int64) bool {
+	if m == nil {
+		return false
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	entry, exists := m.data.GetReleaseCache()[releaseId]
+	if !exists || entry == nil {
+		return false
+	}
+	age := time.Since(time.Unix(entry.GetResolvedTimestamp(), 0))
+	return age <= defaultCacheTTL
+}
+
 // ResolveInstance resolves the artist-title for an instance ID.
 // Fresh hit (<= 7 days): returns cached value immediately.
 // Stale hit (> 7 days): returns cached value immediately and triggers background refresh.
