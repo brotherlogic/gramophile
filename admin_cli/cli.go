@@ -232,8 +232,23 @@ func main() {
 			},
 		})
 		fmt.Printf("%v and %v\n", a, b)
+	case "reconcilesales":
+		a, b := client.Enqueue(context.Background(), &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: "from-cli",
+				Priority:  pb.QueueElement_PRIORITY_HIGH,
+				Force:     true,
+				RunDate:   time.Now().UnixNano(),
+				Auth:      os.Args[3],
+				Entry: &pb.QueueElement_ReconcileSales{
+					ReconcileSales: &pb.ReconcileSales{Page: 1},
+				},
+			},
+		})
+		fmt.Printf("%v and %v\n", a, b)
 	}
 }
+
 
 func formatWaitlist(res *pb.GetWaitlistStatusResponse) string {
 	var sb strings.Builder
