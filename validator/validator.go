@@ -93,6 +93,24 @@ func validateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 			}
 		}
 
+		log.Printf("ReconcileSales: %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
+		if time.Since(time.Unix(0, user.GetLastSaleReconcile())) > queuelogic.SaleReconcile {
+			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention:        "From Validator (ReconcileSales)",
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 15,
+					Entry: &pb.QueueElement_ReconcileSales{
+						ReconcileSales: &pb.ReconcileSales{Page: 1},
+					},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("unable to enqueue: %w", err)
+			}
+		}
+
 		if user.GetConfig().GetSaleConfig().GetHandlePriceUpdates() == pb.Enabled_ENABLED_ENABLED {
 			log.Printf("AdjustSales: %v", time.Since(time.Unix(0, user.GetLastSaleAdjust())))
 			if time.Since(time.Unix(0, user.GetLastSaleAdjust())) > time.Hour {

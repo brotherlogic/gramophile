@@ -289,3 +289,139 @@ func TestSyncOrdersEnqueue_WithinOneHour(t *testing.T) {
 	}
 }
 
+func TestReconcileSalesEnqueue_Expired(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		LastSaleReconcile:     now.Add(-8 * 24 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	found := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetReconcileSales() != nil {
+			found = true
+			if req.GetElement().GetIntention() != "From Validator (ReconcileSales)" {
+				t.Errorf("expected intention 'From Validator (ReconcileSales)', got '%v'", req.GetElement().GetIntention())
+			}
+			if req.GetElement().GetBackoffInSeconds() != 15 {
+				t.Errorf("expected backoff 15s, got %v", req.GetElement().GetBackoffInSeconds())
+			}
+			if req.GetElement().GetAuth() != "test_token" {
+				t.Errorf("expected auth 'test_token', got '%v'", req.GetElement().GetAuth())
+			}
+			if req.GetElement().GetReconcileSales().GetPage() != 1 {
+				t.Errorf("expected Page 1, got %v", req.GetElement().GetReconcileSales().GetPage())
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("expected ReconcileSales to be enqueued when LastSaleReconcile is > 7 days ago")
+	}
+}
+
+func TestReconcileSalesEnqueue_Unset(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		LastSaleReconcile:     0,
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	found := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetReconcileSales() != nil {
+			found = true
+			if req.GetElement().GetIntention() != "From Validator (ReconcileSales)" {
+				t.Errorf("expected intention 'From Validator (ReconcileSales)', got '%v'", req.GetElement().GetIntention())
+			}
+			if req.GetElement().GetBackoffInSeconds() != 15 {
+				t.Errorf("expected backoff 15s, got %v", req.GetElement().GetBackoffInSeconds())
+			}
+			if req.GetElement().GetAuth() != "test_token" {
+				t.Errorf("expected auth 'test_token', got '%v'", req.GetElement().GetAuth())
+			}
+			if req.GetElement().GetReconcileSales().GetPage() != 1 {
+				t.Errorf("expected Page 1, got %v", req.GetElement().GetReconcileSales().GetPage())
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("expected ReconcileSales to be enqueued when LastSaleReconcile is unset (0)")
+	}
+}
+
+func TestReconcileSalesEnqueue_WithinSevenDays(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		LastSaleReconcile:     now.Add(-24 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetReconcileSales() != nil {
+			t.Errorf("expected ReconcileSales NOT to be enqueued when LastSaleReconcile is within 7 days")
+		}
+	}
+}
+
