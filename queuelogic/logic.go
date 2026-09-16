@@ -90,6 +90,7 @@ var (
 const (
 	CollectionRefresh = time.Hour * 24 * 7 // Refresh the full collection once a week
 	CollectionCheck   = time.Hour * 24     // Check through collection once a day
+	SaleReconcile     = time.Hour * 24 * 7 // Reconcile sales inventory once a week
 
 	errUserQueueLimit = "User queue limit reached"
 	errQueueFull      = "Queue is full"

@@ -1981,6 +1981,414 @@ func TestProcessRefreshSales_ForceDisablesEarlyTermination(t *testing.T) {
 	}
 }
 
+func TestProcessReconcileSales_FullPaginationAndPruning(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	oldRefreshId := int64(1111)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		RefreshId:    oldRefreshId,
+		ListedDate:   100,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 1001: %v", err)
+	}
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1002,
+		ReleaseId:    2002,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		RefreshId:    oldRefreshId,
+		ListedDate:   200,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 1002: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1004, ReleaseId: 2004, Price: &pbd.Price{Value: 4000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	newRefreshId := int64(9999)
+	entryPage1 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      1,
+				RefreshId: newRefreshId,
+			},
+		},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	// Process Page 1: should traverse without early termination and enqueue page 2
+	err = b.ProcessReconcileSales(ctx, di, user, entryPage1, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessReconcileSales page 1 failed: %v", err)
+	}
+
+	// Assert sale 1002 is not yet pruned
+	sale1002, err := d.GetSale(ctx, userId, 1002)
+	if err != nil || sale1002 == nil {
+		t.Fatalf("sale 1002 should not be pruned on page 1: %v", err)
+	}
+
+	if len(enqueuedRequests) != 1 || enqueuedRequests[0].GetElement().GetReconcileSales() == nil {
+		t.Fatalf("expected ReconcileSales page 2 enqueued, got %v", enqueuedRequests)
+	}
+	if enqueuedRequests[0].GetElement().GetReconcileSales().GetPage() != 2 {
+		t.Errorf("expected enqueued page 2, got %v", enqueuedRequests[0].GetElement().GetReconcileSales().GetPage())
+	}
+	if enqueuedRequests[0].GetElement().GetReconcileSales().GetRefreshId() != newRefreshId {
+		t.Errorf("expected enqueued refreshId %v, got %v", newRefreshId, enqueuedRequests[0].GetElement().GetReconcileSales().GetRefreshId())
+	}
+
+	// Process Page 2: final page, should clean mismatched sales, save user, enqueue LinkSales
+	enqueuedRequests = nil
+	entryPage2 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      2,
+				RefreshId: newRefreshId,
+			},
+		},
+	}
+
+	err = b.ProcessReconcileSales(ctx, di, user, entryPage2, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessReconcileSales page 2 failed: %v", err)
+	}
+
+	// Sale 1001, 1003, 1004 should exist with newRefreshId
+	for _, sid := range []int64{1001, 1003, 1004} {
+		s, err := d.GetSale(ctx, userId, sid)
+		if err != nil {
+			t.Errorf("expected sale %v to exist: %v", sid, err)
+		} else if s.GetRefreshId() != newRefreshId {
+			t.Errorf("expected sale %v refreshId %v, got %v", sid, newRefreshId, s.GetRefreshId())
+		}
+	}
+
+	// Sale 1002 must be pruned
+	_, err = d.GetSale(ctx, userId, 1002)
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("expected sale 1002 to be pruned (NotFound), got err %v", err)
+	}
+
+	// user.LastSaleReconcile must be updated
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleReconcile() == 0 {
+		t.Errorf("expected LastSaleReconcile to be updated > 0")
+	}
+
+	// LinkSales must be enqueued
+	var foundLinkSales bool
+	for _, req := range enqueuedRequests {
+		if req.GetElement().GetLinkSales() != nil {
+			foundLinkSales = true
+			if req.GetElement().GetLinkSales().GetRefreshId() != newRefreshId {
+				t.Errorf("expected LinkSales RefreshId %v, got %v", newRefreshId, req.GetElement().GetLinkSales().GetRefreshId())
+			}
+		}
+	}
+	if !foundLinkSales {
+		t.Errorf("expected LinkSales to be enqueued upon final page completion")
+	}
+}
+
+func TestProcessReconcileSales_CadenceSkipping(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User:              &pbd.User{DiscogsUserId: userId},
+		Auth:              &pb.GramophileAuth{Token: "test_token"},
+		LastSaleReconcile: time.Now().UnixNano() - time.Hour.Nanoseconds(), // 1 hour ago (< 7 days)
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        1,
+		pages:             map[int32][]*pbd.SaleItem{1: {}},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	// 1. Without Force: should skip and not enqueue anything
+	entryWithoutForce := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: false,
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{Page: 1},
+		},
+	}
+	err = b.ProcessReconcileSales(ctx, di, user, entryWithoutForce, enqueue)
+	if err != nil {
+		t.Fatalf("expected nil error on skipped reconcile, got %v", err)
+	}
+	if len(enqueuedRequests) != 0 {
+		t.Errorf("expected 0 enqueued requests when skipped, got %v", len(enqueuedRequests))
+	}
+
+	// 2. With Force: true: should proceed
+	entryWithForce := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{Page: 1},
+		},
+	}
+	err = b.ProcessReconcileSales(ctx, di, user, entryWithForce, enqueue)
+	if err != nil {
+		t.Fatalf("expected success with Force: true, got %v", err)
+	}
+	if len(enqueuedRequests) == 0 {
+		t.Errorf("expected reconcile to execute and enqueue LinkSales with Force: true")
+	}
+}
+
+type errorDiscogsClient struct {
+	*discogs.TestDiscogsClient
+	err error
+}
+
+func (e *errorDiscogsClient) ListSales(ctx context.Context, page int32) ([]*pbd.SaleItem, *pbd.Pagination, error) {
+	if e.err != nil {
+		return nil, nil, e.err
+	}
+	return nil, &pbd.Pagination{Pages: 1, Page: page}, nil
+}
+
+func TestProcessReconcileSales_ErrorMidwayDoesNotPrune(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	oldRefreshId := int64(1111)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		RefreshId:    oldRefreshId,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale 1001: %v", err)
+	}
+
+	di := &errorDiscogsClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		err:               status.Errorf(codes.Unavailable, "Discogs API unavailable"),
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      1,
+				RefreshId: 9999,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessReconcileSales(ctx, di, user, entry, enqueue)
+	if err == nil {
+		t.Fatalf("expected error from ProcessReconcileSales, got nil")
+	}
+
+	// Assert sale 1001 was NOT pruned
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil || sale1001 == nil {
+		t.Fatalf("sale 1001 should not be pruned upon error: %v", err)
+	}
+
+	// Assert user.LastSaleReconcile was not updated
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleReconcile() != 0 {
+		t.Errorf("expected LastSaleReconcile 0, got %v", savedUser.GetLastSaleReconcile())
+	}
+}
+
+func TestProcessReconcileSales_EmptyInventory(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		RefreshId:    1111,
+	})
+	if err != nil {
+		t.Fatalf("failed to save sale: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        0,
+		pages:             map[int32][]*pbd.SaleItem{},
+	}
+
+	var enqueuedRequests []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedRequests = append(enqueuedRequests, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      1,
+				RefreshId: 9999,
+			},
+		},
+	}
+
+	err = b.ProcessReconcileSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessReconcileSales failed for empty inventory: %v", err)
+	}
+
+	// Verify sale was pruned
+	_, err = d.GetSale(ctx, userId, 1001)
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("expected sale 1001 to be deleted, got err %v", err)
+	}
+
+	// Verify user.LastSaleReconcile updated
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleReconcile() == 0 {
+		t.Errorf("expected LastSaleReconcile to be updated > 0")
+	}
+
+	// Verify LinkSales enqueued
+	var foundLink bool
+	for _, req := range enqueuedRequests {
+		if req.GetElement().GetLinkSales() != nil {
+			foundLink = true
+		}
+	}
+	if !foundLink {
+		t.Errorf("expected LinkSales to be enqueued for empty inventory")
+	}
+}
+
+func TestReconcileSales_HandlerRegistrationAndValidation(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	b.RegisterAllHandlers()
+
+	entry := &pb.QueueElement{
+		Auth: "test_auth_token",
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{Page: 1},
+		},
+	}
+
+	handler, err := b.getHandler(entry)
+	if err != nil {
+		t.Fatalf("handler not registered for QueueElement_ReconcileSales: %v", err)
+	}
+
+	dedupKey := handler.GetDeduplicationKey(entry)
+	if dedupKey != "" {
+		t.Errorf("expected empty deduplication key, got %v", dedupKey)
+	}
+
+	err = handler.Validate(ctx, d, entry)
+	if err != nil {
+		t.Errorf("expected Validate to return nil, got %v", err)
+	}
+}
+
 
 
 

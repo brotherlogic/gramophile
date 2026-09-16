@@ -37,7 +37,24 @@ var (
 		Name: "gramophile_sales_skipped_missing_metadata",
 		Help: "The number of sales skipped due to missing pricing metadata",
 	})
+
+	saleReconcileTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "gramophile_sale_reconcile_total",
+		Help: "Total sale reconciliations by status",
+	}, []string{"status"})
+
+	saleReconcileDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "gramophile_sale_reconcile_duration_seconds",
+		Help: "Duration of sale reconciliation operations in seconds",
+	})
+
+	salesPrunedTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gramophile_sales_pruned_total",
+		Help: "Total sales pruned during reconciliation",
+	})
 )
+
+const SaleReconcileCadence = time.Hour * 24 * 7
 
 func (b *BackgroundRunner) updateSaleParams(ctx context.Context, d discogs.Discogs, iid int64, saleParams *pbd.SaleParams, user *pb.StoredUser) (*pbd.SaleParams, error) {
 	// Load the record
@@ -525,6 +542,22 @@ func (h *refreshSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string
 	return ""
 }
 
+type reconcileSalesHandler struct {
+	b *BackgroundRunner
+}
+
+func (h *reconcileSalesHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	return h.b.ProcessReconcileSales(ctx, d, u, entry, enqueue)
+}
+
+func (h *reconcileSalesHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
+	return nil
+}
+
+func (h *reconcileSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
+	return ""
+}
+
 type linkSalesHandler struct {
 	b *BackgroundRunner
 }
@@ -814,5 +847,100 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 		return fmt.Errorf("unable to enqueue: %w", err)
 	}
 
+	return nil
+}
+
+func (b *BackgroundRunner) ProcessReconcileSales(ctx context.Context, d discogs.Discogs, user *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	t0 := time.Now()
+	defer func() {
+		saleReconcileDuration.Observe(time.Since(t0).Seconds())
+	}()
+
+	if time.Since(time.Unix(0, user.GetLastSaleReconcile())) < SaleReconcileCadence && !entry.GetForce() {
+		qlog(ctx, "Skipping reconcileSales because %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
+		saleReconcileTotal.With(prometheus.Labels{"status": "skipped"}).Inc()
+		return nil
+	}
+
+	reconcileSales := entry.GetReconcileSales()
+	if reconcileSales == nil {
+		saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+		return fmt.Errorf("queue element does not contain ReconcileSales entry")
+	}
+
+	if reconcileSales.GetPage() <= 1 {
+		if reconcileSales.GetPage() == 0 {
+			reconcileSales.Page = 1
+		}
+		if reconcileSales.GetRefreshId() == 0 {
+			reconcileSales.RefreshId = time.Now().UnixNano()
+		}
+	}
+
+	pages, _, err := b.SyncSales(ctx, d, reconcileSales.GetPage(), reconcileSales.GetRefreshId(), 0)
+	if err != nil {
+		saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+		return err
+	}
+
+	qlog(ctx, "Got user: %v with %v", user, reconcileSales)
+
+	if pages.GetPages() == 0 || reconcileSales.GetPage() >= pages.GetPages() {
+		userId := d.GetUserId()
+		if userId == 0 && user.GetUser() != nil {
+			userId = user.GetUser().GetDiscogsUserId()
+		}
+		err = b.CleanSales(ctx, userId, reconcileSales.GetRefreshId())
+		if err != nil {
+			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+			return fmt.Errorf("unable to clean sales: %w", err)
+		}
+
+		user.LastSaleReconcile = time.Now().UnixNano()
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+			return fmt.Errorf("unable to save user: %w", err)
+		}
+
+		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: entry.GetIntention(),
+				RunDate:   time.Now().UnixNano() + 10,
+				Entry: &pb.QueueElement_LinkSales{
+					LinkSales: &pb.LinkSales{RefreshId: reconcileSales.GetRefreshId()},
+				},
+				Auth: entry.GetAuth(),
+			},
+		}, enqueue)
+		if err != nil {
+			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+			return fmt.Errorf("unable to enqueue link job: %w", err)
+		}
+
+		saleReconcileTotal.With(prometheus.Labels{"status": "success"}).Inc()
+		return nil
+	}
+
+	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: entry.GetIntention(),
+			RunDate:   time.Now().UnixNano() + 1,
+			Force:     entry.GetForce(),
+			Entry: &pb.QueueElement_ReconcileSales{
+				ReconcileSales: &pb.ReconcileSales{
+					Page:      reconcileSales.GetPage() + 1,
+					RefreshId: reconcileSales.GetRefreshId(),
+				},
+			},
+			Auth: entry.GetAuth(),
+		},
+	}, enqueue)
+	if err != nil {
+		saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+		return fmt.Errorf("unable to enqueue: %w", err)
+	}
+
+	saleReconcileTotal.With(prometheus.Labels{"status": "success"}).Inc()
 	return nil
 }
