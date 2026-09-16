@@ -2449,3 +2449,208 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 		t.Errorf("expected LastSaleRefresh to be updated after pastTime %v, got %v", pastTime, userAfterPhase2.GetLastSaleRefresh())
 	}
 }
+
+func TestSaleReconcile_DecoupledFullSweepAndPrune(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	// Pre-populate collection records in DB corresponding to Discogs sales
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 2001, InstanceId: 3001, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1001},
+		{Release: &pbd.Release{Id: 2002, InstanceId: 3002, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1002},
+		{Release: &pbd.Release{Id: 2003, InstanceId: 3003, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1003},
+	}
+	for _, rec := range records {
+		err := d.SaveRecord(ctx, 123, rec, &db.SaveOptions{})
+		if err != nil {
+			t.Fatalf("failed to save initial record %v: %v", rec.GetRelease().GetInstanceId(), err)
+		}
+	}
+
+	// Pre-populate sales in local DB (1001, 1002, 1003)
+	initialRefreshId := int64(11111)
+	initialListedDate := time.Now().Add(-48 * time.Hour).UnixNano()
+	for _, sid := range []int64{1001, 1002, 1003} {
+		relId := int64(2000 + (sid - 1000))
+		sale := &pb.SaleInfo{
+			SaleId:       sid,
+			ReleaseId:    relId,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+			CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+			RefreshId:    initialRefreshId,
+			ListedDate:   initialListedDate,
+		}
+		err := d.SaveSale(ctx, 123, sale)
+		if err != nil {
+			t.Fatalf("failed to save initial sale %v: %v", sid, err)
+		}
+	}
+
+	user := &pb.StoredUser{
+		Folders:           []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:              &pbd.User{DiscogsUserId: 123},
+		Auth:              &pb.GramophileAuth{Token: "123"},
+		LastSaleRefresh:   initialListedDate,
+		LastSaleReconcile: 0,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Mock Discogs client across multiple pages (2 pages).
+	// Sale 1003 has been deleted / sold externally, so mock Discogs ONLY contains 1001 and 1002.
+	// Note: Listed dates are older than user.LastSaleRefresh, verifying that ReconcileSales
+	// does not early terminate (lastRefresh = 0 is passed to SyncSales).
+	mockDiscogs := &paginatedSalesDiscogsClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{
+			UserId: 123,
+			Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		},
+		totalPages: 2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
+	s := server.BuildServer(d, mockDiscogs, qc)
+
+	// Phase 1: Enqueue and process ReconcileSales across multiple pages with early termination disabled
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "Test Full Reconcile",
+			Auth:      "123",
+			Entry:     &pb.QueueElement_ReconcileSales{ReconcileSales: &pb.ReconcileSales{Page: 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue ReconcileSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed during ReconcileSales: %v", err)
+	}
+
+	// Verification 1: Both pages were fetched (full inventory traversal without early termination)
+	if len(mockDiscogs.listCalls) != 2 || mockDiscogs.listCalls[0] != 1 || mockDiscogs.listCalls[1] != 2 {
+		t.Errorf("expected multi-page traversal calling pages [1, 2], got %v", mockDiscogs.listCalls)
+	}
+
+	// Verification 2: CleanSales executed on the final page and deleted missing sale 1003
+	_, err = d.GetSale(ctx, 123, 1003)
+	if err == nil {
+		t.Errorf("expected sale 1003 to be pruned by CleanSales, but it was found in DB")
+	}
+
+	// Verification 3: Active sales 1001 and 1002 still exist in DB
+	for _, sid := range []int64{1001, 1002} {
+		sale, err := d.GetSale(ctx, 123, sid)
+		if err != nil {
+			t.Errorf("expected active sale %v to remain in DB: %v", sid, err)
+		} else if sale.GetSaleState() != pbd.SaleStatus_FOR_SALE {
+			t.Errorf("expected sale %v to be FOR_SALE, got %v", sid, sale.GetSaleState())
+		}
+	}
+
+	// Verification 4: LinkSales executed and cleared dangling sale reference from record 3003
+	rec3003, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 3003},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to get record 3003: %v", err)
+	}
+	if rec3003.GetRecords()[0].GetRecord().GetSaleId() != 0 {
+		t.Errorf("expected record 3003 saleId to be cleared to 0, got %v", rec3003.GetRecords()[0].GetRecord().GetSaleId())
+	}
+
+	// Records 3001 and 3002 retain their links
+	for _, testCase := range []struct {
+		instanceId int64
+		saleId     int64
+	}{
+		{3001, 1001},
+		{3002, 1002},
+	} {
+		rec, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{InstanceId: testCase.instanceId},
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to get record %v: %v", testCase.instanceId, err)
+		}
+		if rec.GetRecords()[0].GetRecord().GetSaleId() != testCase.saleId {
+			t.Errorf("expected record %v to have saleId %v, got %v", testCase.instanceId, testCase.saleId, rec.GetRecords()[0].GetRecord().GetSaleId())
+		}
+	}
+
+	// Verification 5: user.LastSaleReconcile is updated in the database
+	savedUser, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after ReconcileSales: %v", err)
+	}
+	if savedUser.GetLastSaleReconcile() == 0 {
+		t.Errorf("expected user.LastSaleReconcile to be updated > 0, got 0")
+	}
+
+	// Phase 2: Subsequent standard RefreshSales operates normally without triggering deletion pruning
+	// Remove sale 1002 from Discogs to simulate another deleted sale
+	mockDiscogs.pages = map[int32][]*pbd.SaleItem{
+		1: {
+			{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+	mockDiscogs.totalPages = 1
+	mockDiscogs.listCalls = nil
+
+	// Enqueue standard RefreshSales (with Force: true to bypass 24h cadence limit)
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "Subsequent Routine RefreshSales",
+			Auth:      "123",
+			Force:     true,
+			Entry:     &pb.QueueElement_RefreshSales{RefreshSales: &pb.RefreshSales{Page: 1}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue RefreshSales: %v", err)
+	}
+
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed during routine RefreshSales: %v", err)
+	}
+
+	// Verification 6: Sale 1002 was NOT pruned by standard RefreshSales
+	sale1002AfterRefresh, err := d.GetSale(ctx, 123, 1002)
+	if err != nil {
+		t.Fatalf("expected sale 1002 to still exist in DB because RefreshSales does NOT prune sales: %v", err)
+	}
+	if sale1002AfterRefresh.GetSaleId() != 1002 {
+		t.Errorf("expected sale 1002 to have saleId 1002, got %v", sale1002AfterRefresh.GetSaleId())
+	}
+
+	// Record 3002 still has saleId 1002
+	rec3002AfterRefresh, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetRecordWithId{
+			GetRecordWithId: &pb.GetRecordWithId{InstanceId: 3002},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to get record 3002 after RefreshSales: %v", err)
+	}
+	if rec3002AfterRefresh.GetRecords()[0].GetRecord().GetSaleId() != 1002 {
+		t.Errorf("expected record 3002 to retain saleId 1002, got %v", rec3002AfterRefresh.GetRecords()[0].GetRecord().GetSaleId())
+	}
+}
