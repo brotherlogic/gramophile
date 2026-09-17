@@ -2522,3 +2522,165 @@ func TestTUI_Footer_UpdateStatuses(t *testing.T) {
 	}
 }
 
+func TestLocateSearch_InitialAlphabeticalOrdering(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 1, Title: "Abbey Road", Artists: []*pbd.Artist{{Name: "The Beatles"}}}},
+		{Release: &pbd.Release{Id: 2, Title: "Kind of Blue", Artists: []*pbd.Artist{{Name: "Miles Davis"}}}},
+		{Release: &pbd.Release{Id: 3, Title: "Bitches Brew", Artists: []*pbd.Artist{{Name: "Miles Davis"}}}},
+		{Release: &pbd.Release{Id: 4, Title: "Journey in Satchidananda", Artists: []*pbd.Artist{{Name: "Alice Coltrane"}}}},
+		{Release: &pbd.Release{Id: 5, Title: "A Love Supreme", Artists: []*pbd.Artist{{Name: "john coltrane"}}}},
+	}
+
+	newM, _ := m.Update(collectionFetchedMsg{records: records})
+	m = newM.(Model)
+
+	if len(m.indexedReleases) != 5 {
+		t.Fatalf("Expected 5 indexed releases, got %d", len(m.indexedReleases))
+	}
+	if len(m.filteredReleases) != 5 {
+		t.Fatalf("Expected 5 filtered releases, got %d", len(m.filteredReleases))
+	}
+
+	expectedOrder := []struct {
+		artist string
+		title  string
+	}{
+		{"Alice Coltrane", "Journey in Satchidananda"},
+		{"john coltrane", "A Love Supreme"},
+		{"Miles Davis", "Bitches Brew"},
+		{"Miles Davis", "Kind of Blue"},
+		{"The Beatles", "Abbey Road"},
+	}
+
+	for i, expected := range expectedOrder {
+		if m.indexedReleases[i].artist != expected.artist || m.indexedReleases[i].title != expected.title {
+			t.Errorf("Index %d: expected %s - %s, got %s - %s", i, expected.artist, expected.title, m.indexedReleases[i].artist, m.indexedReleases[i].title)
+		}
+		if m.filteredReleases[i].artist != expected.artist || m.filteredReleases[i].title != expected.title {
+			t.Errorf("Filtered %d: expected %s - %s, got %s - %s", i, expected.artist, expected.title, m.filteredReleases[i].artist, m.filteredReleases[i].title)
+		}
+	}
+}
+
+func TestLocateSearch_MultiTermFiltering(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 1, Title: "Blue Train", Artists: []*pbd.Artist{{Name: "John Coltrane"}}}},
+		{Release: &pbd.Release{Id: 2, Title: "Kind of Blue", Artists: []*pbd.Artist{{Name: "Miles Davis"}}}},
+		{Release: &pbd.Release{Id: 3, Title: "The Wall", Artists: []*pbd.Artist{{Name: "Pink Floyd"}}}},
+		{Release: &pbd.Release{Id: 4, Title: "Fire of Unknown Origin", Artists: []*pbd.Artist{{Name: "Blue Oyster Cult"}}}},
+	}
+
+	newM, _ := m.Update(collectionFetchedMsg{records: records})
+	m = newM.(Model)
+
+	// Search multi-term "coltrane blue" across artist and title
+	m.locateSearchInput.SetValue("coltrane blue")
+	m.filterCollectionIndex()
+
+	if len(m.filteredReleases) != 1 {
+		t.Fatalf("Expected 1 match for 'coltrane blue', got %d", len(m.filteredReleases))
+	}
+	if m.filteredReleases[0].releaseID != 1 {
+		t.Errorf("Expected release ID 1, got %d", m.filteredReleases[0].releaseID)
+	}
+
+	// Space-delimited reversed "blue coltrane" with uppercase
+	m.locateSearchCursor = 3
+	m.locateViewportOffset = 2
+	m.locateSearchInput.SetValue("  BLUE   COLTRANE  ")
+	m.filterCollectionIndex()
+
+	if len(m.filteredReleases) != 1 {
+		t.Fatalf("Expected 1 match for '  BLUE   COLTRANE  ', got %d", len(m.filteredReleases))
+	}
+	if m.filteredReleases[0].releaseID != 1 {
+		t.Errorf("Expected release ID 1, got %d", m.filteredReleases[0].releaseID)
+	}
+	if m.locateSearchCursor != 0 {
+		t.Errorf("Expected locateSearchCursor reset to 0, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 0 {
+		t.Errorf("Expected locateViewportOffset reset to 0, got %d", m.locateViewportOffset)
+	}
+
+	// Query matching multiple releases "blue"
+	m.locateSearchInput.SetValue("blue")
+	m.filterCollectionIndex()
+	if len(m.filteredReleases) != 3 {
+		t.Fatalf("Expected 3 matches for 'blue', got %d", len(m.filteredReleases))
+	}
+
+	// Empty query resets to full indexed releases
+	m.locateSearchInput.SetValue("")
+	m.filterCollectionIndex()
+	if len(m.filteredReleases) != 4 {
+		t.Fatalf("Expected 4 releases on empty query reset, got %d", len(m.filteredReleases))
+	}
+
+	// Non-matching query
+	m.locateSearchInput.SetValue("xyz987")
+	m.filterCollectionIndex()
+	if len(m.filteredReleases) != 0 {
+		t.Errorf("Expected 0 matches for non-matching query, got %d", len(m.filteredReleases))
+	}
+}
+
+func TestLocateSearch_PrimaryDeduplication(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 100, InstanceId: 1001, Title: "OK Computer", Artists: []*pbd.Artist{{Name: "Radiohead"}}}},
+		{Release: &pbd.Release{Id: 100, InstanceId: 1002, Title: "OK Computer", Artists: []*pbd.Artist{{Name: "Radiohead"}}}},
+		{Release: &pbd.Release{Id: 200, InstanceId: 2001, Title: "Kid A", Artists: []*pbd.Artist{{Name: "Radiohead"}}}},
+	}
+
+	newM, _ := m.Update(collectionFetchedMsg{records: records})
+	m = newM.(Model)
+
+	if len(m.indexedReleases) != 2 {
+		t.Fatalf("Expected 2 deduplicated releases, got %d", len(m.indexedReleases))
+	}
+
+	// Find release 100
+	var rel100 *releaseEntry
+	var rel200 *releaseEntry
+	for _, r := range m.indexedReleases {
+		if r.releaseID == 100 {
+			rel100 = r
+		} else if r.releaseID == 200 {
+			rel200 = r
+		}
+	}
+
+	if rel100 == nil {
+		t.Fatalf("Release 100 not found in indexedReleases")
+	}
+	if len(rel100.records) != 2 {
+		t.Errorf("Expected 2 physical copies collapsed for release 100, got %d", len(rel100.records))
+	}
+	if rel100.artist != "Radiohead" || rel100.title != "OK Computer" {
+		t.Errorf("Expected Radiohead - OK Computer, got %s - %s", rel100.artist, rel100.title)
+	}
+	if rel100.searchKey != "radiohead ok computer" {
+		t.Errorf("Expected searchKey 'radiohead ok computer', got %q", rel100.searchKey)
+	}
+
+	if rel200 == nil {
+		t.Fatalf("Release 200 not found in indexedReleases")
+	}
+	if len(rel200.records) != 1 {
+		t.Errorf("Expected 1 physical copy for release 200, got %d", len(rel200.records))
+	}
+}
+
+

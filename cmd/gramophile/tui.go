@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -110,6 +111,14 @@ type collectionFetchedMsg struct {
 	err     error
 }
 
+type releaseEntry struct {
+	releaseID int64
+	artist    string
+	title     string
+	searchKey string       // Precomputed lowercase: artist + " " + title
+	records   []*pb.Record // Physical copies associated with this release
+}
+
 // initialLogoDuration is the time to show the logo before auto-transitioning
 const initialLogoDuration = 2 * time.Second
 
@@ -169,6 +178,10 @@ type Model struct {
 	collectionLoading     bool
 	filteredLocateRecords []*pb.Record
 	locateSearchErr       string
+
+	indexedReleases      []*releaseEntry // Alphabetically sorted master release index
+	filteredReleases     []*releaseEntry // Active filtered subset
+	locateViewportOffset int             // Window scroll offset for primary list
 }
 
 func defaultTokenLoader() (string, error) {
@@ -372,6 +385,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.locateSearchErr = ""
 			m.collectionIndex = cMsg.records
+			m.buildCollectionIndex(cMsg.records)
 			m.filterCollectionIndex()
 		}
 		return m, nil
@@ -1458,11 +1472,13 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 			m.locateSearchInput.Focus()
 			m.locateSearchInput.Placeholder = "Search collection by artist or title..."
 			m.locateSearchCursor = 0
+			m.locateViewportOffset = 0
 			if m.collectionIndex == nil && !m.collectionLoading {
 				m.collectionLoading = true
 				return m, m.fetchCollectionIndexCmd()
 			}
 			m.filteredLocateRecords = m.collectionIndex
+			m.filteredReleases = m.indexedReleases
 			return m, nil
 		}
 		m.commandInput = cmdStr
@@ -1605,17 +1621,93 @@ func (m Model) formatLocateRecordLabel(rec *pb.Record, isDuplicate bool) string 
 	return base
 }
 
+func (m *Model) buildCollectionIndex(records []*pb.Record) {
+	releaseMap := make(map[int64]*releaseEntry)
+	var indexed []*releaseEntry
+
+	for _, rec := range records {
+		if rec == nil || rec.GetRelease() == nil {
+			continue
+		}
+		relID := rec.GetRelease().GetId()
+		if entry, ok := releaseMap[relID]; ok {
+			entry.records = append(entry.records, rec)
+		} else {
+			artist := getRecordArtist(rec)
+			title := getRecordTitle(rec)
+			searchKey := strings.ToLower(fmt.Sprintf("%s %s", artist, title))
+			entry := &releaseEntry{
+				releaseID: relID,
+				artist:    artist,
+				title:     title,
+				searchKey: searchKey,
+				records:   []*pb.Record{rec},
+			}
+			releaseMap[relID] = entry
+			indexed = append(indexed, entry)
+		}
+	}
+
+	sort.SliceStable(indexed, func(i, j int) bool {
+		artistI := strings.ToLower(indexed[i].artist)
+		artistJ := strings.ToLower(indexed[j].artist)
+		if artistI != artistJ {
+			return artistI < artistJ
+		}
+		titleI := strings.ToLower(indexed[i].title)
+		titleJ := strings.ToLower(indexed[j].title)
+		return titleI < titleJ
+	})
+
+	m.indexedReleases = indexed
+	m.filteredReleases = indexed
+	m.locateViewportOffset = 0
+}
+
 func (m *Model) filterCollectionIndex() {
-	query := strings.TrimSpace(strings.ToLower(m.locateSearchInput.Value()))
-	if query == "" {
+	if len(m.indexedReleases) == 0 && len(m.collectionIndex) > 0 {
+		m.buildCollectionIndex(m.collectionIndex)
+	}
+
+	m.locateSearchCursor = 0
+	m.locateViewportOffset = 0
+
+	rawQuery := strings.TrimSpace(strings.ToLower(m.locateSearchInput.Value()))
+	if rawQuery == "" {
+		m.filteredReleases = m.indexedReleases
 		m.filteredLocateRecords = m.collectionIndex
 		return
 	}
+
+	tokens := strings.Fields(rawQuery)
+	var matched []*releaseEntry
+	for _, entry := range m.indexedReleases {
+		match := true
+		for _, token := range tokens {
+			if !strings.Contains(entry.searchKey, token) {
+				match = false
+				break
+			}
+		}
+		if match {
+			matched = append(matched, entry)
+		}
+	}
+	m.filteredReleases = matched
+
 	var filtered []*pb.Record
 	for _, rec := range m.collectionIndex {
 		artist := strings.ToLower(getRecordArtist(rec))
 		title := strings.ToLower(getRecordTitle(rec))
-		if strings.Contains(artist, query) || strings.Contains(title, query) || strings.Contains(artist+" - "+title, query) {
+		searchStr := artist + " " + title
+		match := true
+		for _, token := range tokens {
+			if !strings.Contains(searchStr, token) {
+				match = false
+				break
+			}
+		}
+		if match {
 			filtered = append(filtered, rec)
 		}
 	}
