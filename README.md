@@ -71,6 +71,7 @@ Current Go version: 1.26.2
 - Collection Cache Protobuf Schema: Defines CachedRecord and CollectionCache protobuf messages in `proto/gramophile.proto` with generated Go bindings to support offline TUI collection indexing and disk caching.
 - Collection Cache Manager: Provides thread-safe local disk persistence with atomic write and permissions, index lookups (instance ID, release ID, lexical search), TTL validation, and resilient corrupt file recovery for offline TUI collection indexing.
 - Release Deduplication and Multi-Term Search Filtering in TUI: Indexes the user's collection into deduplicated release entries collapsing multiple physical copies per release, precomputes searchable artist and title keys sorted alphabetically by artist and title, and provides real-time multi-term space-delimited filtering in the Gramophile TUI locate search interface.
+- Multi-Copy Version Formatting and Fallback Resolution in TUI: Formats physical record copies and shelf locations for multi-copy releases in the Gramophile TUI, resolving format descriptions and shelf locations with graceful fallbacks ("Unknown Format", "Unassigned Shelf").
 
 
 ## TUI (Terminal User Interface)

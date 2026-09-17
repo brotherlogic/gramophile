@@ -1621,6 +1621,39 @@ func (m Model) formatLocateRecordLabel(rec *pb.Record, isDuplicate bool) string 
 	return base
 }
 
+func formatRecordFormat(rec *pb.Record) string {
+	if rec == nil || rec.GetRelease() == nil || len(rec.GetRelease().GetFormats()) == 0 {
+		return "Unknown Format"
+	}
+	f := rec.GetRelease().GetFormats()[0]
+	name := strings.TrimSpace(f.GetName())
+	if name == "" {
+		return "Unknown Format"
+	}
+	if len(f.GetDescriptions()) > 0 && strings.TrimSpace(f.GetDescriptions()[0]) != "" {
+		return fmt.Sprintf("%s, %s", name, strings.TrimSpace(f.GetDescriptions()[0]))
+	}
+	return name
+}
+
+func (m Model) formatRecordShelfLocation(rec *pb.Record) string {
+	folder := m.resolveRecordFolder(rec)
+	if folder == "" {
+		return "Unassigned Shelf"
+	}
+	return folder
+}
+
+func (m Model) formatVersionRow(rec *pb.Record) string {
+	var iid int64
+	if rec != nil && rec.GetRelease() != nil {
+		iid = rec.GetRelease().GetInstanceId()
+	}
+	format := formatRecordFormat(rec)
+	shelf := m.formatRecordShelfLocation(rec)
+	return fmt.Sprintf("%d - %s - %s", iid, format, shelf)
+}
+
 func (m *Model) buildCollectionIndex(records []*pb.Record) {
 	releaseMap := make(map[int64]*releaseEntry)
 	var indexed []*releaseEntry

@@ -2683,4 +2683,109 @@ func TestLocateSearch_PrimaryDeduplication(t *testing.T) {
 	}
 }
 
+func TestLocateSearch_SecondaryCopyFallbacks(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 10, Name: "Main Shelf"},
+		},
+	}
+
+	// 1. Complete metadata: Name + Description and known shelf
+	recComplete := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 101,
+			FolderId:   10,
+			Formats: []*pbd.Format{
+				{
+					Name:         "Vinyl",
+					Descriptions: []string{"LP", "Album"},
+				},
+			},
+		},
+	}
+	if fmtStr := formatRecordFormat(recComplete); fmtStr != "Vinyl, LP" {
+		t.Errorf("Expected format 'Vinyl, LP', got %q", fmtStr)
+	}
+	if shelfStr := m.formatRecordShelfLocation(recComplete); shelfStr != "Main Shelf" {
+		t.Errorf("Expected shelf 'Main Shelf', got %q", shelfStr)
+	}
+	if rowStr := m.formatVersionRow(recComplete); rowStr != "101 - Vinyl, LP - Main Shelf" {
+		t.Errorf("Expected version row '101 - Vinyl, LP - Main Shelf', got %q", rowStr)
+	}
+
+	// 2. Format with name only (no descriptions)
+	recNameOnly := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 102,
+			Formats: []*pbd.Format{
+				{
+					Name: "CD",
+				},
+			},
+		},
+	}
+	if fmtStr := formatRecordFormat(recNameOnly); fmtStr != "CD" {
+		t.Errorf("Expected format 'CD', got %q", fmtStr)
+	}
+
+	// 3. Fallback: missing/empty formats list
+	recNoFormats := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 103,
+		},
+	}
+	if fmtStr := formatRecordFormat(recNoFormats); fmtStr != "Unknown Format" {
+		t.Errorf("Expected format 'Unknown Format', got %q", fmtStr)
+	}
+
+	// 4. Fallback: format name is whitespace or empty
+	recEmptyFormatName := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 104,
+			Formats: []*pbd.Format{
+				{
+					Name:         "   ",
+					Descriptions: []string{"LP"},
+				},
+			},
+		},
+	}
+	if fmtStr := formatRecordFormat(recEmptyFormatName); fmtStr != "Unknown Format" {
+		t.Errorf("Expected format 'Unknown Format' for empty format name, got %q", fmtStr)
+	}
+
+	// 5. Fallback: unassigned shelf location (no matching folder ID, no goal folder)
+	recUnassignedShelf := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 105,
+			FolderId:   999, // Unmatched folder
+			Formats: []*pbd.Format{
+				{
+					Name: "Vinyl",
+				},
+			},
+		},
+	}
+	if shelfStr := m.formatRecordShelfLocation(recUnassignedShelf); shelfStr != "Unassigned Shelf" {
+		t.Errorf("Expected shelf 'Unassigned Shelf', got %q", shelfStr)
+	}
+	if rowStr := m.formatVersionRow(recUnassignedShelf); rowStr != "105 - Vinyl - Unassigned Shelf" {
+		t.Errorf("Expected version row '105 - Vinyl - Unassigned Shelf', got %q", rowStr)
+	}
+
+	// 6. Nil records safety
+	if fmtStr := formatRecordFormat(nil); fmtStr != "Unknown Format" {
+		t.Errorf("Expected format 'Unknown Format' for nil record, got %q", fmtStr)
+	}
+	if shelfStr := m.formatRecordShelfLocation(nil); shelfStr != "Unassigned Shelf" {
+		t.Errorf("Expected shelf 'Unassigned Shelf' for nil record, got %q", shelfStr)
+	}
+	if rowStr := m.formatVersionRow(nil); rowStr != "0 - Unknown Format - Unassigned Shelf" {
+		t.Errorf("Expected version row '0 - Unknown Format - Unassigned Shelf' for nil record, got %q", rowStr)
+	}
+}
+
+
 
