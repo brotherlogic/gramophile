@@ -3197,3 +3197,281 @@ func TestOfflineDegradedMode(t *testing.T) {
 		t.Errorf("Expected model to remain in StateMainApp without interrupting user, got %v", degradedModel.state)
 	}
 }
+
+func TestLocateSearch_ViewportScrolling(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	// Create 25 dummy release entries
+	releases := make([]*releaseEntry, 25)
+	for i := 0; i < 25; i++ {
+		releases[i] = &releaseEntry{
+			releaseID: int64(1000 + i),
+			artist:    fmt.Sprintf("Artist %02d", i),
+			title:     fmt.Sprintf("Album %02d", i),
+			records: []*pb.Record{
+				{Release: &pbd.Release{Id: int64(1000 + i), InstanceId: int64(2000 + i)}},
+			},
+		}
+	}
+	m.filteredReleases = releases
+	m.locateSearchCursor = 0
+	m.locateViewportOffset = 0
+
+	// 1. Move cursor down from 0 to 9: offset remains 0
+	for i := 1; i <= 9; i++ {
+		newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+		m = newM.(Model)
+		if m.locateSearchCursor != i {
+			t.Fatalf("Step %d down: expected cursor %d, got %d", i, i, m.locateSearchCursor)
+		}
+		if m.locateViewportOffset != 0 {
+			t.Fatalf("Step %d down: expected offset 0, got %d", i, m.locateViewportOffset)
+		}
+	}
+
+	// 2. Move cursor down to 10 (past offset + 9): offset increments to 1
+	newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 10 {
+		t.Fatalf("Expected cursor 10, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 1 {
+		t.Fatalf("Expected offset 1 when cursor moves to 10, got %d", m.locateViewportOffset)
+	}
+
+	// 3. Move cursor down to 14: offset should increment to 5
+	for i := 11; i <= 14; i++ {
+		newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+		m = newM.(Model)
+	}
+	if m.locateSearchCursor != 14 {
+		t.Fatalf("Expected cursor 14, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 5 {
+		t.Fatalf("Expected offset 5 when cursor is at 14, got %d", m.locateViewportOffset)
+	}
+
+	// 4. Move cursor all the way down to 24 (last item): offset should clamp to 15 (25 - 10)
+	for i := 15; i <= 24; i++ {
+		newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+		m = newM.(Model)
+	}
+	if m.locateSearchCursor != 24 {
+		t.Fatalf("Expected cursor 24 at bottom, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 15 {
+		t.Fatalf("Expected offset 15 clamped at bottom, got %d", m.locateViewportOffset)
+	}
+
+	// 5. Down at bottom is clamped
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = newM.(Model)
+	if m.locateSearchCursor != 24 {
+		t.Fatalf("Expected cursor clamped to 24, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 15 {
+		t.Fatalf("Expected offset clamped to 15, got %d", m.locateViewportOffset)
+	}
+
+	// 6. Navigate up from 24 down to 15: cursor >= offset (15), so offset remains 15
+	for i := 23; i >= 15; i-- {
+		newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+		m = newM.(Model)
+		if m.locateSearchCursor != i {
+			t.Fatalf("Step %d up: expected cursor %d, got %d", i, i, m.locateSearchCursor)
+		}
+		if m.locateViewportOffset != 15 {
+			t.Fatalf("Step %d up: expected offset 15, got %d", i, m.locateViewportOffset)
+		}
+	}
+
+	// 7. Move up to 14 (moves before offset 15): offset decrements to 14
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = newM.(Model)
+	if m.locateSearchCursor != 14 {
+		t.Fatalf("Expected cursor 14, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 14 {
+		t.Fatalf("Expected offset 14 when cursor moves before offset, got %d", m.locateViewportOffset)
+	}
+
+	// 8. Move up all the way to 0 using 'k'
+	for i := 13; i >= 0; i-- {
+		newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+		m = newM.(Model)
+	}
+	if m.locateSearchCursor != 0 {
+		t.Fatalf("Expected cursor 0 at top, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 0 {
+		t.Fatalf("Expected offset 0 clamped at top, got %d", m.locateViewportOffset)
+	}
+
+	// 9. Up at top is clamped
+	newM, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = newM.(Model)
+	if m.locateSearchCursor != 0 {
+		t.Fatalf("Expected cursor clamped to 0, got %d", m.locateSearchCursor)
+	}
+	if m.locateViewportOffset != 0 {
+		t.Fatalf("Expected offset clamped to 0, got %d", m.locateViewportOffset)
+	}
+}
+
+func TestLocateSearch_RenderViews(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+
+	// --- 1. Empty State Rendering ---
+	m.state = StateLocateSearch
+	m.filteredReleases = []*releaseEntry{}
+	emptyView := m.View()
+
+	if !strings.Contains(emptyView, "No matching records found.") {
+		t.Errorf("Expected empty state to contain 'No matching records found.', got:\n%s", emptyView)
+	}
+	if !strings.Contains(emptyView, "↑/↓: Navigate • Enter: Locate • Esc: Cancel") {
+		t.Errorf("Expected empty state footer, got:\n%s", emptyView)
+	}
+
+	// --- 2. Primary Search Viewport (10-row window & indicator) ---
+	releases := make([]*releaseEntry, 25)
+	for i := 0; i < 25; i++ {
+		releases[i] = &releaseEntry{
+			releaseID: int64(1000 + i),
+			artist:    fmt.Sprintf("Artist %02d", i),
+			title:     fmt.Sprintf("Album %02d", i),
+			records: []*pb.Record{
+				{Release: &pbd.Release{Id: int64(1000 + i), InstanceId: int64(2000 + i)}},
+			},
+		}
+	}
+	m.filteredReleases = releases
+	m.locateSearchCursor = 0
+	m.locateViewportOffset = 0
+
+	viewTop := m.View()
+	// Active cursor row
+	if !strings.Contains(viewTop, "> Artist 00 - Album 00") {
+		t.Errorf("Expected active cursor row '> Artist 00 - Album 00', got:\n%s", viewTop)
+	}
+	// Inactive row within the 10-row window
+	if !strings.Contains(viewTop, "  Artist 01 - Album 01") {
+		t.Errorf("Expected inactive row '  Artist 01 - Album 01', got:\n%s", viewTop)
+	}
+	if !strings.Contains(viewTop, "  Artist 09 - Album 09") {
+		t.Errorf("Expected 10th row '  Artist 09 - Album 09' in viewport, got:\n%s", viewTop)
+	}
+	// 11th row should be hidden outside the 10-row viewport
+	if strings.Contains(viewTop, "Artist 10 - Album 10") {
+		t.Errorf("Did not expect 'Artist 10 - Album 10' in top 10 viewport, got:\n%s", viewTop)
+	}
+	// Indicator
+	if !strings.Contains(viewTop, "[Showing 1-10 of 25 records]") {
+		t.Errorf("Expected indicator '[Showing 1-10 of 25 records]', got:\n%s", viewTop)
+	}
+
+	// Test scrolled viewport (offset 5, cursor 7)
+	m.locateViewportOffset = 5
+	m.locateSearchCursor = 7
+	viewScrolled := m.View()
+	if strings.Contains(viewScrolled, "Artist 04 - Album 04") {
+		t.Errorf("Did not expect 'Artist 04 - Album 04' in scrolled viewport, got:\n%s", viewScrolled)
+	}
+	if !strings.Contains(viewScrolled, "  Artist 05 - Album 05") {
+		t.Errorf("Expected '  Artist 05 - Album 05' at top of scrolled viewport, got:\n%s", viewScrolled)
+	}
+	if !strings.Contains(viewScrolled, "> Artist 07 - Album 07") {
+		t.Errorf("Expected active cursor '> Artist 07 - Album 07', got:\n%s", viewScrolled)
+	}
+	if !strings.Contains(viewScrolled, "  Artist 14 - Album 14") {
+		t.Errorf("Expected '  Artist 14 - Album 14' at bottom of scrolled viewport, got:\n%s", viewScrolled)
+	}
+	if strings.Contains(viewScrolled, "Artist 15 - Album 15") {
+		t.Errorf("Did not expect 'Artist 15 - Album 15' in scrolled viewport, got:\n%s", viewScrolled)
+	}
+	if !strings.Contains(viewScrolled, "[Showing 6-15 of 25 records]") {
+		t.Errorf("Expected indicator '[Showing 6-15 of 25 records]', got:\n%s", viewScrolled)
+	}
+
+	// --- 3. Collection Loading Indicator/Spinner in Header ---
+	m.collectionLoading = true
+	viewLoading := m.View()
+	if !strings.Contains(viewLoading, m.getOrgSpinnerView()) && !strings.Contains(viewLoading, "Loading") {
+		t.Errorf("Expected loading spinner or indicator in header when collectionLoading=true, got:\n%s", viewLoading)
+	}
+	m.collectionLoading = false
+
+	// --- 4. StateLocateVersionSelect Disambiguation Rendering ---
+	multiChoice := &releaseEntry{
+		releaseID: 202,
+		artist:    "Miles Davis",
+		title:     "Kind of Blue",
+		records: []*pb.Record{
+			{
+				Release: &pbd.Release{
+					Id:         202,
+					InstanceId: 2001,
+					Formats: []*pbd.Format{
+						{Name: "Vinyl", Descriptions: []string{"LP"}},
+					},
+					FolderId: 10,
+				},
+			},
+			{
+				Release: &pbd.Release{
+					Id:         202,
+					InstanceId: 2002,
+					Formats: []*pbd.Format{
+						{Name: "Vinyl"},
+					},
+					FolderId: 99,
+				},
+			},
+		},
+	}
+	m.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Id: 10, Name: "Main Shelf"},
+		},
+	}
+	m.state = StateLocateVersionSelect
+	m.activeReleaseChoice = multiChoice
+	m.versionSelectCursor = 0
+
+	viewVersion := m.View()
+	// Header
+	expectedVersionHeader := "Select copy for: Miles Davis - Kind of Blue"
+	if !strings.Contains(viewVersion, expectedVersionHeader) {
+		t.Errorf("Expected version select header %q, got:\n%s", expectedVersionHeader, viewVersion)
+	}
+	// Active row 0, Inactive row 1
+	expectedRow0Active := "> 2001 - Vinyl, LP - Main Shelf"
+	expectedRow1Inactive := "  2002 - Vinyl - Unassigned Shelf"
+	if !strings.Contains(viewVersion, expectedRow0Active) {
+		t.Errorf("Expected active row %q, got:\n%s", expectedRow0Active, viewVersion)
+	}
+	if !strings.Contains(viewVersion, expectedRow1Inactive) {
+		t.Errorf("Expected inactive row %q, got:\n%s", expectedRow1Inactive, viewVersion)
+	}
+	// Footer
+	expectedVersionFooter := "↑/↓: Navigate • Enter: Locate Copy • Esc: Back to Search"
+	if !strings.Contains(viewVersion, expectedVersionFooter) {
+		t.Errorf("Expected version select footer %q, got:\n%s", expectedVersionFooter, viewVersion)
+	}
+
+	// Switch versionSelectCursor to 1
+	m.versionSelectCursor = 1
+	viewVersion1 := m.View()
+	expectedRow0Inactive := "  2001 - Vinyl, LP - Main Shelf"
+	expectedRow1Active := "> 2002 - Vinyl - Unassigned Shelf"
+	if !strings.Contains(viewVersion1, expectedRow0Inactive) {
+		t.Errorf("Expected inactive row %q, got:\n%s", expectedRow0Inactive, viewVersion1)
+	}
+	if !strings.Contains(viewVersion1, expectedRow1Active) {
+		t.Errorf("Expected active row %q, got:\n%s", expectedRow1Active, viewVersion1)
+	}
+}
+
