@@ -75,6 +75,7 @@ Current Go version: 1.26.2
 - TUI Non-Blocking Startup & Cache Lifecycle Integration: Integrates CacheManager into the Bubble Tea TUI Model in cmd/gramophile, enabling instant offline startup from local disk cache, asynchronous background collection synchronization when the cache is absent or expired past TTL, and graceful degraded offline fallback when network connectivity is unavailable.
 - Version Selection State Machine and Keyboard Navigation in TUI: Introduces the secondary disambiguation state `StateLocateVersionSelect` and keyboard navigation contracts in the Gramophile TUI, allowing direct bypass on single-copy releases, version selection on multi-copy releases, Esc navigation preservation, and q-quit suppression.
 - Windowed Viewport Scrolling and Lip Gloss Rendering in TUI Search: Implements a 10-row windowed viewport with boundary clamping for primary collection search in the Gramophile TUI, counter indicator showing displayed range and total record counts, animated collection loading spinner, empty state messaging, and styled Lip Gloss rendering for release search and secondary multi-copy version selection.
+- Cache Health Status Badge in TUI Footer: Displays a Lip Gloss styled cache synchronization health status badge in the Gramophile TUI footer (`[Cache: Ready]` in green `#00D787`, `[Cache: Syncing]` in yellow `#FFD700`, `[Cache: Stale (Offline)]` in amber/orange `#FF8700`, and `[Cache: Rebuilding]` in purple/magenta `#AF00FF`) alongside version and updater status, with graceful fallback when cache status is uninitialized.
 
 
 

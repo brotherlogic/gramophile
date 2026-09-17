@@ -1384,10 +1384,34 @@ func (m Model) View() string {
 	return m.renderLogo() + "\n\n" + body + "\n\n" + renderFooter(m)
 }
 
+func renderCacheBadge(status CacheStatus) string {
+	switch status {
+	case CacheStatusReady:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#00D787")).Render("[Cache: Ready]")
+	case CacheStatusSyncing:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Render("[Cache: Syncing]")
+	case CacheStatusStale:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8700")).Render("[Cache: Stale (Offline)]")
+	case CacheStatusRebuilding:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#AF00FF")).Render("[Cache: Rebuilding]")
+	default:
+		return ""
+	}
+}
+
 func renderFooter(m Model) string {
 	footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
+	status := m.cacheStatus
+	if status == CacheStatusUninitialized && m.cacheManager != nil {
+		status = m.cacheManager.GetStatus()
+	}
+	cacheBadge := renderCacheBadge(status)
+
 	if m.version == "dev" || m.version == "vdev" || m.version == "" {
+		if cacheBadge != "" {
+			return footerStyle.Render("vdev (auto-update disabled) | ") + cacheBadge
+		}
 		return footerStyle.Render("vdev (auto-update disabled)")
 	}
 
@@ -1397,12 +1421,21 @@ func renderFooter(m Model) string {
 	}
 
 	if m.updateStatus != "" {
+		var updateText string
 		if strings.HasPrefix(m.updateStatus, v+" | ") {
-			return footerStyle.Render(m.updateStatus)
+			updateText = m.updateStatus
+		} else {
+			updateText = fmt.Sprintf("%s | %s", v, m.updateStatus)
 		}
-		return footerStyle.Render(fmt.Sprintf("%s | %s", v, m.updateStatus))
+		if cacheBadge != "" {
+			return footerStyle.Render(updateText+" | ") + cacheBadge
+		}
+		return footerStyle.Render(updateText)
 	}
 
+	if cacheBadge != "" {
+		return footerStyle.Render(fmt.Sprintf("Gramophile %s | ", v)) + cacheBadge
+	}
 	return footerStyle.Render(fmt.Sprintf("Gramophile %s", v))
 }
 
