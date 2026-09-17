@@ -170,3 +170,73 @@ func TestRecordCacheProto(t *testing.T) {
 		t.Errorf("Unmarshaled release cache mismatch: %v", unmarshaled.GetReleaseCache())
 	}
 }
+
+func TestCollectionCacheProto(t *testing.T) {
+	record := &CachedRecord{
+		InstanceId:      12345,
+		Artist:          "The Beatles",
+		Title:           "Abbey Road",
+		ReleaseId:       67890,
+		LastUpdatedTime: 1700000000,
+	}
+
+	if record.GetInstanceId() != 12345 {
+		t.Errorf("Expected InstanceId 12345, got %v", record.GetInstanceId())
+	}
+	if record.GetArtist() != "The Beatles" {
+		t.Errorf("Expected Artist 'The Beatles', got %v", record.GetArtist())
+	}
+	if record.GetTitle() != "Abbey Road" {
+		t.Errorf("Expected Title 'Abbey Road', got %v", record.GetTitle())
+	}
+	if record.GetReleaseId() != 67890 {
+		t.Errorf("Expected ReleaseId 67890, got %v", record.GetReleaseId())
+	}
+	if record.GetLastUpdatedTime() != 1700000000 {
+		t.Errorf("Expected LastUpdatedTime 1700000000, got %v", record.GetLastUpdatedTime())
+	}
+
+	cache := &CollectionCache{
+		DiscogsUserId: 99999,
+		LastSyncTime:  1700000500,
+		Records:       []*CachedRecord{record},
+	}
+
+	if cache.GetDiscogsUserId() != 99999 {
+		t.Errorf("Expected DiscogsUserId 99999, got %v", cache.GetDiscogsUserId())
+	}
+	if cache.GetLastSyncTime() != 1700000500 {
+		t.Errorf("Expected LastSyncTime 1700000500, got %v", cache.GetLastSyncTime())
+	}
+	if len(cache.GetRecords()) != 1 {
+		t.Fatalf("Expected 1 record, got %d", len(cache.GetRecords()))
+	}
+	if cache.GetRecords()[0].GetArtist() != "The Beatles" {
+		t.Errorf("Expected record artist 'The Beatles', got %v", cache.GetRecords()[0].GetArtist())
+	}
+
+	data, err := protov2.Marshal(cache)
+	if err != nil {
+		t.Fatalf("Failed to marshal CollectionCache: %v", err)
+	}
+
+	unmarshaled := &CollectionCache{}
+	if err := protov2.Unmarshal(data, unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal CollectionCache: %v", err)
+	}
+
+	if unmarshaled.GetDiscogsUserId() != 99999 {
+		t.Errorf("Unmarshaled DiscogsUserId mismatch: got %v, expected 99999", unmarshaled.GetDiscogsUserId())
+	}
+	if unmarshaled.GetLastSyncTime() != 1700000500 {
+		t.Errorf("Unmarshaled LastSyncTime mismatch: got %v, expected 1700000500", unmarshaled.GetLastSyncTime())
+	}
+	if len(unmarshaled.GetRecords()) != 1 {
+		t.Fatalf("Unmarshaled records count mismatch: got %d, expected 1", len(unmarshaled.GetRecords()))
+	}
+	rec := unmarshaled.GetRecords()[0]
+	if rec.GetInstanceId() != 12345 || rec.GetArtist() != "The Beatles" || rec.GetTitle() != "Abbey Road" || rec.GetReleaseId() != 67890 || rec.GetLastUpdatedTime() != 1700000000 {
+		t.Errorf("Unmarshaled record content mismatch: got %+v", rec)
+	}
+}
+

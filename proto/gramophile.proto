@@ -926,6 +926,23 @@ message RecordCache {
     map<int64, RecordCacheEntry> release_cache = 2;
 }
 
+// CachedRecord represents the minimal record metadata needed for TUI indexing and locate workflows.
+message CachedRecord {
+    int64 instance_id = 1;
+    string artist = 2;
+    string title = 3;
+    int64 release_id = 4;
+    int64 last_updated_time = 5;
+}
+
+// CollectionCache defines the root schema persisted on disk for offline indexing.
+message CollectionCache {
+    int64 discogs_user_id = 1;
+    int64 last_sync_time = 2;
+    repeated CachedRecord records = 3;
+}
+
+
 // Internally accessible service
 service GramophileService {
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {};
