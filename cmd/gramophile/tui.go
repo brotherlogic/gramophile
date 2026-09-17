@@ -1035,6 +1035,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.locateSearchInput.SetValue("")
 				m.locateSearchCursor = 0
+				m.locateViewportOffset = 0
 				m.filteredReleases = m.indexedReleases
 				m.filteredLocateRecords = m.collectionIndex
 				m.state = StateMainApp
@@ -1043,6 +1044,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.locateSearchCursor > 0 {
 					m.locateSearchCursor--
 				}
+				if m.locateSearchCursor < m.locateViewportOffset {
+					m.locateViewportOffset--
+				}
+				m.clampLocateViewportOffset()
 				return m, nil
 			case "down", "j":
 				maxLen := len(m.filteredReleases)
@@ -1052,6 +1057,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.locateSearchCursor < maxLen-1 {
 					m.locateSearchCursor++
 				}
+				if m.locateSearchCursor > m.locateViewportOffset+9 {
+					m.locateViewportOffset++
+				}
+				m.clampLocateViewportOffset()
 				return m, nil
 			case "enter":
 				if len(m.filteredReleases) == 0 && len(m.filteredLocateRecords) > 0 {
@@ -1274,16 +1283,48 @@ func (m Model) View() string {
 		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
 		footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 		selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+		indicatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-		sb.WriteString(promptStyle.Render("Search: ") + m.locateSearchInput.View() + "\n\n")
-
+		header := promptStyle.Render("Search: ") + m.locateSearchInput.View()
 		if m.collectionLoading {
-			sb.WriteString("Loading collection records...\n")
-		} else if m.locateSearchErr != "" {
-			sb.WriteString(fmt.Sprintf("Error loading collection: %s\n", m.locateSearchErr))
-		} else if len(m.filteredLocateRecords) == 0 {
-			sb.WriteString("No matching records found.\n")
-		} else {
+			header += " " + m.getOrgSpinnerView()
+		}
+		sb.WriteString(header + "\n\n")
+
+		if m.locateSearchErr != "" {
+			sb.WriteString(fmt.Sprintf("Error loading collection: %s\n\n", m.locateSearchErr))
+		}
+
+		if len(m.filteredReleases) > 0 {
+			total := len(m.filteredReleases)
+			offset := m.locateViewportOffset
+			if offset < 0 {
+				offset = 0
+			}
+			maxOffset := total - 10
+			if maxOffset < 0 {
+				maxOffset = 0
+			}
+			if offset > maxOffset {
+				offset = maxOffset
+			}
+			end := offset + 10
+			if end > total {
+				end = total
+			}
+
+			for i := offset; i < end; i++ {
+				entry := m.filteredReleases[i]
+				label := fmt.Sprintf("%s - %s", entry.artist, entry.title)
+				if i == m.locateSearchCursor {
+					sb.WriteString(selectedStyle.Render(fmt.Sprintf("> %s", label)) + "\n")
+				} else {
+					sb.WriteString(fmt.Sprintf("  %s\n", label))
+				}
+			}
+
+			sb.WriteString("\n" + indicatorStyle.Render(fmt.Sprintf("[Showing %d-%d of %s records]", offset+1, end, formatNumberWithCommas(total))) + "\n")
+		} else if len(m.filteredLocateRecords) > 0 {
 			dupPool := m.filteredLocateRecords
 			if len(m.collectionIndex) > len(dupPool) {
 				dupPool = m.collectionIndex
@@ -1304,9 +1345,37 @@ func (m Model) View() string {
 					sb.WriteString(fmt.Sprintf("  %s\n", label))
 				}
 			}
+		} else {
+			sb.WriteString("No matching records found.\n")
 		}
 
 		sb.WriteString("\n" + footerStyle.Render("↑/↓: Navigate • Enter: Locate • Esc: Cancel"))
+		body = sb.String()
+	case StateLocateVersionSelect:
+		var sb strings.Builder
+		headerStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+		footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+
+		var artist, title string
+		if m.activeReleaseChoice != nil {
+			artist = m.activeReleaseChoice.artist
+			title = m.activeReleaseChoice.title
+		}
+		sb.WriteString(headerStyle.Render(fmt.Sprintf("Select copy for: %s - %s", artist, title)) + "\n\n")
+
+		if m.activeReleaseChoice != nil {
+			for i, rec := range m.activeReleaseChoice.records {
+				rowStr := m.formatVersionRow(rec)
+				if i == m.versionSelectCursor {
+					sb.WriteString(selectedStyle.Render(fmt.Sprintf("> %s", rowStr)) + "\n")
+				} else {
+					sb.WriteString(fmt.Sprintf("  %s\n", rowStr))
+				}
+			}
+		}
+
+		sb.WriteString("\n" + footerStyle.Render("↑/↓: Navigate • Enter: Locate Copy • Esc: Back to Search"))
 		body = sb.String()
 	default:
 		body = "Gramophile TUI"
@@ -1989,5 +2058,51 @@ func (m *Model) filterCollectionIndex() {
 	}
 	m.filteredLocateRecords = filtered
 }
+
+func (m *Model) clampLocateViewportOffset() {
+	if m.locateSearchCursor > m.locateViewportOffset+9 {
+		m.locateViewportOffset = m.locateSearchCursor - 9
+	}
+	if m.locateSearchCursor < m.locateViewportOffset {
+		m.locateViewportOffset = m.locateSearchCursor
+	}
+	total := len(m.filteredReleases)
+	if total == 0 {
+		total = len(m.filteredLocateRecords)
+	}
+	maxOffset := total - 10
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.locateViewportOffset > maxOffset {
+		m.locateViewportOffset = maxOffset
+	}
+	if m.locateViewportOffset < 0 {
+		m.locateViewportOffset = 0
+	}
+}
+
+func formatNumberWithCommas(n int) string {
+	in := strconv.Itoa(n)
+	if len(in) <= 3 {
+		return in
+	}
+	var out []byte
+	rem := len(in) % 3
+	if rem > 0 {
+		out = append(out, in[:rem]...)
+		if len(in) > rem {
+			out = append(out, ',')
+		}
+	}
+	for i := rem; i < len(in); i += 3 {
+		out = append(out, in[i:i+3]...)
+		if i+3 < len(in) {
+			out = append(out, ',')
+		}
+	}
+	return string(out)
+}
+
 
 
