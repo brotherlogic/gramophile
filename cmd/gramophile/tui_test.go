@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -12,7 +14,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type mockClient struct {
@@ -2972,6 +2976,224 @@ func TestLocateSearch_EscNavigationPreservation(t *testing.T) {
 	}
 }
 
+func TestInstantStartupWithCache(t *testing.T) {
+	tempDir := t.TempDir()
+	cachePath := filepath.Join(tempDir, "test_cache")
+	cm := NewCacheManager(cachePath)
 
+	testRecords := []*pb.Record{
+		{
+			Release: &pbd.Release{
+				Id:         1001,
+				InstanceId: 2001,
+				Title:      "Kind of Blue",
+				Artists:    []*pbd.Artist{{Name: "Miles Davis"}},
+			},
+			LastUpdateTime: time.Now().Unix(),
+		},
+		{
+			Release: &pbd.Release{
+				Id:         1002,
+				InstanceId: 2002,
+				Title:      "A Love Supreme",
+				Artists:    []*pbd.Artist{{Name: "John Coltrane"}},
+			},
+			LastUpdateTime: time.Now().Unix(),
+		},
+	}
+	cm.Populate(testRecords, time.Now())
+	if err := cm.SaveToDisk(); err != nil {
+		t.Fatalf("Failed to save cache to disk: %v", err)
+	}
 
+	mock := &mockClient{
+		getUserFunc: func() (*pb.GetUserResponse, error) {
+			t.Fatalf("Network call GetUser should not be made on instant startup with cache")
+			return nil, nil
+		},
+	}
 
+	m := InitialModel(mock, mock, mock)
+	m.tokenLoader = func() (string, error) {
+		return "valid-auth-token", nil
+	}
+	m.cacheManager = cm
+
+	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, _ := m.Update(keyMsg)
+	updatedModel, ok := newModel.(Model)
+	if !ok {
+		t.Fatalf("Expected Model type")
+	}
+
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected state StateMainApp on instant startup with cache, got %v", updatedModel.state)
+	}
+
+	if len(updatedModel.collectionIndex) != 2 {
+		t.Errorf("Expected 2 records in collectionIndex, got %d", len(updatedModel.collectionIndex))
+	}
+
+	if updatedModel.cacheStatus != CacheStatusReady {
+		t.Errorf("Expected cacheStatus CacheStatusReady, got %v", updatedModel.cacheStatus)
+	}
+}
+
+func TestBackgroundSyncWhenExpired(t *testing.T) {
+	tempDir := t.TempDir()
+	cachePath := filepath.Join(tempDir, "test_cache_expired")
+	cm := NewCacheManager(cachePath)
+
+	oldRecords := []*pb.Record{
+		{
+			Release: &pbd.Release{
+				Id:         1001,
+				InstanceId: 2001,
+				Title:      "Old Record",
+				Artists:    []*pbd.Artist{{Name: "Old Artist"}},
+			},
+			LastUpdateTime: time.Now().Add(-10 * 24 * time.Hour).Unix(),
+		},
+	}
+	cm.Populate(oldRecords, time.Now().Add(-10*24*time.Hour))
+	if err := cm.SaveToDisk(); err != nil {
+		t.Fatalf("Failed to save cache to disk: %v", err)
+	}
+
+	freshRecords := []*pb.Record{
+		{
+			Release: &pbd.Release{
+				Id:         1001,
+				InstanceId: 2001,
+				Title:      "Old Record",
+				Artists:    []*pbd.Artist{{Name: "Old Artist"}},
+			},
+			LastUpdateTime: time.Now().Unix(),
+		},
+		{
+			Release: &pbd.Release{
+				Id:         1002,
+				InstanceId: 2002,
+				Title:      "New Record",
+				Artists:    []*pbd.Artist{{Name: "New Artist"}},
+			},
+			LastUpdateTime: time.Now().Unix(),
+		},
+	}
+
+	getRecordCalled := false
+	mock := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			if req.GetGetAllRecords() {
+				getRecordCalled = true
+				var recWrappers []*pb.RecordResponse
+				for _, r := range freshRecords {
+					recWrappers = append(recWrappers, &pb.RecordResponse{Record: r})
+				}
+				return &pb.GetRecordResponse{Records: recWrappers}, nil
+			}
+			return &pb.GetRecordResponse{}, nil
+		},
+	}
+
+	m := InitialModel(mock, mock, mock)
+	m.tokenLoader = func() (string, error) {
+		return "valid-token", nil
+	}
+	m.cacheManager = cm
+
+	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, cmd := m.Update(keyMsg)
+	updatedModel := newModel.(Model)
+
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected immediate transition to StateMainApp, got %v", updatedModel.state)
+	}
+
+	if updatedModel.cacheStatus != CacheStatusSyncing {
+		t.Errorf("Expected cacheStatus CacheStatusSyncing when expired, got %v", updatedModel.cacheStatus)
+	}
+
+	if cmd == nil {
+		t.Fatalf("Expected background sync command to be returned when cache is expired")
+	}
+
+	msg := cmd()
+	if !getRecordCalled {
+		t.Errorf("Expected GetAllRecords to be invoked during background sync")
+	}
+
+	syncedModelRaw, _ := updatedModel.Update(msg)
+	syncedModel := syncedModelRaw.(Model)
+
+	if syncedModel.cacheStatus != CacheStatusReady {
+		t.Errorf("Expected cacheStatus CacheStatusReady after background sync, got %v", syncedModel.cacheStatus)
+	}
+
+	if len(syncedModel.collectionIndex) != 2 {
+		t.Errorf("Expected 2 records in collectionIndex after sync, got %d", len(syncedModel.collectionIndex))
+	}
+}
+
+func TestOfflineDegradedMode(t *testing.T) {
+	tempDir := t.TempDir()
+	cachePath := filepath.Join(tempDir, "test_cache_offline")
+	cm := NewCacheManager(cachePath)
+
+	testRecords := []*pb.Record{
+		{
+			Release: &pbd.Release{
+				Id:         1001,
+				InstanceId: 2001,
+				Title:      "Offline Album",
+				Artists:    []*pbd.Artist{{Name: "Offline Artist"}},
+			},
+			LastUpdateTime: time.Now().Add(-10 * 24 * time.Hour).Unix(),
+		},
+	}
+	cm.Populate(testRecords, time.Now().Add(-10*24*time.Hour))
+	if err := cm.SaveToDisk(); err != nil {
+		t.Fatalf("Failed to save cache to disk: %v", err)
+	}
+
+	mock := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			return nil, status.Error(codes.Unavailable, "connection refused")
+		},
+	}
+
+	m := InitialModel(mock, mock, mock)
+	m.tokenLoader = func() (string, error) {
+		return "valid-token", nil
+	}
+	m.cacheManager = cm
+
+	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	newModel, cmd := m.Update(keyMsg)
+	updatedModel := newModel.(Model)
+
+	if cmd == nil {
+		t.Fatalf("Expected sync command")
+	}
+
+	msg := cmd()
+
+	degradedModelRaw, _ := updatedModel.Update(msg)
+	degradedModel := degradedModelRaw.(Model)
+
+	if degradedModel.cacheStatus != CacheStatusStale {
+		t.Errorf("Expected cacheStatus CacheStatusStale on gRPC failure, got %v", degradedModel.cacheStatus)
+	}
+
+	if degradedModel.cacheManager.GetStatus() != CacheStatusStale {
+		t.Errorf("Expected CacheManager status CacheStatusStale, got %v", degradedModel.cacheManager.GetStatus())
+	}
+
+	if len(degradedModel.collectionIndex) != 1 {
+		t.Errorf("Expected collectionIndex to retain 1 cached record, got %d", len(degradedModel.collectionIndex))
+	}
+
+	if degradedModel.state != StateMainApp {
+		t.Errorf("Expected model to remain in StateMainApp without interrupting user, got %v", degradedModel.state)
+	}
+}

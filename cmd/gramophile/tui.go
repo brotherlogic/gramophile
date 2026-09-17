@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	pbd "github.com/brotherlogic/discogs/proto"
 	pb "github.com/brotherlogic/gramophile/proto"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -112,6 +113,18 @@ type collectionFetchedMsg struct {
 	err     error
 }
 
+type cacheLoadedMsg struct {
+	cache   *pb.CollectionCache
+	records []*pb.Record
+	err     error
+}
+
+type cacheSyncStatusMsg struct {
+	status  CacheStatus
+	records []*pb.Record
+	err     error
+}
+
 type releaseEntry struct {
 	releaseID int64
 	artist    string
@@ -185,6 +198,9 @@ type Model struct {
 	activeReleaseChoice  *releaseEntry  // Selected release for version disambiguation
 	versionSelectCursor  int            // Cursor in secondary version view
 	locateViewportOffset int            // Window scroll offset for primary list
+
+	cacheManager *CacheManager
+	cacheStatus  CacheStatus
 }
 
 func defaultTokenLoader() (string, error) {
@@ -270,6 +286,8 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		locateSearchInput: lsi,
 		orgSpinner:        newOrgSpinner(),
 		version:           "dev",
+		cacheManager:      NewCacheManager(""),
+		cacheStatus:       CacheStatusUninitialized,
 	}
 }
 
@@ -364,6 +382,98 @@ func (m Model) pollSync() tea.Cmd {
 	}
 }
 
+func cachedToRecord(cr *pb.CachedRecord) *pb.Record {
+	if cr == nil {
+		return nil
+	}
+	var artists []*pbd.Artist
+	if cr.GetArtist() != "" {
+		artists = []*pbd.Artist{{Name: cr.GetArtist()}}
+	}
+	return &pb.Record{
+		Release: &pbd.Release{
+			Id:         cr.GetReleaseId(),
+			InstanceId: cr.GetInstanceId(),
+			Title:      cr.GetTitle(),
+			Artists:    artists,
+		},
+		LastUpdateTime: cr.GetLastUpdatedTime(),
+	}
+}
+
+func (m Model) loadDiskCacheCmd() tea.Cmd {
+	return func() tea.Msg {
+		if m.cacheManager == nil {
+			return cacheLoadedMsg{err: fmt.Errorf("no cache manager initialized")}
+		}
+		if err := m.cacheManager.LoadFromDisk(); err != nil {
+			return cacheLoadedMsg{err: err}
+		}
+		cachedRecords := m.cacheManager.GetCachedRecords()
+		var records []*pb.Record
+		for _, cr := range cachedRecords {
+			records = append(records, cachedToRecord(cr))
+		}
+		return cacheLoadedMsg{
+			cache:   m.cacheManager.cache,
+			records: records,
+		}
+	}
+}
+
+func (m Model) syncCollectionCacheCmd() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := m.buildContext(60 * time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			if m.cacheManager != nil {
+				m.cacheManager.SetStatus(CacheStatusStale)
+			}
+			return cacheSyncStatusMsg{
+				status: CacheStatusStale,
+				err:    fmt.Errorf("no org client initialized"),
+			}
+		}
+
+		resp, err := m.orgClient.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetAllRecords{
+				GetAllRecords: true,
+			},
+		})
+		if err != nil {
+			if m.cacheManager != nil {
+				m.cacheManager.SetStatus(CacheStatusStale)
+			}
+			return cacheSyncStatusMsg{
+				status: CacheStatusStale,
+				err:    err,
+			}
+		}
+
+		var records []*pb.Record
+		if resp != nil {
+			for _, r := range resp.GetRecords() {
+				if r != nil && r.GetRecord() != nil {
+					records = append(records, r.GetRecord())
+				}
+			}
+		}
+
+		if m.cacheManager != nil {
+			m.cacheManager.Populate(records, time.Now())
+			if err := m.cacheManager.SaveToDisk(); err != nil {
+				log.Printf("Warning: failed to save collection cache to disk: %v", err)
+			}
+			m.cacheManager.SetStatus(CacheStatusReady)
+		}
+
+		return cacheSyncStatusMsg{
+			status:  CacheStatusReady,
+			records: records,
+		}
+	}
+}
+
 func (m Model) Init() tea.Cmd {
 	logoCmd := tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
 		return timeoutMsg{}
@@ -373,6 +483,7 @@ func (m Model) Init() tea.Cmd {
 	}
 	return tea.Batch(
 		logoCmd,
+		m.loadDiskCacheCmd(),
 		checkUpdateCmd(m),
 		tea.Tick(15*time.Minute, func(t time.Time) tea.Msg {
 			return checkForUpdateMsg{}
@@ -395,6 +506,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case cacheLoadedMsg:
+		if msg.err != nil {
+			log.Printf("Cache load warning: %v", msg.err)
+			return m, nil
+		}
+		if len(msg.records) > 0 {
+			m.collectionIndex = msg.records
+			m.buildCollectionIndex(msg.records)
+			m.filterCollectionIndex()
+		}
+		if m.cacheManager != nil {
+			if m.cacheManager.IsExpired(7*24*time.Hour) || len(msg.records) == 0 {
+				m.cacheStatus = CacheStatusSyncing
+				m.cacheManager.SetStatus(CacheStatusSyncing)
+				return m, m.syncCollectionCacheCmd()
+			}
+			m.cacheStatus = CacheStatusReady
+			m.cacheManager.SetStatus(CacheStatusReady)
+		}
+		return m, nil
+	case cacheSyncStatusMsg:
+		m.cacheStatus = msg.status
+		if m.cacheManager != nil {
+			m.cacheManager.SetStatus(msg.status)
+		}
+		if msg.err == nil && msg.records != nil {
+			m.collectionIndex = msg.records
+			m.buildCollectionIndex(msg.records)
+			m.filterCollectionIndex()
+		}
+		return m, nil
 	case checkForUpdateMsg:
 		return m, tea.Batch(
 			checkUpdateCmd(m),
@@ -432,6 +574,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				token, err := m.tokenLoader()
 				if err == nil && token != "" {
 					m.authToken = token
+
+					if m.cacheManager != nil {
+						if m.cacheManager.GetStatus() == CacheStatusUninitialized {
+							_ = m.cacheManager.LoadFromDisk()
+						}
+						if m.collectionIndex == nil {
+							cachedRecords := m.cacheManager.GetCachedRecords()
+							if len(cachedRecords) > 0 {
+								var recs []*pb.Record
+								for _, cr := range cachedRecords {
+									recs = append(recs, cachedToRecord(cr))
+								}
+								m.collectionIndex = recs
+								m.buildCollectionIndex(recs)
+								m.filterCollectionIndex()
+							}
+						}
+					}
+
+					hasValidCache := len(m.collectionIndex) > 0 && m.cacheManager != nil && m.cacheManager.GetStatus() != CacheStatusRebuilding
+
+					if hasValidCache {
+						m.state = StateMainApp
+						if m.cacheManager.IsExpired(7 * 24 * time.Hour) {
+							m.cacheStatus = CacheStatusSyncing
+							m.cacheManager.SetStatus(CacheStatusSyncing)
+							return m, m.syncCollectionCacheCmd()
+						}
+						m.cacheStatus = CacheStatusReady
+						m.cacheManager.SetStatus(CacheStatusReady)
+						return m, nil
+					}
+
+					m.cacheStatus = CacheStatusSyncing
+					if m.cacheManager != nil {
+						m.cacheManager.SetStatus(CacheStatusSyncing)
+					}
 					m.state = StateLoadingSync
 					return m, m.pollSync()
 				}
