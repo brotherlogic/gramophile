@@ -3643,3 +3643,74 @@ func TestLocateSearch_RenderViews(t *testing.T) {
 	}
 }
 
+func TestFooterStatusRendering(t *testing.T) {
+	mock := &mockClient{}
+
+	tests := []struct {
+		name          string
+		version       string
+		status        CacheStatus
+		expectedBadge string
+		expectedText  string
+	}{
+		{
+			name:          "Ready Status",
+			version:       "v0.1584.0",
+			status:        CacheStatusReady,
+			expectedBadge: "[Cache: Ready]",
+			expectedText:  "Gramophile v0.1584.0 | [Cache: Ready]",
+		},
+		{
+			name:          "Syncing Status",
+			version:       "v0.1584.0",
+			status:        CacheStatusSyncing,
+			expectedBadge: "[Cache: Syncing]",
+			expectedText:  "Gramophile v0.1584.0 | [Cache: Syncing]",
+		},
+		{
+			name:          "Stale Status",
+			version:       "v0.1584.0",
+			status:        CacheStatusStale,
+			expectedBadge: "[Cache: Stale (Offline)]",
+			expectedText:  "Gramophile v0.1584.0 | [Cache: Stale (Offline)]",
+		},
+		{
+			name:          "Rebuilding Status",
+			version:       "v0.1584.0",
+			status:        CacheStatusRebuilding,
+			expectedBadge: "[Cache: Rebuilding]",
+			expectedText:  "Gramophile v0.1584.0 | [Cache: Rebuilding]",
+		},
+		{
+			name:          "Uninitialized Fallback",
+			version:       "v0.1584.0",
+			status:        CacheStatusUninitialized,
+			expectedBadge: "",
+			expectedText:  "Gramophile v0.1584.0",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := InitialModel(mock, mock, mock)
+			m.version = tc.version
+			m.cacheStatus = tc.status
+
+			footer := renderFooter(m)
+
+			if tc.expectedBadge != "" {
+				if !strings.Contains(footer, tc.expectedBadge) {
+					t.Errorf("Expected footer to contain badge %q, got: %q", tc.expectedBadge, footer)
+				}
+			} else {
+				if strings.Contains(footer, "[Cache:") {
+					t.Errorf("Expected footer not to contain cache badge for uninitialized status, got: %q", footer)
+				}
+			}
+
+			if !strings.Contains(footer, tc.expectedText) {
+				t.Errorf("Expected footer to contain %q, got: %q", tc.expectedText, footer)
+			}
+		})
+	}
+}
