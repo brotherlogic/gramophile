@@ -136,6 +136,16 @@ func (cm *CacheManager) GetByReleaseID(releaseID int64) []*pb.CachedRecord {
 	return res
 }
 
+// GetCachedRecords returns a slice copy of all cached records currently indexed.
+func (cm *CacheManager) GetCachedRecords() []*pb.CachedRecord {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	res := make([]*pb.CachedRecord, len(cm.records))
+	copy(res, cm.records)
+	return res
+}
+
 // Search performs a case-insensitive lexical search over artist and title.
 func (cm *CacheManager) Search(query string) []*pb.CachedRecord {
 	cm.mu.RLock()
