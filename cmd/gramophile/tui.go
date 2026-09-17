@@ -41,6 +41,7 @@ const (
 	StateLocateView
 	StateConfigSelect
 	StateLocateSearch
+	StateLocateVersionSelect
 )
 
 type AuthClient interface {
@@ -194,7 +195,9 @@ type Model struct {
 
 	indexedReleases      []*releaseEntry // Alphabetically sorted master release index
 	filteredReleases     []*releaseEntry // Active filtered subset
-	locateViewportOffset int             // Window scroll offset for primary list
+	activeReleaseChoice  *releaseEntry  // Selected release for version disambiguation
+	versionSelectCursor  int            // Cursor in secondary version view
+	locateViewportOffset int            // Window scroll offset for primary list
 
 	cacheManager *CacheManager
 	cacheStatus  CacheStatus
@@ -1032,6 +1035,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.locateSearchInput.SetValue("")
 				m.locateSearchCursor = 0
+				m.filteredReleases = m.indexedReleases
 				m.filteredLocateRecords = m.collectionIndex
 				m.state = StateMainApp
 				return m, nil
@@ -1041,27 +1045,51 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			case "down", "j":
-				if m.locateSearchCursor < len(m.filteredLocateRecords)-1 {
+				maxLen := len(m.filteredReleases)
+				if maxLen == 0 {
+					maxLen = len(m.filteredLocateRecords)
+				}
+				if m.locateSearchCursor < maxLen-1 {
 					m.locateSearchCursor++
 				}
 				return m, nil
 			case "enter":
-				if len(m.filteredLocateRecords) == 0 {
+				if len(m.filteredReleases) == 0 && len(m.filteredLocateRecords) > 0 {
+					if m.locateSearchCursor >= len(m.filteredLocateRecords) {
+						m.locateSearchCursor = len(m.filteredLocateRecords) - 1
+					}
+					if m.locateSearchCursor < 0 {
+						m.locateSearchCursor = 0
+					}
+					rec := m.filteredLocateRecords[m.locateSearchCursor]
+					releaseID := rec.GetRelease().GetId()
+					m.activeLocateID = releaseID
+					m.state = StateLocateView
+					m.locateViewport.SetContent("Loading location...")
+					m.locateViewport.GotoTop()
+					return m, m.fetchLocateCmd(releaseID)
+				}
+				if len(m.filteredReleases) == 0 {
 					return m, nil
 				}
-				if m.locateSearchCursor >= len(m.filteredLocateRecords) {
-					m.locateSearchCursor = len(m.filteredLocateRecords) - 1
+				if m.locateSearchCursor >= len(m.filteredReleases) {
+					m.locateSearchCursor = len(m.filteredReleases) - 1
 				}
 				if m.locateSearchCursor < 0 {
 					m.locateSearchCursor = 0
 				}
-				rec := m.filteredLocateRecords[m.locateSearchCursor]
-				releaseID := rec.GetRelease().GetId()
-				m.activeLocateID = releaseID
-				m.state = StateLocateView
-				m.locateViewport.SetContent("Loading location...")
-				m.locateViewport.GotoTop()
-				return m, m.fetchLocateCmd(releaseID)
+				choice := m.filteredReleases[m.locateSearchCursor]
+				if len(choice.records) == 1 {
+					m.activeLocateID = choice.releaseID
+					m.state = StateLocateView
+					m.locateViewport.SetContent("Loading location...")
+					m.locateViewport.GotoTop()
+					return m, m.fetchLocateCmd(choice.releaseID)
+				}
+				m.activeReleaseChoice = choice
+				m.versionSelectCursor = 0
+				m.state = StateLocateVersionSelect
+				return m, nil
 			default:
 				oldVal := m.locateSearchInput.Value()
 				var cmd tea.Cmd
@@ -1074,12 +1102,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
+	case StateLocateVersionSelect:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "esc":
+				m.state = StateLocateSearch
+				return m, nil
+			case "up", "k":
+				if m.versionSelectCursor > 0 {
+					m.versionSelectCursor--
+				}
+				return m, nil
+			case "down", "j":
+				if m.activeReleaseChoice != nil && m.versionSelectCursor < len(m.activeReleaseChoice.records)-1 {
+					m.versionSelectCursor++
+				}
+				return m, nil
+			case "enter":
+				if m.activeReleaseChoice == nil || len(m.activeReleaseChoice.records) == 0 {
+					return m, nil
+				}
+				if m.versionSelectCursor >= len(m.activeReleaseChoice.records) {
+					m.versionSelectCursor = len(m.activeReleaseChoice.records) - 1
+				}
+				if m.versionSelectCursor < 0 {
+					m.versionSelectCursor = 0
+				}
+				choice := m.activeReleaseChoice
+				_ = choice.records[m.versionSelectCursor]
+				m.activeLocateID = choice.releaseID
+				m.state = StateLocateView
+				m.locateViewport.SetContent("Loading location...")
+				m.locateViewport.GotoTop()
+				return m, m.fetchLocateCmd(choice.releaseID)
+			}
+		}
 	}
 
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && m.state != StateLocateSearch && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && m.state != StateLocateSearch && m.state != StateLocateVersionSelect && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}

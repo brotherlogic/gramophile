@@ -73,6 +73,8 @@ Current Go version: 1.26.2
 - Release Deduplication and Multi-Term Search Filtering in TUI: Indexes the user's collection into deduplicated release entries collapsing multiple physical copies per release, precomputes searchable artist and title keys sorted alphabetically by artist and title, and provides real-time multi-term space-delimited filtering in the Gramophile TUI locate search interface.
 - Multi-Copy Version Formatting and Fallback Resolution in TUI: Formats physical record copies and shelf locations for multi-copy releases in the Gramophile TUI, resolving format descriptions and shelf locations with graceful fallbacks ("Unknown Format", "Unassigned Shelf").
 - TUI Non-Blocking Startup & Cache Lifecycle Integration: Integrates CacheManager into the Bubble Tea TUI Model in cmd/gramophile, enabling instant offline startup from local disk cache, asynchronous background collection synchronization when the cache is absent or expired past TTL, and graceful degraded offline fallback when network connectivity is unavailable.
+- Version Selection State Machine and Keyboard Navigation in TUI: Introduces the secondary disambiguation state `StateLocateVersionSelect` and keyboard navigation contracts in the Gramophile TUI, allowing direct bypass on single-copy releases, version selection on multi-copy releases, Esc navigation preservation, and q-quit suppression.
+
 
 
 ## TUI (Terminal User Interface)
