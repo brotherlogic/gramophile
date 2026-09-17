@@ -3198,6 +3198,174 @@ func TestOfflineDegradedMode(t *testing.T) {
 	}
 }
 
+func TestPriorityResolution(t *testing.T) {
+	requestedReleaseID := int64(0)
+	mock := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			if idReq := req.GetGetRecordWithId(); idReq != nil {
+				requestedReleaseID = idReq.GetReleaseId()
+				return &pb.GetRecordResponse{
+					Records: []*pb.RecordResponse{
+						{
+							Record: &pb.Record{
+								Release: &pbd.Release{
+									Id:      idReq.GetReleaseId(),
+									Title:   "Abbey Road",
+									Artists: []*pbd.Artist{{Name: "The Beatles"}},
+								},
+							},
+						},
+					},
+				}, nil
+			}
+			return &pb.GetRecordResponse{}, nil
+		},
+	}
+
+	tempDir := t.TempDir()
+	cachePath := filepath.Join(tempDir, "cache.pb")
+	cm := NewCacheManager(cachePath)
+
+	m := InitialModel(mock, mock, mock)
+	m.cacheManager = cm
+	m.state = StateLocateSearch
+
+	// 1. Query an uncached record (e.g. typing "99999")
+	var fetchCmd tea.Cmd
+	for _, r := range "99999" {
+		newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newM.(Model)
+		if cmd != nil {
+			fetchCmd = cmd
+		}
+	}
+
+	// Verify placeholder is rendered in View()
+	view := m.View()
+	expectedPlaceholder := "> Loading Release #99999... [Fetching]"
+	if !strings.Contains(view, expectedPlaceholder) {
+		t.Fatalf("Expected view to contain %q, but got:\n%s", expectedPlaceholder, view)
+	}
+
+	// Verify priority tracking map contains 99999
+	if !m.pendingPriorities[99999] {
+		t.Errorf("Expected pendingPriorities[99999] to be true")
+	}
+
+	if fetchCmd == nil {
+		t.Fatalf("Expected fetchCmd to be dispatched for uncached query")
+	}
+
+	// 2. Dispatch the priority resolution message via the returned command
+	resolvedMsg := fetchCmd()
+	newM, _ := m.Update(resolvedMsg)
+	m = newM.(Model)
+
+	// Verify pendingPriorities no longer has 99999
+	if m.pendingPriorities[99999] {
+		t.Errorf("Expected pendingPriorities[99999] to be removed after resolution")
+	}
+
+	// Verify placeholder is replaced by Artist - Title in View()
+	viewAfter := m.View()
+	expectedResolved := "The Beatles - Abbey Road"
+	if !strings.Contains(viewAfter, expectedResolved) {
+		t.Fatalf("Expected view to contain %q after resolution, but got:\n%s", expectedResolved, viewAfter)
+	}
+	if strings.Contains(viewAfter, "Loading Release #99999") {
+		t.Errorf("View still contains placeholder text after resolution")
+	}
+
+	// Verify record is upserted into cacheManager
+	if recs := cm.GetByReleaseID(99999); len(recs) == 0 || recs[0].GetTitle() != "Abbey Road" {
+		t.Errorf("Expected record to be upserted into cacheManager, got %v", recs)
+	}
+	if requestedReleaseID != 99999 {
+		t.Errorf("Expected requested release ID 99999, got %d", requestedReleaseID)
+	}
+}
+
+func TestFetchPriorityRecordCmd(t *testing.T) {
+	var requestedIID, requestedReleaseID int64
+	mock := &mockClient{
+		getRecordFunc: func(req *pb.GetRecordRequest) (*pb.GetRecordResponse, error) {
+			if idReq := req.GetGetRecordWithId(); idReq != nil {
+				requestedIID = idReq.GetInstanceId()
+				requestedReleaseID = idReq.GetReleaseId()
+				return &pb.GetRecordResponse{
+					Records: []*pb.RecordResponse{
+						{
+							Record: &pb.Record{
+								Release: &pbd.Release{
+									Id:         idReq.GetReleaseId(),
+									InstanceId: idReq.GetInstanceId(),
+									Title:      "Kind of Blue",
+									Artists:    []*pbd.Artist{{Name: "Miles Davis"}},
+								},
+							},
+						},
+					},
+				}, nil
+			}
+			return &pb.GetRecordResponse{}, nil
+		},
+	}
+
+	m := InitialModel(mock, mock, mock)
+	cmd := m.fetchPriorityRecordCmd(456, 123)
+	if cmd == nil {
+		t.Fatalf("Expected non-nil cmd from fetchPriorityRecordCmd")
+	}
+
+	msg := cmd()
+	resolved, ok := msg.(priorityRecordResolvedMsg)
+	if !ok {
+		t.Fatalf("Expected priorityRecordResolvedMsg, got %T", msg)
+	}
+	if resolved.record == nil || resolved.record.GetRelease().GetId() != 123 {
+		t.Errorf("Expected resolved record release ID 123, got %v", resolved.record)
+	}
+	if requestedIID != 456 || requestedReleaseID != 123 {
+		t.Errorf("Expected requested IDs (456, 123), got (%d, %d)", requestedIID, requestedReleaseID)
+	}
+}
+
+func TestGetOrFetchPriorityRecord_Cached(t *testing.T) {
+	mock := &mockClient{}
+	tempDir := t.TempDir()
+	cm := NewCacheManager(filepath.Join(tempDir, "cache.pb"))
+	cachedRec := &pb.Record{
+		Release: &pbd.Release{
+			Id:         555,
+			InstanceId: 666,
+			Title:      "A Love Supreme",
+			Artists:    []*pbd.Artist{{Name: "John Coltrane"}},
+		},
+	}
+	cm.UpsertRecord(cachedRec)
+
+	m := InitialModel(mock, mock, mock)
+	m.cacheManager = cm
+
+	// Query cached record by release ID: should return cached record immediately with nil cmd
+	rec, cmd := m.getOrFetchPriorityRecord(0, 555)
+	if cmd != nil {
+		t.Errorf("Expected nil cmd for cached record, got %v", cmd)
+	}
+	if rec == nil || getRecordTitle(rec) != "A Love Supreme" {
+		t.Errorf("Expected cached record 'A Love Supreme', got %v", rec)
+	}
+
+	// Query cached record by instance ID: should return cached record immediately with nil cmd
+	recIID, cmdIID := m.getOrFetchPriorityRecord(666, 0)
+	if cmdIID != nil {
+		t.Errorf("Expected nil cmd for cached instance ID, got %v", cmdIID)
+	}
+	if recIID == nil || getRecordArtist(recIID) != "John Coltrane" {
+		t.Errorf("Expected cached record artist 'John Coltrane', got %v", recIID)
+	}
+}
+
 func TestLocateSearch_ViewportScrolling(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
