@@ -199,9 +199,18 @@ type Model struct {
 	versionSelectCursor  int            // Cursor in secondary version view
 	locateViewportOffset int            // Window scroll offset for primary list
 
-	cacheManager *CacheManager
-	cacheStatus  CacheStatus
+	cacheManager      *CacheManager
+	cacheStatus       CacheStatus
+	pendingPriorities map[int64]bool
+	priorityFetchCmd  tea.Cmd
 }
+
+type priorityRecordResolvedMsg struct {
+	record *pb.Record
+	err    error
+}
+
+
 
 func defaultTokenLoader() (string, error) {
 	dirname, err := os.UserHomeDir()
@@ -288,6 +297,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		version:           "dev",
 		cacheManager:      NewCacheManager(""),
 		cacheStatus:       CacheStatusUninitialized,
+		pendingPriorities: make(map[int64]bool),
 	}
 }
 
@@ -474,6 +484,107 @@ func (m Model) syncCollectionCacheCmd() tea.Cmd {
 	}
 }
 
+func (m Model) fetchPriorityRecordCmd(iid, releaseID int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := m.buildContext(10 * time.Second)
+		defer cancel()
+		if m.orgClient == nil {
+			return priorityRecordResolvedMsg{
+				err: fmt.Errorf("no org client initialized"),
+			}
+		}
+
+		req := &pb.GetRecordRequest{
+			IncludeHistory: false,
+			Request: &pb.GetRecordRequest_GetRecordWithId{
+				GetRecordWithId: &pb.GetRecordWithId{
+					InstanceId: iid,
+					ReleaseId:  releaseID,
+				},
+			},
+		}
+
+		resp, err := m.orgClient.GetRecord(ctx, req)
+		if err != nil {
+			return priorityRecordResolvedMsg{err: err}
+		}
+		if resp != nil && len(resp.GetRecords()) > 0 && resp.GetRecords()[0].GetRecord() != nil {
+			return priorityRecordResolvedMsg{
+				record: resp.GetRecords()[0].GetRecord(),
+			}
+		}
+		return priorityRecordResolvedMsg{
+			err: fmt.Errorf("record not found"),
+		}
+	}
+}
+
+func (m *Model) getOrFetchPriorityRecord(iid, releaseID int64) (*pb.Record, tea.Cmd) {
+	if m.pendingPriorities == nil {
+		m.pendingPriorities = make(map[int64]bool)
+	}
+
+	// 1. Check CacheManager
+	if m.cacheManager != nil {
+		if iid != 0 {
+			if cr, ok := m.cacheManager.GetByInstanceID(iid); ok && cr != nil && (cr.GetArtist() != "" || cr.GetTitle() != "") {
+				return cachedToRecord(cr), nil
+			}
+		}
+		if releaseID != 0 {
+			if recs := m.cacheManager.GetByReleaseID(releaseID); len(recs) > 0 && recs[0] != nil && (recs[0].GetArtist() != "" || recs[0].GetTitle() != "") {
+				return cachedToRecord(recs[0]), nil
+			}
+		}
+	}
+
+	// 2. Check collectionIndex
+	for _, rec := range m.collectionIndex {
+		if rec == nil || rec.GetRelease() == nil {
+			continue
+		}
+		if (releaseID != 0 && rec.GetRelease().GetId() == releaseID) || (iid != 0 && rec.GetRelease().GetInstanceId() == iid) {
+			targetID := releaseID
+			if targetID == 0 {
+				targetID = iid
+			}
+			if !m.pendingPriorities[targetID] && (getRecordArtist(rec) != "" || getRecordTitle(rec) != "") {
+				return rec, nil
+			}
+		}
+	}
+
+	// 3. Uncached: track in pendingPriorities, create placeholder, and dispatch fetchPriorityRecordCmd
+	targetID := releaseID
+	if targetID == 0 {
+		targetID = iid
+	}
+
+	placeholder := &pb.Record{
+		Release: &pbd.Release{
+			Id:         releaseID,
+			InstanceId: iid,
+		},
+	}
+
+	if targetID != 0 {
+		m.pendingPriorities[targetID] = true
+	}
+	if releaseID != 0 {
+		m.pendingPriorities[releaseID] = true
+	}
+	if iid != 0 {
+		m.pendingPriorities[iid] = true
+	}
+
+	cmd := m.fetchPriorityRecordCmd(iid, releaseID)
+	return placeholder, cmd
+}
+
+func (m *Model) getOrFetchRecord(iid, releaseID int64) (*pb.Record, tea.Cmd) {
+	return m.getOrFetchPriorityRecord(iid, releaseID)
+}
+
 func (m Model) Init() tea.Cmd {
 	logoCmd := tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
 		return timeoutMsg{}
@@ -492,6 +603,21 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if bMsg, ok := msg.(tea.BatchMsg); ok {
+		var cmds []tea.Cmd
+		for _, c := range bMsg {
+			if c != nil {
+				subMsg := c()
+				newModel, subCmd := m.Update(subMsg)
+				m = newModel.(Model)
+				if subCmd != nil {
+					cmds = append(cmds, subCmd)
+				}
+			}
+		}
+		return m, tea.Batch(cmds...)
+	}
+
 	if cMsg, ok := msg.(collectionFetchedMsg); ok {
 		m.collectionLoading = false
 		if cMsg.err != nil {
@@ -534,6 +660,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil && msg.records != nil {
 			m.collectionIndex = msg.records
 			m.buildCollectionIndex(msg.records)
+			m.filterCollectionIndex()
+		}
+		return m, nil
+	case priorityRecordResolvedMsg:
+		if msg.record != nil && msg.record.GetRelease() != nil {
+			relID := msg.record.GetRelease().GetId()
+			iid := msg.record.GetRelease().GetInstanceId()
+			if m.pendingPriorities != nil {
+				delete(m.pendingPriorities, relID)
+				if iid != 0 {
+					delete(m.pendingPriorities, iid)
+				}
+			}
+			if m.cacheManager != nil {
+				m.cacheManager.UpsertRecord(msg.record)
+				_ = m.cacheManager.SaveToDisk()
+			}
+			found := false
+			for i, r := range m.collectionIndex {
+				if r != nil && r.GetRelease() != nil {
+					if (relID != 0 && r.GetRelease().GetId() == relID) || (iid != 0 && r.GetRelease().GetInstanceId() == iid) {
+						m.collectionIndex[i] = msg.record
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				m.collectionIndex = append(m.collectionIndex, msg.record)
+			}
+			m.buildCollectionIndex(m.collectionIndex)
 			m.filterCollectionIndex()
 		}
 		return m, nil
@@ -1107,6 +1264,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if newVal != oldVal {
 					m.locateSearchCursor = 0
 					m.filterCollectionIndex()
+					if m.priorityFetchCmd != nil {
+						pCmd := m.priorityFetchCmd
+						m.priorityFetchCmd = nil
+						if cmd != nil {
+							cmd = tea.Batch(cmd, pCmd)
+						} else {
+							cmd = pCmd
+						}
+					}
 				}
 				return m, cmd
 			}
@@ -1914,6 +2080,17 @@ func (m Model) resolveRecordFolder(rec *pb.Record) string {
 }
 
 func (m Model) formatLocateRecordLabel(rec *pb.Record, isDuplicate bool) string {
+	if rec != nil && rec.GetRelease() != nil {
+		relID := rec.GetRelease().GetId()
+		iid := rec.GetRelease().GetInstanceId()
+		if (relID != 0 && m.pendingPriorities[relID]) || (iid != 0 && m.pendingPriorities[iid]) {
+			id := relID
+			if id == 0 {
+				id = iid
+			}
+			return fmt.Sprintf("Loading Release #%d... [Fetching]", id)
+		}
+	}
 	artist := getRecordArtist(rec)
 	title := getRecordTitle(rec)
 	var base string
@@ -2044,7 +2221,13 @@ func (m *Model) filterCollectionIndex() {
 	for _, rec := range m.collectionIndex {
 		artist := strings.ToLower(getRecordArtist(rec))
 		title := strings.ToLower(getRecordTitle(rec))
-		searchStr := artist + " " + title
+		relIDStr := ""
+		iidStr := ""
+		if rec.GetRelease() != nil {
+			relIDStr = fmt.Sprintf("%d", rec.GetRelease().GetId())
+			iidStr = fmt.Sprintf("%d", rec.GetRelease().GetInstanceId())
+		}
+		searchStr := artist + " " + title + " " + relIDStr + " " + iidStr
 		match := true
 		for _, token := range tokens {
 			if !strings.Contains(searchStr, token) {
@@ -2056,6 +2239,30 @@ func (m *Model) filterCollectionIndex() {
 			filtered = append(filtered, rec)
 		}
 	}
+
+	cleanQuery := strings.TrimPrefix(rawQuery, "#")
+	cleanQuery = strings.TrimPrefix(cleanQuery, "id:")
+	cleanQuery = strings.TrimPrefix(cleanQuery, "release:")
+	cleanQuery = strings.TrimSpace(cleanQuery)
+	parsedID, parseErr := strconv.ParseInt(cleanQuery, 10, 64)
+
+	if parseErr == nil && parsedID > 0 {
+		found := false
+		for _, r := range filtered {
+			if r != nil && r.GetRelease() != nil && (r.GetRelease().GetId() == parsedID || r.GetRelease().GetInstanceId() == parsedID) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			placeholder, cmd := m.getOrFetchPriorityRecord(0, parsedID)
+			if placeholder != nil {
+				filtered = append(filtered, placeholder)
+			}
+			m.priorityFetchCmd = cmd
+		}
+	}
+
 	m.filteredLocateRecords = filtered
 }
 
