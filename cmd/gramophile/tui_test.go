@@ -2206,6 +2206,7 @@ func TestLocateSearch_EmptySelectionDisabled(t *testing.T) {
 	m := InitialModel(mock, mock, mock)
 	m.state = StateLocateSearch
 	m.filteredLocateRecords = []*pb.Record{}
+	m.filteredReleases = []*releaseEntry{}
 
 	// When filtered records are empty, pressing Enter does nothing (returns m, nil)
 	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -2786,6 +2787,191 @@ func TestLocateSearch_SecondaryCopyFallbacks(t *testing.T) {
 		t.Errorf("Expected version row '0 - Unknown Format - Unassigned Shelf' for nil record, got %q", rowStr)
 	}
 }
+
+func TestLocateSearch_SingleCopyBypass(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	singleRelease := &releaseEntry{
+		releaseID: 101,
+		artist:    "Miles Davis",
+		title:     "Kind of Blue",
+		records: []*pb.Record{
+			{Release: &pbd.Release{Id: 101, InstanceId: 1001, Title: "Kind of Blue"}},
+		},
+	}
+	m.filteredReleases = []*releaseEntry{singleRelease}
+	m.locateSearchCursor = 0
+
+	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := newM.(Model)
+
+	if updated.state != StateLocateView {
+		t.Fatalf("Expected state StateLocateView, got %v", updated.state)
+	}
+	if updated.activeLocateID != 101 {
+		t.Errorf("Expected activeLocateID 101, got %d", updated.activeLocateID)
+	}
+	if cmd == nil {
+		t.Errorf("Expected fetchLocateCmd to be emitted, got nil")
+	}
+}
+
+func TestLocateSearch_MultiCopySecondaryTransition(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLocateSearch
+
+	multiRelease := &releaseEntry{
+		releaseID: 202,
+		artist:    "John Coltrane",
+		title:     "Blue Train",
+		records: []*pb.Record{
+			{Release: &pbd.Release{Id: 202, InstanceId: 2001, Title: "Blue Train"}},
+			{Release: &pbd.Release{Id: 202, InstanceId: 2002, Title: "Blue Train"}},
+			{Release: &pbd.Release{Id: 202, InstanceId: 2003, Title: "Blue Train"}},
+		},
+	}
+	m.filteredReleases = []*releaseEntry{multiRelease}
+	m.locateSearchCursor = 0
+
+	// Press Enter in StateLocateSearch on multi-copy release
+	newM, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := newM.(Model)
+
+	if updated.state != StateLocateVersionSelect {
+		t.Fatalf("Expected transition to StateLocateVersionSelect, got %v", updated.state)
+	}
+	if updated.activeReleaseChoice != multiRelease {
+		t.Fatalf("Expected activeReleaseChoice to be set to multiRelease, got %v", updated.activeReleaseChoice)
+	}
+	if updated.versionSelectCursor != 0 {
+		t.Errorf("Expected versionSelectCursor initialized to 0, got %d", updated.versionSelectCursor)
+	}
+	if cmd != nil {
+		t.Errorf("Expected no command emitted on version select transition, got %v", cmd)
+	}
+
+	// Test navigation in StateLocateVersionSelect
+	// Down / j increment cursor
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 1 {
+		t.Errorf("Expected versionSelectCursor 1 after down, got %d", updated.versionSelectCursor)
+	}
+
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 2 {
+		t.Errorf("Expected versionSelectCursor 2 after j, got %d", updated.versionSelectCursor)
+	}
+
+	// Clamped to len(records)-1 (2)
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 2 {
+		t.Errorf("Expected versionSelectCursor clamped at 2, got %d", updated.versionSelectCursor)
+	}
+
+	// Up / k decrement cursor
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyUp})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 1 {
+		t.Errorf("Expected versionSelectCursor 1 after up, got %d", updated.versionSelectCursor)
+	}
+
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 0 {
+		t.Errorf("Expected versionSelectCursor 0 after k, got %d", updated.versionSelectCursor)
+	}
+
+	// Clamped to 0
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyUp})
+	updated = newM.(Model)
+	if updated.versionSelectCursor != 0 {
+		t.Errorf("Expected versionSelectCursor clamped at 0, got %d", updated.versionSelectCursor)
+	}
+
+	// Pressing 'q' in StateLocateVersionSelect should NOT quit
+	newM, cmd = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	if cmd != nil {
+		msg := cmd()
+		if _, ok := msg.(tea.QuitMsg); ok {
+			t.Errorf("Pressing 'q' in StateLocateVersionSelect should not quit")
+		}
+	}
+
+	// Pressing Enter in StateLocateVersionSelect selects the version
+	newM, cmd = updated.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated = newM.(Model)
+	if updated.state != StateLocateView {
+		t.Fatalf("Expected transition to StateLocateView after selecting version, got %v", updated.state)
+	}
+	if updated.activeLocateID != 202 {
+		t.Errorf("Expected activeLocateID 202, got %d", updated.activeLocateID)
+	}
+	if cmd == nil {
+		t.Errorf("Expected fetchLocateCmd to be emitted, got nil")
+	}
+}
+
+func TestLocateSearch_EscNavigationPreservation(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+
+	multiRelease := &releaseEntry{
+		releaseID: 303,
+		artist:    "The Beatles",
+		title:     "Abbey Road",
+		records: []*pb.Record{
+			{Release: &pbd.Release{Id: 303, InstanceId: 3001}},
+			{Release: &pbd.Release{Id: 303, InstanceId: 3002}},
+		},
+	}
+	m.indexedReleases = []*releaseEntry{multiRelease}
+	m.filteredReleases = []*releaseEntry{multiRelease}
+
+	// 1. In StateLocateVersionSelect: Esc returns to StateLocateSearch preserving query and cursor
+	m.state = StateLocateVersionSelect
+	m.activeReleaseChoice = multiRelease
+	m.versionSelectCursor = 1
+	m.locateSearchInput.SetValue("abbey")
+	m.locateSearchCursor = 3
+
+	newM, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updated := newM.(Model)
+
+	if updated.state != StateLocateSearch {
+		t.Fatalf("Expected Esc in StateLocateVersionSelect to return to StateLocateSearch, got %v", updated.state)
+	}
+	if updated.locateSearchInput.Value() != "abbey" {
+		t.Errorf("Expected search input to be preserved as 'abbey', got %q", updated.locateSearchInput.Value())
+	}
+	if updated.locateSearchCursor != 3 {
+		t.Errorf("Expected locateSearchCursor preserved as 3, got %d", updated.locateSearchCursor)
+	}
+
+	// 2. In StateLocateSearch: Esc returns to StateMainApp and resets search state
+	newM, _ = updated.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	mainAppM := newM.(Model)
+
+	if mainAppM.state != StateMainApp {
+		t.Fatalf("Expected Esc in StateLocateSearch to return to StateMainApp, got %v", mainAppM.state)
+	}
+	if mainAppM.locateSearchInput.Value() != "" {
+		t.Errorf("Expected search input cleared on Esc to StateMainApp, got %q", mainAppM.locateSearchInput.Value())
+	}
+	if mainAppM.locateSearchCursor != 0 {
+		t.Errorf("Expected locateSearchCursor reset to 0, got %d", mainAppM.locateSearchCursor)
+	}
+	if len(mainAppM.filteredReleases) != len(mainAppM.indexedReleases) {
+		t.Errorf("Expected filteredReleases reset to indexedReleases, got %d vs %d",
+			len(mainAppM.filteredReleases), len(mainAppM.indexedReleases))
+	}
+}
+
 
 
 
