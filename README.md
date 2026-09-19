@@ -79,6 +79,7 @@ Current Go version: 1.26.2
 - Slot Move Computation and Topological Move Ordering: Implements snapshot slot diffing in `org/diff.go` to compute physical slot and shelf changes while ignoring intra-slot index shifts, and topologically orders moves using Kahn's algorithm to ensure destination slots are vacated before incoming records arrive, with graceful ascending slot fallback for dependency cycles.
 - Cache Health Status Badge in TUI Footer: Displays a Lip Gloss styled cache synchronization health status badge in the Gramophile TUI footer (`[Cache: Ready]` in green `#00D787`, `[Cache: Syncing]` in yellow `#FFD700`, `[Cache: Stale (Offline)]` in amber/orange `#FF8700`, and `[Cache: Rebuilding]` in purple/magenta `#AF00FF`) alongside version and updater status, with graceful fallback when cache status is uninitialized.
 - PrintMoveType Protobuf Schema: Defines the `PrintMoveType` enum (`PRINT_MOVE_TYPE_MOVE` and `PRINT_MOVE_TYPE_SHUFFLE`) and adds the `type` field to `PrintMove` in `proto/gramophile.proto` to categorize collection moves between primary record moves and ripple shuffles.
+- Move Printer Index Sorting and Shuffle Header Formatting: Updates the move printer in `validator/moveprinter.go` to sort unprinted moves by `Index` ascending before dispatching print requests, and conditionally renders `"Gramophile Shuffle: "` headers for shuffle moves versus `"Gramophile Move: "` for cross-organization moves.
 
 
 
