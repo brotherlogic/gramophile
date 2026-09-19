@@ -240,3 +240,33 @@ func TestCollectionCacheProto(t *testing.T) {
 	}
 }
 
+func TestPrintMoveType(t *testing.T) {
+	move := &PrintMove{
+		Type: PrintMoveType_PRINT_MOVE_TYPE_MOVE,
+	}
+	if move.GetType() != PrintMoveType_PRINT_MOVE_TYPE_MOVE {
+		t.Errorf("Expected PRINT_MOVE_TYPE_MOVE, got %v", move.GetType())
+	}
+
+	shuffle := &PrintMove{
+		Type: PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE,
+	}
+	if shuffle.GetType() != PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE {
+		t.Errorf("Expected PRINT_MOVE_TYPE_SHUFFLE, got %v", shuffle.GetType())
+	}
+
+	data, err := protov2.Marshal(shuffle)
+	if err != nil {
+		t.Fatalf("Failed to marshal PrintMove: %v", err)
+	}
+
+	unmarshaled := &PrintMove{}
+	if err := protov2.Unmarshal(data, unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal PrintMove: %v", err)
+	}
+
+	if unmarshaled.GetType() != PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE {
+		t.Errorf("Expected unmarshaled type PRINT_MOVE_TYPE_SHUFFLE, got %v", unmarshaled.GetType())
+	}
+}
+
