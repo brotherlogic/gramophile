@@ -25,6 +25,12 @@ message DBChange {
     Want new_want = 6;
 }
 
+enum PrintMoveType {
+    PRINT_MOVE_TYPE_UNSPECIFIED = 0;
+    PRINT_MOVE_TYPE_MOVE = 1;
+    PRINT_MOVE_TYPE_SHUFFLE = 2;
+}
+
 message PrintMove {
     int64 timestamp = 1;
     int64 iid = 2;
@@ -34,6 +40,7 @@ message PrintMove {
     int64 index = 6;
     bool printed = 7;
     string print_id = 8;
+    PrintMoveType type = 9;
 }
 
 message Location {
