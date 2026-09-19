@@ -76,7 +76,9 @@ Current Go version: 1.26.2
 - Version Selection State Machine and Keyboard Navigation in TUI: Introduces the secondary disambiguation state `StateLocateVersionSelect` and keyboard navigation contracts in the Gramophile TUI, allowing direct bypass on single-copy releases, version selection on multi-copy releases, Esc navigation preservation, and q-quit suppression.
 - Windowed Viewport Scrolling and Lip Gloss Rendering in TUI Search: Implements a 10-row windowed viewport with boundary clamping for primary collection search in the Gramophile TUI, counter indicator showing displayed range and total record counts, animated collection loading spinner, empty state messaging, and styled Lip Gloss rendering for release search and secondary multi-copy version selection.
 - Priority Record Fetching and Dynamic Placeholder Resolution in TUI Locate Search: Implements in-flight priority individual record fetching and dynamic placeholder rendering (`> Loading Release #<ID>... [Fetching]`) in the Gramophile TUI locate search interface when uncached records are accessed, dynamically replacing placeholders with resolved artist and title details upon asynchronous resolution.
+- Slot Move Computation and Topological Move Ordering: Implements snapshot slot diffing in `org/diff.go` to compute physical slot and shelf changes while ignoring intra-slot index shifts, and topologically orders moves using Kahn's algorithm to ensure destination slots are vacated before incoming records arrive, with graceful ascending slot fallback for dependency cycles.
 - PrintMoveType Protobuf Schema: Defines the `PrintMoveType` enum (`PRINT_MOVE_TYPE_MOVE` and `PRINT_MOVE_TYPE_SHUFFLE`) and adds the `type` field to `PrintMove` in `proto/gramophile.proto` to categorize collection moves between primary record moves and ripple shuffles.
+
 
 
 ## TUI (Terminal User Interface)
