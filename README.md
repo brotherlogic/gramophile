@@ -77,6 +77,8 @@ Current Go version: 1.26.2
 - Windowed Viewport Scrolling and Lip Gloss Rendering in TUI Search: Implements a 10-row windowed viewport with boundary clamping for primary collection search in the Gramophile TUI, counter indicator showing displayed range and total record counts, animated collection loading spinner, empty state messaging, and styled Lip Gloss rendering for release search and secondary multi-copy version selection.
 - Priority Record Fetching and Dynamic Placeholder Resolution in TUI Locate Search: Implements in-flight priority individual record fetching and dynamic placeholder rendering (`> Loading Release #<ID>... [Fetching]`) in the Gramophile TUI locate search interface when uncached records are accessed, dynamically replacing placeholders with resolved artist and title details upon asynchronous resolution.
 - Slot Move Computation and Topological Move Ordering: Implements snapshot slot diffing in `org/diff.go` to compute physical slot and shelf changes while ignoring intra-slot index shifts, and topologically orders moves using Kahn's algorithm to ensure destination slots are vacated before incoming records arrive, with graceful ascending slot fallback for dependency cycles.
+- Cache Health Status Badge in TUI Footer: Displays a Lip Gloss styled cache synchronization health status badge in the Gramophile TUI footer (`[Cache: Ready]` in green `#00D787`, `[Cache: Syncing]` in yellow `#FFD700`, `[Cache: Stale (Offline)]` in amber/orange `#FF8700`, and `[Cache: Rebuilding]` in purple/magenta `#AF00FF`) alongside version and updater status, with graceful fallback when cache status is uninitialized.
+
 
 
 
