@@ -2,7 +2,9 @@ package background
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"sort"
 	"testing"
 
 	"github.com/brotherlogic/discogs"
@@ -22,6 +24,7 @@ func TestMovePrint(t *testing.T) {
 	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
 		PrintMoveConfig: &pb.PrintMoveConfig{
 			Context: 1,
+			Enabled: pb.Enabled_ENABLED_ENABLED,
 		},
 		OrganisationConfig: &pb.OrganisationConfig{
 			Organisations: []*pb.Organisation{
@@ -125,6 +128,7 @@ func TestMovePrint_MissingOrgorigin(t *testing.T) {
 	su := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}, Config: &pb.GramophileConfig{
 		PrintMoveConfig: &pb.PrintMoveConfig{
 			Context: 1,
+			Enabled: pb.Enabled_ENABLED_ENABLED,
 		},
 		OrganisationConfig: &pb.OrganisationConfig{
 			Organisations: []*pb.Organisation{
@@ -345,5 +349,395 @@ func TestPurchaseLocation(t *testing.T) {
 
 	if r.GetPurchaseLocation() != "bounce" {
 		t.Errorf("Location was not set correctly: %v", r)
+	}
+}
+
+func TestProcessSetFolder_ComprehensivePrinting_CrossOrg(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			PrintMoveConfig: &pb.PrintMoveConfig{
+				Enabled: pb.Enabled_ENABLED_ENABLED,
+				Context: 1,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "First",
+						Density: pb.Density_COUNT,
+						Spaces: []*pb.Space{
+							{Name: "Main", Units: 10, Width: 1},
+						},
+						Foldersets: []*pb.FolderSet{{Folder: 1, Sort: pb.Sort_LABEL_CATNO}},
+					},
+					{
+						Name:    "Second",
+						Density: pb.Density_COUNT,
+						Spaces: []*pb.Space{
+							{Name: "Main", Units: 10, Width: 1},
+						},
+						Foldersets: []*pb.FolderSet{{Folder: 2, Sort: pb.Sort_LABEL_CATNO}},
+					},
+				},
+			},
+		},
+	}
+	if err := b.db.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	r1 := &pb.Record{Release: &pbd.Release{Title: "R1", InstanceId: 1, FolderId: 1, Labels: []*pbd.Label{{Catno: "100"}}}}
+	r2 := &pb.Record{Release: &pbd.Release{Title: "R2", InstanceId: 2, FolderId: 1, Labels: []*pbd.Label{{Catno: "200"}}}}
+	r3 := &pb.Record{Release: &pbd.Release{Title: "R3", InstanceId: 3, FolderId: 1, Labels: []*pbd.Label{{Catno: "300"}}}}
+	r4 := &pb.Record{Release: &pbd.Release{Title: "R4", InstanceId: 4, FolderId: 2, Labels: []*pbd.Label{{Catno: "050"}}}}
+	r5 := &pb.Record{Release: &pbd.Release{Title: "R5", InstanceId: 5, FolderId: 2, Labels: []*pbd.Label{{Catno: "250"}}}}
+
+	b.db.SaveRecord(ctx, 123, r1, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r2, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r3, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r4, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r5, &db.SaveOptions{})
+
+	orglogic, err := org.GetOrg(b.db)
+	if err != nil {
+		t.Fatalf("GetOrg error: %v", err)
+	}
+	snap1, err := orglogic.BuildSnapshot(ctx, su, su.GetConfig().GetOrganisationConfig().GetOrganisations()[0], su.GetConfig().GetOrganisationConfig())
+	if err != nil {
+		t.Fatalf("BuildSnapshot 1 error: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "First", snap1)
+
+	snap2, err := orglogic.BuildSnapshot(ctx, su, su.GetConfig().GetOrganisationConfig().GetOrganisations()[1], su.GetConfig().GetOrganisationConfig())
+	if err != nil {
+		t.Fatalf("BuildSnapshot 2 error: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "Second", snap2)
+
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), r2, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessIntents error: %v", err)
+	}
+
+	moves, err := b.db.LoadPrintMoves(ctx, 123)
+	if err != nil {
+		t.Fatalf("LoadPrintMoves error: %v", err)
+	}
+
+	sort.Slice(moves, func(i, j int) bool {
+		return moves[i].GetIndex() < moves[j].GetIndex()
+	})
+
+	if len(moves) != 3 {
+		t.Fatalf("Expected 3 print moves, got %d: %+v", len(moves), moves)
+	}
+
+	if moves[0].GetType() != pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE || moves[0].GetIid() != 3 {
+		t.Errorf("Move 0 should be Exit shuffle of Rec 3, got %+v", moves[0])
+	}
+	if moves[1].GetType() != pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE || moves[1].GetIid() != 2 {
+		t.Errorf("Move 1 should be Main move of Rec 2, got %+v", moves[1])
+	}
+	if moves[2].GetType() != pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE || moves[2].GetIid() != 5 {
+		t.Errorf("Move 2 should be Dest shuffle of Rec 5, got %+v", moves[2])
+	}
+
+	if moves[0].GetIndex() >= moves[1].GetIndex() || moves[1].GetIndex() >= moves[2].GetIndex() {
+		t.Errorf("Expected strictly monotonic increasing indexes, got: %v, %v, %v",
+			moves[0].GetIndex(), moves[1].GetIndex(), moves[2].GetIndex())
+	}
+}
+
+func TestProcessSetFolder_SameOrg(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			PrintMoveConfig: &pb.PrintMoveConfig{
+				Enabled: pb.Enabled_ENABLED_ENABLED,
+				Context: 1,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "SingleOrg",
+						Density: pb.Density_COUNT,
+						Spaces: []*pb.Space{
+							{Name: "Main", Units: 10, Width: 1},
+						},
+						Foldersets: []*pb.FolderSet{
+							{Folder: 1, Index: 1, Sort: pb.Sort_LABEL_CATNO},
+							{Folder: 2, Index: 2, Sort: pb.Sort_LABEL_CATNO},
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := b.db.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	r1 := &pb.Record{Release: &pbd.Release{Title: "R1", InstanceId: 10, FolderId: 1, Labels: []*pbd.Label{{Catno: "100"}}}}
+	r2 := &pb.Record{Release: &pbd.Release{Title: "R2", InstanceId: 20, FolderId: 1, Labels: []*pbd.Label{{Catno: "200"}}}}
+	r3 := &pb.Record{Release: &pbd.Release{Title: "R3", InstanceId: 30, FolderId: 2, Labels: []*pbd.Label{{Catno: "300"}}}}
+
+	b.db.SaveRecord(ctx, 123, r1, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r2, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, r3, &db.SaveOptions{})
+
+	orglogic, err := org.GetOrg(b.db)
+	if err != nil {
+		t.Fatalf("GetOrg error: %v", err)
+	}
+	snap, err := orglogic.BuildSnapshot(ctx, su, su.GetConfig().GetOrganisationConfig().GetOrganisations()[0], su.GetConfig().GetOrganisationConfig())
+	if err != nil {
+		t.Fatalf("BuildSnapshot error: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "SingleOrg", snap)
+
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), r1, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessIntents error: %v", err)
+	}
+
+	moves, err := b.db.LoadPrintMoves(ctx, 123)
+	if err != nil {
+		t.Fatalf("LoadPrintMoves error: %v", err)
+	}
+
+	var mainMoves []*pb.PrintMove
+	var shuffleMoves []*pb.PrintMove
+	seenIids := make(map[int64]bool)
+
+	for _, m := range moves {
+		if seenIids[m.GetIid()] {
+			t.Errorf("Duplicate move generated for iid %v", m.GetIid())
+		}
+		seenIids[m.GetIid()] = true
+
+		if m.GetType() == pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE {
+			mainMoves = append(mainMoves, m)
+		} else if m.GetType() == pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE {
+			shuffleMoves = append(shuffleMoves, m)
+		}
+	}
+
+	if len(mainMoves) != 1 {
+		t.Fatalf("Expected exactly 1 main move, got %d: %+v", len(mainMoves), mainMoves)
+	}
+	if mainMoves[0].GetIid() != 10 {
+		t.Errorf("Main move should be for r1 (iid 10), got %v", mainMoves[0].GetIid())
+	}
+	if len(shuffleMoves) != 1 {
+		t.Fatalf("Expected exactly 1 shuffle move, got %d: %+v", len(shuffleMoves), shuffleMoves)
+	}
+	if shuffleMoves[0].GetIid() != 20 {
+		t.Errorf("Shuffle move should be for r2 (iid 20), got %v", shuffleMoves[0].GetIid())
+	}
+}
+
+func TestProcessSetFolder_FromNew(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			PrintMoveConfig: &pb.PrintMoveConfig{
+				Enabled: pb.Enabled_ENABLED_ENABLED,
+				Context: 1,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:    "Destination",
+						Density: pb.Density_COUNT,
+						Spaces: []*pb.Space{
+							{Name: "Main", Units: 10, Width: 1},
+						},
+						Foldersets: []*pb.FolderSet{{Folder: 2, Sort: pb.Sort_LABEL_CATNO}},
+					},
+				},
+			},
+		},
+	}
+	if err := b.db.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	rExisting := &pb.Record{Release: &pbd.Release{Title: "Existing", InstanceId: 100, FolderId: 2, Labels: []*pbd.Label{{Catno: "200"}}}}
+	rNew := &pb.Record{Release: &pbd.Release{Title: "NewRec", InstanceId: 200, FolderId: 0, Labels: []*pbd.Label{{Catno: "100"}}}}
+
+	b.db.SaveRecord(ctx, 123, rExisting, &db.SaveOptions{})
+	b.db.SaveRecord(ctx, 123, rNew, &db.SaveOptions{})
+
+	orglogic, err := org.GetOrg(b.db)
+	if err != nil {
+		t.Fatalf("GetOrg error: %v", err)
+	}
+	snap, err := orglogic.BuildSnapshot(ctx, su, su.GetConfig().GetOrganisationConfig().GetOrganisations()[0], su.GetConfig().GetOrganisationConfig())
+	if err != nil {
+		t.Fatalf("BuildSnapshot error: %v", err)
+	}
+	b.db.SaveSnapshot(ctx, su, "Destination", snap)
+
+	err = b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), rNew, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessIntents error: %v", err)
+	}
+
+	moves, err := b.db.LoadPrintMoves(ctx, 123)
+	if err != nil {
+		t.Fatalf("LoadPrintMoves error: %v", err)
+	}
+
+	sort.Slice(moves, func(i, j int) bool {
+		return moves[i].GetIndex() < moves[j].GetIndex()
+	})
+
+	for _, m := range moves {
+		if m.GetType() == pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE && m.GetOrigin().GetLocationName() == "New" {
+			t.Errorf("Found invalid exit shuffle from New: %+v", m)
+		}
+	}
+
+	if len(moves) != 2 {
+		t.Fatalf("Expected 2 moves (1 main move, 1 dest shuffle), got %d: %+v", len(moves), moves)
+	}
+	if moves[0].GetType() != pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE || moves[0].GetIid() != 200 {
+		t.Errorf("First move should be Main move of rNew (200), got %+v", moves[0])
+	}
+	if moves[1].GetType() != pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE || moves[1].GetIid() != 100 {
+		t.Errorf("Second move should be Dest shuffle of rExisting (100), got %+v", moves[1])
+	}
+}
+
+func TestProcessSetFolder_PrintMoveDisabled(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			PrintMoveConfig: &pb.PrintMoveConfig{
+				Enabled: pb.Enabled_ENABLED_DISABLED,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:       "First",
+						Foldersets: []*pb.FolderSet{{Folder: 1, Sort: pb.Sort_LABEL_CATNO}},
+					},
+					{
+						Name:       "Second",
+						Foldersets: []*pb.FolderSet{{Folder: 2, Sort: pb.Sort_LABEL_CATNO}},
+					},
+				},
+			},
+		},
+	}
+	b.db.SaveUser(ctx, su)
+
+	r := &pb.Record{Release: &pbd.Release{Title: "DisabledTest", InstanceId: 777, FolderId: 1}}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	err := b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), r, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessIntents failed: %v", err)
+	}
+
+	rec, err := b.db.GetRecord(ctx, 123, 777)
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if rec.GetRelease().GetFolderId() != 2 {
+		t.Errorf("Record folder should have been updated to 2, got %v", rec.GetRelease().GetFolderId())
+	}
+
+	moves, err := b.db.LoadPrintMoves(ctx, 123)
+	if err != nil {
+		t.Fatalf("LoadPrintMoves failed: %v", err)
+	}
+	if len(moves) != 0 {
+		t.Errorf("Expected 0 print moves when disabled, got %d: %+v", len(moves), moves)
+	}
+}
+
+type failingSnapshotDB struct {
+	db.Database
+}
+
+func (f *failingSnapshotDB) GetLatestSnapshot(ctx context.Context, userid int32, org string) (*pb.OrganisationSnapshot, error) {
+	return nil, fmt.Errorf("forced snapshot failure")
+}
+
+func (f *failingSnapshotDB) GetRecords(ctx context.Context, userid int32) ([]int64, error) {
+	return nil, fmt.Errorf("forced get records failure")
+}
+
+func TestProcessSetFolder_SnapshotFailure(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			PrintMoveConfig: &pb.PrintMoveConfig{
+				Enabled: pb.Enabled_ENABLED_ENABLED,
+			},
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name:       "First",
+						Foldersets: []*pb.FolderSet{{Folder: 1, Sort: pb.Sort_LABEL_CATNO}},
+					},
+					{
+						Name:       "Second",
+						Foldersets: []*pb.FolderSet{{Folder: 2, Sort: pb.Sort_LABEL_CATNO}},
+					},
+				},
+			},
+		},
+	}
+	b.db.SaveUser(ctx, su)
+
+	r := &pb.Record{Release: &pbd.Release{Title: "FailureTest", InstanceId: 888, FolderId: 1}}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	origDB := b.db
+	b.db = &failingSnapshotDB{Database: origDB}
+
+	err := b.ProcessIntents(ctx, discogs.GetTestClient().ForUser(&pbd.User{DiscogsUserId: 123}), r, &pb.Intent{NewFolder: 2}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessIntents should halt move enqueueing cleanly on snapshot failure, but returned error: %v", err)
+	}
+
+	moves, err := origDB.LoadPrintMoves(ctx, 123)
+	if err != nil {
+		t.Fatalf("LoadPrintMoves failed: %v", err)
+	}
+	if len(moves) != 0 {
+		t.Errorf("Expected 0 moves when snapshot fails, got %d", len(moves))
 	}
 }

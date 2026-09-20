@@ -277,6 +277,50 @@ func (b *BackgroundRunner) getLocation(ctx context.Context, userId int32, r *pb.
 	return nil, status.Errorf(codes.FailedPrecondition, "Unable to locate %v in an org (%v)", r.GetRelease().GetInstanceId(), r.GetRelease().GetFolderId())
 }
 
+func (b *BackgroundRunner) buildLocationFromSnapshot(ctx context.Context, org *pb.Organisation, s *pb.OrganisationSnapshot, iid int64, config *pb.GramophileConfig, userid int32) (*pb.Location, error) {
+	if s == nil || org == nil {
+		return nil, nil
+	}
+	index := -1
+	for i, val := range s.GetPlacements() {
+		if val.GetIid() == iid {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return nil, status.Errorf(codes.Internal, "Record %v is listed in %v but does not appear in snapshot (%v)", iid, org.GetName(), s.GetHash())
+	}
+	nc := int32(0)
+	if config.GetPrintMoveConfig() != nil {
+		nc = config.GetPrintMoveConfig().GetContext()
+	}
+	return b.buildLocation(ctx, org, s, int32(index), nc, userid)
+}
+
+func (b *BackgroundRunner) buildPrintMoveFromSlotMove(ctx context.Context, userid int32, o *pb.Organisation, startSnap, endSnap *pb.OrganisationSnapshot, m *pb.Move, moveType pb.PrintMoveType, config *pb.GramophileConfig) (*pb.PrintMove, error) {
+	origin, err := b.buildLocationFromSnapshot(ctx, o, startSnap, m.GetStart().GetIid(), config, userid)
+	if err != nil {
+		return nil, err
+	}
+	dest, err := b.buildLocationFromSnapshot(ctx, o, endSnap, m.GetEnd().GetIid(), config, userid)
+	if err != nil {
+		return nil, err
+	}
+	recStr, err := b.buildRecord(ctx, userid, m.GetStart().GetIid())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.PrintMove{
+		Timestamp:   time.Now().UnixNano(),
+		Iid:         m.GetStart().GetIid(),
+		Origin:      origin,
+		Destination: dest,
+		Record:      recStr,
+		Type:        moveType,
+	}, nil
+}
+
 func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
 	log.Printf("Setting folder %v -> %v", r.GetRelease(), i.GetNewFolder())
 
@@ -285,89 +329,251 @@ func (b *BackgroundRunner) ProcessSetFolder(ctx context.Context, d discogs.Disco
 		return nil
 	}
 
+	oldFolder := r.GetRelease().GetFolderId()
+	newFolder := i.GetNewFolder()
+
 	// Quick exit if we're moving to where it already is
-	if r.GetRelease().GetFolderId() == i.GetNewFolder() {
+	if oldFolder == newFolder {
 		return nil
 	}
 
-	// Move the record
-	err := d.SetFolder(ctx,
-		r.GetRelease().GetInstanceId(),
-		r.GetRelease().GetId(),
-		r.GetRelease().GetFolderId(), i.GetNewFolder())
-	if err != nil {
-		return err
+	printEnabled := user.GetConfig().GetPrintMoveConfig().GetEnabled() == pb.Enabled_ENABLED_ENABLED
+
+	// If disabled, proceed with folder move on Discogs/DB without enqueueing print moves
+	if !printEnabled {
+		err := d.SetFolder(ctx,
+			r.GetRelease().GetInstanceId(),
+			r.GetRelease().GetId(),
+			oldFolder, newFolder)
+		if err != nil {
+			return err
+		}
+		r.GetRelease().FolderId = newFolder
+		return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 	}
 
-	// Run a preorg since this might be a new record
+	var exitOrg *pb.Organisation
+	if oldFolder != 0 {
+		exitOrg = getOrg(oldFolder, user.GetConfig())
+		if exitOrg == nil {
+			return status.Errorf(codes.Internal, "Unable to locate old organisation for %v", oldFolder)
+		}
+	}
+
+	var destOrg *pb.Organisation
+	if newFolder != 0 {
+		destOrg = getOrg(newFolder, user.GetConfig())
+		if destOrg == nil {
+			return status.Errorf(codes.Internal, "Unable to locate new organisation for %v", newFolder)
+		}
+	}
+
 	orglogic, err := org.GetOrg(b.db)
 	if err != nil {
 		return err
 	}
-	var oldLoc *pb.Location
-	if r.GetRelease().GetFolderId() == 0 {
-		oldLoc = &pb.Location{
-			LocationName: "New",
-			Slot:         1,
-			Shelf:        "New",
-			Before:       []*pb.Context{},
-			After:        []*pb.Context{},
+
+	getSnapshotA := func(o *pb.Organisation) (*pb.OrganisationSnapshot, error) {
+		snap, err := b.db.GetLatestSnapshot(ctx, user.GetUser().GetDiscogsUserId(), o.GetName())
+		if err != nil {
+			snap, err = orglogic.BuildSnapshot(ctx, user, o, user.GetConfig().GetOrganisationConfig())
+		}
+		return snap, err
+	}
+
+	var exitA, destA *pb.OrganisationSnapshot
+	var snapErr error
+
+	if exitOrg != nil {
+		exitA, snapErr = getSnapshotA(exitOrg)
+		if snapErr != nil {
+			log.Printf("Failed to get State A for exit org %v: %v", exitOrg.GetName(), snapErr)
+		}
+	}
+
+	if snapErr == nil && destOrg != nil {
+		if exitOrg != nil && exitOrg.GetName() == destOrg.GetName() {
+			destA = exitA
+		} else {
+			destA, snapErr = getSnapshotA(destOrg)
+			if snapErr != nil {
+				log.Printf("Failed to get State A for dest org %v: %v", destOrg.GetName(), snapErr)
+			}
+		}
+	}
+
+	// Move the record on Discogs and DB
+	err = d.SetFolder(ctx,
+		r.GetRelease().GetInstanceId(),
+		r.GetRelease().GetId(),
+		oldFolder, newFolder)
+	if err != nil {
+		return err
+	}
+
+	r.GetRelease().FolderId = newFolder
+	err = b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r, &db.SaveOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Fail closed on error (log error and cleanly bypass print generation)
+	if snapErr != nil {
+		return nil
+	}
+
+	// Rebuild and save State B snapshots for both organizations
+	var exitB, destB *pb.OrganisationSnapshot
+	if exitOrg != nil {
+		exitB, err = orglogic.BuildSnapshot(ctx, user, exitOrg, user.GetConfig().GetOrganisationConfig())
+		if err != nil {
+			log.Printf("Failed to build State B for exit org %v: %v", exitOrg.GetName(), err)
+			return nil
+		}
+		b.db.SaveSnapshot(ctx, user, exitOrg.GetName(), exitB)
+	}
+
+	if destOrg != nil {
+		if exitOrg != nil && exitOrg.GetName() == destOrg.GetName() {
+			destB = exitB
+		} else {
+			destB, err = orglogic.BuildSnapshot(ctx, user, destOrg, user.GetConfig().GetOrganisationConfig())
+			if err != nil {
+				log.Printf("Failed to build State B for dest org %v: %v", destOrg.GetName(), err)
+				return nil
+			}
+			b.db.SaveSnapshot(ctx, user, destOrg.GetName(), destB)
+		}
+	}
+
+	var generatedMoves []*pb.PrintMove
+	userId := user.GetUser().GetDiscogsUserId()
+	recordIid := r.GetRelease().GetInstanceId()
+
+	if exitOrg != nil && destOrg != nil && exitOrg.GetName() == destOrg.GetName() {
+		// Same-Org Move:
+		slotMoves := org.OrderSlotMoves(org.ComputeSlotMoves(exitA, exitB))
+		foundPrimary := false
+		for _, sm := range slotMoves {
+			isPrimary := sm.GetStart().GetIid() == recordIid
+			mType := pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE
+			if isPrimary {
+				mType = pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE
+				foundPrimary = true
+			}
+			pm, err := b.buildPrintMoveFromSlotMove(ctx, userId, exitOrg, exitA, exitB, sm, mType, user.GetConfig())
+			if err != nil {
+				log.Printf("Failed to build print move for iid %v: %v", sm.GetStart().GetIid(), err)
+				return nil
+			}
+			generatedMoves = append(generatedMoves, pm)
+		}
+
+		if !foundPrimary {
+			oldLoc, err := b.buildLocationFromSnapshot(ctx, exitOrg, exitA, recordIid, user.GetConfig(), userId)
+			if err != nil {
+				log.Printf("Failed to build old location for same-org move: %v", err)
+				return nil
+			}
+			newLoc, err := b.buildLocationFromSnapshot(ctx, exitOrg, exitB, recordIid, user.GetConfig(), userId)
+			if err != nil {
+				log.Printf("Failed to build new location for same-org move: %v", err)
+				return nil
+			}
+			recStr, err := b.buildRecord(ctx, userId, recordIid)
+			if err != nil {
+				log.Printf("Failed to build record string: %v", err)
+				return nil
+			}
+			primaryMove := &pb.PrintMove{
+				Timestamp:   time.Now().UnixNano(),
+				Iid:         recordIid,
+				Origin:      oldLoc,
+				Destination: newLoc,
+				Record:      recStr,
+				Type:        pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE,
+			}
+			generatedMoves = append([]*pb.PrintMove{primaryMove}, generatedMoves...)
 		}
 	} else {
-		org := getOrg(r.GetRelease().GetFolderId(), user.GetConfig())
-		if org == nil {
-			return status.Errorf(codes.Internal, "Unable to locate old organisation for %v", r.GetRelease().GetFolderId())
+		// Cross-Org Move:
+		// 1. Exit Org slot diffs (PRINT_MOVE_TYPE_SHUFFLE)
+		if exitOrg != nil && exitA != nil && exitB != nil {
+			exitSlotMoves := org.OrderSlotMoves(org.ComputeSlotMoves(exitA, exitB))
+			for _, sm := range exitSlotMoves {
+				pm, err := b.buildPrintMoveFromSlotMove(ctx, userId, exitOrg, exitA, exitB, sm, pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE, user.GetConfig())
+				if err != nil {
+					log.Printf("Failed to build exit shuffle move for iid %v: %v", sm.GetStart().GetIid(), err)
+					return nil
+				}
+				generatedMoves = append(generatedMoves, pm)
+			}
 		}
-		snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
+
+		// 2. Main record pb.PrintMove (PRINT_MOVE_TYPE_MOVE)
+		var oldLoc *pb.Location
+		if oldFolder == 0 {
+			oldLoc = &pb.Location{
+				LocationName: "New",
+				Slot:         1,
+				Shelf:        "New",
+				Before:       []*pb.Context{},
+				After:        []*pb.Context{},
+			}
+		} else {
+			var err error
+			oldLoc, err = b.buildLocationFromSnapshot(ctx, exitOrg, exitA, recordIid, user.GetConfig(), userId)
+			if err != nil {
+				log.Printf("Failed to build exit location for record %v: %v", recordIid, err)
+				return nil
+			}
+		}
+
+		newLoc, err := b.buildLocationFromSnapshot(ctx, destOrg, destB, recordIid, user.GetConfig(), userId)
+		if err != nil {
+			log.Printf("Failed to build dest location for record %v: %v", recordIid, err)
+			return nil
+		}
+
+		recStr, err := b.buildRecord(ctx, userId, recordIid)
+		if err != nil {
+			log.Printf("Failed to build record string for %v: %v", recordIid, err)
+			return nil
+		}
+
+		mainMove := &pb.PrintMove{
+			Timestamp:   time.Now().UnixNano(),
+			Iid:         recordIid,
+			Origin:      oldLoc,
+			Destination: newLoc,
+			Record:      recStr,
+			Type:        pb.PrintMoveType_PRINT_MOVE_TYPE_MOVE,
+		}
+		generatedMoves = append(generatedMoves, mainMove)
+
+		// 3. Destination Org slot diffs (PRINT_MOVE_TYPE_SHUFFLE)
+		if destOrg != nil && destA != nil && destB != nil {
+			destSlotMoves := org.OrderSlotMoves(org.ComputeSlotMoves(destA, destB))
+			for _, sm := range destSlotMoves {
+				pm, err := b.buildPrintMoveFromSlotMove(ctx, userId, destOrg, destA, destB, sm, pb.PrintMoveType_PRINT_MOVE_TYPE_SHUFFLE, user.GetConfig())
+				if err != nil {
+					log.Printf("Failed to build dest shuffle move for iid %v: %v", sm.GetStart().GetIid(), err)
+					return nil
+				}
+				generatedMoves = append(generatedMoves, pm)
+			}
+		}
+	}
+
+	// Enqueue all generated moves sequentially to b.db.SavePrintMove with monotonic indexes.
+	for _, m := range generatedMoves {
+		err := b.db.SavePrintMove(ctx, userId, m)
 		if err != nil {
 			return err
 		}
-		log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
-		b.db.SaveSnapshot(ctx, user, getOrg(r.GetRelease().GetFolderId(), user.GetConfig()).GetName(), snap)
-
-		oldLoc, err = b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
-		if err != nil {
-			return fmt.Errorf("Unable to get prior location (with %v @ %v): %w", snap.GetHash(), time.Unix(0, snap.GetDate()), err)
-		}
 	}
 
-	r.GetRelease().FolderId = i.GetNewFolder()
-	b.db.SaveRecord(ctx, user.GetUser().GetDiscogsUserId(), r, &db.SaveOptions{})
-	norg := getOrg(i.GetNewFolder(), user.GetConfig())
-	if norg == nil {
-		return status.Errorf(codes.Internal, "Unable to locate new organisation for %v", i.GetNewFolder())
-	}
-	snap, err := orglogic.BuildSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()), user.GetConfig().GetOrganisationConfig())
-	if err != nil {
-		return err
-	}
-	log.Printf("Saving new snaphot: %v -> %v", snap.GetName(), snap.GetHash())
-	b.db.SaveSnapshot(ctx, user, getOrg(i.GetNewFolder(), user.GetConfig()).GetName(), snap)
-
-	newLoc, err := b.getLocation(ctx, user.GetUser().GetDiscogsUserId(), r, user.GetConfig())
-	if err != nil {
-		return fmt.Errorf("Unable to get subsequent location: %w", err)
-	}
-
-	artist := "UNKNOWN"
-	if len(r.GetRelease().GetArtists()) > 0 {
-		artist = r.GetRelease().GetArtists()[0].GetName()
-	}
-
-	// Save the change for printing
-	err = b.db.SavePrintMove(ctx, user.GetUser().GetDiscogsUserId(), &pb.PrintMove{
-		Timestamp:   time.Now().UnixNano(),
-		Iid:         r.GetRelease().GetInstanceId(),
-		Origin:      oldLoc,
-		Destination: newLoc,
-		Record:      fmt.Sprintf("%v - %v", artist, r.GetRelease().GetTitle()),
-	})
-	log.Printf("Savedthe print move for %v -> %v", r.GetRelease().GetInstanceId(), err)
-	if err != nil {
-		return err
-	}
-
-	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+	return nil
 }
 
 func (b *BackgroundRunner) ProcessSetClean(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
