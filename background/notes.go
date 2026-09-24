@@ -166,6 +166,11 @@ func (b *BackgroundRunner) ProcessIntents(ctx context.Context, d discogs.Discogs
 		return err
 	}
 
+	err = b.ProcessSetPackageScore(ctx, d, r, i, user, fields)
+	if err != nil {
+		return err
+	}
+
 	return b.ProcessListenDate(ctx, d, r, i, user, fields)
 }
 
@@ -765,6 +770,16 @@ func (b *BackgroundRunner) ProcessPurchaseLocation(ctx context.Context, d discog
 	}
 
 	r.PurchaseLocation = i.GetPurchaseLocation()
+	config.Apply(user.GetConfig(), r)
+	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
+}
+
+func (b *BackgroundRunner) ProcessSetPackageScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
+	if i.GetPackageScore() < 0 || i.GetPackageScore() > 5 {
+		return nil
+	}
+
+	r.PackageScore = i.GetPackageScore()
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
