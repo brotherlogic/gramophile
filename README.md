@@ -82,6 +82,7 @@ Current Go version: 1.26.2
 - Move Printer Index Sorting and Shuffle Header Formatting: Updates the move printer in `validator/moveprinter.go` to sort unprinted moves by `Index` ascending before dispatching print requests, and conditionally renders `"Gramophile Shuffle: "` headers for shuffle moves versus `"Gramophile Move: "` for cross-organization moves.
 - Comprehensive Move Printing & Snapshot Diffing in ProcessSetFolder: Integrates snapshot diffing, ripple shuffle generation, and sequential printing into ProcessSetFolder in background/notes.go, supporting PrintMoveConfig verification, exit/dest org State A and State B snapshot management, topological move ordering, same-org and cross-org move sequencing, and monotonic print move persistence.
 - Package Scoring and Sale Candidate Protobuf Schema: Extends the protobuf schema in proto/gramophile.proto with package_score fields on Record and Intent messages, introduces GetSaleCandidate, and adds get_sale_candidate to GetRecordRequest to support physical artifact package scoring and organization-based sale candidate querying.
+- Package Score Validation in SetIntent: Implements server-side bounds validation in SetIntent enforcing 0-5 scores with InvalidArgument errors for invalid values, while defaulting unprovided package scores to the -1 sentinel to prevent unintended score overwrites.
 
 
 
