@@ -270,3 +270,80 @@ func TestPrintMoveType(t *testing.T) {
 	}
 }
 
+func TestPackageScoreProto(t *testing.T) {
+	record := &Record{
+		PackageScore: 4,
+	}
+	if record.GetPackageScore() != 4 {
+		t.Errorf("Expected PackageScore 4, got %v", record.GetPackageScore())
+	}
+
+	data, err := protov2.Marshal(record)
+	if err != nil {
+		t.Fatalf("Failed to marshal Record: %v", err)
+	}
+
+	unmarshaledRecord := &Record{}
+	if err := protov2.Unmarshal(data, unmarshaledRecord); err != nil {
+		t.Fatalf("Failed to unmarshal Record: %v", err)
+	}
+
+	if unmarshaledRecord.GetPackageScore() != 4 {
+		t.Errorf("Unmarshaled PackageScore mismatch: got %v, expected 4", unmarshaledRecord.GetPackageScore())
+	}
+
+	intent := &Intent{
+		PackageScore: 3,
+	}
+	if intent.GetPackageScore() != 3 {
+		t.Errorf("Expected PackageScore 3, got %v", intent.GetPackageScore())
+	}
+
+	dataIntent, err := protov2.Marshal(intent)
+	if err != nil {
+		t.Fatalf("Failed to marshal Intent: %v", err)
+	}
+
+	unmarshaledIntent := &Intent{}
+	if err := protov2.Unmarshal(dataIntent, unmarshaledIntent); err != nil {
+		t.Fatalf("Failed to unmarshal Intent: %v", err)
+	}
+
+	if unmarshaledIntent.GetPackageScore() != 3 {
+		t.Errorf("Unmarshaled Intent PackageScore mismatch: got %v, expected 3", unmarshaledIntent.GetPackageScore())
+	}
+}
+
+func TestGetSaleCandidateProto(t *testing.T) {
+	candidate := &GetSaleCandidate{
+		OrgName: "test-org",
+	}
+	if candidate.GetOrgName() != "test-org" {
+		t.Errorf("Expected OrgName 'test-org', got %v", candidate.GetOrgName())
+	}
+
+	req := &GetRecordRequest{
+		Request: &GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: candidate,
+		},
+	}
+	if req.GetGetSaleCandidate() == nil || req.GetGetSaleCandidate().GetOrgName() != "test-org" {
+		t.Errorf("Expected GetSaleCandidate with org 'test-org', got %v", req.GetGetSaleCandidate())
+	}
+
+	data, err := protov2.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal GetRecordRequest: %v", err)
+	}
+
+	unmarshaledReq := &GetRecordRequest{}
+	if err := protov2.Unmarshal(data, unmarshaledReq); err != nil {
+		t.Fatalf("Failed to unmarshal GetRecordRequest: %v", err)
+	}
+
+	if unmarshaledReq.GetGetSaleCandidate() == nil || unmarshaledReq.GetGetSaleCandidate().GetOrgName() != "test-org" {
+		t.Errorf("Unmarshaled GetSaleCandidate mismatch: got %v", unmarshaledReq.GetGetSaleCandidate())
+	}
+}
+
+

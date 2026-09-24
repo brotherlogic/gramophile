@@ -81,6 +81,7 @@ Current Go version: 1.26.2
 - PrintMoveType Protobuf Schema: Defines the `PrintMoveType` enum (`PRINT_MOVE_TYPE_MOVE` and `PRINT_MOVE_TYPE_SHUFFLE`) and adds the `type` field to `PrintMove` in `proto/gramophile.proto` to categorize collection moves between primary record moves and ripple shuffles.
 - Move Printer Index Sorting and Shuffle Header Formatting: Updates the move printer in `validator/moveprinter.go` to sort unprinted moves by `Index` ascending before dispatching print requests, and conditionally renders `"Gramophile Shuffle: "` headers for shuffle moves versus `"Gramophile Move: "` for cross-organization moves.
 - Comprehensive Move Printing & Snapshot Diffing in ProcessSetFolder: Integrates snapshot diffing, ripple shuffle generation, and sequential printing into ProcessSetFolder in background/notes.go, supporting PrintMoveConfig verification, exit/dest org State A and State B snapshot management, topological move ordering, same-org and cross-org move sequencing, and monotonic print move persistence.
+- Package Scoring and Sale Candidate Protobuf Schema: Extends the protobuf schema in proto/gramophile.proto with package_score fields on Record and Intent messages, introduces GetSaleCandidate, and adds get_sale_candidate to GetRecordRequest to support physical artifact package scoring and organization-based sale candidate querying.
 
 
 
