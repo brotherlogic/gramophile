@@ -312,6 +312,23 @@ func TestPackageScoreProto(t *testing.T) {
 	if unmarshaledIntent.GetPackageScore() != 3 {
 		t.Errorf("Unmarshaled Intent PackageScore mismatch: got %v, expected 3", unmarshaledIntent.GetPackageScore())
 	}
+
+	sentinelIntent := &Intent{
+		PackageScore: -1,
+	}
+	dataSentinel, err := protov2.Marshal(sentinelIntent)
+	if err != nil {
+		t.Fatalf("Failed to marshal sentinel Intent: %v", err)
+	}
+
+	unmarshaledSentinel := &Intent{}
+	if err := protov2.Unmarshal(dataSentinel, unmarshaledSentinel); err != nil {
+		t.Fatalf("Failed to unmarshal sentinel Intent: %v", err)
+	}
+
+	if unmarshaledSentinel.GetPackageScore() != -1 {
+		t.Errorf("Expected sentinel PackageScore -1, got %v", unmarshaledSentinel.GetPackageScore())
+	}
 }
 
 func TestGetSaleCandidateProto(t *testing.T) {
