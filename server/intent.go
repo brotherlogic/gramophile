@@ -50,6 +50,10 @@ func (s *Server) validateIntent(ctx context.Context, user *pb.StoredUser, i *pb.
 		}
 	}
 
+	if (i.GetPackageScore() < 0 && i.GetPackageScore() != -1) || i.GetPackageScore() > 5 {
+		return status.Errorf(codes.InvalidArgument, "package_score must be between 0 and 5, got %d", i.GetPackageScore())
+	}
+
 	return nil
 }
 
@@ -100,6 +104,10 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	err = s.validateIntent(ctx, user, req.GetIntent())
 	if err != nil {
 		return nil, err
+	}
+
+	if req.GetIntent().GetPackageScore() == 0 {
+		req.GetIntent().PackageScore = -1
 	}
 
 	// If this is for a backdated score, process it and exit without saving the intent

@@ -292,3 +292,63 @@ func TestScoreIntent_FastBackfill(t *testing.T) {
 		t.Errorf("Score history was not saved: %v", r.GetScoreHistory())
 	}
 }
+
+func TestValidateIntent_PackageScore_Valid(t *testing.T) {
+	ctx := getTestContext(123)
+	s := Server{}
+	user := &pb.StoredUser{}
+
+	for _, score := range []int32{0, 1, 3, 5} {
+		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: score})
+		if err != nil {
+			t.Errorf("expected package_score %d to be valid, got: %v", score, err)
+		}
+	}
+}
+
+func TestValidateIntent_PackageScore_Invalid(t *testing.T) {
+	ctx := getTestContext(123)
+	s := Server{}
+	user := &pb.StoredUser{}
+
+	for _, score := range []int32{-2, 6} {
+		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: score})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected package_score %d to return codes.InvalidArgument, got: %v", score, err)
+		}
+	}
+}
+
+func TestSetIntent_PackageScore_Default(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveRecord(ctx, 123, &pb.Record{Release: &pbd.Release{InstanceId: 1234, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+	err = d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	qc := queuelogic.GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+	s := Server{d: d, di: di, qc: qc}
+
+	reqIntent := &pb.Intent{GoalFolder: "12 Inches"}
+	_, err = s.SetIntent(ctx, &pb.SetIntentRequest{
+		Intent:     reqIntent,
+		InstanceId: 1234,
+	})
+	if err != nil {
+		t.Fatalf("SetIntent failed: %v", err)
+	}
+
+	if reqIntent.GetPackageScore() != -1 {
+		t.Errorf("expected unprovided package_score to default to -1, got %v", reqIntent.GetPackageScore())
+	}
+}
