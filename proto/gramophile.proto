@@ -231,6 +231,7 @@ message Record {
 
    string purchase_location = 28;
    int32 purchase_price = 29;
+   int32 package_score = 32;
 }
 
 message DigitalVersion {
@@ -321,6 +322,7 @@ message Intent {
 
     int32 purchase_price = 16;
     string purchase_location = 17;
+    int32 package_score = 19;
 }
 
 message Queues {
@@ -669,6 +671,7 @@ message GetRecordRequest {
         GetRecordsPurchasedBetween get_records_purchased_between = 6;
         bool get_records_mint_up = 5;
         bool get_all_records = 7;
+        GetSaleCandidate get_sale_candidate = 8;
     }
 
     bool include_history = 4;
@@ -700,6 +703,10 @@ message GetRecordWithIssue {}
 
 message GetRecordToListenTo {
     string filter = 1;
+}
+
+message GetSaleCandidate {
+    string org_name = 1;
 }
 
 message GetRecordResponse {
