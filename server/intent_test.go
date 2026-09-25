@@ -17,6 +17,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	queuelogic "github.com/brotherlogic/gramophile/queuelogic"
 	pstore_client "github.com/brotherlogic/pstore/client"
+	protov2 "google.golang.org/protobuf/proto"
 )
 
 func TestAddIntent_FailOnDigitalReelase(t *testing.T) {
@@ -299,7 +300,7 @@ func TestValidateIntent_PackageScore_Valid(t *testing.T) {
 	user := &pb.StoredUser{}
 
 	for _, score := range []int32{0, 1, 3, 5} {
-		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: score})
+		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: protov2.Int32(score)})
 		if err != nil {
 			t.Errorf("expected package_score %d to be valid, got: %v", score, err)
 		}
@@ -312,7 +313,7 @@ func TestValidateIntent_PackageScore_Invalid(t *testing.T) {
 	user := &pb.StoredUser{}
 
 	for _, score := range []int32{-2, 6} {
-		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: score})
+		err := s.validateIntent(ctx, user, &pb.Intent{PackageScore: protov2.Int32(score)})
 		if status.Code(err) != codes.InvalidArgument {
 			t.Errorf("expected package_score %d to return codes.InvalidArgument, got: %v", score, err)
 		}

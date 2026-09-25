@@ -322,7 +322,7 @@ message Intent {
 
     int32 purchase_price = 16;
     string purchase_location = 17;
-    int32 package_score = 19;
+    optional int32 package_score = 19;
 }
 
 message Queues {

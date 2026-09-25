@@ -2466,7 +2466,7 @@ type Intent struct {
 	SetOversize      Intent_SetOversize     `protobuf:"varint,15,opt,name=set_oversize,json=setOversize,proto3,enum=gramophile.Intent_SetOversize" json:"set_oversize,omitempty"`
 	PurchasePrice    int32                  `protobuf:"varint,16,opt,name=purchase_price,json=purchasePrice,proto3" json:"purchase_price,omitempty"`
 	PurchaseLocation string                 `protobuf:"bytes,17,opt,name=purchase_location,json=purchaseLocation,proto3" json:"purchase_location,omitempty"`
-	PackageScore     int32                  `protobuf:"varint,19,opt,name=package_score,json=packageScore,proto3" json:"package_score,omitempty"`
+	PackageScore     *int32                 `protobuf:"varint,19,opt,name=package_score,json=packageScore,proto3,oneof" json:"package_score,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2628,8 +2628,8 @@ func (x *Intent) GetPurchaseLocation() string {
 }
 
 func (x *Intent) GetPackageScore() int32 {
-	if x != nil {
-		return x.PackageScore
+	if x != nil && x.PackageScore != nil {
+		return *x.PackageScore
 	}
 	return 0
 }
@@ -9088,7 +9088,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\tset_price\x18\x02 \x01(\v2\x0e.discogs.PriceR\bsetPrice\x12\x1e\n" +
 	"\n" +
 	"motivation\x18\x03 \x01(\tR\n" +
-	"motivation\"\xe4\x05\n" +
+	"motivation\"\xfb\x05\n" +
 	"\x06Intent\x12\x1d\n" +
 	"\n" +
 	"clean_time\x18\x01 \x01(\x03R\tcleanTime\x12\x1f\n" +
@@ -9114,12 +9114,13 @@ const file_gramophile_proto_rawDesc = "" +
 	"digitalIds\x12A\n" +
 	"\fset_oversize\x18\x0f \x01(\x0e2\x1e.gramophile.Intent.SetOversizeR\vsetOversize\x12%\n" +
 	"\x0epurchase_price\x18\x10 \x01(\x05R\rpurchasePrice\x12+\n" +
-	"\x11purchase_location\x18\x11 \x01(\tR\x10purchaseLocation\x12#\n" +
-	"\rpackage_score\x18\x13 \x01(\x05R\fpackageScore\".\n" +
+	"\x11purchase_location\x18\x11 \x01(\tR\x10purchaseLocation\x12(\n" +
+	"\rpackage_score\x18\x13 \x01(\x05H\x00R\fpackageScore\x88\x01\x01\".\n" +
 	"\vSetOversize\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\a\n" +
 	"\x03SET\x10\x01\x12\t\n" +
-	"\x05UNSET\x10\x02\"3\n" +
+	"\x05UNSET\x10\x02B\x10\n" +
+	"\x0e_package_score\"3\n" +
 	"\x06Queues\x12)\n" +
 	"\x06queues\x18\x01 \x03(\v2\x11.gramophile.QueueR\x06queues\"Q\n" +
 	"\x05Queue\x12\x12\n" +
@@ -10009,6 +10010,7 @@ func file_gramophile_proto_init() {
 	file_config_proto_init()
 	file_organisation_proto_init()
 	file_stats_proto_init()
+	file_gramophile_proto_msgTypes[19].OneofWrappers = []any{}
 	file_gramophile_proto_msgTypes[22].OneofWrappers = []any{
 		(*QueueElement_RefreshUser)(nil),
 		(*QueueElement_RefreshCollectionEntry)(nil),

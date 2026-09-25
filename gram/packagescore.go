@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	protov2 "google.golang.org/protobuf/proto"
 )
 
 func GetPackageScore() *CLIModule {
@@ -41,7 +42,7 @@ func runPackageScore(ctx context.Context, client pb.GramophileEServiceClient, ar
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{
 		InstanceId: iid,
 		Intent: &pb.Intent{
-			PackageScore: int32(score),
+			PackageScore: protov2.Int32(int32(score)),
 		},
 	})
 	return err
