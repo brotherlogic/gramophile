@@ -292,6 +292,20 @@ func TestProcessNotes_PackageField(t *testing.T) {
 		t.Errorf("expected PackageScore to be 4, got %v", res1.GetPackageScore())
 	}
 
+	// 1b. Asserts note with whitespace " 4 " sets r.PackageScore = 4.
+	r1b := &pb.Record{
+		Release: &dpb.Release{
+			Notes: map[int32]string{10: " 4 "},
+		},
+	}
+	res1b, err := b.processNotes(ctx, fields, r1b)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res1b.GetPackageScore() != 4 {
+		t.Errorf("expected PackageScore to be 4 for whitespace padded note, got %v", res1b.GetPackageScore())
+	}
+
 	// 2. Asserts note "0" sets r.PackageScore = 0.
 	r2 := &pb.Record{
 		PackageScore: 3,
