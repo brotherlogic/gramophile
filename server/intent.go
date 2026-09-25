@@ -14,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	protov2 "google.golang.org/protobuf/proto"
 )
 
 var (
@@ -107,7 +108,7 @@ func (s *Server) SetIntent(ctx context.Context, req *pb.SetIntentRequest) (*pb.S
 	}
 
 	if req.GetIntent().GetPackageScore() == 0 {
-		req.GetIntent().PackageScore = -1
+		req.GetIntent().PackageScore = protov2.Int32(-1)
 	}
 
 	// If this is for a backdated score, process it and exit without saving the intent

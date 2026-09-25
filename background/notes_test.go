@@ -14,6 +14,7 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	protov2 "google.golang.org/protobuf/proto"
 )
 
 func TestMovePrint(t *testing.T) {
@@ -756,7 +757,7 @@ func TestProcessSetPackageScore(t *testing.T) {
 	// 1. Process valid package score directly
 	r1 := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}}
 	b.db.SaveRecord(ctx, 123, r1, &db.SaveOptions{})
-	err := b.ProcessSetPackageScore(ctx, di, r1, &pb.Intent{PackageScore: 4}, su, []*pbd.Field{})
+	err := b.ProcessSetPackageScore(ctx, di, r1, &pb.Intent{PackageScore: protov2.Int32(4)}, su, []*pbd.Field{})
 	if err != nil {
 		t.Fatalf("ProcessSetPackageScore failed: %v", err)
 	}
@@ -771,7 +772,7 @@ func TestProcessSetPackageScore(t *testing.T) {
 	// 2. Unset / sentinel values (-1, negative, > 5) should be no-op / ignored
 	r2 := &pb.Record{Release: &pbd.Release{InstanceId: 1002, Id: 2002}, PackageScore: 3}
 	b.db.SaveRecord(ctx, 123, r2, &db.SaveOptions{})
-	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: -1}, su, []*pbd.Field{})
+	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: protov2.Int32(-1)}, su, []*pbd.Field{})
 	if err != nil {
 		t.Fatalf("ProcessSetPackageScore failed on unset sentinel: %v", err)
 	}
@@ -783,7 +784,7 @@ func TestProcessSetPackageScore(t *testing.T) {
 		t.Errorf("Expected package_score to remain 3 on sentinel -1, got %v", saved2.GetPackageScore())
 	}
 
-	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: 6}, su, []*pbd.Field{})
+	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: protov2.Int32(6)}, su, []*pbd.Field{})
 	if err != nil {
 		t.Fatalf("ProcessSetPackageScore failed on out-of-range value: %v", err)
 	}
@@ -798,7 +799,7 @@ func TestProcessSetPackageScore(t *testing.T) {
 	// 3. Test wiring into ProcessIntents
 	r3 := &pb.Record{Release: &pbd.Release{InstanceId: 1003, Id: 2003}}
 	b.db.SaveRecord(ctx, 123, r3, &db.SaveOptions{})
-	err = b.ProcessIntents(ctx, di, r3, &pb.Intent{PackageScore: 5}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	err = b.ProcessIntents(ctx, di, r3, &pb.Intent{PackageScore: protov2.Int32(5)}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		return nil, nil
 	})
 	if err != nil {

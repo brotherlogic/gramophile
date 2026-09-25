@@ -292,42 +292,93 @@ func TestPackageScoreProto(t *testing.T) {
 		t.Errorf("Unmarshaled PackageScore mismatch: got %v, expected 4", unmarshaledRecord.GetPackageScore())
 	}
 
-	intent := &Intent{
-		PackageScore: 3,
+	// Test unset (nil) package_score
+	unsetIntent := &Intent{}
+	if unsetIntent.PackageScore != nil {
+		t.Errorf("Expected nil PackageScore on unset Intent, got %v", unsetIntent.PackageScore)
 	}
-	if intent.GetPackageScore() != 3 {
-		t.Errorf("Expected PackageScore 3, got %v", intent.GetPackageScore())
+	if unsetIntent.GetPackageScore() != 0 {
+		t.Errorf("Expected GetPackageScore() == 0 on unset Intent, got %v", unsetIntent.GetPackageScore())
+	}
+	dataUnset, err := protov2.Marshal(unsetIntent)
+	if err != nil {
+		t.Fatalf("Failed to marshal unset Intent: %v", err)
+	}
+	unmarshaledUnset := &Intent{}
+	if err := protov2.Unmarshal(dataUnset, unmarshaledUnset); err != nil {
+		t.Fatalf("Failed to unmarshal unset Intent: %v", err)
+	}
+	if unmarshaledUnset.PackageScore != nil {
+		t.Errorf("Expected nil PackageScore on unmarshaled unset Intent, got %v", unmarshaledUnset.PackageScore)
+	}
+	if unmarshaledUnset.GetPackageScore() != 0 {
+		t.Errorf("Expected GetPackageScore() == 0 on unmarshaled unset Intent, got %v", unmarshaledUnset.GetPackageScore())
 	}
 
+	// Test score 0 package_score (presence distinct from unset)
+	zeroIntent := &Intent{
+		PackageScore: protov2.Int32(0),
+	}
+	if zeroIntent.PackageScore == nil || *zeroIntent.PackageScore != 0 {
+		t.Errorf("Expected non-nil PackageScore 0, got %v", zeroIntent.PackageScore)
+	}
+	if zeroIntent.GetPackageScore() != 0 {
+		t.Errorf("Expected GetPackageScore() == 0 on zero Intent, got %v", zeroIntent.GetPackageScore())
+	}
+	dataZero, err := protov2.Marshal(zeroIntent)
+	if err != nil {
+		t.Fatalf("Failed to marshal zero Intent: %v", err)
+	}
+	unmarshaledZero := &Intent{}
+	if err := protov2.Unmarshal(dataZero, unmarshaledZero); err != nil {
+		t.Fatalf("Failed to unmarshal zero Intent: %v", err)
+	}
+	if unmarshaledZero.PackageScore == nil || *unmarshaledZero.PackageScore != 0 {
+		t.Errorf("Expected unmarshaled PackageScore to be 0, got %v", unmarshaledZero.PackageScore)
+	}
+
+	// Test score 3
+	intent := &Intent{
+		PackageScore: protov2.Int32(3),
+	}
+	if intent.PackageScore == nil || *intent.PackageScore != 3 {
+		t.Errorf("Expected PackageScore 3, got %v", intent.PackageScore)
+	}
+	if intent.GetPackageScore() != 3 {
+		t.Errorf("Expected GetPackageScore() 3, got %v", intent.GetPackageScore())
+	}
 	dataIntent, err := protov2.Marshal(intent)
 	if err != nil {
 		t.Fatalf("Failed to marshal Intent: %v", err)
 	}
-
 	unmarshaledIntent := &Intent{}
 	if err := protov2.Unmarshal(dataIntent, unmarshaledIntent); err != nil {
 		t.Fatalf("Failed to unmarshal Intent: %v", err)
 	}
-
-	if unmarshaledIntent.GetPackageScore() != 3 {
-		t.Errorf("Unmarshaled Intent PackageScore mismatch: got %v, expected 3", unmarshaledIntent.GetPackageScore())
+	if unmarshaledIntent.PackageScore == nil || *unmarshaledIntent.PackageScore != 3 {
+		t.Errorf("Unmarshaled Intent PackageScore mismatch: got %v, expected 3", unmarshaledIntent.PackageScore)
 	}
 
+	// Test score -1 (reset)
 	sentinelIntent := &Intent{
-		PackageScore: -1,
+		PackageScore: protov2.Int32(-1),
+	}
+	if sentinelIntent.PackageScore == nil || *sentinelIntent.PackageScore != -1 {
+		t.Errorf("Expected PackageScore -1, got %v", sentinelIntent.PackageScore)
+	}
+	if sentinelIntent.GetPackageScore() != -1 {
+		t.Errorf("Expected GetPackageScore() -1, got %v", sentinelIntent.GetPackageScore())
 	}
 	dataSentinel, err := protov2.Marshal(sentinelIntent)
 	if err != nil {
 		t.Fatalf("Failed to marshal sentinel Intent: %v", err)
 	}
-
 	unmarshaledSentinel := &Intent{}
 	if err := protov2.Unmarshal(dataSentinel, unmarshaledSentinel); err != nil {
 		t.Fatalf("Failed to unmarshal sentinel Intent: %v", err)
 	}
-
-	if unmarshaledSentinel.GetPackageScore() != -1 {
-		t.Errorf("Expected sentinel PackageScore -1, got %v", unmarshaledSentinel.GetPackageScore())
+	if unmarshaledSentinel.PackageScore == nil || *unmarshaledSentinel.PackageScore != -1 {
+		t.Errorf("Expected sentinel PackageScore -1, got %v", unmarshaledSentinel.PackageScore)
 	}
 }
 
