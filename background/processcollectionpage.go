@@ -46,6 +46,11 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 					r.Width = float32(val)
 				case config.SLEEVE_FIELD:
 					r.Sleeve = value
+				case config.PACKAGE_FIELD:
+					val, err := strconv.Atoi(strings.TrimSpace(value))
+					if err == nil && val >= 0 && val <= 5 {
+						r.PackageScore = int32(val)
+					}
 				}
 			}
 		}
