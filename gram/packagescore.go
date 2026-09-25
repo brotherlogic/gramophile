@@ -22,7 +22,7 @@ func GetPackageScore() *CLIModule {
 
 func runPackageScore(ctx context.Context, client pb.GramophileEServiceClient, args []string) error {
 	if len(args) < 2 {
-		return status.Errorf(codes.InvalidArgument, "usage: gram packagescore <iid> <0-5>")
+		return status.Errorf(codes.InvalidArgument, "usage: gram packagescore <iid> <-1-5>")
 	}
 
 	iid, err := strconv.ParseInt(args[0], 10, 64)
@@ -35,8 +35,8 @@ func runPackageScore(ctx context.Context, client pb.GramophileEServiceClient, ar
 		return err
 	}
 
-	if score < 0 || score > 5 {
-		return status.Errorf(codes.InvalidArgument, "package score must be between 0 and 5, got %d", score)
+	if score < -1 || score > 5 {
+		return status.Errorf(codes.InvalidArgument, "package score must be between -1 and 5, got %d", score)
 	}
 
 	_, err = client.SetIntent(ctx, &pb.SetIntentRequest{

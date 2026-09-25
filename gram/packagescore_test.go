@@ -60,6 +60,12 @@ func TestRunPackageScore_Success(t *testing.T) {
 			expectedIid:   45678,
 			expectedScore: 3,
 		},
+		{
+			name:          "score -1 (reset)",
+			args:          []string{"12345", "-1"},
+			expectedIid:   12345,
+			expectedScore: -1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -84,16 +90,19 @@ func TestRunPackageScore_Success(t *testing.T) {
 
 func TestRunPackageScore_ValidationErrors(t *testing.T) {
 	tests := []struct {
-		name string
-		args []string
+		name         string
+		args         []string
+		expectedCode codes.Code
 	}{
 		{
-			name: "too few args (0)",
-			args: []string{},
+			name:         "too few args (0)",
+			args:         []string{},
+			expectedCode: codes.InvalidArgument,
 		},
 		{
-			name: "too few args (1)",
-			args: []string{"12345"},
+			name:         "too few args (1)",
+			args:         []string{"12345"},
+			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "invalid iid",
@@ -104,12 +113,14 @@ func TestRunPackageScore_ValidationErrors(t *testing.T) {
 			args: []string{"12345", "not-a-number"},
 		},
 		{
-			name: "score below 0",
-			args: []string{"12345", "-1"},
+			name:         "score below -1",
+			args:         []string{"12345", "-2"},
+			expectedCode: codes.InvalidArgument,
 		},
 		{
-			name: "score above 5",
-			args: []string{"12345", "6"},
+			name:         "score above 5",
+			args:         []string{"12345", "6"},
+			expectedCode: codes.InvalidArgument,
 		},
 	}
 
@@ -119,6 +130,14 @@ func TestRunPackageScore_ValidationErrors(t *testing.T) {
 			err := runPackageScore(context.Background(), mock, tt.args)
 			if err == nil {
 				t.Fatalf("Expected error for args %v, got nil", tt.args)
+			}
+			if tt.expectedCode != codes.OK && status.Code(err) != tt.expectedCode {
+				t.Errorf("Expected status code %v for args %v, got %v", tt.expectedCode, tt.args, status.Code(err))
+			}
+			if strings.HasPrefix(tt.name, "too few args") {
+				if !strings.Contains(err.Error(), "usage: gram packagescore <iid> <-1-5>") {
+					t.Errorf("Expected usage 'usage: gram packagescore <iid> <-1-5>', got %v", err)
+				}
 			}
 		})
 	}
