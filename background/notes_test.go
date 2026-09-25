@@ -9,6 +9,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	"github.com/brotherlogic/gramophile/config"
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -743,7 +744,23 @@ func TestProcessSetFolder_SnapshotFailure(t *testing.T) {
 	}
 }
 
-func TestProcessSetPackageScore(t *testing.T) {
+type testFieldTracker struct {
+	*discogs.TestDiscogsClient
+	calls []testFieldCall
+}
+
+type testFieldCall struct {
+	release *pbd.Release
+	field   int
+	val     string
+}
+
+func (t *testFieldTracker) SetField(ctx context.Context, r *pbd.Release, fnum int, value string) error {
+	t.calls = append(t.calls, testFieldCall{release: r, field: fnum, val: value})
+	return t.TestDiscogsClient.SetField(ctx, r, fnum, value)
+}
+
+func TestProcessSetPackageScore_MissingField(t *testing.T) {
 	ctx := getTestContext(123)
 	b := GetTestBackgroundRunner()
 	di := &discogs.TestDiscogsClient{UserId: 123}
@@ -754,63 +771,160 @@ func TestProcessSetPackageScore(t *testing.T) {
 	}
 	b.db.SaveUser(ctx, su)
 
-	// 1. Process valid package score directly
-	r1 := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}}
-	b.db.SaveRecord(ctx, 123, r1, &db.SaveOptions{})
-	err := b.ProcessSetPackageScore(ctx, di, r1, &pb.Intent{PackageScore: protov2.Int32(4)}, su, []*pbd.Field{})
+	r := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	// Fields missing the "Package" field
+	fields := []*pbd.Field{{Id: 1, Name: "OtherField"}}
+	err := b.ProcessSetPackageScore(ctx, di, r, &pb.Intent{PackageScore: protov2.Int32(4)}, su, fields)
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("Expected codes.FailedPrecondition, got %v (code: %v)", err, status.Code(err))
+	}
+}
+
+func TestProcessSetPackageScore_Success(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	tracker := &testFieldTracker{TestDiscogsClient: &discogs.TestDiscogsClient{UserId: 123}}
+	su := &pb.StoredUser{
+		User:   &pbd.User{DiscogsUserId: 123},
+		Auth:   &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{},
+	}
+	b.db.SaveUser(ctx, su)
+
+	r := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	fields := []*pbd.Field{{Id: 42, Name: config.PACKAGE_FIELD}}
+	err := b.ProcessSetPackageScore(ctx, tracker, r, &pb.Intent{PackageScore: protov2.Int32(4)}, su, fields)
 	if err != nil {
 		t.Fatalf("ProcessSetPackageScore failed: %v", err)
 	}
-	saved1, err := b.db.GetRecord(ctx, 123, 1001)
+
+	if len(tracker.calls) != 1 {
+		t.Fatalf("Expected 1 SetField call, got %d", len(tracker.calls))
+	}
+	if tracker.calls[0].field != 42 || tracker.calls[0].val != "4" {
+		t.Errorf("Unexpected SetField call: %+v", tracker.calls[0])
+	}
+
+	saved, err := b.db.GetRecord(ctx, 123, 1001)
 	if err != nil {
 		t.Fatalf("GetRecord failed: %v", err)
 	}
-	if saved1.GetPackageScore() != 4 {
-		t.Errorf("Expected package_score 4, got %v", saved1.GetPackageScore())
+	if saved.GetPackageScore() != 4 {
+		t.Errorf("Expected package_score 4, got %v", saved.GetPackageScore())
 	}
 
-	// 2. Unset / sentinel values (-1, negative, > 5) should be no-op / ignored
-	r2 := &pb.Record{Release: &pbd.Release{InstanceId: 1002, Id: 2002}, PackageScore: 3}
-	b.db.SaveRecord(ctx, 123, r2, &db.SaveOptions{})
-	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: protov2.Int32(-1)}, su, []*pbd.Field{})
-	if err != nil {
-		t.Fatalf("ProcessSetPackageScore failed on unset sentinel: %v", err)
+	// Also verify wiring through ProcessIntents with Discogs fields
+	diWithFields := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 42, Name: config.PACKAGE_FIELD}},
 	}
-	saved2, err := b.db.GetRecord(ctx, 123, 1002)
-	if err != nil {
-		t.Fatalf("GetRecord failed: %v", err)
-	}
-	if saved2.GetPackageScore() != 3 {
-		t.Errorf("Expected package_score to remain 3 on sentinel -1, got %v", saved2.GetPackageScore())
-	}
-
-	err = b.ProcessSetPackageScore(ctx, di, r2, &pb.Intent{PackageScore: protov2.Int32(6)}, su, []*pbd.Field{})
-	if err != nil {
-		t.Fatalf("ProcessSetPackageScore failed on out-of-range value: %v", err)
-	}
-	saved2, err = b.db.GetRecord(ctx, 123, 1002)
-	if err != nil {
-		t.Fatalf("GetRecord failed: %v", err)
-	}
-	if saved2.GetPackageScore() != 3 {
-		t.Errorf("Expected package_score to remain 3 on out-of-range 6, got %v", saved2.GetPackageScore())
-	}
-
-	// 3. Test wiring into ProcessIntents
-	r3 := &pb.Record{Release: &pbd.Release{InstanceId: 1003, Id: 2003}}
-	b.db.SaveRecord(ctx, 123, r3, &db.SaveOptions{})
-	err = b.ProcessIntents(ctx, di, r3, &pb.Intent{PackageScore: protov2.Int32(5)}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	rWiring := &pb.Record{Release: &pbd.Release{InstanceId: 1002, Id: 2002}}
+	b.db.SaveRecord(ctx, 123, rWiring, &db.SaveOptions{})
+	err = b.ProcessIntents(ctx, diWithFields, rWiring, &pb.Intent{PackageScore: protov2.Int32(5)}, "123", func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		return nil, nil
 	})
 	if err != nil {
 		t.Fatalf("ProcessIntents failed: %v", err)
 	}
-	saved3, err := b.db.GetRecord(ctx, 123, 1003)
+	savedWiring, err := b.db.GetRecord(ctx, 123, 1002)
 	if err != nil {
 		t.Fatalf("GetRecord failed: %v", err)
 	}
-	if saved3.GetPackageScore() != 5 {
-		t.Errorf("Expected package_score 5 via ProcessIntents, got %v", saved3.GetPackageScore())
+	if savedWiring.GetPackageScore() != 5 {
+		t.Errorf("Expected package_score 5 via ProcessIntents, got %v", savedWiring.GetPackageScore())
+	}
+}
+
+func TestProcessSetPackageScore_Reset(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	tracker := &testFieldTracker{TestDiscogsClient: &discogs.TestDiscogsClient{UserId: 123}}
+	su := &pb.StoredUser{
+		User:   &pbd.User{DiscogsUserId: 123},
+		Auth:   &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{},
+	}
+	b.db.SaveUser(ctx, su)
+
+	r := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}, PackageScore: 3}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	fields := []*pbd.Field{{Id: 42, Name: config.PACKAGE_FIELD}}
+	err := b.ProcessSetPackageScore(ctx, tracker, r, &pb.Intent{PackageScore: protov2.Int32(-1)}, su, fields)
+	if err != nil {
+		t.Fatalf("ProcessSetPackageScore reset failed: %v", err)
+	}
+
+	if len(tracker.calls) != 1 {
+		t.Fatalf("Expected 1 SetField call, got %d", len(tracker.calls))
+	}
+	if tracker.calls[0].field != 42 || tracker.calls[0].val != "" {
+		t.Errorf("Unexpected SetField call on reset: %+v", tracker.calls[0])
+	}
+
+	saved, err := b.db.GetRecord(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if saved.GetPackageScore() != 0 {
+		t.Errorf("Expected package_score 0 after reset, got %v", saved.GetPackageScore())
+	}
+}
+
+func TestProcessSetPackageScore_Untouched(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+	tracker := &testFieldTracker{TestDiscogsClient: &discogs.TestDiscogsClient{UserId: 123}}
+	su := &pb.StoredUser{
+		User:   &pbd.User{DiscogsUserId: 123},
+		Auth:   &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{},
+	}
+	b.db.SaveUser(ctx, su)
+
+	r := &pb.Record{Release: &pbd.Release{InstanceId: 1001, Id: 2001}, PackageScore: 3}
+	b.db.SaveRecord(ctx, 123, r, &db.SaveOptions{})
+
+	fields := []*pbd.Field{{Id: 42, Name: config.PACKAGE_FIELD}}
+
+	// 1. Nil PackageScore intent should be a no-op
+	err := b.ProcessSetPackageScore(ctx, tracker, r, &pb.Intent{}, su, fields)
+	if err != nil {
+		t.Fatalf("ProcessSetPackageScore failed on nil intent: %v", err)
+	}
+	if len(tracker.calls) != 0 {
+		t.Errorf("Expected 0 SetField calls for nil intent, got %d", len(tracker.calls))
+	}
+	saved, err := b.db.GetRecord(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if saved.GetPackageScore() != 3 {
+		t.Errorf("Expected package_score to remain 3 on nil intent, got %v", saved.GetPackageScore())
+	}
+
+	// 2. Out-of-bounds score (< -1 or > 5) should be a no-op
+	err = b.ProcessSetPackageScore(ctx, tracker, r, &pb.Intent{PackageScore: protov2.Int32(6)}, su, fields)
+	if err != nil {
+		t.Fatalf("ProcessSetPackageScore failed on out-of-range: %v", err)
+	}
+	err = b.ProcessSetPackageScore(ctx, tracker, r, &pb.Intent{PackageScore: protov2.Int32(-2)}, su, fields)
+	if err != nil {
+		t.Fatalf("ProcessSetPackageScore failed on out-of-range: %v", err)
+	}
+	if len(tracker.calls) != 0 {
+		t.Errorf("Expected 0 SetField calls for out-of-range intents, got %d", len(tracker.calls))
+	}
+	saved, err = b.db.GetRecord(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if saved.GetPackageScore() != 3 {
+		t.Errorf("Expected package_score to remain 3 on out-of-range, got %v", saved.GetPackageScore())
 	}
 }
 

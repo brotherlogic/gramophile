@@ -775,11 +775,41 @@ func (b *BackgroundRunner) ProcessPurchaseLocation(ctx context.Context, d discog
 }
 
 func (b *BackgroundRunner) ProcessSetPackageScore(ctx context.Context, d discogs.Discogs, r *pb.Record, i *pb.Intent, user *pb.StoredUser, fields []*pbd.Field) error {
-	if i.GetPackageScore() < 0 || i.GetPackageScore() > 5 {
+	if i.PackageScore == nil {
 		return nil
 	}
 
-	r.PackageScore = i.GetPackageScore()
+	score := i.GetPackageScore()
+	if score < -1 || score > 5 {
+		return nil
+	}
+
+	cfield := -1
+	for _, field := range fields {
+		if field.GetName() == config.PACKAGE_FIELD {
+			cfield = int(field.GetId())
+			break
+		}
+	}
+
+	if cfield < 0 {
+		return status.Errorf(codes.FailedPrecondition, "Unable to locate Package field (from %+v)", fields)
+	}
+
+	if score == -1 {
+		err := d.SetField(ctx, r.GetRelease(), cfield, "")
+		if err != nil {
+			return err
+		}
+		r.PackageScore = 0
+	} else if score >= 0 && score <= 5 {
+		err := d.SetField(ctx, r.GetRelease(), cfield, fmt.Sprintf("%d", score))
+		if err != nil {
+			return err
+		}
+		r.PackageScore = score
+	}
+
 	config.Apply(user.GetConfig(), r)
 	return b.db.SaveRecord(ctx, d.GetUserId(), r, &db.SaveOptions{})
 }
