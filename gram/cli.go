@@ -75,7 +75,9 @@ func main() {
 		GetGetSats(),
 		GetLocate(),
 		GetWeight(),
-		GetSales()}
+		GetSales(),
+		GetPackageScore(),
+		GetSaleCandidate()}
 
 	var commands []string
 	for _, module := range modules {

@@ -85,6 +85,7 @@ Current Go version: 1.26.2
 - Package Score Validation in SetIntent: Implements server-side bounds validation in SetIntent enforcing 0-5 scores with InvalidArgument errors for invalid values, while defaulting unprovided package scores to the -1 sentinel to prevent unintended score overwrites.
 - Background Package Score Intent Worker: Implements ProcessSetPackageScore in background/notes.go to apply and persist package scores (0-5) to database records, ignoring unset sentinels (-1 or outside 0-5), and wires package score processing into ProcessIntents.
 - GetSaleCandidate Endpoint & Multi-Tier Prioritization: Implements the GetSaleCandidate request handler in server/getrecord.go with organization snapshot resolution and a 5-tier deterministic candidate comparator (evaluating lowest Discogs rating, lowest package score, lowest median market price, newest arrival timestamp, and lowest instance ID tie-breaker) to select optimal records for sale.
+- Package Score & Sale Candidate CLI Commands: Implements the `gram packagescore <iid> <0-5>` command to assign physical artifact package scores via SetIntent, and `gram salecandidate <org_name>` command to query and format candidate records for sale (artist, title, Discogs rating, package score, median price, arrival date) for terminal output.
 
 
 
