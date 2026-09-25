@@ -270,4 +270,68 @@ func TestCleanCollection_FailureRetryTransition(t *testing.T) {
 		t.Errorf("User state should not have transitioned: %v", user.GetState())
 	}
 }
+func TestProcessNotes_PackageField(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	ctx := context.Background()
 
+	fields := []*pbd.Field{
+		{Id: 10, Name: "Package"},
+	}
+
+	// 1. Asserts note "4" sets r.PackageScore = 4.
+	r1 := &pb.Record{
+		Release: &dpb.Release{
+			Notes: map[int32]string{10: "4"},
+		},
+	}
+	res1, err := b.processNotes(ctx, fields, r1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res1.GetPackageScore() != 4 {
+		t.Errorf("expected PackageScore to be 4, got %v", res1.GetPackageScore())
+	}
+
+	// 2. Asserts note "0" sets r.PackageScore = 0.
+	r2 := &pb.Record{
+		PackageScore: 3,
+		Release: &dpb.Release{
+			Notes: map[int32]string{10: "0"},
+		},
+	}
+	res2, err := b.processNotes(ctx, fields, r2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res2.GetPackageScore() != 0 {
+		t.Errorf("expected PackageScore to be 0, got %v", res2.GetPackageScore())
+	}
+
+	// 3. Asserts non-numeric note ("VG+"), empty string (""), and out-of-bounds notes ("-1", "6") are safely ignored, leaving existing score untouched.
+	testCases := []struct {
+		val           string
+		initialScore  int32
+		expectedScore int32
+	}{
+		{val: "VG+", initialScore: 2, expectedScore: 2},
+		{val: "", initialScore: 3, expectedScore: 3},
+		{val: "-1", initialScore: 4, expectedScore: 4},
+		{val: "6", initialScore: 5, expectedScore: 5},
+	}
+
+	for _, tc := range testCases {
+		r := &pb.Record{
+			PackageScore: tc.initialScore,
+			Release: &dpb.Release{
+				Notes: map[int32]string{10: tc.val},
+			},
+		}
+		res, err := b.processNotes(ctx, fields, r)
+		if err != nil {
+			t.Fatalf("unexpected error for val %q: %v", tc.val, err)
+		}
+		if res.GetPackageScore() != tc.expectedScore {
+			t.Errorf("for val %q, expected score %d to be untouched, got %d", tc.val, tc.expectedScore, res.GetPackageScore())
+		}
+	}
+}
