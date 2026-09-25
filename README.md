@@ -89,6 +89,7 @@ Current Go version: 1.26.2
 - Optional Package Score Intent Schema & Package Field Configuration: Updates the Intent protobuf schema in proto/gramophile.proto to make package_score optional for explicit field presence tracking, and defines the PACKAGE_FIELD constant in config/package.go to support Discogs custom field targeting.
 - Package Score Collection Sync Ingestion: Updates collection page sync notes processing in background worker to ingest the Discogs "Package" custom field into record package scores, safely ignoring empty, non-numeric, or out-of-range notes.
 - Intent Package Score Validation & Nil Preservation: Implements server-side validation for optional package_score in SetIntent enforcing range -1 to 5 (with -1 representing reset) and removes legacy defaulting of score 0 to -1 so unprovided intents remain nil and valid 0 ratings are preserved.
+- Discogs Package Custom Field Synchronization: Refactors ProcessSetPackageScore in background worker to synchronize package scores (0-5) to the Discogs "Package" custom field, requiring the custom field precondition, clearing the field on reset (-1), and persisting the record.
 
 
 
