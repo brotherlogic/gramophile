@@ -200,3 +200,94 @@ func TestIsUnavailable(t *testing.T) {
 		})
 	}
 }
+
+func TestReportSaleAdjustmentError_SuppressesUnavailableOnGetSale(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	// Direct Unavailable error on GetSale
+	err := b.reportSaleAdjustmentError(ctx, 12345, "GetSale", status.Error(codes.Unavailable, "service unavailable"))
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// Wrapped Unavailable error on GetSale
+	wrappedErr := fmt.Errorf("rpc failure: %w", status.Error(codes.Unavailable, "backend down"))
+	err = b.reportSaleAdjustmentError(ctx, 12346, "GetSale", wrappedErr)
+	if err != nil {
+		t.Fatalf("expected nil error on wrapped err, got %v", err)
+	}
+
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to get issues: %v", err)
+	}
+
+	if len(resp.GetIssues()) != 0 {
+		t.Fatalf("expected 0 issues created for Unavailable on GetSale, got %d", len(resp.GetIssues()))
+	}
+}
+
+func TestReportSaleAdjustmentError_ReportsNonUnavailableOnGetSale(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	// Internal error on GetSale
+	err := b.reportSaleAdjustmentError(ctx, 12345, "GetSale", status.Error(codes.Internal, "internal server error"))
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// InvalidArgument error on GetSale
+	err = b.reportSaleAdjustmentError(ctx, 12346, "GetSale", status.Error(codes.InvalidArgument, "invalid argument"))
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to get issues: %v", err)
+	}
+
+	if len(resp.GetIssues()) != 2 {
+		t.Fatalf("expected 2 issues created for non-Unavailable on GetSale, got %d", len(resp.GetIssues()))
+	}
+}
+
+func TestReportSaleAdjustmentError_ReportsUnavailableOnOtherActions(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+	ghClient := ghbclient.GetTestClient()
+	b.ghclient = ghClient
+
+	// Unavailable error on adjustPrice
+	err := b.reportSaleAdjustmentError(ctx, 12345, "adjustPrice", status.Error(codes.Unavailable, "service unavailable"))
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// Unavailable error on SaveSale
+	err = b.reportSaleAdjustmentError(ctx, 12346, "SaveSale", status.Error(codes.Unavailable, "service unavailable"))
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	resp, err := ghClient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		t.Fatalf("failed to get issues: %v", err)
+	}
+
+	if len(resp.GetIssues()) != 2 {
+		t.Fatalf("expected 2 issues created for Unavailable on other actions, got %d", len(resp.GetIssues()))
+	}
+}

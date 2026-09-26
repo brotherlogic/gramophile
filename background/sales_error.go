@@ -19,6 +19,10 @@ func (b *BackgroundRunner) getGHClient() (ghbclient.GithubridgeClient, error) {
 }
 
 func (b *BackgroundRunner) reportSaleAdjustmentError(ctx context.Context, sid int64, action string, err error) error {
+	if action == "GetSale" && isUnavailable(err) {
+		return nil
+	}
+
 	client, gerr := b.getGHClient()
 	if gerr != nil {
 		log.Printf("unable to get githubridge client to report sale adjustment error for sale %v: %v", sid, gerr)
