@@ -7,6 +7,8 @@ import (
 
 	ghbclient "github.com/brotherlogic/githubridge/client"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (b *BackgroundRunner) getGHClient() (ghbclient.GithubridgeClient, error) {
@@ -52,4 +54,24 @@ func (b *BackgroundRunner) reportSaleAdjustmentError(ctx context.Context, sid in
 	}
 
 	return nil
+}
+
+func isUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if s, ok := status.FromError(err); ok && s.Code() == codes.Unavailable {
+		return true
+	}
+	switch u := err.(type) {
+	case interface{ Unwrap() error }:
+		return isUnavailable(u.Unwrap())
+	case interface{ Unwrap() []error }:
+		for _, e := range u.Unwrap() {
+			if isUnavailable(e) {
+				return true
+			}
+		}
+	}
+	return false
 }

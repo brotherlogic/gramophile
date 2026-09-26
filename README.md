@@ -91,6 +91,7 @@ Current Go version: 1.26.2
 - Intent Package Score Validation & Nil Preservation: Implements server-side validation for optional package_score in SetIntent enforcing range -1 to 5 (with -1 representing reset) and removes legacy defaulting of score 0 to -1 so unprovided intents remain nil and valid 0 ratings are preserved.
 - Discogs Package Custom Field Synchronization: Refactors ProcessSetPackageScore in background worker to synchronize package scores (0-5) to the Discogs "Package" custom field, requiring the custom field precondition, clearing the field on reset (-1), and persisting the record.
 - Package Score CLI Reset Support: Updates the `gram packagescore <iid> <-1-5>` CLI command to accept -1 as a valid rating to clear or reset the physical artifact package score, updating argument bounds validation and usage documentation.
+- IsUnavailable Error Helper: Implements `isUnavailable` error helper in `background/sales_error.go` to traverse wrapped error chains and identify root `codes.Unavailable` gRPC status codes.
 
 
 

@@ -3,12 +3,15 @@ package background
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	ghbclient "github.com/brotherlogic/githubridge/client"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
 	"github.com/brotherlogic/gramophile/db"
 	pstore_client "github.com/brotherlogic/pstore/client"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type failingGHClient struct {
@@ -132,5 +135,68 @@ func TestReportSaleAdjustmentError_HandlesClientErrorGracefully(t *testing.T) {
 	err := b.reportSaleAdjustmentError(ctx, 12345, "adjustPrice", errors.New("some error"))
 	if err != nil {
 		t.Errorf("expected reportSaleAdjustmentError to handle client failure gracefully and return nil, got: %v", err)
+	}
+}
+
+func TestIsUnavailable(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "standard Go error",
+			err:      errors.New("standard error"),
+			expected: false,
+		},
+		{
+			name:     "direct gRPC unavailable",
+			err:      status.Error(codes.Unavailable, "service unavailable"),
+			expected: true,
+		},
+		{
+			name:     "wrapped gRPC unavailable with fmt.Errorf",
+			err:      fmt.Errorf("failed calling rpc: %w", status.Error(codes.Unavailable, "temporary outage")),
+			expected: true,
+		},
+		{
+			name:     "deeply wrapped gRPC unavailable",
+			err:      fmt.Errorf("outer wrap: %w", fmt.Errorf("inner wrap: %w", status.Error(codes.Unavailable, "temporary outage"))),
+			expected: true,
+		},
+		{
+			name:     "joined error containing gRPC unavailable",
+			err:      errors.Join(errors.New("some other error"), status.Error(codes.Unavailable, "unavailable")),
+			expected: true,
+		},
+		{
+			name:     "direct gRPC internal error",
+			err:      status.Error(codes.Internal, "internal server error"),
+			expected: false,
+		},
+		{
+			name:     "direct gRPC invalid argument error",
+			err:      status.Error(codes.InvalidArgument, "invalid input"),
+			expected: false,
+		},
+		{
+			name:     "wrapped gRPC not found error",
+			err:      fmt.Errorf("wrapped: %w", status.Error(codes.NotFound, "record not found")),
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isUnavailable(tc.err)
+			if got != tc.expected {
+				t.Errorf("isUnavailable(%v) = %v, expected %v", tc.err, got, tc.expected)
+			}
+		})
 	}
 }
