@@ -61,7 +61,8 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 		for i := int32(2); i <= pages; i++ {
 			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					RunDate: time.Now().UnixNano() + int64(i),
+					Intention: "From SyncWants",
+					RunDate:   time.Now().UnixNano() + int64(i),
 					Entry: &pb.QueueElement_SyncWants{
 						SyncWants: &pb.SyncWants{Page: i, RefreshId: entry.GetSyncWants().GetRefreshId()},
 					},
@@ -90,6 +91,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 			if !want.GetClean() {
 				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
+						Intention:        "From SyncWants",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 60,
@@ -108,6 +110,7 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 
 		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
+				Intention:        "From SyncWants",
 				RunDate:          time.Now().UnixNano(),
 				Auth:             user.GetAuth().GetToken(),
 				BackoffInSeconds: 60,

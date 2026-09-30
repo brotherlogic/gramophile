@@ -124,3 +124,62 @@ func TestSync_WithHybrid(t *testing.T) {
 		t.Errorf("Wrong wants returned: %v", wants)
 	}
 }
+
+func TestSyncWants_EnqueuesHaveIntention(t *testing.T) {
+	b := GetTestBackgroundRunner()
+
+	err := b.db.SaveUser(context.Background(), &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	// Seed an unclean want
+	err = b.db.SaveWant(context.Background(), 123, &pb.Want{
+		Id:            12345,
+		State:         pb.WantState_IN_TRANSIT,
+		IntendedState: pb.WantState_IN_TRANSIT,
+		Clean:         false,
+	}, "testing unclean want")
+	if err != nil {
+		t.Fatalf("Bad want save: %v", err)
+	}
+
+	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Cleaned"}}}
+
+	var enqueued []*pb.EnqueueRequest
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = append(enqueued, req)
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	user, err := b.db.GetUser(context.Background(), "123")
+	if err != nil {
+		t.Fatalf("Unable to get user: %v", err)
+	}
+
+	entry := &pb.QueueElement{
+		Intention: "From Test",
+		Auth:      "123",
+		Entry: &pb.QueueElement_SyncWants{
+			SyncWants: &pb.SyncWants{Page: 1},
+		},
+	}
+
+	err = b.ProcessSyncWants(context.Background(), d, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessSyncWants failed: %v", err)
+	}
+
+	if len(enqueued) == 0 {
+		t.Fatalf("Expected enqueued requests, got 0")
+	}
+
+	for _, req := range enqueued {
+		if req.GetElement().GetIntention() == "" {
+			t.Errorf("Enqueued element missing intention: %v", req.GetElement())
+		}
+	}
+}

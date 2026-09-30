@@ -106,7 +106,8 @@ func (b *BackgroundRunner) MoveRecord(ctx context.Context, d discogs.Discogs, u 
 
 	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
-			RunDate: time.Now().UnixNano(),
+			Intention: "From MoveRecord",
+			RunDate:   time.Now().UnixNano(),
 			Entry: &pb.QueueElement_MoveRecords{
 				MoveRecords: &pb.MoveRecords{},
 			},

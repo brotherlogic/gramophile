@@ -1011,8 +1011,9 @@ func (b *BackgroundRunner) ProcessKeep(ctx context.Context, d discogs.Discogs, r
 			// Also enqueue an update for this relaese
 			enqueue(ctx, &pb.EnqueueRequest{
 				Element: &pb.QueueElement{
-					Auth:    auth,
-					RunDate: time.Now().UnixNano(),
+					Intention: "From Notes Update",
+					Auth:      auth,
+					RunDate:   time.Now().UnixNano(),
 					Entry: &pb.QueueElement_RefreshEarliestReleaseDates{
 						RefreshEarliestReleaseDates: &pb.RefreshEarliestReleaseDates{
 							Iid:      r.GetRelease().GetInstanceId(),
