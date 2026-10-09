@@ -15,7 +15,10 @@ import (
 	"github.com/brotherlogic/gramophile/server"
 	pstore_client "github.com/brotherlogic/pstore/client"
 	rspb "github.com/brotherlogic/pstore/proto"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/brotherlogic/gramophile/validatorlogic"
 )
 
 func buildTestScaffold(t *testing.T) (context.Context, *server.Server, db.Database, *queuelogic.Queue) {
@@ -2217,10 +2220,14 @@ type paginatedSalesDiscogsClient struct {
 	pages      map[int32][]*pbd.SaleItem
 	totalPages int32
 	listCalls  []int32
+	onList     func(page int32)
 }
 
 func (p *paginatedSalesDiscogsClient) ListSales(ctx context.Context, page int32) ([]*pbd.SaleItem, *pbd.Pagination, error) {
 	p.listCalls = append(p.listCalls, page)
+	if p.onList != nil {
+		p.onList(page)
+	}
 	return p.pages[page], &pbd.Pagination{Pages: p.totalPages, Page: page}, nil
 }
 
@@ -2654,3 +2661,342 @@ func TestSaleReconcile_DecoupledFullSweepAndPrune(t *testing.T) {
 		t.Errorf("expected record 3002 to retain saleId 1002, got %v", rec3002AfterRefresh.GetRecords()[0].GetRecord().GetSaleId())
 	}
 }
+
+type queueServiceAdapter struct {
+	pb.QueueServiceClient
+	q               *queuelogic.Queue
+	enqueuedEntries []*pb.QueueElement
+}
+
+func (a *queueServiceAdapter) Enqueue(ctx context.Context, req *pb.EnqueueRequest, opts ...grpc.CallOption) (*pb.EnqueueResponse, error) {
+	if req != nil && req.GetElement() != nil {
+		a.enqueuedEntries = append(a.enqueuedEntries, req.GetElement())
+	}
+	return a.q.Enqueue(ctx, req)
+}
+
+type dummyGramophileClient struct {
+	pb.GramophileServiceClient
+}
+
+func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	staleTime := time.Now().Add(-25 * time.Hour).UnixNano()
+	user := &pb.StoredUser{
+		Folders:               []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:                  &pbd.User{DiscogsUserId: 123},
+		Auth:                  &pb.GramophileAuth{Token: "123"},
+		LastSaleRefresh:       staleTime,
+		LastSaleReconcile:     time.Now().Add(-8 * 24 * time.Hour).UnixNano(),
+		LastRefreshTime:       time.Now().UnixNano(),
+		LastCollectionRefresh: time.Now().UnixNano(),
+		LastCollectionCheck:   time.Now().UnixNano(),
+		LastWantRefresh:       time.Now().UnixNano(),
+		LastOrderSync:         time.Now().UnixNano(),
+		SaleSyncActiveTime:    0,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save initial user: %v", err)
+	}
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 2001, InstanceId: 3001, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1001},
+		{Release: &pbd.Release{Id: 2002, InstanceId: 3002, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1002},
+	}
+	for _, rec := range records {
+		err := d.SaveRecord(ctx, 123, rec, &db.SaveOptions{})
+		if err != nil {
+			t.Fatalf("failed to save initial record %v: %v", rec.GetRelease().GetInstanceId(), err)
+		}
+	}
+
+	mockDiscogs := &paginatedSalesDiscogsClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{
+			UserId: 123,
+			Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		},
+		totalPages: 2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
+	qAdapter := &queueServiceAdapter{q: qc}
+	gClient := &dummyGramophileClient{}
+
+	// Step 1: Initial validator run triggers RefreshSales (since LastSaleRefresh > 24h)
+	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("validator ValidateUser failed: %v", err)
+	}
+
+	// Verify validator enqueued RefreshSales{Page: 1} and recorded SaleSyncActiveTime
+	if len(qAdapter.enqueuedEntries) != 1 || qAdapter.enqueuedEntries[0].GetRefreshSales() == nil {
+		t.Fatalf("expected 1 RefreshSales entry enqueued by validator, got %v", qAdapter.enqueuedEntries)
+	}
+
+	userAfterInitialVal, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after initial validation: %v", err)
+	}
+	if userAfterInitialVal.GetSaleSyncActiveTime() == 0 {
+		t.Fatalf("expected SaleSyncActiveTime to be set by validator, got 0")
+	}
+
+	// Step 2: Validator runs while RefreshSales is in-flight (both before queue processing and during mid-pagination)
+	// Sub-step 2a: Before queue processing
+	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("validator ValidateUser while in-flight failed: %v", err)
+	}
+	if len(qAdapter.enqueuedEntries) != 1 {
+		t.Errorf("expected no additional tasks enqueued while in-flight before flush, got %d tasks", len(qAdapter.enqueuedEntries))
+	}
+
+	// Sub-step 2b: During multi-page execution
+	validatorMidRunCount := 0
+	mockDiscogs.onList = func(page int32) {
+		currentUser, uerr := d.GetUser(ctx, "123")
+		if uerr != nil {
+			t.Errorf("failed to fetch user during onList(page=%d): %v", page, uerr)
+			return
+		}
+		if currentUser.GetSaleSyncActiveTime() == 0 {
+			t.Errorf("expected SaleSyncActiveTime to remain active during onList(page=%d), got 0", page)
+		}
+		// Run validator while page is executing
+		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d)
+		if valErr != nil {
+			t.Errorf("validator ValidateUser during onList(page=%d) returned error: %v", page, valErr)
+		}
+		validatorMidRunCount++
+	}
+
+	// Process queue
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	// Verify validator ran mid-flight during pagination
+	if validatorMidRunCount < 2 {
+		t.Errorf("expected validator to run during both pages, ran %d times", validatorMidRunCount)
+	}
+
+	// Verify that throughout all validator runs while in-flight, NO duplicate sales sync tasks were enqueued
+	refreshCount := 0
+	reconcileCount := 0
+	for _, entry := range qAdapter.enqueuedEntries {
+		if entry.GetRefreshSales() != nil && entry.GetIntention() == "From Validator" {
+			refreshCount++
+		}
+		if entry.GetReconcileSales() != nil && entry.GetIntention() == "From Validator (ReconcileSales)" {
+			reconcileCount++
+		}
+	}
+	if refreshCount != 1 {
+		t.Errorf("expected exactly 1 RefreshSales from validator, got %d", refreshCount)
+	}
+	if reconcileCount != 0 {
+		t.Errorf("expected 0 ReconcileSales from validator, got %d", reconcileCount)
+	}
+
+	// Step 3: Once RefreshSales finishes pagination, SaleSyncActiveTime is cleared to 0 and LastSaleRefresh is updated
+	userAfterCompletion, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after completion: %v", err)
+	}
+	if userAfterCompletion.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be cleared to 0 after pagination finishes, got %v", userAfterCompletion.GetSaleSyncActiveTime())
+	}
+	if userAfterCompletion.GetLastSaleRefresh() <= staleTime {
+		t.Errorf("expected LastSaleRefresh to be updated > staleTime (%v), got %v", staleTime, userAfterCompletion.GetLastSaleRefresh())
+	}
+
+	// Step 4: Subsequent validator run when sync is finished does not re-enqueue RefreshSales
+	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("post-completion ValidateUser failed: %v", err)
+	}
+	postRefreshCount := 0
+	for _, entry := range qAdapter.enqueuedEntries {
+		if entry.GetRefreshSales() != nil && entry.GetIntention() == "From Validator" {
+			postRefreshCount++
+		}
+	}
+	if postRefreshCount != 1 {
+		t.Errorf("expected RefreshSales not to be re-enqueued post-completion, got %d", postRefreshCount)
+	}
+}
+
+func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	staleReconcileTime := time.Now().Add(-8 * 24 * time.Hour).UnixNano()
+	user := &pb.StoredUser{
+		Folders:               []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:                  &pbd.User{DiscogsUserId: 123},
+		Auth:                  &pb.GramophileAuth{Token: "123"},
+		LastSaleRefresh:       time.Now().UnixNano(), // fresh, so RefreshSales won't trigger
+		LastSaleReconcile:     staleReconcileTime,    // stale > 7d, so ReconcileSales should trigger
+		LastRefreshTime:       time.Now().UnixNano(),
+		LastCollectionRefresh: time.Now().UnixNano(),
+		LastCollectionCheck:   time.Now().UnixNano(),
+		LastWantRefresh:       time.Now().UnixNano(),
+		LastOrderSync:         time.Now().UnixNano(),
+		SaleSyncActiveTime:    0,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save initial user: %v", err)
+	}
+
+	records := []*pb.Record{
+		{Release: &pbd.Release{Id: 2001, InstanceId: 3001, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1001},
+		{Release: &pbd.Release{Id: 2002, InstanceId: 3002, FolderId: 12, Labels: []*pbd.Label{{Name: "AAA"}}}, SaleId: 1002},
+	}
+	for _, rec := range records {
+		err := d.SaveRecord(ctx, 123, rec, &db.SaveOptions{})
+		if err != nil {
+			t.Fatalf("failed to save initial record %v: %v", rec.GetRelease().GetInstanceId(), err)
+		}
+	}
+
+	mockDiscogs := &paginatedSalesDiscogsClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{
+			UserId: 123,
+			Fields: []*pbd.Field{{Id: 10, Name: "Keep"}},
+		},
+		totalPages: 2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
+	qAdapter := &queueServiceAdapter{q: qc}
+	gClient := &dummyGramophileClient{}
+
+	// Step 1: Initial validator run triggers ReconcileSales
+	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("validator ValidateUser failed: %v", err)
+	}
+
+	// Verify validator enqueued ReconcileSales{Page: 1} and recorded SaleSyncActiveTime
+	if len(qAdapter.enqueuedEntries) != 1 || qAdapter.enqueuedEntries[0].GetReconcileSales() == nil {
+		t.Fatalf("expected 1 ReconcileSales entry enqueued by validator, got %v", qAdapter.enqueuedEntries)
+	}
+
+	userAfterInitialVal, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after initial validation: %v", err)
+	}
+	if userAfterInitialVal.GetSaleSyncActiveTime() == 0 {
+		t.Fatalf("expected SaleSyncActiveTime to be set by validator, got 0")
+	}
+
+	// Step 2: Validator runs while ReconcileSales is in-flight (both before queue processing and mid-pagination)
+	// Sub-step 2a: Before queue processing
+	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("validator ValidateUser while in-flight failed: %v", err)
+	}
+	if len(qAdapter.enqueuedEntries) != 1 {
+		t.Errorf("expected no additional tasks enqueued while in-flight before flush, got %d tasks", len(qAdapter.enqueuedEntries))
+	}
+
+	// Sub-step 2b: During multi-page execution
+	validatorMidRunCount := 0
+	mockDiscogs.onList = func(page int32) {
+		currentUser, uerr := d.GetUser(ctx, "123")
+		if uerr != nil {
+			t.Errorf("failed to fetch user during onList(page=%d): %v", page, uerr)
+			return
+		}
+		if currentUser.GetSaleSyncActiveTime() == 0 {
+			t.Errorf("expected SaleSyncActiveTime to remain active during onList(page=%d), got 0", page)
+		}
+		// Run validator while page is executing
+		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d)
+		if valErr != nil {
+			t.Errorf("validator ValidateUser during onList(page=%d) returned error: %v", page, valErr)
+		}
+		validatorMidRunCount++
+	}
+
+	// Process queue
+	err = qc.FlushQueue(ctx)
+	if err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	if validatorMidRunCount < 2 {
+		t.Errorf("expected validator to run during both pages, ran %d times", validatorMidRunCount)
+	}
+
+	// Verify that throughout all validator runs while in-flight, NO duplicate sales sync tasks were enqueued
+	reconcileCount := 0
+	refreshCount := 0
+	for _, entry := range qAdapter.enqueuedEntries {
+		if entry.GetReconcileSales() != nil && entry.GetIntention() == "From Validator (ReconcileSales)" {
+			reconcileCount++
+		}
+		if entry.GetRefreshSales() != nil && entry.GetIntention() == "From Validator" {
+			refreshCount++
+		}
+	}
+	if reconcileCount != 1 {
+		t.Errorf("expected exactly 1 ReconcileSales from validator, got %d", reconcileCount)
+	}
+	if refreshCount != 0 {
+		t.Errorf("expected 0 RefreshSales from validator, got %d", refreshCount)
+	}
+
+	// Step 3: Once ReconcileSales completes, SaleSyncActiveTime is cleared to 0 and LastSaleReconcile is updated
+	userAfterCompletion, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get user after completion: %v", err)
+	}
+	if userAfterCompletion.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be cleared to 0 after reconcile completes, got %v", userAfterCompletion.GetSaleSyncActiveTime())
+	}
+	if userAfterCompletion.GetLastSaleReconcile() <= staleReconcileTime {
+		t.Errorf("expected LastSaleReconcile to be updated > staleReconcileTime (%v), got %v", staleReconcileTime, userAfterCompletion.GetLastSaleReconcile())
+	}
+
+	// Step 4: Subsequent validator run does not re-enqueue ReconcileSales
+	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d)
+	if err != nil {
+		t.Fatalf("post-completion ValidateUser failed: %v", err)
+	}
+	postReconcileCount := 0
+	for _, entry := range qAdapter.enqueuedEntries {
+		if entry.GetReconcileSales() != nil && entry.GetIntention() == "From Validator (ReconcileSales)" {
+			postReconcileCount++
+		}
+	}
+	if postReconcileCount != 1 {
+		t.Errorf("expected ReconcileSales not to be re-enqueued post-completion, got %d", postReconcileCount)
+	}
+}
+
