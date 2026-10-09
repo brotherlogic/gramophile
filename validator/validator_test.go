@@ -425,3 +425,172 @@ func TestReconcileSalesEnqueue_WithinSevenDays(t *testing.T) {
 	}
 }
 
+func TestSalesSync_SkippedWhenActiveSyncInFlight(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-25 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.Add(-8 * 24 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		SaleSyncActiveTime:    now.Add(-1 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetRefreshSales() != nil {
+			t.Errorf("expected RefreshSales NOT to be enqueued when SaleSyncActiveTime is within 24h")
+		}
+		if req.GetElement().GetReconcileSales() != nil {
+			t.Errorf("expected ReconcileSales NOT to be enqueued when SaleSyncActiveTime is within 24h")
+		}
+	}
+}
+
+func TestSalesSync_EnqueuedWhenActiveSyncStale(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-25 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		SaleSyncActiveTime:    now.Add(-25 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	found := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetRefreshSales() != nil {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected RefreshSales to be enqueued when SaleSyncActiveTime is older than 24h")
+	}
+}
+
+func TestSalesSync_SetsSaleSyncActiveTimeOnEnqueue(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-25 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		SaleSyncActiveTime:    0,
+	}
+
+	err := tdb.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("unable to save user: %v", err)
+	}
+
+	err = validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	savedUser, err := tdb.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("unable to get user: %v", err)
+	}
+
+	if savedUser.GetSaleSyncActiveTime() == 0 {
+		t.Errorf("expected SaleSyncActiveTime to be set in DB, got 0")
+	} else if time.Since(time.Unix(0, savedUser.GetSaleSyncActiveTime())) > time.Minute {
+		t.Errorf("expected SaleSyncActiveTime to be set to current time, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+}
+
+func TestSalesSync_ConcurrentMutualExclusion(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-25 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.Add(-8 * 24 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		SaleSyncActiveTime:    0,
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("validateUser returned unexpected error: %v", err)
+	}
+
+	foundRefresh := false
+	foundReconcile := false
+	for _, req := range queue.enqueued {
+		if req.GetElement().GetRefreshSales() != nil {
+			foundRefresh = true
+		}
+		if req.GetElement().GetReconcileSales() != nil {
+			foundReconcile = true
+		}
+	}
+
+	if !foundRefresh {
+		t.Errorf("expected RefreshSales to be enqueued when both refresh and reconcile are due")
+	}
+	if foundReconcile {
+		t.Errorf("expected ReconcileSales NOT to be enqueued in the same pass when RefreshSales is enqueued")
+	}
+}
+

@@ -14,6 +14,10 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+func isSalesSyncActive(user *pb.StoredUser) bool {
+	return user.GetSaleSyncActiveTime() != 0 && time.Since(time.Unix(0, user.GetSaleSyncActiveTime())) < 24*time.Hour
+}
+
 func validateUser(ctx context.Context, user *pb.StoredUser, client pb.GramophileServiceClient, queue pb.QueueServiceClient, d db.Database) error {
 	log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(0, user.GetLastRefreshTime())))
 
@@ -75,39 +79,57 @@ func validateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 			}
 		}
 
-		log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
-		if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
-			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					Intention:        "From Validator",
-					RunDate:          time.Now().UnixNano(),
-					Auth:             user.GetAuth().GetToken(),
-					BackoffInSeconds: 15,
-					Entry: &pb.QueueElement_RefreshSales{
-						RefreshSales: &pb.RefreshSales{Page: 1},
+		if isSalesSyncActive(user) {
+			log.Printf("Sales sync active since %v ago, skipping RefreshSales and ReconcileSales", time.Since(time.Unix(0, user.GetSaleSyncActiveTime())))
+		} else {
+			enqueuedRefreshSales := false
+			log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
+				_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+					Element: &pb.QueueElement{
+						Intention:        "From Validator",
+						RunDate:          time.Now().UnixNano(),
+						Auth:             user.GetAuth().GetToken(),
+						BackoffInSeconds: 15,
+						Entry: &pb.QueueElement_RefreshSales{
+							RefreshSales: &pb.RefreshSales{Page: 1},
+						},
 					},
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+				})
+				if err != nil {
+					return fmt.Errorf("unable to enqueue: %w", err)
+				}
+				user.SaleSyncActiveTime = time.Now().UnixNano()
+				err = d.SaveUser(ctx, user)
+				if err != nil {
+					return fmt.Errorf("unable to save user: %w", err)
+				}
+				enqueuedRefreshSales = true
 			}
-		}
 
-		log.Printf("ReconcileSales: %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
-		if time.Since(time.Unix(0, user.GetLastSaleReconcile())) > queuelogic.SaleReconcile {
-			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
-				Element: &pb.QueueElement{
-					Intention:        "From Validator (ReconcileSales)",
-					RunDate:          time.Now().UnixNano(),
-					Auth:             user.GetAuth().GetToken(),
-					BackoffInSeconds: 15,
-					Entry: &pb.QueueElement_ReconcileSales{
-						ReconcileSales: &pb.ReconcileSales{Page: 1},
-					},
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+			if !enqueuedRefreshSales {
+				log.Printf("ReconcileSales: %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
+				if time.Since(time.Unix(0, user.GetLastSaleReconcile())) > queuelogic.SaleReconcile {
+					_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+						Element: &pb.QueueElement{
+							Intention:        "From Validator (ReconcileSales)",
+							RunDate:          time.Now().UnixNano(),
+							Auth:             user.GetAuth().GetToken(),
+							BackoffInSeconds: 15,
+							Entry: &pb.QueueElement_ReconcileSales{
+								ReconcileSales: &pb.ReconcileSales{Page: 1},
+							},
+						},
+					})
+					if err != nil {
+						return fmt.Errorf("unable to enqueue: %w", err)
+					}
+					user.SaleSyncActiveTime = time.Now().UnixNano()
+					err = d.SaveUser(ctx, user)
+					if err != nil {
+						return fmt.Errorf("unable to save user: %w", err)
+					}
+				}
 			}
 		}
 
