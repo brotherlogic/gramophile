@@ -99,6 +99,7 @@ Current Go version: 1.26.2
 - Extended Per-User Queue Throttling: Extends per-user queue throttling (`MaxUserQueueSize = 200`) in `queuelogic/logic.go` to include `RefreshSales`, `ReconcileSales`, and `RefreshWant` tasks, preventing a single user from monopolizing the background task queue.
 - Queue Drain ReconcileSales Support and State Synchronization: Updates queue task drainage in queuelogic to include ReconcileSales in JUST_SALES drain requests, fixes task key prefix resolution, synchronizes in-memory queue state (keys, pMap, userCounts, deduplication keys), decrements Prometheus queueLen and queueState metrics upon draining, and returns the exact count of drained elements.
 - StoredUser Sales Sync Active Timestamp: Adds `sale_sync_active_time` field to `StoredUser` in `proto/gramophile.proto` with Go protobuf bindings to track active in-flight sales synchronization operations.
+- Validator Sales Sync Scheduling & Active Sync Lock: Updates user validator logic to track active sales sync timestamps in the database, preventing concurrent RefreshSales and ReconcileSales enqueues while a sales sync is active, and enforcing mutual exclusion between RefreshSales and ReconcileSales in the same validation cycle.
 
 
 
