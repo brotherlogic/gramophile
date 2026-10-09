@@ -891,5 +891,99 @@ func TestGetRecord_SaleCandidate_InstanceIdTieBreak(t *testing.T) {
 	}
 }
 
+func TestGetRecord_SaleCandidate_OverallScoreOrder(t *testing.T) {
+	ctx := getTestContext(123)
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "my-org"},
+				},
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Failed to save user: %v", err)
+	}
+
+	// r1: Great music (Rating 5), terrible package (PackageScore 1) -> Overall score = 6
+	// r2: Average music (Rating 4), good package (PackageScore 4) -> Overall score = 8
+	// Under overall score comparison (sum of rating and package score), r1 (6) should be selected before r2 (8).
+	// Under old rating-first comparison, r2 (rating 4) would have been incorrectly selected before r1 (rating 5).
+	r1 := &pb.Record{
+		Release:      &pbd.Release{InstanceId: 1001, Rating: 5},
+		PackageScore: 1,
+		MedianPrice:  &pbd.Price{Value: 2000},
+		Arrived:      1000,
+	}
+	r2 := &pb.Record{
+		Release:      &pbd.Release{InstanceId: 1002, Rating: 4},
+		PackageScore: 4,
+		MedianPrice:  &pbd.Price{Value: 2000},
+		Arrived:      1000,
+	}
+	if err := d.SaveRecord(ctx, 123, r1); err != nil {
+		t.Fatalf("Failed to save record 1: %v", err)
+	}
+	if err := d.SaveRecord(ctx, 123, r2); err != nil {
+		t.Fatalf("Failed to save record 2: %v", err)
+	}
+
+	snap := &pb.OrganisationSnapshot{
+		Placements: []*pb.Placement{
+			{Iid: 1002, Space: "shelf1", Unit: 1, Index: 1},
+			{Iid: 1001, Space: "shelf1", Unit: 1, Index: 2},
+		},
+	}
+	if err := d.SaveSnapshot(ctx, su, "my-org", snap); err != nil {
+		t.Fatalf("Failed to save snapshot: %v", err)
+	}
+
+	s := Server{d: d}
+	res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId() != 1001 {
+		t.Errorf("Expected record with lower overall score (great music but terrible package, 1001), got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
+	}
+
+	// r3: Terrible music (Rating 1), great package (PackageScore 4) -> Overall score = 5
+	// r3 (score 5) beats r1 (score 6) and r2 (score 8)
+	r3 := &pb.Record{
+		Release:      &pbd.Release{InstanceId: 1003, Rating: 1},
+		PackageScore: 4,
+		MedianPrice:  &pbd.Price{Value: 2000},
+		Arrived:      1000,
+	}
+	if err := d.SaveRecord(ctx, 123, r3); err != nil {
+		t.Fatalf("Failed to save record 3: %v", err)
+	}
+	snap.Placements = append(snap.Placements, &pb.Placement{Iid: 1003, Space: "shelf1", Unit: 1, Index: 3})
+	if err := d.SaveSnapshot(ctx, su, "my-org", snap); err != nil {
+		t.Fatalf("Failed to update snapshot: %v", err)
+	}
+
+	res, err = s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId() != 1003 {
+		t.Errorf("Expected record with lowest overall score (terrible music but great package, 1003), got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
+	}
+}
+
+
 
 
