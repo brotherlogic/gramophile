@@ -378,50 +378,107 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 		return nil, err
 	}
 
-	for _, key := range keys.GetKeys() {
-		delete := true
-		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES ||
-			req.GetDrainType() == pb.DrainRequest_JUST_WANTS ||
-			req.GetDrainType() == pb.DrainRequest_JUST_SALES ||
-			req.GetDrainType() == pb.DrainRequest_JUST_REFRESH {
-			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
-			if err == nil {
+	drainedDates := make(map[int64]bool)
+	var drainedEntries []*pb.QueueElement
+	drainedCount := int32(0)
 
-				entry := &pb.QueueElement{}
-				err = proto.Unmarshal(data.GetValue().GetValue(), entry)
-				if err != nil {
-					return nil, err
-				}
-				switch entry.Entry.(type) {
-				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
-					if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshWant:
-					if req.GetDrainType() == pb.DrainRequest_JUST_WANTS {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshCollectionEntry:
-					if req.GetDrainType() == pb.DrainRequest_JUST_REFRESH {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshSales:
-					if req.GetDrainType() == pb.DrainRequest_JUST_SALES {
-						delete = true
-					}
-				default:
-					delete = false
-				}
+	for _, key := range keys.GetKeys() {
+		pstoreKey := key
+		if !strings.HasPrefix(pstoreKey, QUEUE_PREFIX) {
+			pstoreKey = fmt.Sprintf("%v%v", QUEUE_PREFIX, key)
+		}
+		suffix := strings.TrimPrefix(pstoreKey, QUEUE_PREFIX)
+		runDate, parseErr := strconv.ParseInt(suffix, 10, 64)
+
+		var entry *pb.QueueElement
+		data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: pstoreKey})
+		if err == nil {
+			entry = &pb.QueueElement{}
+			err = proto.Unmarshal(data.GetValue().GetValue(), entry)
+			if err != nil {
+				return nil, err
 			}
 		}
 
+		delete := false
+		switch req.GetDrainType() {
+		case pb.DrainRequest_JUST_RELEASE_DATES:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
+					delete = true
+				}
+			}
+		case pb.DrainRequest_JUST_WANTS:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshWant:
+					delete = true
+				}
+			}
+		case pb.DrainRequest_JUST_REFRESH:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshCollectionEntry:
+					delete = true
+				}
+			}
+		case pb.DrainRequest_JUST_SALES:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshSales, *pb.QueueElement_ReconcileSales:
+					delete = true
+				}
+			}
+		default:
+			delete = true
+		}
+
 		if delete {
-			_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
+			_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: pstoreKey})
 			log.Printf("Delete: %v", err)
+			drainedCount++
+			if entry != nil {
+				drainedDates[entry.GetRunDate()] = true
+				drainedEntries = append(drainedEntries, entry)
+			} else if parseErr == nil {
+				drainedDates[runDate] = true
+			}
 		}
 	}
 
-	return &pb.DrainResponse{Count: int32(len(keys.GetKeys()))}, nil
+	q.queueMutex.Lock()
+	var nkeys []int64
+	for _, k := range q.keys {
+		if !drainedDates[k] {
+			nkeys = append(nkeys, k)
+		}
+	}
+	q.keys = nkeys
+
+	for _, entry := range drainedEntries {
+		delete(q.pMap, entry.GetRunDate())
+		if q.userCounts != nil && entry.GetAuth() != "" {
+			q.userCounts[entry.GetAuth()]--
+		}
+		if q.b != nil && q.hMap != nil {
+			key := q.b.GetDeduplicationKey(entry)
+			if key != "" {
+				delete(q.hMap, key)
+			}
+		}
+	}
+	for d := range drainedDates {
+		delete(q.pMap, d)
+	}
+	q.queueMutex.Unlock()
+
+	for _, entry := range drainedEntries {
+		queueLen.With(prometheus.Labels{"type": fmt.Sprintf("%v", entry.GetPriority())}).Dec()
+		queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
+	}
+
+	return &pb.DrainResponse{Count: drainedCount}, nil
 }
 
 func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
