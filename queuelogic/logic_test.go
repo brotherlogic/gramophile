@@ -538,3 +538,239 @@ func TestUserQueueLimit(t *testing.T) {
 		t.Fatalf("Expected ResourceExhausted on 201st item, got: %v", err)
 	}
 }
+
+func TestDrainJustSales(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	// Enqueue RefreshSales
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "sales refresh",
+			RunDate:   1001,
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshSales{
+				RefreshSales: &pb.RefreshSales{Page: 1},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue RefreshSales: %v", err)
+	}
+
+	// Enqueue ReconcileSales
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "reconcile sales",
+			RunDate:   1002,
+			Auth:      "123",
+			Entry: &pb.QueueElement_ReconcileSales{
+				ReconcileSales: &pb.ReconcileSales{Page: 1},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue ReconcileSales: %v", err)
+	}
+
+	// Enqueue MoveRecords
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "move records",
+			RunDate:   1003,
+			Auth:      "123",
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue MoveRecords: %v", err)
+	}
+
+	// Enqueue RefreshWant
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "refresh want",
+			RunDate:   1004,
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: 999}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue RefreshWant: %v", err)
+	}
+
+	if len(q.keys) != 4 {
+		t.Fatalf("Expected 4 keys in queue, got %d", len(q.keys))
+	}
+
+	// Drain JUST_SALES
+	resp, err := q.Drain(ctx, &pb.DrainRequest{DrainType: pb.DrainRequest_JUST_SALES})
+	if err != nil {
+		t.Fatalf("Drain failed: %v", err)
+	}
+	if resp.GetCount() != 2 {
+		t.Errorf("Expected 2 drained items, got %d", resp.GetCount())
+	}
+
+	// In-memory keys should now only have MoveRecords and RefreshWant
+	if len(q.keys) != 2 {
+		t.Errorf("Expected 2 remaining keys in memory, got %d (%v)", len(q.keys), q.keys)
+	}
+	if _, ok := q.pMap[1001]; ok {
+		t.Errorf("Expected runDate 1001 removed from pMap")
+	}
+	if _, ok := q.pMap[1002]; ok {
+		t.Errorf("Expected runDate 1002 removed from pMap")
+	}
+	if _, ok := q.pMap[1003]; !ok {
+		t.Errorf("Expected runDate 1003 preserved in pMap")
+	}
+	if _, ok := q.pMap[1004]; !ok {
+		t.Errorf("Expected runDate 1004 preserved in pMap")
+	}
+
+	// MoveRecords should still be readable in pstore
+	data, err := pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%d", QUEUE_PREFIX, 1003)})
+	if err != nil || data == nil {
+		t.Errorf("Expected MoveRecords still in pstore, got err: %v", err)
+	}
+
+	// RefreshSales and ReconcileSales should be deleted from pstore
+	_, err = pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%d", QUEUE_PREFIX, 1001)})
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("Expected RefreshSales deleted from pstore, got err: %v", err)
+	}
+	_, err = pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%d", QUEUE_PREFIX, 1002)})
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("Expected ReconcileSales deleted from pstore, got err: %v", err)
+	}
+}
+
+func TestDrainJustWants(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "refresh want",
+			RunDate:   2001,
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{Want: &pb.Want{Id: 1}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue RefreshWant: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "move records",
+			RunDate:   2002,
+			Auth:      "123",
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue MoveRecords: %v", err)
+	}
+
+	resp, err := q.Drain(ctx, &pb.DrainRequest{DrainType: pb.DrainRequest_JUST_WANTS})
+	if err != nil {
+		t.Fatalf("Drain failed: %v", err)
+	}
+	if resp.GetCount() != 1 {
+		t.Errorf("Expected 1 drained item, got %d", resp.GetCount())
+	}
+	if len(q.keys) != 1 || q.keys[0] != 2002 {
+		t.Errorf("Expected only key 2002 remaining, got %v", q.keys)
+	}
+}
+
+func TestDrainAll(t *testing.T) {
+	ctx := getTestContext(123)
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "move records",
+			RunDate:   3001,
+			Auth:      "123",
+			Entry: &pb.QueueElement_MoveRecords{
+				MoveRecords: &pb.MoveRecords{},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue MoveRecords: %v", err)
+	}
+
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "sales refresh",
+			RunDate:   3002,
+			Auth:      "123",
+			Entry: &pb.QueueElement_RefreshSales{
+				RefreshSales: &pb.RefreshSales{Page: 1},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enqueue RefreshSales: %v", err)
+	}
+
+	resp, err := q.Drain(ctx, &pb.DrainRequest{DrainType: pb.DrainRequest_UNKNOWN})
+	if err != nil {
+		t.Fatalf("Drain failed: %v", err)
+	}
+	if resp.GetCount() != 2 {
+		t.Errorf("Expected 2 drained items, got %d", resp.GetCount())
+	}
+	if len(q.keys) != 0 {
+		t.Errorf("Expected 0 keys remaining, got %d", len(q.keys))
+	}
+	if len(q.pMap) != 0 {
+		t.Errorf("Expected empty pMap, got %v", q.pMap)
+	}
+}
+

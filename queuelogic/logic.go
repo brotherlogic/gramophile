@@ -378,50 +378,111 @@ func (q *Queue) Drain(ctx context.Context, req *pb.DrainRequest) (*pb.DrainRespo
 		return nil, err
 	}
 
-	for _, key := range keys.GetKeys() {
-		delete := true
-		if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES ||
-			req.GetDrainType() == pb.DrainRequest_JUST_WANTS ||
-			req.GetDrainType() == pb.DrainRequest_JUST_SALES ||
-			req.GetDrainType() == pb.DrainRequest_JUST_REFRESH {
-			data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, key)})
-			if err == nil {
+	var deletedCount int32
+	deletedRunDates := make(map[int64]bool)
 
-				entry := &pb.QueueElement{}
-				err = proto.Unmarshal(data.GetValue().GetValue(), entry)
-				if err != nil {
-					return nil, err
-				}
-				switch entry.Entry.(type) {
-				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
-					if req.GetDrainType() == pb.DrainRequest_JUST_RELEASE_DATES {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshWant:
-					if req.GetDrainType() == pb.DrainRequest_JUST_WANTS {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshCollectionEntry:
-					if req.GetDrainType() == pb.DrainRequest_JUST_REFRESH {
-						delete = true
-					}
-				case *pb.QueueElement_RefreshSales:
-					if req.GetDrainType() == pb.DrainRequest_JUST_SALES {
-						delete = true
-					}
-				default:
-					delete = false
-				}
+	for _, key := range keys.GetKeys() {
+		shouldDelete := false
+		var entry *pb.QueueElement
+
+		data, err := q.pstore.Read(ctx, &rspb.ReadRequest{Key: key})
+		if err == nil {
+			entry = &pb.QueueElement{}
+			if err := proto.Unmarshal(data.GetValue().GetValue(), entry); err != nil {
+				return nil, err
 			}
 		}
 
-		if delete {
+		switch req.GetDrainType() {
+		case pb.DrainRequest_JUST_RELEASE_DATES:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshEarliestReleaseDate, *pb.QueueElement_RefreshEarliestReleaseDates:
+					shouldDelete = true
+				}
+			}
+		case pb.DrainRequest_JUST_WANTS:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshWant, *pb.QueueElement_RefreshWants, *pb.QueueElement_SyncWants, *pb.QueueElement_AddMasterWant:
+					shouldDelete = true
+				}
+			}
+		case pb.DrainRequest_JUST_SALES:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshSales, *pb.QueueElement_ReconcileSales, *pb.QueueElement_AdjustSales, *pb.QueueElement_UpdateSale, *pb.QueueElement_LinkSales, *pb.QueueElement_AddSale:
+					shouldDelete = true
+				}
+			}
+		case pb.DrainRequest_JUST_REFRESH:
+			if entry != nil {
+				switch entry.Entry.(type) {
+				case *pb.QueueElement_RefreshCollectionEntry, *pb.QueueElement_RefreshCollection:
+					shouldDelete = true
+				}
+			}
+		default:
+			shouldDelete = true
+		}
+
+		if shouldDelete {
 			_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: key})
-			log.Printf("Delete: %v", err)
+			if err != nil {
+				log.Printf("Delete failed for %v: %v", key, err)
+				continue
+			}
+			deletedCount++
+
+			if len(key) > len(QUEUE_PREFIX) {
+				runDate, err := strconv.ParseInt(key[len(QUEUE_PREFIX):], 10, 64)
+				if err == nil {
+					deletedRunDates[runDate] = true
+				}
+			}
+
+			if entry != nil {
+				queueState.With(prometheus.Labels{"type": fmt.Sprintf("%T", entry.GetEntry())}).Dec()
+				if q.b != nil {
+					dedupKey := q.b.GetDeduplicationKey(entry)
+					if dedupKey != "" {
+						q.queueMutex.Lock()
+						delete(q.hMap, dedupKey)
+						q.queueMutex.Unlock()
+					}
+				}
+				q.queueMutex.Lock()
+				if q.userCounts[entry.GetAuth()] > 0 {
+					q.userCounts[entry.GetAuth()]--
+				} else {
+					delete(q.userCounts, entry.GetAuth())
+				}
+				q.queueMutex.Unlock()
+			}
 		}
 	}
 
-	return &pb.DrainResponse{Count: int32(len(keys.GetKeys()))}, nil
+	q.queueMutex.Lock()
+	var remainingKeys []int64
+	for _, k := range q.keys {
+		if !deletedRunDates[k] {
+			remainingKeys = append(remainingKeys, k)
+		} else {
+			delete(q.pMap, k)
+		}
+	}
+	q.keys = remainingKeys
+
+	counts := make(map[string]float64)
+	for _, val := range q.pMap {
+		counts[fmt.Sprintf("%v", val)]++
+	}
+	for _, p := range []string{"PRIORITY_UNKNOWN", "PRIORITY_LOW", "PRIORITY_NORMAL", "PRIORITY_HIGH"} {
+		queueLen.With(prometheus.Labels{"type": p}).Set(counts[p])
+	}
+	q.queueMutex.Unlock()
+
+	return &pb.DrainResponse{Count: deletedCount}, nil
 }
 
 func (q *Queue) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {

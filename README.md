@@ -81,6 +81,7 @@ Current Go version: 1.26.2
 - PrintMoveType Protobuf Schema: Defines the `PrintMoveType` enum (`PRINT_MOVE_TYPE_MOVE` and `PRINT_MOVE_TYPE_SHUFFLE`) and adds the `type` field to `PrintMove` in `proto/gramophile.proto` to categorize collection moves between primary record moves and ripple shuffles.
 - Move Printer Index Sorting and Shuffle Header Formatting: Updates the move printer in `validator/moveprinter.go` to sort unprinted moves by `Index` ascending before dispatching print requests, and conditionally renders `"Gramophile Shuffle: "` headers for shuffle moves versus `"Gramophile Move: "` for cross-organization moves.
 - Comprehensive Move Printing & Snapshot Diffing in ProcessSetFolder: Integrates snapshot diffing, ripple shuffle generation, and sequential printing into ProcessSetFolder in background/notes.go, supporting PrintMoveConfig verification, exit/dest org State A and State B snapshot management, topological move ordering, same-org and cross-org move sequencing, and monotonic print move persistence.
+- Queue Drain ReconcileSales Support & In-Memory State Synchronization: Fixes Queue.Drain in queuelogic/logic.go to correctly read queue keys from pstore without duplicate prefixing, includes ReconcileSales and related sales tasks under JUST_SALES, properly synchronizes in-memory queue state (q.keys, q.pMap, q.userCounts, q.hMap, and queueLen/queueState metrics), and returns the accurate deleted element count.
 
 
 
