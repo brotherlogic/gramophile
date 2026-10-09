@@ -278,35 +278,28 @@ func getMedianPrice(r *pb.Record) int32 {
 }
 
 func compareRecordsForSale(a, b *pb.Record) bool {
-	// 1. Primary: Lowest Discogs Rating (r.GetRelease().GetRating(), unrated treated as 0)
-	ratingA := getRating(a)
-	ratingB := getRating(b)
-	if ratingA != ratingB {
-		return ratingA < ratingB
+	// 1. Primary: Lowest Overall Score (sum of Discogs Rating and Package Score, unset treated as 0)
+	scoreA := getRating(a) + getPackageScore(a)
+	scoreB := getRating(b) + getPackageScore(b)
+	if scoreA != scoreB {
+		return scoreA < scoreB
 	}
 
-	// 2. Secondary: Lowest Package Score (r.GetPackageScore(), unset treated as 0)
-	pkgA := getPackageScore(a)
-	pkgB := getPackageScore(b)
-	if pkgA != pkgB {
-		return pkgA < pkgB
-	}
-
-	// 3. Tertiary: Lowest Median Market Price (r.GetMedianPrice().GetValue(), missing treated as 0.00)
+	// 2. Secondary: Lowest Median Market Price (r.GetMedianPrice().GetValue(), missing treated as 0.00)
 	priceA := getMedianPrice(a)
 	priceB := getMedianPrice(b)
 	if priceA != priceB {
 		return priceA < priceB
 	}
 
-	// 4. Quaternary (Tie-Breaker): Newest addition timestamp (r.GetArrived(), falling back to r.GetRelease().GetDateAdded())
+	// 3. Tertiary (Tie-Breaker): Newest addition timestamp (r.GetArrived(), falling back to r.GetRelease().GetDateAdded())
 	dateA := getAdditionDate(a)
 	dateB := getAdditionDate(b)
 	if dateA != dateB {
 		return dateA > dateB
 	}
 
-	// 5. Quinary (Deterministic Tie-Breaker): Lowest instance ID (r.GetRelease().GetInstanceId())
+	// 4. Quaternary (Deterministic Tie-Breaker): Lowest instance ID (r.GetRelease().GetInstanceId())
 	return a.GetRelease().GetInstanceId() < b.GetRelease().GetInstanceId()
 }
 
