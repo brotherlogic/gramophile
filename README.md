@@ -100,6 +100,7 @@ Current Go version: 1.26.2
 - Queue Drain ReconcileSales Support and State Synchronization: Updates queue task drainage in queuelogic to include ReconcileSales in JUST_SALES drain requests, fixes task key prefix resolution, synchronizes in-memory queue state (keys, pMap, userCounts, deduplication keys), decrements Prometheus queueLen and queueState metrics upon draining, and returns the exact count of drained elements.
 - StoredUser Sales Sync Active Timestamp: Adds `sale_sync_active_time` field to `StoredUser` in `proto/gramophile.proto` with Go protobuf bindings to track active in-flight sales synchronization operations.
 - Validator Sales Sync Scheduling & Active Sync Lock: Updates user validator logic to track active sales sync timestamps in the database, preventing concurrent RefreshSales and ReconcileSales enqueues while a sales sync is active, and enforcing mutual exclusion between RefreshSales and ReconcileSales in the same validation cycle.
+- Sales Sync Active Lock Lifecycle Management: Manages the `sale_sync_active_time` lock across `ProcessRefreshSales` and `ProcessReconcileSales` background workers, establishing the active lock on page 1, preserving it across intermediate pages, and clearing it upon sync completion or early termination.
 
 
 
