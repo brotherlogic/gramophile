@@ -542,6 +542,79 @@ func TestUserQueueLimit(t *testing.T) {
 	}
 }
 
+func testUserQueueLimitWithElement(t *testing.T, createElement func(i int) *pb.QueueElement) {
+	ctx := getTestContext(123)
+
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	for i := 0; i < 200; i++ {
+		elem := createElement(i)
+		elem.Auth = "123"
+		elem.RunDate = int64(i + 1)
+		elem.Intention = "From Test"
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+		if err != nil {
+			t.Fatalf("Failed to enqueue item %d: %v", i+1, err)
+		}
+	}
+
+	elem := createElement(200)
+	elem.Auth = "123"
+	elem.RunDate = 201
+	elem.Intention = "From Test"
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("Expected ResourceExhausted on 201st item, got: %v", err)
+	}
+}
+
+func TestUserQueueLimit_RefreshSales(t *testing.T) {
+	testUserQueueLimitWithElement(t, func(i int) *pb.QueueElement {
+		return &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshSales{
+				RefreshSales: &pb.RefreshSales{
+					Page: int32(i + 1),
+				},
+			},
+		}
+	})
+}
+
+func TestUserQueueLimit_ReconcileSales(t *testing.T) {
+	testUserQueueLimitWithElement(t, func(i int) *pb.QueueElement {
+		return &pb.QueueElement{
+			Entry: &pb.QueueElement_ReconcileSales{
+				ReconcileSales: &pb.ReconcileSales{
+					Page: int32(i + 1),
+				},
+			},
+		}
+	})
+}
+
+func TestUserQueueLimit_RefreshWant(t *testing.T) {
+	testUserQueueLimitWithElement(t, func(i int) *pb.QueueElement {
+		return &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{
+					Want: &pb.Want{Id: int64(i + 1)},
+				},
+			},
+		}
+	})
+}
+
 func TestDrain_JustSales_IncludesReconcileSalesAndCleansInMemory(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -868,5 +941,3 @@ func TestDrain_OtherSelectiveTypes(t *testing.T) {
 		t.Errorf("Expected 0 keys remaining, got %d", len(q.keys))
 	}
 }
-
-
