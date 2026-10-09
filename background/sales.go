@@ -539,7 +539,7 @@ func (h *refreshSalesHandler) Validate(ctx context.Context, db db.Database, entr
 }
 
 func (h *refreshSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
-	return ""
+	return fmt.Sprintf("RefreshSales-%v-%v", entry.GetAuth(), entry.GetRefreshSales().GetPage())
 }
 
 type reconcileSalesHandler struct {
@@ -555,7 +555,7 @@ func (h *reconcileSalesHandler) Validate(ctx context.Context, db db.Database, en
 }
 
 func (h *reconcileSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
-	return ""
+	return fmt.Sprintf("ReconcileSales-%v-%v", entry.GetAuth(), entry.GetReconcileSales().GetPage())
 }
 
 type linkSalesHandler struct {

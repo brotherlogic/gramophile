@@ -84,7 +84,7 @@ func (h *refreshWantHandler) Validate(ctx context.Context, db db.Database, entry
 }
 
 func (h *refreshWantHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
-	return ""
+	return fmt.Sprintf("RefreshWant-%v-%v", entry.GetAuth(), entry.GetRefreshWant().GetWant().GetId())
 }
 
 func (b *BackgroundRunner) AddMasterWant(ctx context.Context, d discogs.Discogs, want *pb.Want) error {
