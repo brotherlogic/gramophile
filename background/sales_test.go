@@ -2379,8 +2379,39 @@ func TestReconcileSales_HandlerRegistrationAndValidation(t *testing.T) {
 	}
 
 	dedupKey := handler.GetDeduplicationKey(entry)
-	if dedupKey != "" {
-		t.Errorf("expected empty deduplication key, got %v", dedupKey)
+	if dedupKey != "ReconcileSales-test_auth_token-1" {
+		t.Errorf("expected deduplication key 'ReconcileSales-test_auth_token-1', got '%v'", dedupKey)
+	}
+
+	err = handler.Validate(ctx, d, entry)
+	if err != nil {
+		t.Errorf("expected Validate to return nil, got %v", err)
+	}
+}
+
+func TestRefreshSales_HandlerRegistrationAndValidation(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	b.RegisterAllHandlers()
+
+	entry := &pb.QueueElement{
+		Auth: "test_auth_token",
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{Page: 2},
+		},
+	}
+
+	handler, err := b.getHandler(entry)
+	if err != nil {
+		t.Fatalf("handler not registered for QueueElement_RefreshSales: %v", err)
+	}
+
+	dedupKey := handler.GetDeduplicationKey(entry)
+	if dedupKey != "RefreshSales-test_auth_token-2" {
+		t.Errorf("expected deduplication key 'RefreshSales-test_auth_token-2', got '%v'", dedupKey)
 	}
 
 	err = handler.Validate(ctx, d, entry)
