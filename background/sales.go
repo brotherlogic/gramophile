@@ -792,8 +792,20 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 		return nil
 	}
 
-	if entry.GetRefreshSales().GetPage() == 1 && entry.GetRefreshSales().GetRefreshId() == 0 {
-		entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+	if entry.GetRefreshSales().GetPage() <= 1 {
+		if entry.GetRefreshSales().GetPage() == 0 {
+			entry.GetRefreshSales().Page = 1
+		}
+		if entry.GetRefreshSales().GetRefreshId() == 0 {
+			entry.GetRefreshSales().RefreshId = time.Now().UnixNano()
+		}
+		if entry.GetForce() || user.GetSaleSyncActiveTime() == 0 || time.Since(time.Unix(0, user.GetSaleSyncActiveTime())) > 24*time.Hour {
+			user.SaleSyncActiveTime = time.Now().UnixNano()
+			err := b.db.SaveUser(ctx, user)
+			if err != nil {
+				return fmt.Errorf("unable to save user: %w", err)
+			}
+		}
 	}
 	lastRefresh := user.GetLastSaleRefresh()
 	if entry.GetForce() {
@@ -809,6 +821,7 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 
 	if earlyTerminated || entry.GetRefreshSales().GetPage() >= pages.GetPages() {
 		user.LastSaleRefresh = time.Now().UnixNano()
+		user.SaleSyncActiveTime = 0
 		err = b.db.SaveUser(ctx, user)
 		if err != nil {
 			return fmt.Errorf("unable to save user: %w", err)
@@ -875,6 +888,14 @@ func (b *BackgroundRunner) ProcessReconcileSales(ctx context.Context, d discogs.
 		if reconcileSales.GetRefreshId() == 0 {
 			reconcileSales.RefreshId = time.Now().UnixNano()
 		}
+		if entry.GetForce() || user.GetSaleSyncActiveTime() == 0 || time.Since(time.Unix(0, user.GetSaleSyncActiveTime())) > 24*time.Hour {
+			user.SaleSyncActiveTime = time.Now().UnixNano()
+			err := b.db.SaveUser(ctx, user)
+			if err != nil {
+				saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+				return fmt.Errorf("unable to save user: %w", err)
+			}
+		}
 	}
 
 	pages, _, err := b.SyncSales(ctx, d, reconcileSales.GetPage(), reconcileSales.GetRefreshId(), 0)
@@ -897,6 +918,7 @@ func (b *BackgroundRunner) ProcessReconcileSales(ctx context.Context, d discogs.
 		}
 
 		user.LastSaleReconcile = time.Now().UnixNano()
+		user.SaleSyncActiveTime = 0
 		err = b.db.SaveUser(ctx, user)
 		if err != nil {
 			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()

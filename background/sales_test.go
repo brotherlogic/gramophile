@@ -2420,6 +2420,300 @@ func TestRefreshSales_HandlerRegistrationAndValidation(t *testing.T) {
 	}
 }
 
+func TestProcessRefreshSales_ClearsActiveTimeOnFinalPage(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
 
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh:    time.Now().Add(-25 * time.Hour).UnixNano(),
+		SaleSyncActiveTime: time.Now().Add(-10 * time.Minute).UnixNano(),
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
 
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        1,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
 
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be reset to 0 upon final page, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+}
+
+func TestProcessRefreshSales_ClearsActiveTimeOnEarlyTermination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	lastSaleRefresh := time.Now().Add(-25 * time.Hour).UnixNano()
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh:    lastSaleRefresh,
+		SaleSyncActiveTime: time.Now().Add(-10 * time.Minute).UnixNano(),
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Existing sale with ListedDate <= lastSaleRefresh triggers early termination
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1001,
+		ReleaseId:    2001,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   lastSaleRefresh - 1000,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        5,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be reset to 0 upon early termination, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+}
+
+func TestProcessRefreshSales_PreservesActiveTimeMidPagination(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	activeTime := time.Now().Add(-15 * time.Minute).UnixNano()
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh:    time.Now().Add(-25 * time.Hour).UnixNano(),
+		SaleSyncActiveTime: activeTime,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			2: {
+				{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      2,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != activeTime {
+		t.Errorf("expected SaleSyncActiveTime to be preserved (%v) mid pagination, got %v", activeTime, savedUser.GetSaleSyncActiveTime())
+	}
+}
+
+func TestProcessRefreshSales_ForceResetsActiveTime(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	oldActiveTime := time.Now().Add(-2 * time.Hour).UnixNano()
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh:    time.Now().UnixNano(), // Within 24h, Force should bypass
+		SaleSyncActiveTime: oldActiveTime,
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	entry := &pb.QueueElement{
+		Auth:  user.GetAuth().GetToken(),
+		Force: true,
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{
+				Page:      1,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessRefreshSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessRefreshSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() <= oldActiveTime {
+		t.Errorf("expected SaleSyncActiveTime to be reset > %v, got %v", oldActiveTime, savedUser.GetSaleSyncActiveTime())
+	}
+}
+
+func TestProcessReconcileSales_ClearsActiveTimeOnCompletion(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleReconcile:  time.Now().Add(-8 * 24 * time.Hour).UnixNano(),
+		SaleSyncActiveTime: time.Now().Add(-10 * time.Minute).UnixNano(),
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        1,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      1,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err = b.ProcessReconcileSales(ctx, di, user, entry, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessReconcileSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be reset to 0 upon reconcile completion, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+}
