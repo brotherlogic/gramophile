@@ -5077,8 +5077,11 @@ type StoredUser struct {
 	LastSaleAdjust         int64                  `protobuf:"varint,21,opt,name=last_sale_adjust,json=lastSaleAdjust,proto3" json:"last_sale_adjust,omitempty"`
 	LastOrderSync          int64                  `protobuf:"varint,22,opt,name=last_order_sync,json=lastOrderSync,proto3" json:"last_order_sync,omitempty"`
 	LastSaleReconcile      int64                  `protobuf:"varint,23,opt,name=last_sale_reconcile,json=lastSaleReconcile,proto3" json:"last_sale_reconcile,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Unix timestamp (nanoseconds) when an active sales sync (RefreshSales or ReconcileSales) was initiated.
+	// 0 denotes idle. Automatically treated as expired if time.Since(sale_sync_active_time) > 24h.
+	SaleSyncActiveTime int64 `protobuf:"varint,24,opt,name=sale_sync_active_time,json=saleSyncActiveTime,proto3" json:"sale_sync_active_time,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StoredUser) Reset() {
@@ -5268,6 +5271,13 @@ func (x *StoredUser) GetLastOrderSync() int64 {
 func (x *StoredUser) GetLastSaleReconcile() int64 {
 	if x != nil {
 		return x.LastSaleReconcile
+	}
+	return 0
+}
+
+func (x *StoredUser) GetSaleSyncActiveTime() int64 {
+	if x != nil {
+		return x.SaleSyncActiveTime
 	}
 	return 0
 }
@@ -9297,7 +9307,7 @@ const file_gramophile_proto_rawDesc = "" +
 	"\n" +
 	"JUST_SALES\x10\x04\"%\n" +
 	"\rDrainResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"\xb7\t\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"\xea\t\n" +
 	"\n" +
 	"StoredUser\x12.\n" +
 	"\x04auth\x18\x01 \x01(\v2\x1a.gramophile.GramophileAuthR\x04auth\x12!\n" +
@@ -9325,7 +9335,8 @@ const file_gramophile_proto_rawDesc = "" +
 	"\x15waitlist_issue_number\x18\x14 \x01(\x03R\x13waitlistIssueNumber\x12(\n" +
 	"\x10last_sale_adjust\x18\x15 \x01(\x03R\x0elastSaleAdjust\x12&\n" +
 	"\x0flast_order_sync\x18\x16 \x01(\x03R\rlastOrderSync\x12.\n" +
-	"\x13last_sale_reconcile\x18\x17 \x01(\x03R\x11lastSaleReconcile\"o\n" +
+	"\x13last_sale_reconcile\x18\x17 \x01(\x03R\x11lastSaleReconcile\x121\n" +
+	"\x15sale_sync_active_time\x18\x18 \x01(\x03R\x12saleSyncActiveTime\"o\n" +
 	"\tUserState\x12\x16\n" +
 	"\x12USER_STATE_UNKNOWN\x10\x00\x12\x19\n" +
 	"\x15USER_STATE_REFRESHING\x10\x01\x12\x1a\n" +

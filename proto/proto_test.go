@@ -414,4 +414,27 @@ func TestGetSaleCandidateProto(t *testing.T) {
 	}
 }
 
+func TestStoredUserSaleSyncActiveTime(t *testing.T) {
+	user := &StoredUser{
+		SaleSyncActiveTime: 1234567890,
+	}
+	if user.GetSaleSyncActiveTime() != 1234567890 {
+		t.Errorf("Expected SaleSyncActiveTime to be 1234567890, got %v", user.GetSaleSyncActiveTime())
+	}
+
+	data, err := protov2.Marshal(user)
+	if err != nil {
+		t.Fatalf("Failed to marshal StoredUser: %v", err)
+	}
+
+	unmarshaledUser := &StoredUser{}
+	if err := protov2.Unmarshal(data, unmarshaledUser); err != nil {
+		t.Fatalf("Failed to unmarshal StoredUser: %v", err)
+	}
+
+	if unmarshaledUser.GetSaleSyncActiveTime() != 1234567890 {
+		t.Errorf("Expected unmarshaled SaleSyncActiveTime to be 1234567890, got %v", unmarshaledUser.GetSaleSyncActiveTime())
+	}
+}
+
 

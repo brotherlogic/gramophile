@@ -603,6 +603,9 @@ message StoredUser {
     int64 last_sale_adjust = 21;
     int64 last_order_sync = 22;
     int64 last_sale_reconcile = 23;
+    // Unix timestamp (nanoseconds) when an active sales sync (RefreshSales or ReconcileSales) was initiated.
+    // 0 denotes idle. Automatically treated as expired if time.Since(sale_sync_active_time) > 24h.
+    int64 sale_sync_active_time = 24;
 }
 
 message GramophileAuth {
