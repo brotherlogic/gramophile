@@ -984,6 +984,160 @@ func TestGetRecord_SaleCandidate_OverallScoreOrder(t *testing.T) {
 	}
 }
 
+func TestGetRecord_SaleCandidate_FallbackToBuildSnapshot(t *testing.T) {
+	ctx := getTestContext(123)
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "my-org",
+						Foldersets: []*pb.FolderSet{
+							{
+								Folder: 12,
+								Sort:   pb.Sort_ARTIST_YEAR,
+							},
+						},
+						Spaces: []*pb.Space{
+							{
+								Name:  "shelf1",
+								Units: 1,
+								Width: 100,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Failed to save user: %v", err)
+	}
 
+	r1 := &pb.Record{
+		Release: &pbd.Release{
+			InstanceId: 1001,
+			Rating:     3,
+			FolderId:   12,
+			Artists:    []*pbd.Artist{{Name: "Artist A"}},
+			Title:      "Album A",
+		},
+		PackageScore: 2,
+		MedianPrice:  &pbd.Price{Value: 1500},
+		Arrived:      1000,
+	}
+	if err := d.SaveRecord(ctx, 123, r1); err != nil {
+		t.Fatalf("Failed to save record: %v", err)
+	}
 
+	// We do NOT save a snapshot to d; getSaleCandidate must fall back to BuildSnapshot
+	s := Server{d: d}
+	res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if len(res.GetRecords()) != 1 {
+		t.Fatalf("Expected 1 record, got %v", len(res.GetRecords()))
+	}
+	if res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId() != 1001 {
+		t.Errorf("Expected instance 1001, got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
+	}
+}
+
+func TestGetRecord_SaleCandidate_DuplicatePlacements(t *testing.T) {
+	ctx := getTestContext(123)
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "my-org"},
+				},
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Failed to save user: %v", err)
+	}
+
+	r1 := &pb.Record{
+		Release:      &pbd.Release{InstanceId: 1001, Rating: 3},
+		PackageScore: 2,
+		MedianPrice:  &pbd.Price{Value: 1500},
+		Arrived:      1000,
+	}
+	if err := d.SaveRecord(ctx, 123, r1); err != nil {
+		t.Fatalf("Failed to save record: %v", err)
+	}
+
+	snap := &pb.OrganisationSnapshot{
+		Placements: []*pb.Placement{
+			{Iid: 1001, Space: "shelf1", Unit: 1, Index: 1},
+			{Iid: 1001, Space: "shelf1", Unit: 1, Index: 2},
+		},
+	}
+	if err := d.SaveSnapshot(ctx, su, "my-org", snap); err != nil {
+		t.Fatalf("Failed to save snapshot: %v", err)
+	}
+
+	s := Server{d: d}
+	res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if len(res.GetRecords()) != 1 {
+		t.Fatalf("Expected 1 record, got %v", len(res.GetRecords()))
+	}
+}
+
+func TestGetRecord_SaleCandidate_RecordReadError(t *testing.T) {
+	ctx := getTestContext(123)
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "my-org"},
+				},
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Failed to save user: %v", err)
+	}
+
+	snap := &pb.OrganisationSnapshot{
+		Placements: []*pb.Placement{
+			{Iid: 9999, Space: "shelf1", Unit: 1, Index: 1},
+		},
+	}
+	if err := d.SaveSnapshot(ctx, su, "my-org", snap); err != nil {
+		t.Fatalf("Failed to save snapshot: %v", err)
+	}
+
+	s := Server{d: d}
+	_, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+		},
+	})
+	if err == nil {
+		t.Fatalf("Expected error when reading non-existent record from placement, got nil")
+	}
+}
 
