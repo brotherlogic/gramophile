@@ -9,7 +9,9 @@ import (
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/queuelogic"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/brotherlogic/gramophile/proto"
 )
@@ -37,7 +39,7 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+				log.Printf("unable to enqueue: %v", err)
 			}
 		}
 
@@ -75,7 +77,7 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+				log.Printf("unable to enqueue: %v", err)
 			}
 		}
 
@@ -97,14 +99,18 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 					},
 				})
 				if err != nil {
-					return fmt.Errorf("unable to enqueue: %w", err)
+					log.Printf("unable to enqueue: %v", err)
+					if status.Code(err) == codes.AlreadyExists {
+						enqueuedRefreshSales = true
+					}
+				} else {
+					user.SaleSyncActiveTime = time.Now().UnixNano()
+					err = d.SaveUser(ctx, user)
+					if err != nil {
+						return fmt.Errorf("unable to save user: %w", err)
+					}
+					enqueuedRefreshSales = true
 				}
-				user.SaleSyncActiveTime = time.Now().UnixNano()
-				err = d.SaveUser(ctx, user)
-				if err != nil {
-					return fmt.Errorf("unable to save user: %w", err)
-				}
-				enqueuedRefreshSales = true
 			}
 
 			if !enqueuedRefreshSales {
@@ -122,12 +128,13 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 						},
 					})
 					if err != nil {
-						return fmt.Errorf("unable to enqueue: %w", err)
-					}
-					user.SaleSyncActiveTime = time.Now().UnixNano()
-					err = d.SaveUser(ctx, user)
-					if err != nil {
-						return fmt.Errorf("unable to save user: %w", err)
+						log.Printf("unable to enqueue: %v", err)
+					} else {
+						user.SaleSyncActiveTime = time.Now().UnixNano()
+						err = d.SaveUser(ctx, user)
+						if err != nil {
+							return fmt.Errorf("unable to save user: %w", err)
+						}
 					}
 				}
 			}
@@ -148,7 +155,7 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 					},
 				})
 				if err != nil {
-					return fmt.Errorf("unable to enqueue: %w", err)
+					log.Printf("unable to enqueue: %v", err)
 				}
 			}
 		}
@@ -167,7 +174,7 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+				log.Printf("unable to enqueue: %v", err)
 			}
 		}
 
@@ -188,7 +195,7 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("unable to enqueue: %w", err)
+				log.Printf("unable to enqueue: %v", err)
 			}
 		}
 
@@ -231,7 +238,7 @@ func RunValidationLoop(ctx context.Context) error {
 	for _, user := range users.GetUsers() {
 		err := ValidateUser(ctx, user, client, queue, d)
 		if err != nil {
-			return err
+			log.Printf("unable to validate user %v: %v", user.GetAuth().GetToken(), err)
 		}
 	}
 
