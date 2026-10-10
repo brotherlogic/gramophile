@@ -9,6 +9,7 @@ import (
 	"github.com/brotherlogic/gramophile/config"
 	orglogic "github.com/brotherlogic/gramophile/org"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -315,44 +316,60 @@ func (s *Server) getSaleCandidate(ctx context.Context, u *pb.StoredUser, req *pb
 		return nil, status.Errorf(codes.NotFound, "unable to locate org called %v", req.GetOrgName())
 	}
 
-	snap, err := orglogic.GetOrgSwallow(s.d).BuildSnapshot(ctx, u, targetOrg, u.GetConfig().GetOrganisationConfig())
+	snap, err := s.d.GetLatestSnapshot(ctx, u.GetUser().GetDiscogsUserId(), targetOrg.GetName())
 	if err != nil || snap == nil || len(snap.GetPlacements()) == 0 {
-		fallbackSnap, fallbackErr := s.d.GetLatestSnapshot(ctx, u.GetUser().GetDiscogsUserId(), targetOrg.GetName())
-		if fallbackErr == nil && fallbackSnap != nil && len(fallbackSnap.GetPlacements()) > 0 {
-			snap = fallbackSnap
-		}
+		snap, err = orglogic.GetOrgSwallow(s.d).BuildSnapshot(ctx, u, targetOrg, u.GetConfig().GetOrganisationConfig())
 	}
 	if snap == nil || len(snap.GetPlacements()) == 0 {
 		return nil, status.Errorf(codes.NotFound, "no placements found for org %v", targetOrg.GetName())
 	}
 
-	var records []*pb.Record
+	var iids []int64
 	seen := make(map[int64]bool)
 	for _, p := range snap.GetPlacements() {
 		if seen[p.GetIid()] {
 			continue
 		}
 		seen[p.GetIid()] = true
-		r, err := s.d.GetRecord(ctx, u.GetUser().GetDiscogsUserId(), p.GetIid())
-		if err != nil {
-			return nil, err
-		}
+		iids = append(iids, p.GetIid())
+	}
+
+	records := make([]*pb.Record, len(iids))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+	for i, iid := range iids {
+		i, iid := i, iid
+		g.Go(func() error {
+			r, err := s.d.GetRecord(gctx, u.GetUser().GetDiscogsUserId(), iid)
+			if err != nil {
+				return err
+			}
+			records[i] = r
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	var validRecords []*pb.Record
+	for _, r := range records {
 		if r != nil {
-			records = append(records, r)
+			validRecords = append(validRecords, r)
 		}
 	}
 
-	if len(records) == 0 {
+	if len(validRecords) == 0 {
 		return nil, status.Errorf(codes.NotFound, "no records found for org %v", targetOrg.GetName())
 	}
 
-	sort.SliceStable(records, func(i, j int) bool {
-		return compareRecordsForSale(records[i], records[j])
+	sort.SliceStable(validRecords, func(i, j int) bool {
+		return compareRecordsForSale(validRecords[i], validRecords[j])
 	})
 
 	return &pb.GetRecordResponse{
 		Records: []*pb.RecordResponse{
-			{Record: records[0]},
+			{Record: validRecords[0]},
 		},
 	}, nil
 }
