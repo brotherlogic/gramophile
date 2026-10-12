@@ -55,7 +55,7 @@ func (s *Server) RefreshRecord(ctx context.Context, req *pb.RefreshRecordRequest
 			}},
 	}
 	if req.JustState {
-		element.Priority = pb.QueueElement_PRIORITY_HIGH
+		element.Priority = pb.QueueElement_PRIORITY_NORMAL
 	}
 
 	_, err = s.qc.Enqueue(ctx, &pb.EnqueueRequest{

@@ -111,6 +111,8 @@ func TestRefreshReleaseJustStateWithHighPrice(t *testing.T) {
 	}
 	if len(elems.GetElements()) != 1 {
 		t.Errorf("Expected 1 queue element (only state) when high price is present, got %v", len(elems.GetElements()))
+	} else if elems.GetElements()[0].GetPriority() != pb.QueueElement_PRIORITY_NORMAL {
+		t.Errorf("Expected RefreshState priority to be NORMAL, got %v", elems.GetElements()[0].GetPriority())
 	}
 }
 
