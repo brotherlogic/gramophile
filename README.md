@@ -13,6 +13,7 @@ Gramophile is built with Go.
 Current Go version: 1.26.2
 
 ## Features
+- JustState Refresh Priority Adjustment: Configures `RefreshState` queue tasks generated from `RefreshRecord` with `JustState` enabled to run at `PRIORITY_NORMAL` instead of `PRIORITY_HIGH`, preventing state refreshes from blocking high-priority intent processing.
 - LocateRecord: Provides functionality to query the location of records within the collection via the `gram locate` CLI command. It displays the artist name along with the title, and the shelf width percentage where the record is located.
 - Stylized ASCII Logo Header: Terminal User Interface features a custom ANSI Shadow ASCII art logo styled with Lip Gloss that persists across all views throughout the application session.
 - Organization Configuration Wizard: A guided interactive Terminal User Interface (TUI) wizard built with Bubble Tea and Charm Huh to help configure physical storage organizations (shelves, boxes) mapping to Discogs folders.
