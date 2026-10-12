@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,14 +11,24 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 	pstore_client "github.com/brotherlogic/pstore/client"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type testQueueClient struct {
 	pb.QueueServiceClient
-	enqueued []*pb.EnqueueRequest
+	enqueued    []*pb.EnqueueRequest
+	enqueueErr  error
+	enqueueFunc func(req *pb.EnqueueRequest) (*pb.EnqueueResponse, error)
 }
 
 func (t *testQueueClient) Enqueue(ctx context.Context, req *pb.EnqueueRequest, opts ...grpc.CallOption) (*pb.EnqueueResponse, error) {
+	if t.enqueueFunc != nil {
+		return t.enqueueFunc(req)
+	}
+	if t.enqueueErr != nil {
+		return nil, t.enqueueErr
+	}
 	t.enqueued = append(t.enqueued, req)
 	return &pb.EnqueueResponse{}, nil
 }
@@ -593,4 +604,114 @@ func TestSalesSync_ConcurrentMutualExclusion(t *testing.T) {
 		t.Errorf("expected ReconcileSales NOT to be enqueued in the same pass when RefreshSales is enqueued")
 	}
 }
+
+func TestValidateUser_EnqueueFailsAlreadyExists_DoesNotFail(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{
+		enqueueErr: status.Errorf(codes.AlreadyExists, "Already have &{page:1} in the queue"),
+	}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.Add(-8 * 24 * time.Hour).UnixNano(),
+		LastSaleRefresh:       now.UnixNano(),
+		LastSaleReconcile:     now.UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("expected validateUser not to fail when enqueue returns AlreadyExists, got: %v", err)
+	}
+}
+
+func TestValidateUser_EnqueueFailsGeneralError_DoesNotFail(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	queue := &testQueueClient{
+		enqueueErr: fmt.Errorf("queue connection error"),
+	}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.Add(-10 * 24 * time.Hour).UnixNano(),
+		LastCollectionCheck:   now.Add(-2 * time.Hour).UnixNano(),
+		LastCollectionRefresh: now.Add(-48 * time.Hour).UnixNano(),
+		LastSaleRefresh:       now.Add(-48 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.Add(-10 * 24 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.Add(-48 * time.Hour).UnixNano(),
+		LastOrderSync:         now.Add(-2 * time.Hour).UnixNano(),
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				HandlePriceUpdates: pb.Enabled_ENABLED_ENABLED,
+			},
+		},
+		LastSaleAdjust: now.Add(-2 * time.Hour).UnixNano(),
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("expected validateUser not to fail on transient enqueue error, got: %v", err)
+	}
+}
+
+func TestValidateUser_RefreshSalesAlreadyExists_BlocksReconcileSales(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+
+	reconcileEnqueued := false
+	queue := &testQueueClient{
+		enqueueFunc: func(req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+			if req.GetElement().GetRefreshSales() != nil {
+				return nil, status.Errorf(codes.AlreadyExists, "Already have RefreshSales in queue")
+			}
+			if req.GetElement().GetReconcileSales() != nil {
+				reconcileEnqueued = true
+			}
+			return &pb.EnqueueResponse{}, nil
+		},
+	}
+	client := &testGramophileClient{}
+
+	now := time.Now()
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "test_token"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 123},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-25 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.Add(-8 * 24 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		SaleSyncActiveTime:    0,
+	}
+
+	err := validateUser(ctx, user, client, queue, tdb)
+	if err != nil {
+		t.Fatalf("expected validateUser not to fail, got: %v", err)
+	}
+	if reconcileEnqueued {
+		t.Errorf("expected ReconcileSales NOT to be enqueued when RefreshSales is already in queue")
+	}
+}
+
 
