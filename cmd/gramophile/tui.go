@@ -164,6 +164,7 @@ type Model struct {
 
 	commandInput    string
 	textInput       textinput.Model
+	loginInput      textinput.Model
 	orgViewport     viewport.Model
 	orgSpinner      spinner.Model
 	activeOrgName   string
@@ -277,6 +278,12 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 	ti.CharLimit = 256
 	ti.Width = 60
 
+	li := textinput.New()
+	li.Placeholder = "Enter or paste auth token..."
+	li.Focus()
+	li.CharLimit = 256
+	li.Width = 60
+
 	lsi := textinput.New()
 	lsi.Placeholder = "Search collection by artist or title..."
 	lsi.Focus()
@@ -292,6 +299,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 		tokenSaver:        defaultTokenSaver,
 		progBar:           progress.New(progress.WithDefaultGradient()),
 		textInput:         ti,
+		loginInput:        li,
 		locateSearchInput: lsi,
 		orgSpinner:        newOrgSpinner(),
 		version:           "dev",
@@ -773,6 +781,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.state = StateLogin
+			m.loginInput.Focus()
 			return m, m.fetchURL()
 		}
 	case StateLogin:
@@ -808,6 +817,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		case loginPollMsg:
 			return m, m.pollLogin()
+		case tea.KeyMsg:
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+			switch msg.Type {
+			case tea.KeyEnter:
+				token := strings.TrimSpace(m.loginInput.Value())
+				if token == "" {
+					m.inlineErrMsg = "Error: Auth token cannot be empty"
+					return m, nil
+				}
+				if m.tokenSaver != nil {
+					if err := m.tokenSaver(token); err != nil {
+						m.err = err
+						m.inlineErrMsg = err.Error()
+						return m, nil
+					}
+				}
+				m.err = nil
+				m.inlineErrMsg = ""
+				m.loginRetryCount = 0
+				m.authToken = token
+				m.loginInput.SetValue("")
+				m.state = StateLoadingSync
+				return m, m.pollSync()
+			case tea.KeyEsc:
+				m.loginInput.SetValue("")
+				m.inlineErrMsg = ""
+				return m, nil
+			}
+			var cmd tea.Cmd
+			m.loginInput, cmd = m.loginInput.Update(msg)
+			return m, cmd
 		}
 	case StateLoadingSync:
 		switch msg := msg.(type) {
@@ -1318,7 +1360,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global quit
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" || (m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && m.state != StateLocateSearch && m.state != StateLocateVersionSelect && msg.String() == "q") {
+		if msg.String() == "ctrl+c" || (m.state != StateLogin && m.state != StateOrgView && m.state != StateLocateView && m.state != StateMainApp && m.state != StateOrgConfig && m.state != StateConfigSelect && m.state != StateLocateSearch && m.state != StateLocateVersionSelect && msg.String() == "q") {
 			return m, tea.Quit
 		}
 	}
@@ -1348,13 +1390,22 @@ func (m Model) View() string {
 	case StateStartupLogo:
 		body = "Press any key to continue..."
 	case StateLogin:
+		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
+		var sb strings.Builder
 		if m.err != nil {
-			body = fmt.Sprintf("Error: %v\nPress q to quit", m.err)
+			sb.WriteString(fmt.Sprintf("Error: %v\n\n", m.err))
 		} else if m.loginURL == "" {
-			body = "Fetching authentication URL..."
+			sb.WriteString("Fetching authentication URL...\n\n")
 		} else {
-			body = fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...", m.loginURL)
+			sb.WriteString(fmt.Sprintf("Please log in by visiting:\n\n  %s\n\nWaiting for authentication...\n\n", m.loginURL))
 		}
+		sb.WriteString("Or enter your auth token manually:\n")
+		sb.WriteString(promptStyle.Render("Token: ") + m.loginInput.View() + "\n")
+		if m.inlineErrMsg != "" {
+			errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Bold(true)
+			sb.WriteString("\n" + errStyle.Render(m.inlineErrMsg) + "\n")
+		}
+		body = sb.String()
 	case StateLoadingSync:
 		if m.err != nil {
 			body = fmt.Sprintf("Error fetching sync state: %v\n\nReconnecting...", m.err)

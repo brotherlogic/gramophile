@@ -3714,3 +3714,122 @@ func TestFooterStatusRendering(t *testing.T) {
 		})
 	}
 }
+
+func TestStateLogin_ManualTokenInputAndSubmission(t *testing.T) {
+	var capturedAuthToken string
+	mock := &mockClient{
+		getUserCtxFunc: func(ctx context.Context) (*pb.GetUserResponse, error) {
+			md, ok := metadata.FromOutgoingContext(ctx)
+			if ok && len(md.Get("auth-token")) > 0 {
+				capturedAuthToken = md.Get("auth-token")[0]
+			}
+			return &pb.GetUserResponse{User: &pb.StoredUser{ExpectedCollectionSize: 100, State: pb.StoredUser_USER_STATE_REFRESHING}}, nil
+		},
+	}
+
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLogin
+	m.loginURL = "https://discogs.com/oauth/authorize"
+
+	var savedToken string
+	m.tokenSaver = func(token string) error {
+		savedToken = token
+		return nil
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "Token:") {
+		t.Errorf("Expected StateLogin view to display manual token input prompt, got:\n%s", view)
+	}
+
+	// Type a token containing 'q' to verify 'q' does not trigger global quit
+	tokenToType := "manual-q-token-123"
+	for _, r := range tokenToType {
+		newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+		if cmd != nil && r == 'q' {
+			msg := cmd()
+			if _, isQuit := msg.(tea.QuitMsg); isQuit {
+				t.Fatalf("Pressing 'q' in StateLogin unexpectedly triggered tea.Quit")
+			}
+		}
+	}
+
+	// Submit with Enter
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateLoadingSync {
+		t.Errorf("Expected state to transition to StateLoadingSync on manual token submit, got %v", m.state)
+	}
+	if savedToken != tokenToType {
+		t.Errorf("Expected tokenSaver to be called with %q, got %q", tokenToType, savedToken)
+	}
+	if m.authToken != tokenToType {
+		t.Errorf("Expected m.authToken to be %q, got %q", tokenToType, m.authToken)
+	}
+	if cmd == nil {
+		t.Fatalf("Expected pollSync command to be returned on manual token submit")
+	}
+
+	// Execute pollSync command to verify authToken is attached to context
+	_ = cmd()
+	if capturedAuthToken != tokenToType {
+		t.Errorf("Expected pollSync RPC to include auth-token %q in metadata, got %q", tokenToType, capturedAuthToken)
+	}
+}
+
+func TestStateLogin_ManualTokenValidationAndPersistenceError(t *testing.T) {
+	mock := &mockClient{}
+	m := InitialModel(mock, mock, mock)
+	m.state = StateLogin
+
+	saverCalled := false
+	m.tokenSaver = func(token string) error {
+		saverCalled = true
+		return nil
+	}
+
+	// 1. Submit empty / whitespace token
+	for _, r := range "   " {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateLogin {
+		t.Errorf("Expected state to remain StateLogin on empty token submit, got %v", m.state)
+	}
+	if saverCalled {
+		t.Errorf("Expected tokenSaver not to be called for empty token")
+	}
+	if cmd != nil {
+		t.Errorf("Expected no command on empty token submit")
+	}
+	if !strings.Contains(m.View(), "cannot be empty") {
+		t.Errorf("Expected view to contain empty token validation error, got:\n%s", m.View())
+	}
+
+	// 2. Submit valid token when tokenSaver fails
+	m.tokenSaver = func(token string) error {
+		return fmt.Errorf("disk write error")
+	}
+	for _, r := range "valid-token" {
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(Model)
+	}
+	newModel, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(Model)
+
+	if m.state != StateLogin {
+		t.Errorf("Expected state to remain StateLogin when tokenSaver fails, got %v", m.state)
+	}
+	if cmd != nil {
+		t.Errorf("Expected no command when tokenSaver fails")
+	}
+	if !strings.Contains(m.View(), "disk write error") {
+		t.Errorf("Expected view to display tokenSaver error, got:\n%s", m.View())
+	}
+}
+
