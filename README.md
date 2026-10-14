@@ -106,6 +106,7 @@ Current Go version: 1.26.2
 - Resilient Validator Enqueue Error Handling: Updates `ValidateUser` and `RunValidationLoop` in `validatorlogic` to log enqueue failures instead of failing fatally when background tasks cannot be enqueued or are already present in the queue (`codes.AlreadyExists`), preserving sales sync mutual exclusion and ensuring periodic validation continues across tasks and users without terminating the validator process.
 - Optimized Sale Candidate Evaluation: Optimizes `GetSaleCandidate` evaluation in `server/getrecord.go` to prefer cached snapshots via `GetLatestSnapshot` (falling back to `BuildSnapshot` only when missing or empty) and fetches candidate placement records concurrently via `errgroup` to eliminate RPC timeouts.
 - Manual Token Entry in TUI Login: Adds an interactive text input field in `StateLogin` in the Gramophile TUI (`cmd/gramophile`) for headless and remote environments, exempting `StateLogin` from the global `q` quit shortcut and persisting submitted tokens via `tokenSaver` before transitioning to `StateLoadingSync`.
+- TUI Organization Editing & In-Place Configuration Updates: Lists existing organizations alongside the new organization option in `StateConfigSelect`, pre-populates form fields (`orgName`, `spaceName`, `spaceUnits`, `spaceWidth`, `selectedFolders`, `sortStrategy`) when editing an existing organization in `StateOrgConfig`, and updates existing organizations in place in `OrganisationConfig.Organisations` without creating duplicates.
 
 
 ## TUI (Terminal User Interface)

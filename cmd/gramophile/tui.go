@@ -161,6 +161,7 @@ type Model struct {
 	selectedFolders []string
 	sortStrategy    string
 	configTarget    string
+	editingOrgName  string
 
 	commandInput    string
 	textInput       textinput.Model
@@ -950,6 +951,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				if cmdStr == "configure org" || cmdStr == "config org" {
+					m.editingOrgName = ""
 					m.state = StateOrgConfig
 					m.orgErr = ""
 					m.inlineErrMsg = ""
@@ -957,6 +959,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				if cmdStr == "configure" || cmdStr == "config" {
+					m.editingOrgName = ""
 					m.state = StateConfigSelect
 					m.orgErr = ""
 					m.inlineErrMsg = ""
@@ -986,6 +989,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = StateMainApp
 			m.form = nil
 			m.orgErr = ""
+			m.editingOrgName = ""
 			return m, nil
 		}
 
@@ -1063,16 +1067,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					currentConfig = m.user.GetConfig()
 				} else {
 					currentConfig = &pb.GramophileConfig{}
+					if m.user != nil {
+						m.user.Config = currentConfig
+					}
 				}
 
 				if currentConfig.OrganisationConfig == nil {
 					currentConfig.OrganisationConfig = &pb.OrganisationConfig{}
 				}
 
-				currentConfig.OrganisationConfig.Organisations = append(
-					currentConfig.OrganisationConfig.Organisations,
-					newOrg,
-				)
+				updated := false
+				if m.editingOrgName != "" {
+					for i, existingOrg := range currentConfig.OrganisationConfig.Organisations {
+						if existingOrg != nil && existingOrg.GetName() == m.editingOrgName {
+							currentConfig.OrganisationConfig.Organisations[i] = newOrg
+							updated = true
+							break
+						}
+					}
+				}
+				if !updated {
+					for i, existingOrg := range currentConfig.OrganisationConfig.Organisations {
+						if existingOrg != nil && existingOrg.GetName() == newOrg.GetName() {
+							currentConfig.OrganisationConfig.Organisations[i] = newOrg
+							updated = true
+							break
+						}
+					}
+				}
+				if !updated {
+					currentConfig.OrganisationConfig.Organisations = append(
+						currentConfig.OrganisationConfig.Organisations,
+						newOrg,
+					)
+				}
 
 				m.orgName = ""
 				m.spaceName = ""
@@ -1080,6 +1108,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.spaceWidth = ""
 				m.selectedFolders = nil
 				m.sortStrategy = ""
+				m.editingOrgName = ""
 
 				return m, m.pollSetConfig(currentConfig)
 			}
@@ -1088,6 +1117,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = StateMainApp
 				m.form = nil
 				m.orgErr = ""
+				m.editingOrgName = ""
 				return m, nil
 			}
 
@@ -1100,6 +1130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = StateMainApp
 				m.form = nil
 				m.inlineErrMsg = ""
+				m.editingOrgName = ""
 				return m, nil
 			}
 		}
@@ -1112,6 +1143,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.form.State == huh.StateCompleted {
 				if m.configTarget == "org" {
+					m.editingOrgName = ""
+					m.state = StateOrgConfig
+					m.orgErr = ""
+					m.inlineErrMsg = ""
+					m.initOrgConfigForm()
+					return m, nil
+				}
+				if existing := m.findExistingOrg(m.configTarget); existing != nil {
+					m.editingOrgName = existing.GetName()
 					m.state = StateOrgConfig
 					m.orgErr = ""
 					m.inlineErrMsg = ""
@@ -1127,6 +1167,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = StateMainApp
 				m.form = nil
 				m.inlineErrMsg = ""
+				m.editingOrgName = ""
 				return m, nil
 			}
 
@@ -1662,15 +1703,35 @@ func (m Model) renderFooter() string {
 
 
 
+func (m *Model) findExistingOrg(name string) *pb.Organisation {
+	if name == "" || m.user == nil || m.user.GetConfig() == nil || m.user.GetConfig().GetOrganisationConfig() == nil {
+		return nil
+	}
+	for _, org := range m.user.GetConfig().GetOrganisationConfig().GetOrganisations() {
+		if org != nil && org.GetName() == name {
+			return org
+		}
+	}
+	return nil
+}
+
 func (m *Model) initConfigSelectForm() {
 	m.configTarget = "org"
+	options := []huh.Option[string]{
+		huh.NewOption("Create New Organisation (org)", "org"),
+	}
+	if m.user != nil && m.user.GetConfig() != nil && m.user.GetConfig().GetOrganisationConfig() != nil {
+		for _, org := range m.user.GetConfig().GetOrganisationConfig().GetOrganisations() {
+			if org != nil && org.GetName() != "" {
+				options = append(options, huh.NewOption(fmt.Sprintf("Edit Organisation: %s", org.GetName()), org.GetName()))
+			}
+		}
+	}
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Configuration Target").
-				Options(
-					huh.NewOption("org", "org"),
-				).
+				Options(options...).
 				Value(&m.configTarget),
 		),
 	)
@@ -1678,6 +1739,43 @@ func (m *Model) initConfigSelectForm() {
 }
 
 func (m *Model) initOrgConfigForm() {
+	m.orgName = ""
+	m.spaceName = ""
+	m.spaceUnits = ""
+	m.spaceWidth = ""
+	m.selectedFolders = nil
+	m.sortStrategy = ""
+
+	if m.editingOrgName != "" {
+		if existing := m.findExistingOrg(m.editingOrgName); existing != nil {
+			m.orgName = existing.GetName()
+			if len(existing.GetSpaces()) > 0 && existing.GetSpaces()[0] != nil {
+				sp := existing.GetSpaces()[0]
+				m.spaceName = sp.GetName()
+				if sp.GetUnits() > 0 {
+					m.spaceUnits = strconv.Itoa(int(sp.GetUnits()))
+				}
+				if sp.GetWidth() > 0 {
+					m.spaceWidth = strconv.FormatFloat(float64(sp.GetWidth()), 'f', -1, 32)
+				}
+			}
+			if len(existing.GetFoldersets()) > 0 {
+				var selected []string
+				for _, fs := range existing.GetFoldersets() {
+					if fs != nil {
+						selected = append(selected, fmt.Sprintf("%d", fs.GetFolder()))
+					}
+				}
+				m.selectedFolders = selected
+				if existing.GetFoldersets()[0] != nil {
+					m.sortStrategy = existing.GetFoldersets()[0].GetSort().String()
+				}
+			}
+		} else {
+			m.orgName = m.editingOrgName
+		}
+	}
+
 	var folderOptions []huh.Option[string]
 	if m.user != nil {
 		for _, f := range m.user.GetFolders() {
@@ -2053,6 +2151,14 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	}
 
 	if len(fields) > 0 && (fields[0] == "configure" || fields[0] == "config") {
+		if len(fields) >= 3 && fields[1] == "org" {
+			m.editingOrgName = strings.Trim(strings.Join(fields[2:], " "), "\"'")
+			m.state = StateOrgConfig
+			m.orgErr = ""
+			m.inlineErrMsg = ""
+			m.initOrgConfigForm()
+			return m, nil
+		}
 		m.inlineErrMsg = fmt.Sprintf("Unknown configuration target: %s. Usage: configure [org]", strings.Join(fields[1:], " "))
 		return m, nil
 	}
