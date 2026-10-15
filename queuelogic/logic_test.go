@@ -3,6 +3,7 @@ package queuelogic
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -941,3 +942,78 @@ func TestDrain_OtherSelectiveTypes(t *testing.T) {
 		t.Errorf("Expected 0 keys remaining, got %d", len(q.keys))
 	}
 }
+
+func TestDeduplicationClearedOnDelete(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123}
+	q := GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+
+	elem := &pb.QueueElement{
+		Intention: "From Test",
+		RunDate:   12345,
+		Entry: &pb.QueueElement_RefreshWantlists{
+			RefreshWantlists: &pb.RefreshWantlists{},
+		},
+		Auth: "123",
+	}
+
+	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if err != nil {
+		t.Fatalf("Failed to enqueue: %v", err)
+	}
+
+	// Try to enqueue again -> AlreadyExists
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("Expected AlreadyExists, got %v", err)
+	}
+
+	// Delete the element
+	err = q.delete(ctx, elem)
+	if err != nil {
+		t.Fatalf("Failed to delete element: %v", err)
+	}
+
+	// Enqueue should now succeed since hMap was cleared on delete
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if err != nil {
+		t.Fatalf("Failed to enqueue after delete: %v", err)
+	}
+}
+
+func TestDeduplicationErrorMessage(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123}
+	q := GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d)
+
+	elem := &pb.QueueElement{
+		Intention: "From Test",
+		RunDate:   12345,
+		Entry: &pb.QueueElement_RefreshWantlists{
+			RefreshWantlists: &pb.RefreshWantlists{},
+		},
+		Auth: "123",
+	}
+
+	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if err != nil {
+		t.Fatalf("Failed to enqueue: %v", err)
+	}
+
+	// Try to enqueue again -> AlreadyExists
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+	if status.Code(err) != codes.AlreadyExists {
+		t.Fatalf("Expected AlreadyExists, got %v", err)
+	}
+	if strings.Contains(err.Error(), "&{}") {
+		t.Errorf("Error should not contain obscure '&{}': got %v", err)
+	}
+	if !strings.Contains(err.Error(), "RefreshWantlists-123") {
+		t.Errorf("Error should contain key name 'RefreshWantlists-123': got %v", err)
+	}
+}
+

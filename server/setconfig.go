@@ -8,6 +8,8 @@ import (
 
 	"github.com/brotherlogic/gramophile/config"
 	pb "github.com/brotherlogic/gramophile/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func convertList(list *pb.StoredWantlist) *pb.Wantlist {
@@ -251,7 +253,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 				MoveRecords: &pb.MoveRecords{},
 			},
 		}})
-	if err != nil {
+	if err != nil && status.Code(err) != codes.AlreadyExists {
 		return nil, fmt.Errorf("unable to enqueue: %w", err)
 	}
 
@@ -266,7 +268,7 @@ func (s *Server) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.S
 				RefreshWantlists: &pb.RefreshWantlists{},
 			},
 		}})
-	if err != nil {
+	if err != nil && status.Code(err) != codes.AlreadyExists {
 		return nil, fmt.Errorf("unable to enqueue: %w", err)
 	}
 

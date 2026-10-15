@@ -74,7 +74,7 @@ func (h *refreshWantlistsHandler) Validate(ctx context.Context, db db.Database, 
 }
 
 func (h *refreshWantlistsHandler) GetDeduplicationKey(entry *pb.QueueElement) string {
-	return "RefreshWantlists"
+	return fmt.Sprintf("RefreshWantlists-%v", entry.GetAuth())
 }
 
 func (b *BackgroundRunner) PurgeDigitalwantlist(ctx context.Context, user *pb.StoredUser, userid int32) (*pb.Wantlist, error) {
