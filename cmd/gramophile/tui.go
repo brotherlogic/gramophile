@@ -292,7 +292,7 @@ func InitialModel(client AuthClient, orgClient OrgClient, locateClient LocateCli
 	lsi.Width = 60
 
 	return Model{
-		state:             StateStartupLogo,
+		state:             StateMainApp,
 		client:            client,
 		orgClient:         orgClient,
 		locateClient:      locateClient,
@@ -595,20 +595,64 @@ func (m *Model) getOrFetchRecord(iid, releaseID int64) (*pb.Record, tea.Cmd) {
 }
 
 func (m Model) Init() tea.Cmd {
-	logoCmd := tea.Tick(initialLogoDuration, func(t time.Time) tea.Msg {
+	startupCmd := func() tea.Msg {
 		return timeoutMsg{}
-	})
+	}
 	if m.version == "dev" || m.version == "" {
-		return logoCmd
+		return startupCmd
 	}
 	return tea.Batch(
-		logoCmd,
-		m.loadDiskCacheCmd(),
+		startupCmd,
 		checkUpdateCmd(m),
 		tea.Tick(15*time.Minute, func(t time.Time) tea.Msg {
 			return checkForUpdateMsg{}
 		}),
 	)
+}
+
+func (m Model) handleStartup() (tea.Model, tea.Cmd) {
+	if m.tokenLoader != nil {
+		token, err := m.tokenLoader()
+		if err == nil && token != "" {
+			m.authToken = token
+			m.state = StateMainApp
+
+			if m.cacheManager != nil {
+				if m.cacheManager.GetStatus() == CacheStatusUninitialized {
+					_ = m.cacheManager.LoadFromDisk()
+				}
+				if m.collectionIndex == nil {
+					cachedRecords := m.cacheManager.GetCachedRecords()
+					if len(cachedRecords) > 0 {
+						var recs []*pb.Record
+						for _, cr := range cachedRecords {
+							recs = append(recs, cachedToRecord(cr))
+						}
+						m.collectionIndex = recs
+						m.buildCollectionIndex(recs)
+						m.filterCollectionIndex()
+					}
+				}
+			}
+
+			hasValidCache := len(m.collectionIndex) > 0 && m.cacheManager != nil && m.cacheManager.GetStatus() != CacheStatusRebuilding
+
+			if hasValidCache && !m.cacheManager.IsExpired(7*24*time.Hour) {
+				m.cacheStatus = CacheStatusReady
+				m.cacheManager.SetStatus(CacheStatusReady)
+				return m, nil
+			}
+
+			m.cacheStatus = CacheStatusSyncing
+			if m.cacheManager != nil {
+				m.cacheManager.SetStatus(CacheStatusSyncing)
+			}
+			return m, m.syncCollectionCacheCmd()
+		}
+	}
+	m.state = StateLogin
+	m.loginInput.Focus()
+	return m, m.fetchURL()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -641,6 +685,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case timeoutMsg:
+		return m.handleStartup()
 	case cacheLoadedMsg:
 		if msg.err != nil {
 			log.Printf("Cache load warning: %v", msg.err)
@@ -736,54 +782,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateStartupLogo:
 		switch msg.(type) {
 		case tea.KeyMsg, timeoutMsg:
-			if m.tokenLoader != nil {
-				token, err := m.tokenLoader()
-				if err == nil && token != "" {
-					m.authToken = token
-
-					if m.cacheManager != nil {
-						if m.cacheManager.GetStatus() == CacheStatusUninitialized {
-							_ = m.cacheManager.LoadFromDisk()
-						}
-						if m.collectionIndex == nil {
-							cachedRecords := m.cacheManager.GetCachedRecords()
-							if len(cachedRecords) > 0 {
-								var recs []*pb.Record
-								for _, cr := range cachedRecords {
-									recs = append(recs, cachedToRecord(cr))
-								}
-								m.collectionIndex = recs
-								m.buildCollectionIndex(recs)
-								m.filterCollectionIndex()
-							}
-						}
-					}
-
-					hasValidCache := len(m.collectionIndex) > 0 && m.cacheManager != nil && m.cacheManager.GetStatus() != CacheStatusRebuilding
-
-					if hasValidCache {
-						m.state = StateMainApp
-						if m.cacheManager.IsExpired(7 * 24 * time.Hour) {
-							m.cacheStatus = CacheStatusSyncing
-							m.cacheManager.SetStatus(CacheStatusSyncing)
-							return m, m.syncCollectionCacheCmd()
-						}
-						m.cacheStatus = CacheStatusReady
-						m.cacheManager.SetStatus(CacheStatusReady)
-						return m, nil
-					}
-
-					m.cacheStatus = CacheStatusSyncing
-					if m.cacheManager != nil {
-						m.cacheManager.SetStatus(CacheStatusSyncing)
-					}
-					m.state = StateLoadingSync
-					return m, m.pollSync()
-				}
-			}
-			m.state = StateLogin
-			m.loginInput.Focus()
-			return m, m.fetchURL()
+			return m.handleStartup()
 		}
 	case StateLogin:
 		switch msg := msg.(type) {
@@ -1428,8 +1427,6 @@ func (m Model) renderLogo() string {
 func (m Model) View() string {
 	var body string
 	switch m.state {
-	case StateStartupLogo:
-		body = "Press any key to continue..."
 	case StateLogin:
 		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
 		var sb strings.Builder
@@ -1468,7 +1465,7 @@ func (m Model) View() string {
 			}
 			body = "Sync Complete!\n\n" + style.Render(waitMsg) + "\n"
 		}
-	case StateMainApp:
+	case StateStartupLogo, StateMainApp:
 		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 		promptStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
 

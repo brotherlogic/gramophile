@@ -101,24 +101,30 @@ func TestInitialModel_LocateClient(t *testing.T) {
 
 func TestStateTransitions(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
-
-	if m.state != StateStartupLogo {
-		t.Errorf("Expected initial state to be StateStartupLogo, got %v", m.state)
+	m.tokenLoader = func() (string, error) {
+		return "", fmt.Errorf("no token")
 	}
 
-	// Any key press in StateStartupLogo should transition to StateLogin
-	msg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, cmd := m.Update(msg)
-	
+	if m.state != StateMainApp {
+		t.Errorf("Expected initial state to be StateMainApp, got %v", m.state)
+	}
+
+	// Init should immediately trigger startup transition without requiring a key press
+	initCmd := m.Init()
+	if initCmd == nil {
+		t.Fatalf("Expected non-nil init command")
+	}
+	newModel, cmd := m.Update(initCmd())
+
 	updatedModel, ok := newModel.(Model)
 	if !ok {
 		t.Fatalf("Expected model to be of type Model")
 	}
 
 	if updatedModel.state != StateLogin {
-		t.Errorf("Expected state to transition to StateLogin on key press, got %v", updatedModel.state)
+		t.Errorf("Expected state to transition to StateLogin when no token is present, got %v", updatedModel.state)
 	}
-	
+
 	// And it should return a command to fetch the URL
 	if cmd == nil {
 		t.Errorf("Expected a command to be returned to fetch URL")
@@ -129,8 +135,14 @@ func TestStartupLogoView(t *testing.T) {
 	m := InitialModel(&mockClient{}, &mockClient{}, &mockClient{})
 	view := m.View()
 
-	if !strings.Contains(view, "██████╗") || !strings.Contains(view, "Press any key to continue...") {
-		t.Errorf("Expected startup logo view to contain ASCII art logo with '██████╗', got:\n%s", view)
+	if !strings.Contains(view, "██████╗") {
+		t.Errorf("Expected initial view to contain ASCII art logo with '██████╗', got:\n%s", view)
+	}
+	if !strings.Contains(view, "Command: ") {
+		t.Errorf("Expected initial view to load straight into the TUI with 'Command: ' prompt, got:\n%s", view)
+	}
+	if strings.Contains(view, "Press any key to continue...") {
+		t.Errorf("Expected initial view not to require a keypress ('Press any key to continue...'), got:\n%s", view)
 	}
 }
 
@@ -1387,42 +1399,32 @@ func TestLocateCommand_RPCError(t *testing.T) {
 func TestStartup_ExistingToken(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
+	m.cacheManager = NewCacheManager(filepath.Join(t.TempDir(), "test_cache"))
 	m.tokenLoader = func() (string, error) {
 		return "test-stored-token", nil
 	}
 
-	// 1. Key press transition
-	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, cmd := m.Update(keyMsg)
+	// Startup via Init() without requiring a key press
+	initCmd := m.Init()
+	if initCmd == nil {
+		t.Fatalf("Expected non-nil init command")
+	}
+	newModel, cmd := m.Update(initCmd())
 	updatedModel, ok := newModel.(Model)
 	if !ok {
 		t.Fatalf("Expected model to be of type Model")
 	}
-	if updatedModel.state != StateLoadingSync {
-		t.Errorf("Expected state to transition directly to StateLoadingSync, got %v", updatedModel.state)
+	if updatedModel.state != StateMainApp {
+		t.Errorf("Expected state to load straight into StateMainApp, got %v", updatedModel.state)
 	}
 	if updatedModel.authToken != "test-stored-token" {
 		t.Errorf("Expected authToken to be 'test-stored-token', got %v", updatedModel.authToken)
 	}
+	if !strings.Contains(updatedModel.View(), "Command: ") {
+		t.Errorf("Expected view to display 'Command: ' prompt, got:\n%s", updatedModel.View())
+	}
 	if cmd == nil {
-		t.Errorf("Expected pollSync cmd to be returned")
-	}
-
-	// 2. Timeout transition
-	timeoutMsgVal := timeoutMsg{}
-	newModel2, cmd2 := m.Update(timeoutMsgVal)
-	updatedModel2, ok := newModel2.(Model)
-	if !ok {
-		t.Fatalf("Expected model to be of type Model")
-	}
-	if updatedModel2.state != StateLoadingSync {
-		t.Errorf("Expected state to transition directly to StateLoadingSync on timeout, got %v", updatedModel2.state)
-	}
-	if updatedModel2.authToken != "test-stored-token" {
-		t.Errorf("Expected authToken to be 'test-stored-token', got %v", updatedModel2.authToken)
-	}
-	if cmd2 == nil {
-		t.Errorf("Expected pollSync cmd to be returned")
+		t.Errorf("Expected background cache sync cmd to be returned")
 	}
 }
 
@@ -1433,8 +1435,11 @@ func TestStartup_NoToken(t *testing.T) {
 		return "", fmt.Errorf("file not found")
 	}
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, cmd := m.Update(keyMsg)
+	initCmd := m.Init()
+	if initCmd == nil {
+		t.Fatalf("Expected non-nil init command")
+	}
+	newModel, cmd := m.Update(initCmd())
 	updatedModel := newModel.(Model)
 
 	if updatedModel.state != StateLogin {
@@ -3019,8 +3024,7 @@ func TestInstantStartupWithCache(t *testing.T) {
 	}
 	m.cacheManager = cm
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, _ := m.Update(keyMsg)
+	newModel, _ := m.Update(m.Init()())
 	updatedModel, ok := newModel.(Model)
 	if !ok {
 		t.Fatalf("Expected Model type")
@@ -3102,8 +3106,7 @@ func TestBackgroundSyncWhenExpired(t *testing.T) {
 	}
 	m.cacheManager = cm
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, cmd := m.Update(keyMsg)
+	newModel, cmd := m.Update(m.Init()())
 	updatedModel := newModel.(Model)
 
 	if updatedModel.state != StateMainApp {
@@ -3168,8 +3171,7 @@ func TestOfflineDegradedMode(t *testing.T) {
 	}
 	m.cacheManager = cm
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, cmd := m.Update(keyMsg)
+	newModel, cmd := m.Update(m.Init()())
 	updatedModel := newModel.(Model)
 
 	if cmd == nil {
