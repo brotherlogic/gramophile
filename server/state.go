@@ -36,11 +36,14 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 	count := int32(0)
 	cMutex := &sync.Mutex{}
 
+	var wg sync.WaitGroup
 	maxGoroutines := 8000
 	guard := make(chan struct{}, maxGoroutines)
 	for _, r := range collection {
 		guard <- struct{}{}
+		wg.Add(1)
 		go func(r int64) {
+			defer wg.Done()
 			rec, err := s.d.GetRecord(ctx, key.GetUser().GetDiscogsUserId(), r)
 			if err == nil {
 				if len(rec.GetIssues()) > 0 {
@@ -52,6 +55,7 @@ func (s *Server) GetState(ctx context.Context, req *pb.GetStateRequest) (*pb.Get
 			<-guard
 		}(r)
 	}
+	wg.Wait()
 
 	return &pb.GetStateResponse{
 		LastUserRefresh:    key.GetLastRefreshTime(),

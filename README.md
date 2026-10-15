@@ -107,6 +107,7 @@ Current Go version: 1.26.2
 - Optimized Sale Candidate Evaluation: Optimizes `GetSaleCandidate` evaluation in `server/getrecord.go` to prefer cached snapshots via `GetLatestSnapshot` (falling back to `BuildSnapshot` only when missing or empty) and fetches candidate placement records concurrently via `errgroup` to eliminate RPC timeouts.
 - Manual Token Entry in TUI Login: Adds an interactive text input field in `StateLogin` in the Gramophile TUI (`cmd/gramophile`) for headless and remote environments, exempting `StateLogin` from the global `q` quit shortcut and persisting submitted tokens via `tokenSaver` before transitioning to `StateLoadingSync`.
 - TUI Organization Editing & In-Place Configuration Updates: Lists existing organizations alongside the new organization option in `StateConfigSelect`, pre-populates form fields (`orgName`, `spaceName`, `spaceUnits`, `spaceWidth`, `selectedFolders`, `sortStrategy`) when editing an existing organization in `StateOrgConfig`, and updates existing organizations in place in `OrganisationConfig.Organisations` without creating duplicates.
+- TUI End-to-End Integration Testing: Connects the Bubble Tea TUI `InitialModel` in `cmd/gramophile` to an in-process Gramophile gRPC server (`server.BuildServer`) via `bufconn`, verifying end-to-end user journeys for OAuth and manual token authentication, initial sync and waitlist transitions, organization creation/viewing/in-place updates, and record location queries.
 
 
 ## TUI (Terminal User Interface)
