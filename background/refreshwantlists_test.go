@@ -218,3 +218,22 @@ func TestFastPathPurchased(t *testing.T) {
 		t.Errorf("Fast-path failed: entry state is %v, expected PURCHASED", wl.GetEntries()[0].GetState())
 	}
 }
+
+func TestRefreshWantlistsDeduplicationKey(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	handler := &refreshWantlistsHandler{b: b}
+
+	entry := &pb.QueueElement{
+		Auth: "user-token-123",
+		Entry: &pb.QueueElement_RefreshWantlists{
+			RefreshWantlists: &pb.RefreshWantlists{},
+		},
+	}
+
+	key := handler.GetDeduplicationKey(entry)
+	expected := "RefreshWantlists-user-token-123"
+	if key != expected {
+		t.Errorf("Unexpected deduplication key: got %q, want %q", key, expected)
+	}
+}
+

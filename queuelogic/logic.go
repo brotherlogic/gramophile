@@ -571,7 +571,7 @@ func (q *Queue) ExecuteInternal(ctx context.Context, d discogs.Discogs, u *pb.St
 		key := q.b.GetDeduplicationKey(entry)
 		if key != "" {
 			q.queueMutex.Lock()
-			q.hMap[key] = false
+			delete(q.hMap, key)
 			q.queueMutex.Unlock()
 		}
 	}
@@ -594,6 +594,12 @@ func (q *Queue) delete(ctx context.Context, entry *pb.QueueElement) error {
 	q.keys = nkeys
 	delete(q.pMap, entry.GetRunDate())
 	q.userCounts[entry.GetAuth()]--
+	if q.b != nil && q.hMap != nil {
+		key := q.b.GetDeduplicationKey(entry)
+		if key != "" {
+			delete(q.hMap, key)
+		}
+	}
 	q.queueMutex.Unlock()
 	// Also delete the stored key
 	_, err := q.pstore.Delete(ctx, &rspb.DeleteRequest{Key: fmt.Sprintf("%v%v", QUEUE_PREFIX, entry.GetRunDate())})
@@ -638,7 +644,7 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 		if q.hMap[key] {
 			q.queueMutex.Unlock()
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
-			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", req.GetElement().GetEntry())
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", key)
 		}
 		q.hMap[key] = true
 		q.queueMutex.Unlock()

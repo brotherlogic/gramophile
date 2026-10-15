@@ -109,6 +109,7 @@ Current Go version: 1.26.2
 - TUI Organization Editing & In-Place Configuration Updates: Lists existing organizations alongside the new organization option in `StateConfigSelect`, pre-populates form fields (`orgName`, `spaceName`, `spaceUnits`, `spaceWidth`, `selectedFolders`, `sortStrategy`) when editing an existing organization in `StateOrgConfig`, and updates existing organizations in place in `OrganisationConfig.Organisations` without creating duplicates.
 - TUI End-to-End Integration Testing: Connects the Bubble Tea TUI `InitialModel` in `cmd/gramophile` to an in-process Gramophile gRPC server (`server.BuildServer`) via `bufconn`, verifying end-to-end user journeys for OAuth and manual token authentication, initial sync and waitlist transitions, organization creation/viewing/in-place updates, and record location queries.
 - Direct TUI Command Prompt Startup: Boots the Gramophile TUI (`cmd/gramophile`) directly into `StateMainApp` with the interactive command prompt without waiting for a startup splash keypress or timer, loading local disk cache and triggering background collection synchronization automatically when authenticated.
+- Resilient Config Update Enqueue & Scoped Wantlist Deduplication: Handles background task deduplication gracefully during `SetConfig` without failing fatally on `codes.AlreadyExists`, scopes `RefreshWantlists` deduplication keys by user auth token, cleans up in-memory deduplication keys upon queue task deletion, and improves deduplication error reporting.
 
 
 ## TUI (Terminal User Interface)
