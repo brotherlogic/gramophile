@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -412,5 +413,67 @@ func TestConfigUpdate_SucceedsWhenRefreshAlreadyEnqueued(t *testing.T) {
 		t.Errorf("Config was not saved: got %v, want %v", user.GetConfig().GetBasis(), pb.Basis_GRAMOPHILE)
 	}
 }
+
+type testCustomQueueClient struct {
+	failOnMoveRecords      bool
+	failOnRefreshWantlists bool
+}
+
+func (c *testCustomQueueClient) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+	if c.failOnMoveRecords && req.GetElement().GetMoveRecords() != nil {
+		return nil, status.Errorf(codes.ResourceExhausted, "queue is full")
+	}
+	if c.failOnRefreshWantlists && req.GetElement().GetRefreshWantlists() != nil {
+		return nil, status.Errorf(codes.Internal, "fatal queue error")
+	}
+	return &pb.EnqueueResponse{}, nil
+}
+
+func TestConfigUpdate_FailsOnMoveRecordsFatalEnqueueError(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: &testCustomQueueClient{failOnMoveRecords: true}}
+
+	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err == nil {
+		t.Fatalf("Expected error when MoveRecords enqueue fails fatally, got nil")
+	}
+}
+
+func TestConfigUpdate_FailsOnRefreshWantlistsFatalEnqueueError(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Goal Folder"}}}
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	s := Server{d: d, di: di, qc: &testCustomQueueClient{failOnRefreshWantlists: true}}
+
+	nconfig := &pb.GramophileConfig{Basis: pb.Basis_GRAMOPHILE}
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{Config: nconfig})
+	if err == nil {
+		t.Fatalf("Expected error when RefreshWantlists enqueue fails fatally, got nil")
+	}
+}
+
 
 
