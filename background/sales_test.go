@@ -1061,6 +1061,68 @@ func TestAddSale_PopulatesConditionAndSleeveCondition(t *testing.T) {
 	}
 }
 
+func TestAddSale_PopulatesListedDate(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				ListingStrategy: pb.SaleConfig_LISTING_STRATEGY_MEDIAN,
+			},
+		},
+	}
+	err := d.SaveUser(ctx, user)
+	if err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			InstanceId:      1001,
+			Id:              2001,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+		},
+		MedianPrice: &pbd.Price{Value: 1500},
+		LowPrice:    &pbd.Price{Value: 1000},
+		HighPrice:   &pbd.Price{Value: 2000},
+	})
+	if err != nil {
+		t.Fatalf("failed to save record: %v", err)
+	}
+
+	dc := &discogs.TestDiscogsClient{UserId: 123}
+	err = b.AddSale(ctx, dc, 1001, &pbd.SaleParams{ReleaseId: 2001}, user)
+	if err != nil {
+		t.Fatalf("unexpected error from AddSale: %v", err)
+	}
+
+	sales, err := d.GetSales(ctx, 123)
+	if err != nil {
+		t.Fatalf("failed to get sales: %v", err)
+	}
+	if len(sales) == 0 {
+		t.Fatalf("expected at least 1 sale saved, got 0")
+	}
+
+	sale, err := d.GetSale(ctx, 123, sales[0])
+	if err != nil {
+		t.Fatalf("failed to get sale: %v", err)
+	}
+
+	if sale.GetListedDate() == 0 {
+		t.Errorf("expected ListedDate to be set > 0, got 0")
+	}
+	if sale.GetListedDate() != sale.GetTimeCreated() {
+		t.Errorf("expected ListedDate (%v) to match TimeCreated (%v)", sale.GetListedDate(), sale.GetTimeCreated())
+	}
+}
+
 func TestAddSale_FailsAndRaisesIssue_WhenConditionMissing(t *testing.T) {
 	ctx := context.Background()
 	pstore := pstore_client.GetTestClient()
