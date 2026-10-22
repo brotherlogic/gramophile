@@ -2698,7 +2698,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 		User:                  &pbd.User{DiscogsUserId: 123},
 		Auth:                  &pb.GramophileAuth{Token: "123"},
 		LastSaleRefresh:       staleTime,
-		LastSaleReconcile:     time.Now().Add(-8 * 24 * time.Hour).UnixNano(),
+		LastSaleReconcile:     time.Now().UnixNano(),
 		LastRefreshTime:       time.Now().UnixNano(),
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
@@ -2853,13 +2853,14 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	pstore := pstore_client.GetTestClient()
 	d := db.NewTestDB(pstore)
 
+	staleRefreshTime := time.Now().Add(-25 * time.Hour).UnixNano()
 	staleReconcileTime := time.Now().Add(-8 * 24 * time.Hour).UnixNano()
 	user := &pb.StoredUser{
 		Folders:               []*pbd.Folder{{Name: "12 Inches", Id: 123}},
 		User:                  &pbd.User{DiscogsUserId: 123},
 		Auth:                  &pb.GramophileAuth{Token: "123"},
-		LastSaleRefresh:       time.Now().UnixNano(), // fresh, so RefreshSales won't trigger
-		LastSaleReconcile:     staleReconcileTime,    // stale > 7d, so ReconcileSales should trigger
+		LastSaleRefresh:       staleRefreshTime,   // stale > 24h
+		LastSaleReconcile:     staleReconcileTime, // stale > 7d, so ReconcileSales should take priority over RefreshSales
 		LastRefreshTime:       time.Now().UnixNano(),
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
@@ -2903,15 +2904,45 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	qAdapter := &queueServiceAdapter{q: qc}
 	gClient := &dummyGramophileClient{}
 
-	// Step 1: Initial validator run triggers ReconcileSales
+	// Populate 200 throttled queue items (RefreshRelease) for user "123" so the user's queue is at MaxUserQueueSize
+	futureBase := time.Now().Add(time.Hour).UnixNano()
+	for i := 0; i < queuelogic.MaxUserQueueSize; i++ {
+		iid := int64(5000 + i)
+		err := d.SaveRecord(ctx, 123, &pb.Record{
+			Release:        &pbd.Release{Id: iid, InstanceId: iid, FolderId: 12},
+			HighPrice:      &pbd.Price{Value: 100, Currency: "USD"},
+			LastUpdateTime: time.Now().UnixNano(),
+		}, &db.SaveOptions{})
+		if err != nil {
+			t.Fatalf("failed to save throttled test record %d: %v", i, err)
+		}
+		_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: "Throttled test item",
+				RunDate:   futureBase + int64(i+1),
+				Auth:      "123",
+				Entry: &pb.QueueElement_RefreshRelease{
+					RefreshRelease: &pb.RefreshRelease{
+						Iid:       iid,
+						Intention: "Throttled test item",
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to enqueue RefreshRelease item %d: %v", i, err)
+		}
+	}
+
+	// Step 1: Initial validator run triggers ReconcileSales first (even though both RefreshSales and ReconcileSales are overdue and 200 items are queued)
 	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d)
 	if err != nil {
 		t.Fatalf("validator ValidateUser failed: %v", err)
 	}
 
-	// Verify validator enqueued ReconcileSales{Page: 1} and recorded SaleSyncActiveTime
+	// Verify validator enqueued ReconcileSales{Page: 1} (and not RefreshSales) and recorded SaleSyncActiveTime
 	if len(qAdapter.enqueuedEntries) != 1 || qAdapter.enqueuedEntries[0].GetReconcileSales() == nil {
-		t.Fatalf("expected 1 ReconcileSales entry enqueued by validator, got %v", qAdapter.enqueuedEntries)
+		t.Fatalf("expected 1 ReconcileSales entry enqueued by validator when both refresh and reconcile are overdue, got %v", qAdapter.enqueuedEntries)
 	}
 
 	userAfterInitialVal, err := d.GetUser(ctx, "123")
@@ -2979,7 +3010,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 		t.Errorf("expected 0 RefreshSales from validator, got %d", refreshCount)
 	}
 
-	// Step 3: Once ReconcileSales completes, SaleSyncActiveTime is cleared to 0 and LastSaleReconcile is updated
+	// Step 3: Once ReconcileSales completes, SaleSyncActiveTime is cleared to 0 and both LastSaleReconcile and LastSaleRefresh are updated
 	userAfterCompletion, err := d.GetUser(ctx, "123")
 	if err != nil {
 		t.Fatalf("failed to get user after completion: %v", err)
@@ -2990,20 +3021,30 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	if userAfterCompletion.GetLastSaleReconcile() <= staleReconcileTime {
 		t.Errorf("expected LastSaleReconcile to be updated > staleReconcileTime (%v), got %v", staleReconcileTime, userAfterCompletion.GetLastSaleReconcile())
 	}
+	if userAfterCompletion.GetLastSaleRefresh() <= staleRefreshTime {
+		t.Errorf("expected LastSaleRefresh to be updated > staleRefreshTime (%v), got %v", staleRefreshTime, userAfterCompletion.GetLastSaleRefresh())
+	}
 
-	// Step 4: Subsequent validator run does not re-enqueue ReconcileSales
+	// Step 4: Subsequent validator run does not re-enqueue ReconcileSales or RefreshSales
 	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d)
 	if err != nil {
 		t.Fatalf("post-completion ValidateUser failed: %v", err)
 	}
 	postReconcileCount := 0
+	postRefreshCount := 0
 	for _, entry := range qAdapter.enqueuedEntries {
 		if entry.GetReconcileSales() != nil && entry.GetIntention() == "From Validator (ReconcileSales)" {
 			postReconcileCount++
 		}
+		if entry.GetRefreshSales() != nil && entry.GetIntention() == "From Validator" {
+			postRefreshCount++
+		}
 	}
 	if postReconcileCount != 1 {
 		t.Errorf("expected ReconcileSales not to be re-enqueued post-completion, got %d", postReconcileCount)
+	}
+	if postRefreshCount != 0 {
+		t.Errorf("expected RefreshSales not to be enqueued post-completion, got %d", postRefreshCount)
 	}
 }
 

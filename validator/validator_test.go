@@ -597,11 +597,11 @@ func TestSalesSync_ConcurrentMutualExclusion(t *testing.T) {
 		}
 	}
 
-	if !foundRefresh {
-		t.Errorf("expected RefreshSales to be enqueued when both refresh and reconcile are due")
+	if !foundReconcile {
+		t.Errorf("expected ReconcileSales to be enqueued first when both refresh and reconcile are due")
 	}
-	if foundReconcile {
-		t.Errorf("expected ReconcileSales NOT to be enqueued in the same pass when RefreshSales is enqueued")
+	if foundRefresh {
+		t.Errorf("expected RefreshSales NOT to be enqueued in the same pass when ReconcileSales is enqueued")
 	}
 }
 
@@ -671,19 +671,19 @@ func TestValidateUser_EnqueueFailsGeneralError_DoesNotFail(t *testing.T) {
 	}
 }
 
-func TestValidateUser_RefreshSalesAlreadyExists_BlocksReconcileSales(t *testing.T) {
+func TestValidateUser_ReconcileSalesAlreadyExists_BlocksRefreshSales(t *testing.T) {
 	ctx := context.Background()
 	pstore := pstore_client.GetTestClient()
 	tdb := db.NewTestDB(pstore)
 
-	reconcileEnqueued := false
+	refreshEnqueued := false
 	queue := &testQueueClient{
 		enqueueFunc: func(req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-			if req.GetElement().GetRefreshSales() != nil {
-				return nil, status.Errorf(codes.AlreadyExists, "Already have RefreshSales in queue")
-			}
 			if req.GetElement().GetReconcileSales() != nil {
-				reconcileEnqueued = true
+				return nil, status.Errorf(codes.AlreadyExists, "Already have ReconcileSales in queue")
+			}
+			if req.GetElement().GetRefreshSales() != nil {
+				refreshEnqueued = true
 			}
 			return &pb.EnqueueResponse{}, nil
 		},
@@ -709,8 +709,8 @@ func TestValidateUser_RefreshSalesAlreadyExists_BlocksReconcileSales(t *testing.
 	if err != nil {
 		t.Fatalf("expected validateUser not to fail, got: %v", err)
 	}
-	if reconcileEnqueued {
-		t.Errorf("expected ReconcileSales NOT to be enqueued when RefreshSales is already in queue")
+	if refreshEnqueued {
+		t.Errorf("expected RefreshSales NOT to be enqueued when ReconcileSales is already in queue")
 	}
 }
 

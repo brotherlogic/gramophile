@@ -84,24 +84,24 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 		if IsSalesSyncActive(user) {
 			log.Printf("Sales sync active since %v ago, skipping RefreshSales and ReconcileSales", time.Since(time.Unix(0, user.GetSaleSyncActiveTime())))
 		} else {
-			enqueuedRefreshSales := false
-			log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
-			if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
+			enqueuedReconcileSales := false
+			log.Printf("ReconcileSales: %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
+			if time.Since(time.Unix(0, user.GetLastSaleReconcile())) > queuelogic.SaleReconcile {
 				_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
-						Intention:        "From Validator",
+						Intention:        "From Validator (ReconcileSales)",
 						RunDate:          time.Now().UnixNano(),
 						Auth:             user.GetAuth().GetToken(),
 						BackoffInSeconds: 15,
-						Entry: &pb.QueueElement_RefreshSales{
-							RefreshSales: &pb.RefreshSales{Page: 1},
+						Entry: &pb.QueueElement_ReconcileSales{
+							ReconcileSales: &pb.ReconcileSales{Page: 1},
 						},
 					},
 				})
 				if err != nil {
 					log.Printf("unable to enqueue: %v", err)
 					if status.Code(err) == codes.AlreadyExists {
-						enqueuedRefreshSales = true
+						enqueuedReconcileSales = true
 					}
 				} else {
 					user.SaleSyncActiveTime = time.Now().UnixNano()
@@ -109,21 +109,21 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 					if err != nil {
 						return fmt.Errorf("unable to save user: %w", err)
 					}
-					enqueuedRefreshSales = true
+					enqueuedReconcileSales = true
 				}
 			}
 
-			if !enqueuedRefreshSales {
-				log.Printf("ReconcileSales: %v", time.Since(time.Unix(0, user.GetLastSaleReconcile())))
-				if time.Since(time.Unix(0, user.GetLastSaleReconcile())) > queuelogic.SaleReconcile {
+			if !enqueuedReconcileSales {
+				log.Printf("Sales: %v", time.Since(time.Unix(0, user.GetLastSaleRefresh())))
+				if time.Since(time.Unix(0, user.GetLastSaleRefresh())) > time.Hour*24 {
 					_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
 						Element: &pb.QueueElement{
-							Intention:        "From Validator (ReconcileSales)",
+							Intention:        "From Validator",
 							RunDate:          time.Now().UnixNano(),
 							Auth:             user.GetAuth().GetToken(),
 							BackoffInSeconds: 15,
-							Entry: &pb.QueueElement_ReconcileSales{
-								ReconcileSales: &pb.ReconcileSales{Page: 1},
+							Entry: &pb.QueueElement_RefreshSales{
+								RefreshSales: &pb.RefreshSales{Page: 1},
 							},
 						},
 					})
