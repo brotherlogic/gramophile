@@ -821,13 +821,7 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 	qlog(ctx, "Got user: %v with %v", user, entry.GetRefreshSales())
 
 	if earlyTerminated || entry.GetRefreshSales().GetPage() >= pages.GetPages() {
-		user.LastSaleRefresh = time.Now().UnixNano()
-		user.SaleSyncActiveTime = 0
-		err = b.db.SaveUser(ctx, user)
-		if err != nil {
-			return fmt.Errorf("unable to save user: %w", err)
-		}
-		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+		err = EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: entry.GetIntention(),
 				RunDate:   time.Now().UnixNano() + 10,
@@ -840,10 +834,16 @@ func (b *BackgroundRunner) ProcessRefreshSales(ctx context.Context, d discogs.Di
 		if err != nil {
 			return fmt.Errorf("unable to enqueue link job: %w", err)
 		}
+		user.LastSaleRefresh = time.Now().UnixNano()
+		user.SaleSyncActiveTime = 0
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			return fmt.Errorf("unable to save user: %w", err)
+		}
 		return nil
 	}
 
-	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+	err = EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention: entry.GetIntention(),
 			RunDate:   time.Now().UnixNano() + 1,
@@ -918,15 +918,7 @@ func (b *BackgroundRunner) ProcessReconcileSales(ctx context.Context, d discogs.
 			return fmt.Errorf("unable to clean sales: %w", err)
 		}
 
-		user.LastSaleReconcile = time.Now().UnixNano()
-		user.SaleSyncActiveTime = 0
-		err = b.db.SaveUser(ctx, user)
-		if err != nil {
-			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
-			return fmt.Errorf("unable to save user: %w", err)
-		}
-
-		err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+		err = EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: entry.GetIntention(),
 				RunDate:   time.Now().UnixNano() + 10,
@@ -941,11 +933,21 @@ func (b *BackgroundRunner) ProcessReconcileSales(ctx context.Context, d discogs.
 			return fmt.Errorf("unable to enqueue link job: %w", err)
 		}
 
+		now := time.Now().UnixNano()
+		user.LastSaleReconcile = now
+		user.LastSaleRefresh = now
+		user.SaleSyncActiveTime = 0
+		err = b.db.SaveUser(ctx, user)
+		if err != nil {
+			saleReconcileTotal.With(prometheus.Labels{"status": "error"}).Inc()
+			return fmt.Errorf("unable to save user: %w", err)
+		}
+
 		saleReconcileTotal.With(prometheus.Labels{"status": "success"}).Inc()
 		return nil
 	}
 
-	err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+	err = EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
 		Element: &pb.QueueElement{
 			Intention: entry.GetIntention(),
 			RunDate:   time.Now().UnixNano() + 1,
