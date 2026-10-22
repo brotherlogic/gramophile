@@ -192,13 +192,15 @@ func TestTypeOverride_NoOverride(t *testing.T) {
 	*/
 	d.SaveSale(context.Background(), 123,
 		&pb.SaleInfo{
-			ReleaseId:    123,
-			SaleId:       12345,
-			TimeAtMedian: time.Now().Add(-time.Hour * 48).UnixNano(),
-			CurrentPrice: &pbd.Price{Value: 200},
-			MedianPrice:  &pbd.Price{Value: 200},
-			LowPrice:     &pbd.Price{Value: 50},
-			SaleState:    pbd.SaleStatus_FOR_SALE})
+			ReleaseId:       123,
+			SaleId:          12345,
+			TimeAtMedian:    time.Now().Add(-time.Hour * 48).UnixNano(),
+			CurrentPrice:    &pbd.Price{Value: 200},
+			MedianPrice:     &pbd.Price{Value: 200},
+			LowPrice:        &pbd.Price{Value: 50},
+			Condition:       "Very Good Plus (VG+)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			SaleState:       pbd.SaleStatus_FOR_SALE})
 
 	b := GetBackgroundRunner(d, "", "", "")
 
@@ -242,6 +244,8 @@ func TestTypeOverride_Override(t *testing.T) {
 			CurrentPrice:       &pbd.Price{Value: 200},
 			MedianPrice:        &pbd.Price{Value: 200},
 			LowPrice:           &pbd.Price{Value: 50},
+			Condition:          "Very Good Plus (VG+)",
+			SleeveCondition:    "Very Good Plus (VG+)",
 			SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
 			SaleState:          pbd.SaleStatus_FOR_SALE})
 
@@ -594,6 +598,8 @@ func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 		ReleaseId:       100,
 		CurrentPrice:    &pbd.Price{Value: 500},
 		MedianPrice:     &pbd.Price{Value: 0}, // Missing metadata
+		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		LastPriceUpdate: initialLastPriceUpdate,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 	})
@@ -777,6 +783,8 @@ func TestAdjustSales_ResilientLoopContinuesOnIndividualError(t *testing.T) {
 		ReleaseId:          1000,
 		CurrentPrice:       &pbd.Price{Value: 500},
 		MedianPrice:        &pbd.Price{Value: 400},
+		Condition:          "Very Good Plus (VG+)",
+		SleeveCondition:    "Very Good Plus (VG+)",
 		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
 		SaleState:          pbd.SaleStatus_FOR_SALE,
 		SaleUpdateOverride: pb.SaleUpdateType(999), // Invalid update type -> error in adjustPrice
@@ -788,6 +796,8 @@ func TestAdjustSales_ResilientLoopContinuesOnIndividualError(t *testing.T) {
 		ReleaseId:          2000,
 		CurrentPrice:       &pbd.Price{Value: 500},
 		MedianPrice:        &pbd.Price{Value: 400},
+		Condition:          "Very Good Plus (VG+)",
+		SleeveCondition:    "Very Good Plus (VG+)",
 		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
 		SaleState:          pbd.SaleStatus_FOR_SALE,
 		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
@@ -859,6 +869,8 @@ func TestAdjustSales_ExpectedLowPriceContinuesLoop(t *testing.T) {
 		CurrentPrice:       &pbd.Price{Value: 50},
 		MedianPrice:        &pbd.Price{Value: 200},
 		LowPrice:           &pbd.Price{Value: 50},
+		Condition:          "Very Good Plus (VG+)",
+		SleeveCondition:    "Very Good Plus (VG+)",
 		TimeAtMedian:       time.Now().Add(-time.Hour * 48).UnixNano(),
 		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
 		SaleState:          pbd.SaleStatus_FOR_SALE,
@@ -871,6 +883,8 @@ func TestAdjustSales_ExpectedLowPriceContinuesLoop(t *testing.T) {
 		ReleaseId:          2000,
 		CurrentPrice:       &pbd.Price{Value: 500},
 		MedianPrice:        &pbd.Price{Value: 400},
+		Condition:          "Very Good Plus (VG+)",
+		SleeveCondition:    "Very Good Plus (VG+)",
 		LastPriceUpdate:    time.Now().Add(-time.Hour * 48).UnixNano(),
 		SaleState:          pbd.SaleStatus_FOR_SALE,
 		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
@@ -3272,5 +3286,325 @@ func TestSyncSales_Incremental_EarlyTerminationWithPostedTimestamp(t *testing.T)
 	_, err = d.GetSale(ctx, userId, 1004)
 	if status.Code(err) != codes.NotFound {
 		t.Errorf("expected sale 1004 not to be processed after early termination, got err: %v", err)
+	}
+}
+
+func TestHardLink_PreservesSaleConditionsWhenRecordConditionsEmpty(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}
+
+	// Case 1: Record has both Condition == "" and SleeveCondition == "", while Sale has both populated (EC1)
+	// Case 2: Record has Condition == "Mint (M)" and SleeveCondition == "", while Sale has Condition == "Very Good Plus (VG+)" and SleeveCondition == "Near Mint (NM or M-)" (EC4 partial update)
+	// Case 3: Record has Condition == "" and SleeveCondition == "Generic", while Sale has Condition == "Near Mint (NM or M-)" and SleeveCondition == "Very Good (VG)" (EC4 partial update)
+	records := []*pb.Record{
+		{
+			Release: &pbd.Release{
+				Id:              101,
+				InstanceId:      1001,
+				Condition:       "",
+				SleeveCondition: "",
+			},
+			MedianPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+		{
+			Release: &pbd.Release{
+				Id:              102,
+				InstanceId:      1002,
+				Condition:       "Mint (M)",
+				SleeveCondition: "",
+			},
+		},
+		{
+			Release: &pbd.Release{
+				Id:              103,
+				InstanceId:      1003,
+				Condition:       "",
+				SleeveCondition: "Generic",
+			},
+		},
+	}
+
+	sales := []*pb.SaleInfo{
+		{
+			SaleId:          501,
+			ReleaseId:       101,
+			SaleState:       pbd.SaleStatus_FOR_SALE,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+		},
+		{
+			SaleId:          502,
+			ReleaseId:       102,
+			SaleState:       pbd.SaleStatus_FOR_SALE,
+			Condition:       "Very Good Plus (VG+)",
+			SleeveCondition: "Near Mint (NM or M-)",
+		},
+		{
+			SaleId:          503,
+			ReleaseId:       103,
+			SaleState:       pbd.SaleStatus_FOR_SALE,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good (VG)",
+		},
+	}
+
+	for _, s := range sales {
+		if err := d.SaveSale(ctx, 123, s); err != nil {
+			t.Fatalf("failed to save initial sale %v: %v", s.GetSaleId(), err)
+		}
+	}
+	for _, r := range records {
+		if err := d.SaveRecord(ctx, 123, r, &db.SaveOptions{}); err != nil {
+			t.Fatalf("failed to save initial record %v: %v", r.GetRelease().GetInstanceId(), err)
+		}
+	}
+
+	if err := b.HardLink(ctx, user, records, sales); err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	// Verify Sale 501 preserved both Condition and SleeveCondition
+	sale501, err := d.GetSale(ctx, 123, 501)
+	if err != nil {
+		t.Fatalf("failed to get sale 501: %v", err)
+	}
+	if sale501.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected sale 501 Condition 'Near Mint (NM or M-)' to be preserved, got %q", sale501.GetCondition())
+	}
+	if sale501.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected sale 501 SleeveCondition 'Very Good Plus (VG+)' to be preserved, got %q", sale501.GetSleeveCondition())
+	}
+
+	// Verify Sale 502 updated Condition to 'Mint (M)' and preserved SleeveCondition 'Near Mint (NM or M-)'
+	sale502, err := d.GetSale(ctx, 123, 502)
+	if err != nil {
+		t.Fatalf("failed to get sale 502: %v", err)
+	}
+	if sale502.GetCondition() != "Mint (M)" {
+		t.Errorf("expected sale 502 Condition to be updated to 'Mint (M)', got %q", sale502.GetCondition())
+	}
+	if sale502.GetSleeveCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected sale 502 SleeveCondition 'Near Mint (NM or M-)' to be preserved, got %q", sale502.GetSleeveCondition())
+	}
+
+	// Verify Sale 503 preserved Condition 'Near Mint (NM or M-)' and updated SleeveCondition to 'Generic'
+	sale503, err := d.GetSale(ctx, 123, 503)
+	if err != nil {
+		t.Fatalf("failed to get sale 503: %v", err)
+	}
+	if sale503.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected sale 503 Condition 'Near Mint (NM or M-)' to be preserved, got %q", sale503.GetCondition())
+	}
+	if sale503.GetSleeveCondition() != "Generic" {
+		t.Errorf("expected sale 503 SleeveCondition to be updated to 'Generic', got %q", sale503.GetSleeveCondition())
+	}
+}
+
+func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				StaleBound: 500,
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Sale 1001: Missing Condition (""), valid SleeveCondition; price would reach MedianPrice (2000) if adjusted
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		Condition:       "",
+		SleeveCondition: "Very Good Plus (VG+)",
+		CurrentPrice:    &pbd.Price{Value: 2050, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 2000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 1000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 1001: %v", err)
+	}
+
+	// Sale 1002: Valid Condition, missing SleeveCondition (""); price would reach LowPrice (1000) and StaleBound (500) if adjusted
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1002,
+		ReleaseId:       2002,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "",
+		CurrentPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 1000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 1000, Currency: "USD"},
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 1002: %v", err)
+	}
+
+	config := &pb.SaleConfig{
+		UpdateFrequencySeconds: 10,
+		UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+		Reduction:              100,
+		StaleBound:             500,
+	}
+
+	var refreshEnqueues []*pb.QueueElement
+	var updateSaleEnqueues []*pb.UpdateSale
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		elem := req.GetElement()
+		if elem.GetRefreshSales() != nil {
+			refreshEnqueues = append(refreshEnqueues, elem)
+			if len(refreshEnqueues) > 1 {
+				// Simulate duplicate RefreshSales enqueue across multiple wiped sales returning AlreadyExists (EC5)
+				return nil, status.Errorf(codes.AlreadyExists, "RefreshSales already queued")
+			}
+			return &pb.EnqueueResponse{}, nil
+		}
+		if elem.GetUpdateSale() != nil {
+			updateSaleEnqueues = append(updateSaleEnqueues, elem.GetUpdateSale())
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	err := b.AdjustSales(ctx, config, user, enqueue)
+	if err != nil {
+		t.Fatalf("AdjustSales failed: %v", err)
+	}
+
+	if len(updateSaleEnqueues) != 0 {
+		t.Errorf("expected 0 UpdateSale tasks enqueued when condition or sleeve_condition is empty, got %d: %v", len(updateSaleEnqueues), updateSaleEnqueues)
+	}
+
+	if len(refreshEnqueues) != 2 {
+		t.Fatalf("expected RefreshSales to be triggered for both wiped sales (2 attempts), got %d", len(refreshEnqueues))
+	}
+	for i, elem := range refreshEnqueues {
+		if elem.GetRefreshSales().GetPage() != 1 {
+			t.Errorf("enqueue[%d]: expected RefreshSales{Page: 1}, got page %d", i, elem.GetRefreshSales().GetPage())
+		}
+		if !elem.GetForce() {
+			t.Errorf("enqueue[%d]: expected Force=true on RefreshSales, got false", i)
+		}
+		if elem.GetAuth() != "test_token" {
+			t.Errorf("enqueue[%d]: expected Auth='test_token', got %q", i, elem.GetAuth())
+		}
+	}
+
+	// Verify TimeAtMedian / TimeAtLow / TimeAtStale were not mutated on either sale
+	for _, sid := range []int64{1001, 1002} {
+		sale, err := d.GetSale(ctx, userId, sid)
+		if err != nil {
+			t.Fatalf("failed to get sale %d: %v", sid, err)
+		}
+		if sale.GetTimeAtMedian() != 0 || sale.GetTimeAtLow() != 0 || sale.GetTimeAtStale() != 0 {
+			t.Errorf("expected TimeAtMedian/TimeAtLow/TimeAtStale to remain 0 for skipped sale %d, got median=%d low=%d stale=%d",
+				sid, sale.GetTimeAtMedian(), sale.GetTimeAtLow(), sale.GetTimeAtStale())
+		}
+	}
+}
+
+func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+	}
+
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 1001: %v", err)
+	}
+
+	dc := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 5000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		},
+	}
+
+	var refreshEnqueues []*pb.QueueElement
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if req.GetElement().GetRefreshSales() != nil {
+			refreshEnqueues = append(refreshEnqueues, req.GetElement())
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	// Subcase 1: Empty Condition ("") with non-empty SleeveCondition
+	err := b.ProcessUpdateSale(ctx, dc, user, &pb.UpdateSale{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		NewPrice:        4500,
+		Condition:       "",
+		SleeveCondition: "Very Good Plus (VG+)",
+	}, enqueue)
+	if err != nil {
+		t.Fatalf("ProcessUpdateSale failed on empty Condition: %v", err)
+	}
+
+	// Subcase 2: Non-empty Condition with empty SleeveCondition ("") via updateSaleHandler.Execute
+	err = b.Execute(ctx, dc, user, &pb.QueueElement{
+		Auth: "test_token",
+		Entry: &pb.QueueElement_UpdateSale{
+			UpdateSale: &pb.UpdateSale{
+				SaleId:          1001,
+				ReleaseId:       2001,
+				NewPrice:        4500,
+				Condition:       "Near Mint (NM or M-)",
+				SleeveCondition: "",
+			},
+		},
+	}, enqueue)
+	if err != nil {
+		t.Fatalf("Execute(UpdateSale) failed on empty SleeveCondition: %v", err)
+	}
+
+	if len(refreshEnqueues) != 2 {
+		t.Fatalf("expected 2 RefreshSales enqueues (one for empty Condition, one for empty SleeveCondition), got %d", len(refreshEnqueues))
+	}
+	for i, elem := range refreshEnqueues {
+		if elem.GetRefreshSales().GetPage() != 1 {
+			t.Errorf("enqueue[%d]: expected RefreshSales{Page: 1}, got page %d", i, elem.GetRefreshSales().GetPage())
+		}
+		if !elem.GetForce() {
+			t.Errorf("enqueue[%d]: expected Force=true on RefreshSales, got false", i)
+		}
+		if elem.GetAuth() != "test_token" {
+			t.Errorf("enqueue[%d]: expected Auth='test_token', got %q", i, elem.GetAuth())
+		}
+	}
+
+	// Verify UpdateSalePrice was not called and price remained 5000
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Fatalf("failed to get sale 1001: %v", err)
+	}
+	if sale1001.GetCurrentPrice().GetValue() != 5000 {
+		t.Errorf("expected sale 1001 price to remain 5000 when skipped, got %v", sale1001.GetCurrentPrice().GetValue())
 	}
 }

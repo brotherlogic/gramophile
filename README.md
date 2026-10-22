@@ -112,6 +112,7 @@ Current Go version: 1.26.2
 - Resilient Config Update Enqueue & Scoped Wantlist Deduplication: Handles background task deduplication gracefully during `SetConfig` without failing fatally on `codes.AlreadyExists`, scopes `RefreshWantlists` deduplication keys by user auth token, cleans up in-memory deduplication keys upon queue task deletion, and improves deduplication error reporting.
 - Direct Sale Listing Timestamp Persistence: Populates `ListedDate` alongside `TimeCreated`, `TimeRefreshed`, and `LastPriceUpdate` when creating sales directly through `BackgroundRunner.AddSale`.
 - Newest-First Sales Sync & Discogs Posted Timestamp Backfill: Updates `github.com/brotherlogic/discogs` for newest-first `ListSales` ordering and `SaleItem.Posted` timestamps, and updates `BackgroundRunner.SyncSales` to populate and backfill `SaleInfo.ListedDate` from `sale.GetPosted()` for accurate incremental early termination.
+- Non-Destructive HardLink Condition Propagation & Missing-Condition Recovery Sync: Evaluates `Condition` and `SleeveCondition` independently in `HardLink` so empty record conditions never overwrite populated sale conditions, and guards `AdjustSales` and `ProcessUpdateSale` against missing `Condition` or `SleeveCondition` by skipping the adjustment and enqueuing a forced `RefreshSales` task.
 
 
 ## TUI (Terminal User Interface)
