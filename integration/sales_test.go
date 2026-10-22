@@ -2269,6 +2269,11 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 	}
 
 	// Mock Discogs client across multiple pages (2 pages) with descending listed dates
+	posted1002 := time.Now().Add(-30 * time.Hour).UnixNano()
+	posted1001 := time.Now().Add(-40 * time.Hour).UnixNano()
+	posted1000 := time.Now().Add(-50 * time.Hour).UnixNano()
+	posted1003 := time.Now().Add(-2 * time.Hour).UnixNano()
+
 	mockDiscogs := &paginatedSalesDiscogsClient{
 		TestDiscogsClient: &discogs.TestDiscogsClient{
 			UserId: 123,
@@ -2277,11 +2282,11 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 		totalPages: 2,
 		pages: map[int32][]*pbd.SaleItem{
 			1: {
-				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
-				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1002},
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1001},
 			},
 			2: {
-				{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+				{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1000},
 			},
 		},
 	}
@@ -2323,13 +2328,23 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 		t.Errorf("expected LastSaleRefresh to be updated from 0, got 0")
 	}
 
-	// 3. Verify sales ingested into DB
+	// 3. Verify sales ingested into DB with their Discogs Posted timestamps as ListedDate
+	expectedPosted := map[int64]int64{
+		1000: posted1000,
+		1001: posted1001,
+		1002: posted1002,
+	}
 	for _, sid := range []int64{1000, 1001, 1002} {
 		sale, err := d.GetSale(ctx, 123, sid)
 		if err != nil {
 			t.Errorf("expected sale %v to be saved in DB: %v", sid, err)
-		} else if sale.GetSaleState() != pbd.SaleStatus_FOR_SALE {
-			t.Errorf("expected sale %v to be FOR_SALE, got %v", sid, sale.GetSaleState())
+		} else {
+			if sale.GetSaleState() != pbd.SaleStatus_FOR_SALE {
+				t.Errorf("expected sale %v to be FOR_SALE, got %v", sid, sale.GetSaleState())
+			}
+			if sale.GetListedDate() != expectedPosted[sid] {
+				t.Errorf("expected sale %v ListedDate=%v, got %v", sid, expectedPosted[sid], sale.GetListedDate())
+			}
 		}
 	}
 
@@ -2378,26 +2393,15 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to update user timestamp for Phase 2: %v", err)
 	}
-	for _, sid := range []int64{1000, 1001, 1002} {
-		sale, err := d.GetSale(ctx, 123, sid)
-		if err != nil {
-			t.Fatalf("failed to get sale %v: %v", sid, err)
-		}
-		sale.ListedDate = pastTime
-		err = d.SaveSale(ctx, 123, sale)
-		if err != nil {
-			t.Fatalf("failed to update sale %v listed date: %v", sid, err)
-		}
-	}
 
-	// Update Discogs inventory: add new listing (1003) on page 1 with newer timestamp
+	// Update Discogs inventory: add new listing (1003) on page 1 with newer Posted timestamp
 	mockDiscogs.pages[1] = []*pbd.SaleItem{
-		{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 3500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
-		{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 3500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1003},
+		{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1002},
 	}
 	mockDiscogs.pages[2] = []*pbd.SaleItem{
-		{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
-		{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+		{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1001},
+		{SaleId: 1000, ReleaseId: 2000, Price: &pbd.Price{Value: 500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: posted1000},
 	}
 	mockDiscogs.listCalls = nil // reset tracking
 
@@ -2425,13 +2429,16 @@ func TestSyncSales_IncrementalSyncEndToEnd(t *testing.T) {
 		t.Errorf("expected only page 1 to be fetched in Phase 2 due to early termination, got %v", mockDiscogs.listCalls)
 	}
 
-	// 2. Verify new listing 1003 is ingested into DB
+	// 2. Verify new listing 1003 is ingested into DB with its Posted timestamp as ListedDate
 	sale1003, err := d.GetSale(ctx, 123, 1003)
 	if err != nil {
 		t.Fatalf("expected new sale 1003 to be in DB: %v", err)
 	}
 	if sale1003.GetReleaseId() != 2003 {
 		t.Errorf("expected sale 1003 to have releaseId 2003, got %v", sale1003.GetReleaseId())
+	}
+	if sale1003.GetListedDate() != posted1003 {
+		t.Errorf("expected sale 1003 ListedDate=%v, got %v", posted1003, sale1003.GetListedDate())
 	}
 
 	// 3. Verify LinkSales was enqueued and linked new listing to collection record 3003
@@ -2999,4 +3006,5 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 		t.Errorf("expected ReconcileSales not to be re-enqueued post-completion, got %d", postReconcileCount)
 	}
 }
+
 

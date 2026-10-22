@@ -111,6 +111,7 @@ Current Go version: 1.26.2
 - Direct TUI Command Prompt Startup: Boots the Gramophile TUI (`cmd/gramophile`) directly into `StateMainApp` with the interactive command prompt without waiting for a startup splash keypress or timer, loading local disk cache and triggering background collection synchronization automatically when authenticated.
 - Resilient Config Update Enqueue & Scoped Wantlist Deduplication: Handles background task deduplication gracefully during `SetConfig` without failing fatally on `codes.AlreadyExists`, scopes `RefreshWantlists` deduplication keys by user auth token, cleans up in-memory deduplication keys upon queue task deletion, and improves deduplication error reporting.
 - Direct Sale Listing Timestamp Persistence: Populates `ListedDate` alongside `TimeCreated`, `TimeRefreshed`, and `LastPriceUpdate` when creating sales directly through `BackgroundRunner.AddSale`.
+- Newest-First Sales Sync & Discogs Posted Timestamp Backfill: Updates `github.com/brotherlogic/discogs` for newest-first `ListSales` ordering and `SaleItem.Posted` timestamps, and updates `BackgroundRunner.SyncSales` to populate and backfill `SaleInfo.ListedDate` from `sale.GetPosted()` for accurate incremental early termination.
 
 
 ## TUI (Terminal User Interface)

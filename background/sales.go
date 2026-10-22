@@ -205,9 +205,14 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 		if status.Code(err) == codes.NotFound {
 			log.Printf("Creating sale: %v, %v -> %v", d.GetUserId(), sale.GetSaleId(), err)
 			saleAdds.With(prometheus.Labels{"id": fmt.Sprintf("%v", sale.GetSaleId())}).Inc()
+			now := time.Now().UnixNano()
+			listedDate := sale.GetPosted()
+			if listedDate == 0 {
+				listedDate = now
+			}
 			err := b.db.SaveSale(ctx, d.GetUserId(), &pb.SaleInfo{
 				SaleId:          sale.GetSaleId(),
-				LastPriceUpdate: time.Now().UnixNano(),
+				LastPriceUpdate: now,
 				SaleState:       sale.GetStatus(),
 				ReleaseId:       sale.GetReleaseId(),
 				Condition:       sale.GetCondition(),
@@ -215,10 +220,10 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 					Value:    sale.GetPrice().GetValue(),
 					Currency: sale.GetPrice().GetCurrency(),
 				},
-				ListedDate:    time.Now().UnixNano(),
-				TimeCreated:   time.Now().UnixNano(),
+				ListedDate:    listedDate,
+				TimeCreated:   now,
 				RefreshId:     id,
-				TimeRefreshed: time.Now().UnixNano(),
+				TimeRefreshed: now,
 			})
 			if err != nil {
 				return nil, false, err
@@ -243,6 +248,10 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 
 			if csale.GetCondition() == "" && sale.GetCondition() != "" {
 				csale.Condition = sale.GetCondition()
+			}
+
+			if sale.GetPosted() > 0 {
+				csale.ListedDate = sale.GetPosted()
 			}
 
 			if priorState == pbd.SaleStatus_FOR_SALE && csale.SaleState == pbd.SaleStatus_SOLD {

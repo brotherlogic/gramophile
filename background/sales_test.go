@@ -3067,3 +3067,210 @@ func TestProcessReconcileSales_UpdatesBothLastSaleReconcileAndLastSaleRefresh(t 
 		t.Errorf("expected SaleSyncActiveTime to be reset to 0, got %v", savedUser.GetSaleSyncActiveTime())
 	}
 }
+
+func TestSyncSales_UsesDiscogsPostedForNewAndExistingSales(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	postedNew := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC).UnixNano()
+	postedExisting := time.Date(2026, 9, 15, 10, 30, 0, 0, time.UTC).UnixNano()
+	existingTimeCreated := time.Date(2026, 9, 20, 8, 0, 0, 0, time.UTC).UnixNano()
+
+	// Pre-populate an existing sale with an outdated/unset ListedDate (to be backfilled from Posted)
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1002,
+		ReleaseId:    2002,
+		Condition:    "Near Mint (NM or M-)",
+		CurrentPrice: &pbd.Price{Value: 1500, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   0,
+		TimeCreated:  existingTimeCreated,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale 1002: %v", err)
+	}
+
+	// Pre-populate an existing sale whose Discogs item has Posted == 0 (should fall back to TimeCreated)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1004,
+		ReleaseId:    2004,
+		Condition:    "Very Good Plus (VG+)",
+		CurrentPrice: &pbd.Price{Value: 1200, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   0,
+		TimeCreated:  existingTimeCreated,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale 1004: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        1,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				// 1001: New sale with Posted > 0
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 2500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Condition: "Mint (M)", Posted: postedNew},
+				// 1002: Existing sale with Posted > 0
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 1500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Condition: "Near Mint (NM or M-)", Posted: postedExisting},
+				// 1003: New sale with Posted == 0 (fallback to now / TimeCreated)
+				{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 1800, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Condition: "Very Good (VG)", Posted: 0},
+				// 1004: Existing sale with Posted == 0 (fallback to TimeCreated)
+				{SaleId: 1004, ReleaseId: 2004, Price: &pbd.Price{Value: 1200, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Condition: "Very Good Plus (VG+)", Posted: 0},
+			},
+		},
+	}
+
+	beforeSync := time.Now().UnixNano()
+	_, earlyTerminated, err := b.SyncSales(ctx, di, 1, 999, 0)
+	afterSync := time.Now().UnixNano()
+	if err != nil {
+		t.Fatalf("SyncSales failed: %v", err)
+	}
+	if earlyTerminated {
+		t.Errorf("expected earlyTerminated=false when lastSaleRefresh=0, got true")
+	}
+
+	// Verify 1001 (new sale with Posted > 0) uses Posted
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Fatalf("failed to get sale 1001: %v", err)
+	}
+	if sale1001.GetListedDate() != postedNew {
+		t.Errorf("expected new sale 1001 ListedDate=%v (from Posted), got %v", postedNew, sale1001.GetListedDate())
+	}
+
+	// Verify 1002 (existing sale with Posted > 0) updates ListedDate from Posted
+	sale1002, err := d.GetSale(ctx, userId, 1002)
+	if err != nil {
+		t.Fatalf("failed to get sale 1002: %v", err)
+	}
+	if sale1002.GetListedDate() != postedExisting {
+		t.Errorf("expected existing sale 1002 ListedDate=%v (from Posted), got %v", postedExisting, sale1002.GetListedDate())
+	}
+
+	// Verify 1003 (new sale with Posted == 0) falls back to time.Now().UnixNano() / TimeCreated
+	sale1003, err := d.GetSale(ctx, userId, 1003)
+	if err != nil {
+		t.Fatalf("failed to get sale 1003: %v", err)
+	}
+	if sale1003.GetListedDate() < beforeSync || sale1003.GetListedDate() > afterSync {
+		t.Errorf("expected new sale 1003 with Posted=0 to fall back to current time [%v, %v], got %v", beforeSync, afterSync, sale1003.GetListedDate())
+	}
+	if sale1003.GetListedDate() != sale1003.GetTimeCreated() {
+		t.Errorf("expected new sale 1003 ListedDate (%v) to match TimeCreated (%v)", sale1003.GetListedDate(), sale1003.GetTimeCreated())
+	}
+
+	// Verify 1004 (existing sale with Posted == 0) keeps ListedDate=0 and TimeCreated intact
+	sale1004, err := d.GetSale(ctx, userId, 1004)
+	if err != nil {
+		t.Fatalf("failed to get sale 1004: %v", err)
+	}
+	if sale1004.GetTimeCreated() != existingTimeCreated {
+		t.Errorf("expected existing sale 1004 TimeCreated=%v, got %v", existingTimeCreated, sale1004.GetTimeCreated())
+	}
+}
+
+func TestSyncSales_Incremental_EarlyTerminationWithPostedTimestamp(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	lastSaleRefresh := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC).UnixNano()
+	newerPosted1 := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC).UnixNano()
+	newerPosted2 := time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC).UnixNano()
+	olderPostedCutoff := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC).UnixNano()
+	oldestPosted := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC).UnixNano()
+
+	// Pre-populate sale 1002 (existing sale with Posted > lastSaleRefresh)
+	err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1002,
+		ReleaseId:    2002,
+		Condition:    "Mint (M)",
+		CurrentPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   newerPosted2,
+		TimeCreated:  newerPosted2,
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale 1002: %v", err)
+	}
+
+	// Pre-populate sale 1003 (existing sale whose local ListedDate was previously set to time.Now(),
+	// i.e. > lastSaleRefresh, but whose actual Discogs Posted timestamp is <= lastSaleRefresh!)
+	err = d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:       1003,
+		ReleaseId:    2003,
+		Condition:    "Very Good Plus (VG+)",
+		CurrentPrice: &pbd.Price{Value: 1500, Currency: "USD"},
+		SaleState:    pbd.SaleStatus_FOR_SALE,
+		ListedDate:   time.Now().UnixNano(), // Previously inaccurate local timestamp
+		TimeCreated:  time.Now().UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("failed to save existing sale 1003: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        3,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				// Newest item (not in DB yet, Posted > lastSaleRefresh)
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 3000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: newerPosted1},
+				// Existing item with Posted > lastSaleRefresh (should update and continue)
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2100, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: newerPosted2},
+				// Existing item with Posted <= lastSaleRefresh (should backfill ListedDate from Posted and trigger early termination!)
+				{SaleId: 1003, ReleaseId: 2003, Price: &pbd.Price{Value: 1500, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE, Posted: olderPostedCutoff},
+				// Older item after cutoff on same page (should NOT be processed because 1003 triggered early termination)
+				{SaleId: 1004, ReleaseId: 2004, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_SOLD, Posted: oldestPosted},
+			},
+		},
+	}
+
+	_, earlyTerminated, err := b.SyncSales(ctx, di, 1, 555, lastSaleRefresh)
+	if err != nil {
+		t.Fatalf("SyncSales failed: %v", err)
+	}
+	if !earlyTerminated {
+		t.Errorf("expected earlyTerminated=true upon reaching sale 1003 with Posted <= lastSaleRefresh, got false")
+	}
+
+	// Verify 1001 was created with ListedDate = newerPosted1
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Fatalf("expected new sale 1001 to be saved: %v", err)
+	}
+	if sale1001.GetListedDate() != newerPosted1 {
+		t.Errorf("expected sale 1001 ListedDate=%v, got %v", newerPosted1, sale1001.GetListedDate())
+	}
+
+	// Verify 1002 was updated (price 2100) and did not terminate early
+	sale1002, err := d.GetSale(ctx, userId, 1002)
+	if err != nil {
+		t.Fatalf("expected sale 1002 to exist: %v", err)
+	}
+	if sale1002.GetCurrentPrice().GetValue() != 2100 {
+		t.Errorf("expected sale 1002 price to be updated to 2100, got %v", sale1002.GetCurrentPrice().GetValue())
+	}
+
+	// Verify 1003 had its ListedDate updated to olderPostedCutoff and triggered early termination
+	sale1003, err := d.GetSale(ctx, userId, 1003)
+	if err != nil {
+		t.Fatalf("expected sale 1003 to exist: %v", err)
+	}
+	if sale1003.GetListedDate() != olderPostedCutoff {
+		t.Errorf("expected sale 1003 ListedDate to be updated to %v, got %v", olderPostedCutoff, sale1003.GetListedDate())
+	}
+
+	// Verify 1004 was NOT created because early termination stopped at 1003
+	_, err = d.GetSale(ctx, userId, 1004)
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("expected sale 1004 not to be processed after early termination, got err: %v", err)
+	}
+}
