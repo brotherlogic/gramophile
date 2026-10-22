@@ -349,3 +349,130 @@ func TestProcessNotes_PackageField(t *testing.T) {
 		}
 	}
 }
+
+func TestProcessNotes_MediaAndSleeveCondition(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	ctx := context.Background()
+
+	fields := []*pbd.Field{
+		{Id: 1, Name: "Media Condition"},
+		{Id: 2, Name: "Sleeve Condition"},
+	}
+
+	// 1. Extracts Media Condition and Sleeve Condition (with whitespace trimming) and clears Notes.
+	r1 := &pb.Record{
+		Release: &dpb.Release{
+			Notes: map[int32]string{
+				1: " Near Mint (NM or M-) ",
+				2: "Very Good Plus (VG+)",
+			},
+		},
+	}
+	res1, err := b.processNotes(ctx, fields, r1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res1.GetRelease().GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected Condition %q, got %q", "Near Mint (NM or M-)", res1.GetRelease().GetCondition())
+	}
+	if res1.GetRelease().GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected SleeveCondition %q, got %q", "Very Good Plus (VG+)", res1.GetRelease().GetSleeveCondition())
+	}
+	if len(res1.GetRelease().GetNotes()) != 0 {
+		t.Errorf("expected Notes to be cleared, got %v", res1.GetRelease().GetNotes())
+	}
+
+	// 2. Preserves existing non-empty values when notes are blank or missing.
+	r2 := &pb.Record{
+		Release: &dpb.Release{
+			Condition:       "Mint (M)",
+			SleeveCondition: "Near Mint (NM or M-)",
+			Notes: map[int32]string{
+				1: "   ",
+			},
+		},
+	}
+	res2, err := b.processNotes(ctx, fields, r2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res2.GetRelease().GetCondition() != "Mint (M)" {
+		t.Errorf("expected existing Condition %q to be preserved, got %q", "Mint (M)", res2.GetRelease().GetCondition())
+	}
+	if res2.GetRelease().GetSleeveCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected existing SleeveCondition %q to be preserved, got %q", "Near Mint (NM or M-)", res2.GetRelease().GetSleeveCondition())
+	}
+	if len(res2.GetRelease().GetNotes()) != 0 {
+		t.Errorf("expected Notes to be cleared, got %v", res2.GetRelease().GetNotes())
+	}
+}
+
+type refreshStateTestDiscogsClient struct {
+	*discogs.TestDiscogsClient
+}
+
+func (c *refreshStateTestDiscogsClient) GetCollectionRelease(ctx context.Context, id int64, page int32) ([]*pbd.Release, *pbd.Pagination, error) {
+	rels, _, err := c.TestDiscogsClient.GetCollectionRelease(ctx, id, page)
+	return rels, &pbd.Pagination{Pages: 1}, err
+}
+
+func TestRefreshState_ExtractsConditionNotes(t *testing.T) {
+	b := GetTestBackgroundRunner()
+	ctx := context.Background()
+
+	baseClient := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{
+			{Id: 1, Name: "Media Condition"},
+			{Id: 2, Name: "Sleeve Condition"},
+		},
+	}
+	baseClient.AddCollectionRelease(&dpb.Release{
+		Id:         555,
+		InstanceId: 1001,
+		FolderId:   12,
+		DateAdded:  98765,
+		Notes: map[int32]string{
+			1: "Very Good Plus (VG+)",
+			2: "Very Good (VG)",
+		},
+	})
+	d := &refreshStateTestDiscogsClient{TestDiscogsClient: baseClient}
+
+	err := b.db.SaveRecord(ctx, 123, &pb.Record{
+		Release: &dpb.Release{
+			Id:         555,
+			InstanceId: 1001,
+			FolderId:   1,
+		},
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("failed to save initial record: %v", err)
+	}
+
+	err = b.RefreshState(ctx, 1001, d, true)
+	if err != nil {
+		t.Fatalf("RefreshState returned unexpected error: %v", err)
+	}
+
+	updated, err := b.db.GetRecord(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("failed to load updated record: %v", err)
+	}
+	if updated.GetRelease().GetFolderId() != 12 {
+		t.Errorf("expected FolderId 12, got %d", updated.GetRelease().GetFolderId())
+	}
+	if updated.GetRelease().GetDateAdded() != 98765 {
+		t.Errorf("expected DateAdded 98765, got %d", updated.GetRelease().GetDateAdded())
+	}
+	if updated.GetRelease().GetCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected Condition %q, got %q", "Very Good Plus (VG+)", updated.GetRelease().GetCondition())
+	}
+	if updated.GetRelease().GetSleeveCondition() != "Very Good (VG)" {
+		t.Errorf("expected SleeveCondition %q, got %q", "Very Good (VG)", updated.GetRelease().GetSleeveCondition())
+	}
+	if len(updated.GetRelease().GetNotes()) != 0 {
+		t.Errorf("expected Notes to be cleared, got %v", updated.GetRelease().GetNotes())
+	}
+}
+

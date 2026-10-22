@@ -11,6 +11,8 @@ import (
 
 var (
 	LAST_SALE_UPDATE_FIELD = "LastSaleUpdate"
+	MEDIA_CONDITION_FIELD  = "Media Condition"
+	SLEEVE_CONDITION_FIELD = "Sleeve Condition"
 )
 
 type sales struct{}

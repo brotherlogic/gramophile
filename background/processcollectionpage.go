@@ -51,6 +51,14 @@ func (b *BackgroundRunner) processNotes(ctx context.Context, field []*pbd.Field,
 					if err == nil && val >= 0 && val <= 5 {
 						r.PackageScore = int32(val)
 					}
+				case config.MEDIA_CONDITION_FIELD:
+					if trimmed := strings.TrimSpace(value); trimmed != "" {
+						r.GetRelease().Condition = trimmed
+					}
+				case config.SLEEVE_CONDITION_FIELD:
+					if trimmed := strings.TrimSpace(value); trimmed != "" {
+						r.GetRelease().SleeveCondition = trimmed
+					}
 				}
 			}
 		}
