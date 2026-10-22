@@ -158,6 +158,7 @@ func (b *BackgroundRunner) AddSale(ctx context.Context, d discogs.Discogs, iid i
 		CurrentPrice:    &pbd.Price{Value: int32(nsp.GetPrice() * 100)},
 		MedianPrice:     r.GetMedianPrice(),
 		LowPrice:        r.GetLowPrice(),
+		ListedDate:      now,
 		TimeCreated:     now,
 		TimeRefreshed:   now,
 		LastPriceUpdate: now,
