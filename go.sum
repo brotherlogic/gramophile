@@ -8,8 +8,8 @@ github.com/aymanbagabas/go-udiff v0.3.1 h1:LV+qyBQ2pqe0u42ZsUEtPiCaUoqgA9gYRDs3v
 github.com/aymanbagabas/go-udiff v0.3.1/go.mod h1:G0fsKmG+P6ylD0r6N/KgQD/nWzgfnl8ZBcNLgcbrw8E=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/brotherlogic/discogs v0.0.0-20260911090501-f0dd70f22bf1 h1:+SZX0kZ4T1zRb7CPt/cIe0+EeaRqhz0pd+vicjeRpsc=
-github.com/brotherlogic/discogs v0.0.0-20260911090501-f0dd70f22bf1/go.mod h1:YUeM5K18SsN0UrbKZDM6qga9uIfXxXdeG/iXyF0bXtY=
+github.com/brotherlogic/discogs v0.0.0-20261021230649-af2272f944a4 h1:1XnJXwH4SOMFCANsRFFHFeHj96WhUH1f/+rh3X2vx0A=
+github.com/brotherlogic/discogs v0.0.0-20261021230649-af2272f944a4/go.mod h1:YUeM5K18SsN0UrbKZDM6qga9uIfXxXdeG/iXyF0bXtY=
 github.com/brotherlogic/githubridge v0.2875.0 h1:biNFCo/tFgOiyW7+jJfqd8STt2/lVBxL6xGOOU3djT4=
 github.com/brotherlogic/githubridge v0.2875.0/go.mod h1:vLArYFdKXKrP6iDFRlFRsi5j5Pe+yGtrfjZOZKYKzsQ=
 github.com/brotherlogic/godiscogs v0.0.0-20260523225849-ca9c93bbaf31 h1:mV5jtBSXAyjq80D08/NoMhMdz9oTeR721dN8E3RvMn4=
