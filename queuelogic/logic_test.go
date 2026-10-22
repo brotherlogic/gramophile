@@ -580,7 +580,8 @@ func testUserQueueLimitWithElement(t *testing.T, createElement func(i int) *pb.Q
 	}
 }
 
-func TestUserQueueLimit_RefreshSales(t *testing.T) {
+func testUserQueueLimitExemptWithElement(t *testing.T, createElement func(page int32) *pb.QueueElement) {
+	t.Helper()
 	ctx := getTestContext(123)
 
 	pstore := getSyncTestClient()
@@ -596,7 +597,7 @@ func TestUserQueueLimit_RefreshSales(t *testing.T) {
 		t.Fatalf("Bad user: %v", err)
 	}
 
-	for i := 0; i < 200; i++ {
+	for i := 0; i < MaxUserQueueSize; i++ {
 		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
 			Element: &pb.QueueElement{
 				Intention: "From Test",
@@ -616,76 +617,39 @@ func TestUserQueueLimit_RefreshSales(t *testing.T) {
 	}
 
 	for page := int32(1); page <= 2; page++ {
-		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Intention: "From Test",
-				RunDate:   int64(200 + page),
-				Entry: &pb.QueueElement_RefreshSales{
-					RefreshSales: &pb.RefreshSales{
-						Page: page,
-					},
-				},
-				Auth: "123",
-			},
-		})
+		elem := createElement(page)
+		elem.Auth = "123"
+		elem.RunDate = int64(MaxUserQueueSize) + int64(page)
+		elem.Intention = "From Test"
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
 		if err != nil {
-			t.Fatalf("Expected RefreshSales page %d to succeed when user queue has %d items, got: %v", page, MaxUserQueueSize, err)
+			t.Fatalf("Expected page %d to succeed when user queue has %d items, got: %v", page, MaxUserQueueSize, err)
 		}
 	}
 }
 
+func TestUserQueueLimit_RefreshSales(t *testing.T) {
+	testUserQueueLimitExemptWithElement(t, func(page int32) *pb.QueueElement {
+		return &pb.QueueElement{
+			Entry: &pb.QueueElement_RefreshSales{
+				RefreshSales: &pb.RefreshSales{
+					Page: page,
+				},
+			},
+		}
+	})
+}
+
 func TestUserQueueLimit_ReconcileSales(t *testing.T) {
-	ctx := getTestContext(123)
-
-	pstore := getSyncTestClient()
-	d := db.NewTestDB(pstore)
-	di := &discogs.TestDiscogsClient{}
-	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
-
-	err := d.SaveUser(ctx, &pb.StoredUser{
-		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
-		User:    &pbd.User{DiscogsUserId: 123},
-		Auth:    &pb.GramophileAuth{Token: "123"}})
-	if err != nil {
-		t.Fatalf("Bad user: %v", err)
-	}
-
-	for i := 0; i < 200; i++ {
-		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Intention: "From Test",
-				RunDate:   int64(i + 1),
-				Entry: &pb.QueueElement_RefreshRelease{
-					RefreshRelease: &pb.RefreshRelease{
-						Iid:       int64(i + 1),
-						Intention: fmt.Sprintf("Refresh %d", i+1),
-					},
+	testUserQueueLimitExemptWithElement(t, func(page int32) *pb.QueueElement {
+		return &pb.QueueElement{
+			Entry: &pb.QueueElement_ReconcileSales{
+				ReconcileSales: &pb.ReconcileSales{
+					Page: page,
 				},
-				Auth: "123",
 			},
-		})
-		if err != nil {
-			t.Fatalf("Failed to enqueue item %d: %v", i+1, err)
 		}
-	}
-
-	for page := int32(1); page <= 2; page++ {
-		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
-			Element: &pb.QueueElement{
-				Intention: "From Test",
-				RunDate:   int64(200 + page),
-				Entry: &pb.QueueElement_ReconcileSales{
-					ReconcileSales: &pb.ReconcileSales{
-						Page: page,
-					},
-				},
-				Auth: "123",
-			},
-		})
-		if err != nil {
-			t.Fatalf("Expected ReconcileSales page %d to succeed when user queue has %d items, got: %v", page, MaxUserQueueSize, err)
-		}
-	}
+	})
 }
 
 func TestUserQueueLimit_RefreshWant(t *testing.T) {
