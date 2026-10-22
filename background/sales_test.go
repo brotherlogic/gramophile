@@ -3608,3 +3608,110 @@ func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales
 		t.Errorf("expected sale 1001 price to remain 5000 when skipped, got %v", sale1001.GetCurrentPrice().GetValue())
 	}
 }
+
+func TestSyncSales_BackfillsConditionAndSleeveCondition(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+
+	// Pre-populate existing sale 1002 with wiped Condition ("") and SleeveCondition ("")
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1002,
+		ReleaseId:       2002,
+		Condition:       "",
+		SleeveCondition: "",
+		CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save existing sale 1002: %v", err)
+	}
+
+	// Pre-populate existing sale 1003 with Condition already set, but SleeveCondition empty ("")
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1003,
+		ReleaseId:       2003,
+		Condition:       "Mint (M)",
+		SleeveCondition: "",
+		CurrentPrice:    &pbd.Price{Value: 3000, Currency: "USD"},
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save existing sale 1003: %v", err)
+	}
+
+	di := &discogs.TestDiscogsClient{
+		UserId: userId,
+		Sales: []*pbd.SaleItem{
+			// 1001: New sale (codes.NotFound) -> should populate both Condition and SleeveCondition
+			{
+				SaleId:          1001,
+				ReleaseId:       2001,
+				Condition:       "Near Mint (NM or M-)",
+				SleeveCondition: "Very Good Plus (VG+)",
+				Price:           &pbd.Price{Value: 1500, Currency: "USD"},
+				Status:          pbd.SaleStatus_FOR_SALE,
+			},
+			// 1002: Existing sale with both empty -> should backfill both Condition and SleeveCondition
+			{
+				SaleId:          1002,
+				ReleaseId:       2002,
+				Condition:       "Very Good Plus (VG+)",
+				SleeveCondition: "Generic",
+				Price:           &pbd.Price{Value: 2000, Currency: "USD"},
+				Status:          pbd.SaleStatus_FOR_SALE,
+			},
+			// 1003: Existing sale with Condition set and SleeveCondition empty -> should preserve Condition and backfill SleeveCondition
+			{
+				SaleId:          1003,
+				ReleaseId:       2003,
+				Condition:       "Very Good (VG)",
+				SleeveCondition: "Near Mint (NM or M-)",
+				Price:           &pbd.Price{Value: 3000, Currency: "USD"},
+				Status:          pbd.SaleStatus_FOR_SALE,
+			},
+		},
+	}
+
+	_, _, err := b.SyncSales(ctx, di, 1, 777, 0)
+	if err != nil {
+		t.Fatalf("SyncSales failed: %v", err)
+	}
+
+	// Verify 1001 (new sale) has both Condition and SleeveCondition populated
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Fatalf("failed to get new sale 1001: %v", err)
+	}
+	if sale1001.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected new sale 1001 Condition 'Near Mint (NM or M-)', got %q", sale1001.GetCondition())
+	}
+	if sale1001.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected new sale 1001 SleeveCondition 'Very Good Plus (VG+)', got %q", sale1001.GetSleeveCondition())
+	}
+
+	// Verify 1002 (existing sale with wiped conditions) backfilled both Condition and SleeveCondition
+	sale1002, err := d.GetSale(ctx, userId, 1002)
+	if err != nil {
+		t.Fatalf("failed to get existing sale 1002: %v", err)
+	}
+	if sale1002.GetCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected existing sale 1002 Condition backfilled to 'Very Good Plus (VG+)', got %q", sale1002.GetCondition())
+	}
+	if sale1002.GetSleeveCondition() != "Generic" {
+		t.Errorf("expected existing sale 1002 SleeveCondition backfilled to 'Generic', got %q", sale1002.GetSleeveCondition())
+	}
+
+	// Verify 1003 preserved existing non-empty Condition and backfilled empty SleeveCondition
+	sale1003, err := d.GetSale(ctx, userId, 1003)
+	if err != nil {
+		t.Fatalf("failed to get existing sale 1003: %v", err)
+	}
+	if sale1003.GetCondition() != "Mint (M)" {
+		t.Errorf("expected existing sale 1003 Condition 'Mint (M)' to be preserved, got %q", sale1003.GetCondition())
+	}
+	if sale1003.GetSleeveCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected existing sale 1003 SleeveCondition backfilled to 'Near Mint (NM or M-)', got %q", sale1003.GetSleeveCondition())
+	}
+}

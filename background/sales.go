@@ -216,6 +216,7 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 				SaleState:       sale.GetStatus(),
 				ReleaseId:       sale.GetReleaseId(),
 				Condition:       sale.GetCondition(),
+				SleeveCondition: sale.GetSleeveCondition(),
 				CurrentPrice: &pbd.Price{
 					Value:    sale.GetPrice().GetValue(),
 					Currency: sale.GetPrice().GetCurrency(),
@@ -248,6 +249,9 @@ func (b *BackgroundRunner) SyncSales(ctx context.Context, d discogs.Discogs, pag
 
 			if csale.GetCondition() == "" && sale.GetCondition() != "" {
 				csale.Condition = sale.GetCondition()
+			}
+			if csale.GetSleeveCondition() == "" && sale.GetSleeveCondition() != "" {
+				csale.SleeveCondition = sale.GetSleeveCondition()
 			}
 
 			if sale.GetPosted() > 0 {

@@ -114,6 +114,7 @@ Current Go version: 1.26.2
 - Newest-First Sales Sync & Discogs Posted Timestamp Backfill: Updates `github.com/brotherlogic/discogs` for newest-first `ListSales` ordering and `SaleItem.Posted` timestamps, and updates `BackgroundRunner.SyncSales` to populate and backfill `SaleInfo.ListedDate` from `sale.GetPosted()` for accurate incremental early termination.
 - Non-Destructive HardLink Condition Propagation & Missing-Condition Recovery Sync: Evaluates `Condition` and `SleeveCondition` independently in `HardLink` so empty record conditions never overwrite populated sale conditions, and guards `AdjustSales` and `ProcessUpdateSale` against missing `Condition` or `SleeveCondition` by skipping the adjustment and enqueuing a forced `RefreshSales` task.
 - Collection Notes Condition Extraction: Extracts Discogs collection custom fields `"Media Condition"` and `"Sleeve Condition"` into `record.GetRelease().Condition` and `record.GetRelease().SleeveCondition` during collection page synchronization (`processNotes`) and single-release state refreshes (`RefreshState`).
+- Sales Sync SleeveCondition Backfill & End-to-End Condition Recovery: Updates `github.com/brotherlogic/discogs` to include `SaleItem.SleeveCondition`, populates and backfills `SaleInfo.SleeveCondition` alongside `Condition` in `BackgroundRunner.SyncSales`, and verifies end-to-end recovery of sales missing condition metadata via `RefreshSales`, `HardLink`, and subsequent `AdjustSales` price adjustments.
 
 
 ## TUI (Terminal User Interface)
