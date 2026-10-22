@@ -412,6 +412,26 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 			}
 
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
+				if sale.GetCondition() == "" || sale.GetSleeveCondition() == "" {
+					log.Printf("Skipping sale %v adjustment due to missing condition (condition=%q, sleeve_condition=%q); triggering RefreshSales", sid, sale.GetCondition(), sale.GetSleeveCondition())
+					if enqueue != nil {
+						err := EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
+							Element: &pb.QueueElement{
+								Intention: "From AdjustSales (Missing Condition)",
+								RunDate:   time.Now().UnixNano(),
+								Force:     true,
+								Auth:      user.GetAuth().GetToken(),
+								Entry: &pb.QueueElement_RefreshSales{
+									RefreshSales: &pb.RefreshSales{Page: 1},
+								},
+							},
+						}, enqueue)
+						if err != nil {
+							log.Printf("unable to enqueue RefreshSales for sale %v: %v", sid, err)
+						}
+					}
+					continue
+				}
 				log.Printf("Working off of: %v and %v", sale, updateType)
 				nsp, motivation, err := adjustPrice(ctx, sale, c, updateType)
 				if err != nil {
@@ -525,7 +545,7 @@ type updateSaleHandler struct {
 }
 
 func (h *updateSaleHandler) Execute(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	return h.b.ProcessUpdateSale(ctx, d, u, entry.GetUpdateSale())
+	return h.b.ProcessUpdateSale(ctx, d, u, entry.GetUpdateSale(), enqueue)
 }
 
 func (h *updateSaleHandler) Validate(ctx context.Context, db db.Database, entry *pb.QueueElement) error {
@@ -600,10 +620,27 @@ func (h *adjustSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string 
 	return fmt.Sprintf("AdjustSales-%v", entry.GetAuth())
 }
 
-func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale) error {
+func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale, enqueue ...func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	//Short cut if sale data is not complete
-	if entry.GetCondition() == "" {
-		qlog(ctx, "Skipping %v", entry)
+	if entry.GetCondition() == "" || entry.GetSleeveCondition() == "" {
+		qlog(ctx, "Skipping %v due to missing condition or sleeve condition; triggering RefreshSales", entry)
+		var enqueueFn func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)
+		if len(enqueue) > 0 {
+			enqueueFn = enqueue[0]
+		}
+		if enqueueFn != nil && u.GetAuth().GetToken() != "" {
+			_ = EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention: "From ProcessUpdateSale (Missing Condition)",
+					RunDate:   time.Now().UnixNano(),
+					Force:     true,
+					Auth:      u.GetAuth().GetToken(),
+					Entry: &pb.QueueElement_RefreshSales{
+						RefreshSales: &pb.RefreshSales{Page: 1},
+					},
+				},
+			}, enqueueFn)
+		}
 		return nil
 	}
 	err := b.UpdateSalePrice(ctx, d, entry.GetSaleId(), entry.GetReleaseId(), entry.GetCondition(), entry.GetNewPrice(), entry.GetMotivation())
@@ -725,11 +762,17 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 					}
 				}
 
-				if sale.GetCondition() != record.GetRelease().GetCondition() || sale.GetSleeveCondition() != record.GetRelease().GetSleeveCondition() {
+				if record.GetRelease().GetCondition() != "" && sale.GetCondition() != record.GetRelease().GetCondition() {
 					if !sale_changed {
 						sale = proto.Clone(sale).(*pb.SaleInfo)
 					}
 					sale.Condition = record.GetRelease().GetCondition()
+					sale_changed = true
+				}
+				if record.GetRelease().GetSleeveCondition() != "" && sale.GetSleeveCondition() != record.GetRelease().GetSleeveCondition() {
+					if !sale_changed {
+						sale = proto.Clone(sale).(*pb.SaleInfo)
+					}
 					sale.SleeveCondition = record.GetRelease().GetSleeveCondition()
 					sale_changed = true
 				}

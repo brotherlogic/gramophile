@@ -212,6 +212,7 @@ func TestSalesPriceIsAdjusted(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       12,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
@@ -298,6 +299,7 @@ func TestSalesPriceIsAdjustedDownToMedian(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
@@ -404,6 +406,7 @@ func TestSalesPriceIsAdjustedUpToMedian(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 	}
 	err := d.SaveRecord(ctx, 123, &pb.Record{
@@ -507,6 +510,7 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
 	}
@@ -616,6 +620,7 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
 	}
@@ -724,6 +729,7 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
 	}
@@ -833,6 +839,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 		TimeAtMedian:    time.Now().Add(-time.Minute * 25).UnixNano(),
 	}
@@ -943,6 +950,7 @@ func TestSaleAdjustedDownToStaleLevel(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		ReleaseId:       123,
 		TimeAtMedian:    time.Now().Add(-time.Minute * 50).UnixNano(),
 		TimeAtLow:       time.Now().Add(-time.Hour * 50).UnixNano(),
@@ -1271,6 +1279,7 @@ func TestMultiSaleAdjustment_Resilience(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 		TimeAtMedian:    time.Now().Add(-time.Hour * 50).UnixNano(),
 	})
 	if err != nil {
@@ -1285,6 +1294,7 @@ func TestMultiSaleAdjustment_Resilience(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 	})
 	if err != nil {
 		t.Fatalf("unable to save sale 103: %v", err)
@@ -1313,6 +1323,7 @@ func TestMultiSaleAdjustment_Resilience(t *testing.T) {
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 		Condition:       "Very Good Plus (VG+)",
+		SleeveCondition: "Very Good Plus (VG+)",
 	})
 	if err != nil {
 		t.Fatalf("unable to save sale 104: %v", err)
