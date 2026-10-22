@@ -654,8 +654,6 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 	isThrottlable := fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshRelease" ||
 		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDates" ||
 		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshEarliestReleaseDate" ||
-		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshSales" ||
-		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_ReconcileSales" ||
 		fmt.Sprintf("%T", req.GetElement().GetEntry()) == "*proto.QueueElement_RefreshWant"
 
 	if isThrottlable {

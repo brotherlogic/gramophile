@@ -163,3 +163,11 @@ func EnqueueWithIgnore(ctx context.Context, req *pb.EnqueueRequest, enqueue func
 	}
 	return nil
 }
+
+func EnqueueIfNotExists(ctx context.Context, req *pb.EnqueueRequest, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	_, err := enqueue(ctx, req)
+	if err != nil && status.Code(err) != codes.AlreadyExists {
+		return err
+	}
+	return nil
+}

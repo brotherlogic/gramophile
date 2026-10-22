@@ -2780,6 +2780,294 @@ func TestProcessReconcileSales_ClearsActiveTimeOnCompletion(t *testing.T) {
 	}
 }
 
+func TestProcessRefreshSales_ContinuationEnqueueErrorPropagates(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	initialLastRefresh := time.Now().Add(-25 * time.Hour).UnixNano()
+	activeTime := time.Now().Add(-10 * time.Minute).UnixNano()
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleRefresh:    initialLastRefresh,
+		SaleSyncActiveTime: activeTime,
+	}
+	if err := d.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	// 1. Mid-pagination (Page 1 -> Page 2): ResourceExhausted must return error without clearing SaleSyncActiveTime or advancing LastSaleRefresh
+	entryPage1 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{Page: 1, RefreshId: 12345},
+		},
+	}
+	err := b.ProcessRefreshSales(ctx, di, user, entryPage1, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.ResourceExhausted, "User queue limit reached")
+	})
+	if err == nil {
+		t.Errorf("expected ProcessRefreshSales to return error when enqueuing Page 2 returns ResourceExhausted, got nil")
+	}
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != activeTime {
+		t.Errorf("expected SaleSyncActiveTime %v to be preserved on Page 2 enqueue error, got %v", activeTime, savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleRefresh() != initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh %v to be unchanged on Page 2 enqueue error, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+
+	// 2. Mid-pagination (Page 1 -> Page 2): AlreadyExists must succeed cleanly
+	err = b.ProcessRefreshSales(ctx, di, user, entryPage1, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.AlreadyExists, "Already exists")
+	})
+	if err != nil {
+		t.Errorf("expected ProcessRefreshSales to succeed when enqueuing Page 2 returns AlreadyExists, got %v", err)
+	}
+
+	// 3. Final page (Page 2 -> LinkSales): ResourceExhausted must return error BEFORE advancing LastSaleRefresh or clearing SaleSyncActiveTime
+	entryPage2 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_RefreshSales{
+			RefreshSales: &pb.RefreshSales{Page: 2, RefreshId: 12345},
+		},
+	}
+	err = b.ProcessRefreshSales(ctx, di, user, entryPage2, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full")
+	})
+	if err == nil {
+		t.Errorf("expected ProcessRefreshSales to return error when enqueuing LinkSales returns ResourceExhausted, got nil")
+	}
+	savedUser, err = d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != activeTime {
+		t.Errorf("expected SaleSyncActiveTime %v to remain non-zero when LinkSales enqueue fails, got %v", activeTime, savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleRefresh() != initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh %v to not advance when LinkSales enqueue fails, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+
+	// 4. Final page (Page 2 -> LinkSales): AlreadyExists must succeed cleanly and advance LastSaleRefresh + clear SaleSyncActiveTime
+	err = b.ProcessRefreshSales(ctx, di, user, entryPage2, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.AlreadyExists, "Already exists")
+	})
+	if err != nil {
+		t.Errorf("expected ProcessRefreshSales to succeed when enqueuing LinkSales returns AlreadyExists, got %v", err)
+	}
+	savedUser, err = d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be cleared to 0 after final page completion, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleRefresh() <= initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh > %v after final page completion, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+}
+
+func TestProcessReconcileSales_ContinuationEnqueueErrorPropagates(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	initialLastReconcile := time.Now().Add(-8 * 24 * time.Hour).UnixNano()
+	initialLastRefresh := time.Now().Add(-25 * time.Hour).UnixNano()
+	activeTime := time.Now().Add(-10 * time.Minute).UnixNano()
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleReconcile:  initialLastReconcile,
+		LastSaleRefresh:    initialLastRefresh,
+		SaleSyncActiveTime: activeTime,
+	}
+	if err := d.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        2,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+			2: {
+				{SaleId: 1002, ReleaseId: 2002, Price: &pbd.Price{Value: 2000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	// 1. Mid-pagination (Page 1 -> Page 2): ResourceExhausted must return error without clearing SaleSyncActiveTime or advancing timestamps
+	entryPage1 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{Page: 1, RefreshId: 12345},
+		},
+	}
+	err := b.ProcessReconcileSales(ctx, di, user, entryPage1, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.ResourceExhausted, "User queue limit reached")
+	})
+	if err == nil {
+		t.Errorf("expected ProcessReconcileSales to return error when enqueuing Page 2 returns ResourceExhausted, got nil")
+	}
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != activeTime {
+		t.Errorf("expected SaleSyncActiveTime %v to be preserved on Page 2 enqueue error, got %v", activeTime, savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleReconcile() != initialLastReconcile {
+		t.Errorf("expected LastSaleReconcile %v to be unchanged on Page 2 enqueue error, got %v", initialLastReconcile, savedUser.GetLastSaleReconcile())
+	}
+	if savedUser.GetLastSaleRefresh() != initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh %v to be unchanged on Page 2 enqueue error, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+
+	// 2. Mid-pagination (Page 1 -> Page 2): AlreadyExists must succeed cleanly
+	err = b.ProcessReconcileSales(ctx, di, user, entryPage1, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.AlreadyExists, "Already exists")
+	})
+	if err != nil {
+		t.Errorf("expected ProcessReconcileSales to succeed when enqueuing Page 2 returns AlreadyExists, got %v", err)
+	}
+
+	// 3. Final page (Page 2 -> LinkSales): ResourceExhausted must return error BEFORE advancing LastSaleReconcile/LastSaleRefresh or clearing SaleSyncActiveTime
+	entryPage2 := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{Page: 2, RefreshId: 12345},
+		},
+	}
+	err = b.ProcessReconcileSales(ctx, di, user, entryPage2, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.ResourceExhausted, "Queue is full")
+	})
+	if err == nil {
+		t.Errorf("expected ProcessReconcileSales to return error when enqueuing LinkSales returns ResourceExhausted, got nil")
+	}
+	savedUser, err = d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != activeTime {
+		t.Errorf("expected SaleSyncActiveTime %v to remain non-zero when LinkSales enqueue fails, got %v", activeTime, savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleReconcile() != initialLastReconcile {
+		t.Errorf("expected LastSaleReconcile %v to not advance when LinkSales enqueue fails, got %v", initialLastReconcile, savedUser.GetLastSaleReconcile())
+	}
+	if savedUser.GetLastSaleRefresh() != initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh %v to not advance when LinkSales enqueue fails, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+
+	// 4. Final page (Page 2 -> LinkSales): AlreadyExists must succeed cleanly and advance both timestamps + clear SaleSyncActiveTime
+	err = b.ProcessReconcileSales(ctx, di, user, entryPage2, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return nil, status.Errorf(codes.AlreadyExists, "Already exists")
+	})
+	if err != nil {
+		t.Errorf("expected ProcessReconcileSales to succeed when enqueuing LinkSales returns AlreadyExists, got %v", err)
+	}
+	savedUser, err = d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be cleared to 0 after final page completion, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+	if savedUser.GetLastSaleReconcile() <= initialLastReconcile {
+		t.Errorf("expected LastSaleReconcile > %v after final page completion, got %v", initialLastReconcile, savedUser.GetLastSaleReconcile())
+	}
+	if savedUser.GetLastSaleRefresh() <= initialLastRefresh {
+		t.Errorf("expected LastSaleRefresh > %v after final page completion, got %v", initialLastRefresh, savedUser.GetLastSaleRefresh())
+	}
+}
+
+func TestProcessReconcileSales_UpdatesBothLastSaleReconcileAndLastSaleRefresh(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{
+		User:               &pbd.User{DiscogsUserId: userId},
+		Auth:               &pb.GramophileAuth{Token: "test_token"},
+		LastSaleReconcile:  0,
+		LastSaleRefresh:    0,
+		SaleSyncActiveTime: time.Now().Add(-10 * time.Minute).UnixNano(),
+	}
+	if err := d.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	di := &paginatedDiscogsTestClient{
+		TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+		totalPages:        1,
+		pages: map[int32][]*pbd.SaleItem{
+			1: {
+				{SaleId: 1001, ReleaseId: 2001, Price: &pbd.Price{Value: 1000, Currency: "USD"}, Status: pbd.SaleStatus_FOR_SALE},
+			},
+		},
+	}
+
+	entry := &pb.QueueElement{
+		Auth: user.GetAuth().GetToken(),
+		Entry: &pb.QueueElement_ReconcileSales{
+			ReconcileSales: &pb.ReconcileSales{
+				Page:      1,
+				RefreshId: 12345,
+			},
+		},
+	}
+
+	err := b.ProcessReconcileSales(ctx, di, user, entry, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("ProcessReconcileSales failed: %v", err)
+	}
+
+	savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+	if err != nil {
+		t.Fatalf("failed to get user: %v", err)
+	}
+	if savedUser.GetLastSaleReconcile() == 0 {
+		t.Errorf("expected LastSaleReconcile to be updated > 0, got 0")
+	}
+	if savedUser.GetLastSaleRefresh() == 0 {
+		t.Errorf("expected LastSaleRefresh to be updated > 0 upon ReconcileSales completion, got 0")
+	}
+	if savedUser.GetLastSaleReconcile() != savedUser.GetLastSaleRefresh() {
+		t.Errorf("expected LastSaleReconcile (%v) and LastSaleRefresh (%v) to be set to the same timestamp", savedUser.GetLastSaleReconcile(), savedUser.GetLastSaleRefresh())
+	}
+	if savedUser.GetSaleSyncActiveTime() != 0 {
+		t.Errorf("expected SaleSyncActiveTime to be reset to 0, got %v", savedUser.GetSaleSyncActiveTime())
+	}
+}
+
 func TestSyncSales_UsesDiscogsPostedForNewAndExistingSales(t *testing.T) {
 	ctx := context.Background()
 	pstore := pstore_client.GetTestClient()

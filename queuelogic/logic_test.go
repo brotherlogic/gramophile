@@ -580,12 +580,60 @@ func testUserQueueLimitWithElement(t *testing.T, createElement func(i int) *pb.Q
 	}
 }
 
+func testUserQueueLimitExemptWithElement(t *testing.T, createElement func(page int32) *pb.QueueElement) {
+	t.Helper()
+	ctx := getTestContext(123)
+
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"}})
+	if err != nil {
+		t.Fatalf("Bad user: %v", err)
+	}
+
+	for i := 0; i < MaxUserQueueSize; i++ {
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{
+			Element: &pb.QueueElement{
+				Intention: "From Test",
+				RunDate:   int64(i + 1),
+				Entry: &pb.QueueElement_RefreshRelease{
+					RefreshRelease: &pb.RefreshRelease{
+						Iid:       int64(i + 1),
+						Intention: fmt.Sprintf("Refresh %d", i+1),
+					},
+				},
+				Auth: "123",
+			},
+		})
+		if err != nil {
+			t.Fatalf("Failed to enqueue item %d: %v", i+1, err)
+		}
+	}
+
+	for page := int32(1); page <= 2; page++ {
+		elem := createElement(page)
+		elem.Auth = "123"
+		elem.RunDate = int64(MaxUserQueueSize) + int64(page)
+		elem.Intention = "From Test"
+		_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+		if err != nil {
+			t.Fatalf("Expected page %d to succeed when user queue has %d items, got: %v", page, MaxUserQueueSize, err)
+		}
+	}
+}
+
 func TestUserQueueLimit_RefreshSales(t *testing.T) {
-	testUserQueueLimitWithElement(t, func(i int) *pb.QueueElement {
+	testUserQueueLimitExemptWithElement(t, func(page int32) *pb.QueueElement {
 		return &pb.QueueElement{
 			Entry: &pb.QueueElement_RefreshSales{
 				RefreshSales: &pb.RefreshSales{
-					Page: int32(i + 1),
+					Page: page,
 				},
 			},
 		}
@@ -593,11 +641,11 @@ func TestUserQueueLimit_RefreshSales(t *testing.T) {
 }
 
 func TestUserQueueLimit_ReconcileSales(t *testing.T) {
-	testUserQueueLimitWithElement(t, func(i int) *pb.QueueElement {
+	testUserQueueLimitExemptWithElement(t, func(page int32) *pb.QueueElement {
 		return &pb.QueueElement{
 			Entry: &pb.QueueElement_ReconcileSales{
 				ReconcileSales: &pb.ReconcileSales{
-					Page: int32(i + 1),
+					Page: page,
 				},
 			},
 		}
