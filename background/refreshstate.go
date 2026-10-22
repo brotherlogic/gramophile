@@ -68,6 +68,11 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 		return status.Errorf(codes.Internal, "Unable to process state with > 1 pages (%v)", iid)
 	}
 
+	fields, err := d.GetFields(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get fields: %w", err)
+	}
+
 	log.Printf("%v -> %v", iid, len(release))
 	for _, rel := range release {
 		if rel.GetInstanceId() == iid {
@@ -76,6 +81,14 @@ func (b *BackgroundRunner) RefreshState(ctx context.Context, iid int64, d discog
 
 			if record.GetRelease().DateAdded == 0 {
 				record.GetRelease().DateAdded = rel.GetDateAdded()
+			}
+
+			if len(rel.GetNotes()) > 0 {
+				record.GetRelease().Notes = rel.GetNotes()
+				record, err = b.processNotes(ctx, fields, record)
+				if err != nil {
+					return err
+				}
 			}
 
 			log.Printf("Found and updated %v -> %v from %v", iid, record.GetRelease().FolderId, rel)
