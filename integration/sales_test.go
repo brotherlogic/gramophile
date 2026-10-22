@@ -3059,4 +3059,152 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	}
 }
 
+func TestSaleMissingCondition_RecoveryViaRefreshSalesAndPriceAdjustment(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	// Save user with recent LastSaleRefresh so only a forced RefreshSales will execute
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders:         []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:            &pbd.User{DiscogsUserId: 123},
+		Auth:            &pb.GramophileAuth{Token: "123"},
+		LastSaleRefresh: time.Now().UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+
+	// Save collection record with empty Condition and SleeveCondition (simulating unrefreshed collection notes)
+	err = d.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:              123,
+			InstanceId:      1234,
+			FolderId:        12,
+			Condition:       "",
+			SleeveCondition: "",
+			Labels:          []*pbd.Label{{Name: "AAA"}},
+		},
+		MedianPrice: &pbd.Price{Currency: "USD", Value: 1225},
+		LowPrice:    &pbd.Price{Currency: "USD", Value: 1000},
+		SaleId:      123456,
+	}, &db.SaveOptions{})
+	if err != nil {
+		t.Fatalf("Can't init save record: %v", err)
+	}
+
+	// Save FOR_SALE sale whose Condition and SleeveCondition were previously wiped to ""
+	err = d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          123456,
+		ReleaseId:       123,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "",
+		SleeveCondition: "",
+		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 1225, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 1000, Currency: "USD"},
+		LastPriceUpdate: 12,
+	})
+	if err != nil {
+		t.Fatalf("Can't save sale: %v", err)
+	}
+
+	// Discogs inventory has the valid Condition and SleeveCondition for sale 123456
+	di := &discogs.TestDiscogsClient{
+		UserId: 123,
+		Fields: []*pbd.Field{{Id: 10, Name: "LastSaleUpdate"}},
+		Sales: []*pbd.SaleItem{
+			{
+				SaleId:          123456,
+				ReleaseId:       123,
+				Status:          pbd.SaleStatus_FOR_SALE,
+				Condition:       "Near Mint (NM or M-)",
+				SleeveCondition: "Very Good Plus (VG+)",
+				Price:           &pbd.Price{Value: 1234, Currency: "USD"},
+			},
+		},
+	}
+
+	b := background.GetBackgroundRunner(d, "", "", "")
+	q := queuelogic.GetQueue(pstore, b, di, d)
+	s := server.BuildServer(d, di, q)
+
+	_, err = s.SetConfig(ctx, &pb.SetConfigRequest{
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to set config: %v", err)
+	}
+
+	// Pass 1: AdjustSales sees missing Condition/SleeveCondition on sale 123456, skips price update, and enqueues forced RefreshSales{Page: 1}
+	u, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("unable to get user: %v", err)
+	}
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("first AdjustSales failed: %v", err)
+	}
+
+	// Before flushing the queue, price should still be 1234 (skipped)
+	saleBeforeFlush, err := d.GetSale(ctx, 123, 123456)
+	if err != nil {
+		t.Fatalf("unable to get sale before flush: %v", err)
+	}
+	if saleBeforeFlush.GetCurrentPrice().GetValue() != 1234 {
+		t.Fatalf("expected price to remain 1234 when skipped on pass 1, got %v", saleBeforeFlush.GetCurrentPrice().GetValue())
+	}
+
+	// Flush queue to run RefreshSales -> SyncSales (backfilling Condition & SleeveCondition) and LinkSales -> HardLink (preserving them)
+	if err := q.FlushQueue(ctx); err != nil {
+		t.Fatalf("FlushQueue after pass 1 failed: %v", err)
+	}
+	time.Sleep(time.Millisecond)
+	if err := q.FlushQueue(ctx); err != nil {
+		t.Fatalf("second FlushQueue for LinkSales failed: %v", err)
+	}
+
+	saleAfterRecovery, err := d.GetSale(ctx, 123, 123456)
+	if err != nil {
+		t.Fatalf("unable to get sale after RefreshSales + LinkSales: %v", err)
+	}
+	if saleAfterRecovery.GetCondition() != "Near Mint (NM or M-)" {
+		t.Errorf("expected recovered Condition 'Near Mint (NM or M-)', got %q", saleAfterRecovery.GetCondition())
+	}
+	if saleAfterRecovery.GetSleeveCondition() != "Very Good Plus (VG+)" {
+		t.Errorf("expected recovered SleeveCondition 'Very Good Plus (VG+)', got %q", saleAfterRecovery.GetSleeveCondition())
+	}
+
+	// Pass 2: Next AdjustSales pass now has both Condition and SleeveCondition and adjusts the price down to MedianPrice (1225)
+	u, err = d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("unable to get user for pass 2: %v", err)
+	}
+	err = b.AdjustSales(ctx, u.GetConfig().GetSaleConfig(), u, q.Enqueue)
+	if err != nil {
+		t.Fatalf("second AdjustSales failed: %v", err)
+	}
+	if err := q.FlushQueue(ctx); err != nil {
+		t.Fatalf("FlushQueue after pass 2 failed: %v", err)
+	}
+
+	saleAfterAdjust, err := d.GetSale(ctx, 123, 123456)
+	if err != nil {
+		t.Fatalf("unable to get sale after pass 2: %v", err)
+	}
+	if saleAfterAdjust.GetCurrentPrice().GetValue() != 1225 {
+		t.Errorf("expected sale price to be adjusted to 1225 on pass 2, got %v", saleAfterAdjust.GetCurrentPrice().GetValue())
+	}
+}
+
+
 
