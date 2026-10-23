@@ -29,11 +29,12 @@ import (
 )
 
 type Server struct {
-	d          db.Database
-	di         discogs.Discogs
-	qc         queue_client.QueueClient
-	trackings  map[string]*tracking
-	loginMutex sync.Mutex
+	d             db.Database
+	di            discogs.Discogs
+	qc            queue_client.QueueClient
+	trackings     map[string]*tracking
+	trackingMutex sync.Mutex
+	loginMutex    sync.Mutex
 }
 
 type tracking struct {
@@ -105,6 +106,8 @@ func (s *Server) getKey(ctx context.Context) string {
 }
 
 func (s *Server) Observe(ctx context.Context, desc string) {
+	s.trackingMutex.Lock()
+	defer s.trackingMutex.Unlock()
 	tracking := s.trackings[s.getKey(ctx)]
 	if tracking != nil {
 		tracking.timings = append(tracking.timings, &timing{timestamp: time.Now(), desc: desc})
@@ -142,9 +145,14 @@ func generateContext(ctx context.Context, origin string) context.Context {
 func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	uuid := fmt.Sprintf("%v", time.Now().UnixNano())
 	stime := time.Now()
+	s.trackingMutex.Lock()
+	if s.trackings == nil {
+		s.trackings = make(map[string]*tracking)
+	}
 	s.trackings[uuid] = &tracking{
 		timings: []*timing{{timestamp: time.Now(), desc: "RPCStart"}},
 	}
+	s.trackingMutex.Unlock()
 	resp, err = handler(ctx, req)
 	elapsed := time.Since(stime)
 	log.Printf("Processing Time: (%v) %v", info.FullMethod, elapsed)
@@ -166,7 +174,9 @@ func (s *Server) ServerTiming(ctx context.Context, req interface{}, info *grpc.U
 	// Place the processing time into the context
 	metadata.AppendToOutgoingContext(ctx, "backend-time", fmt.Sprintf("%v", elapsed.Milliseconds()))
 
+	s.trackingMutex.Lock()
 	delete(s.trackings, uuid)
+	s.trackingMutex.Unlock()
 
 	return resp, err
 }
