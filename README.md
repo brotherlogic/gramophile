@@ -115,6 +115,7 @@ Current Go version: 1.26.2
 - Non-Destructive HardLink Condition Propagation & Missing-Condition Recovery Sync: Evaluates `Condition` and `SleeveCondition` independently in `HardLink` so empty record conditions never overwrite populated sale conditions, and guards `AdjustSales` and `ProcessUpdateSale` against missing `Condition` or `SleeveCondition` by skipping the adjustment and enqueuing a forced `RefreshSales` task.
 - Collection Notes Condition Extraction: Extracts Discogs collection custom fields `"Media Condition"` and `"Sleeve Condition"` into `record.GetRelease().Condition` and `record.GetRelease().SleeveCondition` during collection page synchronization (`processNotes`) and single-release state refreshes (`RefreshState`).
 - Sales Sync SleeveCondition Backfill & End-to-End Condition Recovery: Updates `github.com/brotherlogic/discogs` to include `SaleItem.SleeveCondition`, populates and backfills `SaleInfo.SleeveCondition` alongside `Condition` in `BackgroundRunner.SyncSales`, and verifies end-to-end recovery of sales missing condition metadata via `RefreshSales`, `HardLink`, and subsequent `AdjustSales` price adjustments.
+- Guarded Sale Price Adjustments in AdjustSales: Guards individual sale price adjustments in `BackgroundRunner.AdjustSales` on `SaleConfig.HandlePriceUpdates == Enabled_ENABLED_ENABLED`, immediately advancing `user.LastSaleAdjust` and persisting the user without modifying sale prices when automatic price updates are disabled.
 
 
 ## TUI (Terminal User Interface)

@@ -1401,8 +1401,9 @@ func TestAdjustSales_EndToEndConditionPreservation(t *testing.T) {
 		User:    &pbd.User{DiscogsUserId: 123},
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
-				UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
-				Reduction:  100,
+				HandlePriceUpdates: pb.Enabled_ENABLED_ENABLED,
+				UpdateType:         pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:          100,
 			},
 		},
 		Auth: &pb.GramophileAuth{Token: "123"},

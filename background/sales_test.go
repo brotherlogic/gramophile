@@ -205,6 +205,7 @@ func TestTypeOverride_NoOverride(t *testing.T) {
 	b := GetBackgroundRunner(d, "", "", "")
 
 	b.AdjustSales(context.Background(), &pb.SaleConfig{
+		HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 		PostLowTime:                  1,
 		PostMedianReduction:          50,
 		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
@@ -252,6 +253,7 @@ func TestTypeOverride_Override(t *testing.T) {
 	b := GetBackgroundRunner(d, "", "", "")
 
 	b.AdjustSales(context.Background(), &pb.SaleConfig{
+		HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 		PostLowTime:                  1,
 		PostMedianReduction:          50,
 		LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
@@ -610,6 +612,7 @@ func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 		Auth: &pb.GramophileAuth{Token: "test_token"},
 	}
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds: 3600,
 		UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
 		Reduction:              50,
@@ -810,6 +813,7 @@ func TestAdjustSales_ResilientLoopContinuesOnIndividualError(t *testing.T) {
 	d.SaveUser(ctx, user)
 
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds: 10,
 		Reduction:              50,
 	}
@@ -897,6 +901,7 @@ func TestAdjustSales_ExpectedLowPriceContinuesLoop(t *testing.T) {
 	d.SaveUser(ctx, user)
 
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds:       10,
 		Reduction:                    50,
 		PostMedianTime:               1,
@@ -946,6 +951,7 @@ func TestAdjustSales_InitialGetSalesFailureReturnsError(t *testing.T) {
 	}
 
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds: 10,
 		Reduction:              50,
 	}
@@ -981,6 +987,7 @@ func TestAdjustSales_ContextCancellationExitsCleanly(t *testing.T) {
 	}
 
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds: 10,
 		Reduction:              50,
 	}
@@ -1424,7 +1431,8 @@ func TestAdjustSales_PropagatesSleeveCondition(t *testing.T) {
 	b := GetBackgroundRunner(d, "", "", "")
 
 	err := b.AdjustSales(ctx, &pb.SaleConfig{
-		UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+		HandlePriceUpdates: pb.Enabled_ENABLED_ENABLED,
+		UpdateType:         pb.SaleUpdateType_REDUCE_TO_MEDIAN,
 	}, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
 		recordedUpdate = req.GetElement().GetUpdateSale()
 		return &pb.EnqueueResponse{}, nil
@@ -3456,6 +3464,7 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 	}
 
 	config := &pb.SaleConfig{
+		HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
 		UpdateFrequencySeconds: 10,
 		UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
 		Reduction:              100,
@@ -3713,5 +3722,90 @@ func TestSyncSales_BackfillsConditionAndSleeveCondition(t *testing.T) {
 	}
 	if sale1003.GetSleeveCondition() != "Near Mint (NM or M-)" {
 		t.Errorf("expected existing sale 1003 SleeveCondition backfilled to 'Near Mint (NM or M-)', got %q", sale1003.GetSleeveCondition())
+	}
+}
+
+func TestAdjustSales_DisabledUpdatesLastSaleAdjustOnly(t *testing.T) {
+	for _, state := range []pb.Enabled{pb.Enabled_ENABLED_DISABLED, pb.Enabled_ENABLED_UNKNOWN} {
+		t.Run(state.String(), func(t *testing.T) {
+			ctx := context.Background()
+			pstore := pstore_client.GetTestClient()
+			d := db.NewTestDB(pstore)
+			b := GetBackgroundRunner(d, "", "", "")
+
+			userId := int32(123)
+			oldLastSaleAdjust := time.Now().Add(-48 * time.Hour).UnixNano()
+			oldLastPriceUpdate := time.Now().Add(-48 * time.Hour).UnixNano()
+
+			user := &pb.StoredUser{
+				User:           &pbd.User{DiscogsUserId: userId},
+				Auth:           &pb.GramophileAuth{Token: "test_token"},
+				LastSaleAdjust: oldLastSaleAdjust,
+				Config: &pb.GramophileConfig{
+					SaleConfig: &pb.SaleConfig{
+						HandlePriceUpdates:     state,
+						UpdateFrequencySeconds: 10,
+						UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+						Reduction:              100,
+					},
+				},
+			}
+			if err := d.SaveUser(ctx, user); err != nil {
+				t.Fatalf("failed to save user: %v", err)
+			}
+
+			// Seed an active FOR_SALE listing that would otherwise qualify for a price reduction to MedianPrice (2000)
+			if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+				SaleId:          5555,
+				ReleaseId:       6666,
+				Condition:       "Near Mint (NM or M-)",
+				SleeveCondition: "Very Good Plus (VG+)",
+				CurrentPrice:    &pbd.Price{Value: 2050, Currency: "USD"},
+				MedianPrice:     &pbd.Price{Value: 2000, Currency: "USD"},
+				LowPrice:        &pbd.Price{Value: 1000, Currency: "USD"},
+				LastPriceUpdate: oldLastPriceUpdate,
+				SaleState:       pbd.SaleStatus_FOR_SALE,
+			}); err != nil {
+				t.Fatalf("failed to save sale: %v", err)
+			}
+
+			var enqueuedRequests []*pb.EnqueueRequest
+			enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+				enqueuedRequests = append(enqueuedRequests, req)
+				return &pb.EnqueueResponse{}, nil
+			}
+
+			beforeAdjust := time.Now().UnixNano()
+			err := b.AdjustSales(ctx, user.GetConfig().GetSaleConfig(), user, enqueue)
+			if err != nil {
+				t.Fatalf("AdjustSales failed: %v", err)
+			}
+
+			if len(enqueuedRequests) != 0 {
+				t.Errorf("expected 0 enqueued requests when HandlePriceUpdates is %v, got %d: %v", state, len(enqueuedRequests), enqueuedRequests)
+			}
+
+			savedUser, err := d.GetUser(ctx, user.GetAuth().GetToken())
+			if err != nil {
+				t.Fatalf("failed to get saved user: %v", err)
+			}
+			if savedUser.GetLastSaleAdjust() < beforeAdjust {
+				t.Errorf("expected savedUser.LastSaleAdjust to be updated >= %v, got %v (old was %v)", beforeAdjust, savedUser.GetLastSaleAdjust(), oldLastSaleAdjust)
+			}
+
+			sale, err := d.GetSale(ctx, userId, 5555)
+			if err != nil {
+				t.Fatalf("failed to get sale: %v", err)
+			}
+			if sale.GetCurrentPrice().GetValue() != 2050 {
+				t.Errorf("expected sale CurrentPrice to remain 2050, got %v", sale.GetCurrentPrice().GetValue())
+			}
+			if sale.GetLastPriceUpdate() != oldLastPriceUpdate {
+				t.Errorf("expected sale LastPriceUpdate to remain %v, got %v", oldLastPriceUpdate, sale.GetLastPriceUpdate())
+			}
+			if sale.GetTimeAtMedian() != 0 {
+				t.Errorf("expected sale TimeAtMedian to remain 0, got %v", sale.GetTimeAtMedian())
+			}
+		})
 	}
 }
