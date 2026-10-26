@@ -391,6 +391,12 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 }
 
 func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, user *pb.StoredUser, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	if c.GetHandlePriceUpdates() != pb.Enabled_ENABLED_ENABLED {
+		log.Printf("Skipping individual sale price adjustments for user %v since HandlePriceUpdates is %v", user.GetUser().GetDiscogsUserId(), c.GetHandlePriceUpdates())
+		user.LastSaleAdjust = time.Now().UnixNano()
+		return b.db.SaveUser(ctx, user)
+	}
+
 	sales, err := b.db.GetSales(ctx, user.GetUser().GetDiscogsUserId())
 	if err != nil {
 		return fmt.Errorf("unable to get all sales: %w", err)
