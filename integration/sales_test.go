@@ -8,6 +8,7 @@ import (
 
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
+	ghbclient "github.com/brotherlogic/githubridge/client"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -2711,6 +2712,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 		Auth:                  &pb.GramophileAuth{Token: "123"},
 		LastSaleRefresh:       staleTime,
 		LastSaleReconcile:     time.Now().UnixNano(),
+		LastSaleAdjust:        time.Now().UnixNano(),
 		LastRefreshTime:       time.Now().UnixNano(),
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
@@ -2753,9 +2755,10 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
 	qAdapter := &queueServiceAdapter{q: qc}
 	gClient := &dummyGramophileClient{}
+	ghClient := ghbclient.GetTestClient()
 
 	// Step 1: Initial validator run triggers RefreshSales (since LastSaleRefresh > 24h)
-	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("validator ValidateUser failed: %v", err)
 	}
@@ -2775,7 +2778,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 
 	// Step 2: Validator runs while RefreshSales is in-flight (both before queue processing and during mid-pagination)
 	// Sub-step 2a: Before queue processing
-	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("validator ValidateUser while in-flight failed: %v", err)
 	}
@@ -2795,7 +2798,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 			t.Errorf("expected SaleSyncActiveTime to remain active during onList(page=%d), got 0", page)
 		}
 		// Run validator while page is executing
-		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d)
+		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d, ghClient)
 		if valErr != nil {
 			t.Errorf("validator ValidateUser during onList(page=%d) returned error: %v", page, valErr)
 		}
@@ -2844,7 +2847,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 	}
 
 	// Step 4: Subsequent validator run when sync is finished does not re-enqueue RefreshSales
-	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("post-completion ValidateUser failed: %v", err)
 	}
@@ -2873,6 +2876,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 		Auth:                  &pb.GramophileAuth{Token: "123"},
 		LastSaleRefresh:       staleRefreshTime,   // stale > 24h
 		LastSaleReconcile:     staleReconcileTime, // stale > 7d, so ReconcileSales should take priority over RefreshSales
+		LastSaleAdjust:        time.Now().UnixNano(),
 		LastRefreshTime:       time.Now().UnixNano(),
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
@@ -2915,6 +2919,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	qc := queuelogic.GetQueue(pstore, background.GetBackgroundRunner(d, "", "", ""), mockDiscogs, d)
 	qAdapter := &queueServiceAdapter{q: qc}
 	gClient := &dummyGramophileClient{}
+	ghClient := ghbclient.GetTestClient()
 
 	// Populate 200 throttled queue items (RefreshRelease) for user "123" so the user's queue is at MaxUserQueueSize
 	futureBase := time.Now().Add(time.Hour).UnixNano()
@@ -2947,7 +2952,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	}
 
 	// Step 1: Initial validator run triggers ReconcileSales first (even though both RefreshSales and ReconcileSales are overdue and 200 items are queued)
-	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, user, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("validator ValidateUser failed: %v", err)
 	}
@@ -2967,7 +2972,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 
 	// Step 2: Validator runs while ReconcileSales is in-flight (both before queue processing and mid-pagination)
 	// Sub-step 2a: Before queue processing
-	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, userAfterInitialVal, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("validator ValidateUser while in-flight failed: %v", err)
 	}
@@ -2987,7 +2992,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 			t.Errorf("expected SaleSyncActiveTime to remain active during onList(page=%d), got 0", page)
 		}
 		// Run validator while page is executing
-		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d)
+		valErr := validatorlogic.ValidateUser(ctx, currentUser, gClient, qAdapter, d, ghClient)
 		if valErr != nil {
 			t.Errorf("validator ValidateUser during onList(page=%d) returned error: %v", page, valErr)
 		}
@@ -3038,7 +3043,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 	}
 
 	// Step 4: Subsequent validator run does not re-enqueue ReconcileSales or RefreshSales
-	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d)
+	err = validatorlogic.ValidateUser(ctx, userAfterCompletion, gClient, qAdapter, d, ghClient)
 	if err != nil {
 		t.Fatalf("post-completion ValidateUser failed: %v", err)
 	}

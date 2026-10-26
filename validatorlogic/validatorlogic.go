@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	ghbclient "github.com/brotherlogic/githubridge/client"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/queuelogic"
 	"google.golang.org/grpc"
@@ -16,11 +19,13 @@ import (
 	pb "github.com/brotherlogic/gramophile/proto"
 )
 
+const SaleStalenessThreshold = 7 * 24 * time.Hour
+
 func IsSalesSyncActive(user *pb.StoredUser) bool {
 	return user.GetSaleSyncActiveTime() != 0 && time.Since(time.Unix(0, user.GetSaleSyncActiveTime())) < 24*time.Hour
 }
 
-func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.GramophileServiceClient, queue pb.QueueServiceClient, d db.Database) error {
+func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.GramophileServiceClient, queue pb.QueueServiceClient, d db.Database, ghclient ghbclient.GithubridgeClient) error {
 	log.Printf("User Refresh %v -> %v", user, time.Since(time.Unix(0, user.GetLastRefreshTime())))
 
 	if user.GetUserToken() == "" && time.Since(time.Unix(0, user.GetLastRefreshTime())) > time.Hour*24*7 {
@@ -140,25 +145,25 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 			}
 		}
 
-		if user.GetConfig().GetSaleConfig().GetHandlePriceUpdates() == pb.Enabled_ENABLED_ENABLED {
-			log.Printf("AdjustSales: %v", time.Since(time.Unix(0, user.GetLastSaleAdjust())))
-			if time.Since(time.Unix(0, user.GetLastSaleAdjust())) > time.Hour {
-				_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
-					Element: &pb.QueueElement{
-						Intention:        "From Validator (AdjustSales)",
-						RunDate:          time.Now().UnixNano(),
-						Auth:             user.GetAuth().GetToken(),
-						BackoffInSeconds: 15,
-						Entry: &pb.QueueElement_AdjustSales{
-							AdjustSales: &pb.AdjustSales{},
-						},
+		log.Printf("AdjustSales: %v", time.Since(time.Unix(0, user.GetLastSaleAdjust())))
+		if time.Since(time.Unix(0, user.GetLastSaleAdjust())) > time.Hour {
+			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention:        "From Validator (AdjustSales)",
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 15,
+					Entry: &pb.QueueElement_AdjustSales{
+						AdjustSales: &pb.AdjustSales{},
 					},
-				})
-				if err != nil {
-					log.Printf("unable to enqueue: %v", err)
-				}
+				},
+			})
+			if err != nil {
+				log.Printf("unable to enqueue: %v", err)
 			}
 		}
+
+		checkSalesStaleness(ctx, user, d, ghclient)
 
 		log.Printf("Wants: %v", time.Since(time.Unix(0, user.GetLastWantRefresh())))
 		if time.Since(time.Unix(0, user.GetLastWantRefresh())) > time.Hour*24 {
@@ -215,6 +220,61 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 	return nil
 }
 
+func checkSalesStaleness(ctx context.Context, user *pb.StoredUser, d db.Database, ghclient ghbclient.GithubridgeClient) {
+	if user.GetUserToken() == "" || ghclient == nil {
+		return
+	}
+
+	var reasons []string
+
+	refreshAge := time.Since(time.Unix(0, user.GetLastSaleRefresh()))
+	if refreshAge > SaleStalenessThreshold {
+		reasons = append(reasons, fmt.Sprintf("- User-level `LastSaleRefresh` is stale: last refreshed %v ago (timestamp: %v)", refreshAge.Round(time.Second), user.GetLastSaleRefresh()))
+	}
+
+	adjustAge := time.Since(time.Unix(0, user.GetLastSaleAdjust()))
+	if adjustAge > SaleStalenessThreshold {
+		reasons = append(reasons, fmt.Sprintf("- User-level `LastSaleAdjust` is stale: last adjusted %v ago (timestamp: %v)", adjustAge.Round(time.Second), user.GetLastSaleAdjust()))
+	}
+
+	if len(reasons) > 0 {
+		reportSalesStaleness(ctx, user, reasons, ghclient)
+	}
+}
+
+func reportSalesStaleness(ctx context.Context, user *pb.StoredUser, reasons []string, ghclient ghbclient.GithubridgeClient) {
+	userID := fmt.Sprintf("%v", user.GetUser().GetDiscogsUserId())
+	if user.GetUser().GetDiscogsUserId() == 0 {
+		userID = user.GetAuth().GetToken()
+	}
+
+	title := fmt.Sprintf("Sales staleness detected for user %v", userID)
+
+	resp, err := ghclient.GetIssues(ctx, &ghbpb.GetIssuesRequest{})
+	if err != nil {
+		log.Printf("unable to list issues for sales staleness deduplication check on user %v: %v", userID, err)
+	} else {
+		for _, issue := range resp.GetIssues() {
+			if issue.GetTitle() == title && issue.GetState() != ghbpb.IssueState_ISSUE_STATE_CLOSED {
+				log.Printf("open issue already exists for sales staleness on user %v: %v (id: %v), skipping creation", userID, title, issue.GetId())
+				return
+			}
+		}
+	}
+
+	body := fmt.Sprintf("Sales staleness detected during validation for user %v:\n\n%s", userID, strings.Join(reasons, "\n"))
+
+	_, err = ghclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
+		User:  "brotherlogic",
+		Repo:  "gramophile",
+		Title: title,
+		Body:  body,
+	})
+	if err != nil {
+		log.Printf("unable to create github issue for sales staleness on user %v: %v", userID, err)
+	}
+}
+
 func RunValidationLoop(ctx context.Context) error {
 	conn, err := grpc.Dial("gramophile.gramophile:8083", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -235,8 +295,13 @@ func RunValidationLoop(ctx context.Context) error {
 
 	d := db.NewDatabase(ctx)
 
+	ghclient, err := ghbclient.GetClientInternal()
+	if err != nil {
+		log.Printf("unable to get githubridge client: %v", err)
+	}
+
 	for _, user := range users.GetUsers() {
-		err := ValidateUser(ctx, user, client, queue, d)
+		err := ValidateUser(ctx, user, client, queue, d, ghclient)
 		if err != nil {
 			log.Printf("unable to validate user %v: %v", user.GetAuth().GetToken(), err)
 		}
