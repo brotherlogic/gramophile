@@ -1069,5 +1069,490 @@ func TestValidateUser_GithubridgeFailure_DoesNotFailValidation(t *testing.T) {
 	})
 }
 
+func TestValidateUser_PerSaleStaleness_CreatesIssue(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	newFreshUserWithUpdatesEnabled := func(userID int32, cfg *pb.SaleConfig) *pb.StoredUser {
+		return &pb.StoredUser{
+			Auth:                  &pb.GramophileAuth{Token: fmt.Sprintf("token_%d", userID)},
+			UserToken:             "user_token",
+			User:                  &dpb.User{DiscogsUserId: userID},
+			LastRefreshTime:       now.UnixNano(),
+			LastCollectionCheck:   now.UnixNano(),
+			LastCollectionRefresh: now.UnixNano(),
+			LastSaleRefresh:       now.Add(-1 * time.Hour).UnixNano(),
+			LastSaleReconcile:     now.UnixNano(),
+			LastSaleAdjust:        now.Add(-30 * time.Minute).UnixNano(),
+			LastWantRefresh:       now.UnixNano(),
+			LastOrderSync:         now.UnixNano(),
+			Config: &pb.GramophileConfig{
+				SaleConfig: cfg,
+			},
+		}
+	}
+
+	t.Run("active FOR_SALE listing above median with LastPriceUpdate > 7d", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		tdb := db.NewTestDB(pstore)
+		queue := &testQueueClient{}
+		client := &testGramophileClient{}
+		ghClient := newRecordingGHClient()
+
+		user := newFreshUserWithUpdatesEnabled(101, &pb.SaleConfig{
+			HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+			UpdateFrequencySeconds: 3600,
+			UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			Reduction:              100,
+		})
+		if err := tdb.SaveSale(ctx, 101, &pb.SaleInfo{
+			SaleId:          9001,
+			ReleaseId:       8001,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+			MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			LastPriceUpdate: now.Add(-8 * 24 * time.Hour).UnixNano(),
+		}); err != nil {
+			t.Fatalf("failed to save sale: %v", err)
+		}
+
+		if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+			t.Fatalf("validateUser returned unexpected error: %v", err)
+		}
+
+		if len(ghClient.created) != 1 {
+			t.Fatalf("expected 1 issue to be created, got %d", len(ghClient.created))
+		}
+		body := ghClient.created[0].GetBody()
+		if !strings.Contains(body, "9001") {
+			t.Errorf("expected issue body to include SaleId 9001, got: %s", body)
+		}
+		if !strings.Contains(body, "8001") {
+			t.Errorf("expected issue body to include ReleaseId 8001, got: %s", body)
+		}
+		if !strings.Contains(body, "REDUCE_TO_MEDIAN") {
+			t.Errorf("expected issue body to include UpdateType REDUCE_TO_MEDIAN, got: %s", body)
+		}
+	})
+
+	t.Run("active FOR_SALE listing stuck on missing MedianPrice == 0 or missing condition (EC4)", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		tdb := db.NewTestDB(pstore)
+		queue := &testQueueClient{}
+		client := &testGramophileClient{}
+		ghClient := newRecordingGHClient()
+
+		user := newFreshUserWithUpdatesEnabled(102, &pb.SaleConfig{
+			HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+			UpdateFrequencySeconds: 3600,
+			UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			Reduction:              100,
+		})
+		// Sale 9002 stuck on MedianPrice == 0
+		if err := tdb.SaveSale(ctx, 102, &pb.SaleInfo{
+			SaleId:          9002,
+			ReleaseId:       8002,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+		}); err != nil {
+			t.Fatalf("failed to save sale 9002: %v", err)
+		}
+		// Sale 9003 stuck on missing condition
+		if err := tdb.SaveSale(ctx, 102, &pb.SaleInfo{
+			SaleId:          9003,
+			ReleaseId:       8003,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+			MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+			Condition:       "",
+			SleeveCondition: "",
+			LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+		}); err != nil {
+			t.Fatalf("failed to save sale 9003: %v", err)
+		}
+
+		if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+			t.Fatalf("validateUser returned unexpected error: %v", err)
+		}
+
+		if len(ghClient.created) != 1 {
+			t.Fatalf("expected 1 issue to be created for EC4 stuck sales, got %d", len(ghClient.created))
+		}
+		body := ghClient.created[0].GetBody()
+		if !strings.Contains(body, "9002") || !strings.Contains(body, "9003") {
+			t.Errorf("expected issue body to include both stuck SaleIds 9002 and 9003, got: %s", body)
+		}
+	})
+
+	t.Run("active FOR_SALE listing with SaleUpdateOverride enabling updates", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		tdb := db.NewTestDB(pstore)
+		queue := &testQueueClient{}
+		client := &testGramophileClient{}
+		ghClient := newRecordingGHClient()
+
+		user := newFreshUserWithUpdatesEnabled(103, &pb.SaleConfig{
+			HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+			UpdateFrequencySeconds: 3600,
+			UpdateType:             pb.SaleUpdateType_NO_SALE_UPDATE,
+		})
+		if err := tdb.SaveSale(ctx, 103, &pb.SaleInfo{
+			SaleId:             9004,
+			ReleaseId:          8004,
+			SaleState:          dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:       &dpb.Price{Value: 1500, Currency: "USD"},
+			SaleUpdateOverride: pb.SaleUpdateType_MINIMAL_REDUCE,
+			LastPriceUpdate:    now.Add(-8 * 24 * time.Hour).UnixNano(),
+		}); err != nil {
+			t.Fatalf("failed to save sale 9004: %v", err)
+		}
+
+		if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+			t.Fatalf("validateUser returned unexpected error: %v", err)
+		}
+
+		if len(ghClient.created) != 1 {
+			t.Fatalf("expected 1 issue to be created, got %d", len(ghClient.created))
+		}
+		if !strings.Contains(ghClient.created[0].GetBody(), "9004") {
+			t.Errorf("expected issue body to include SaleId 9004, got: %s", ghClient.created[0].GetBody())
+		}
+	})
+}
+
+func TestValidateUser_PerSaleHoldingStates_NoIssue(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	newUser := func(userID int32, cfg *pb.SaleConfig) *pb.StoredUser {
+		return &pb.StoredUser{
+			Auth:                  &pb.GramophileAuth{Token: fmt.Sprintf("token_%d", userID)},
+			UserToken:             "user_token",
+			User:                  &dpb.User{DiscogsUserId: userID},
+			LastRefreshTime:       now.UnixNano(),
+			LastCollectionCheck:   now.UnixNano(),
+			LastCollectionRefresh: now.UnixNano(),
+			LastSaleRefresh:       now.Add(-1 * time.Hour).UnixNano(),
+			LastSaleReconcile:     now.UnixNano(),
+			LastSaleAdjust:        now.Add(-30 * time.Minute).UnixNano(),
+			LastWantRefresh:       now.UnixNano(),
+			LastOrderSync:         now.UnixNano(),
+			Config: &pb.GramophileConfig{
+				SaleConfig: cfg,
+			},
+		}
+	}
+
+	cases := []struct {
+		name string
+		cfg  *pb.SaleConfig
+		sale *pb.SaleInfo
+	}{
+		{
+			name: "HandlePriceUpdates disabled",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_DISABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7001,
+				ReleaseId:       6001,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "NO_SALE_UPDATE configured",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_NO_SALE_UPDATE,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7002,
+				ReleaseId:       6002,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "SOLD listing",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7003,
+				ReleaseId:       6003,
+				SaleState:       dpb.SaleStatus_SOLD,
+				CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN holding with TimeAtMedian > 0",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7004,
+				ReleaseId:       6004,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 1200, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				TimeAtMedian:    now.Add(-9 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN holding with CurrentPrice <= MedianPrice",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7005,
+				ReleaseId:       6005,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 1100, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW within PostMedianTime holding window",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       3600,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				PostMedianTime:               int64((10 * 24 * time.Hour).Seconds()),
+				PostMedianReduction:          100,
+				PostMedianReductionFrequency: 86400,
+				LowerBound:                   800,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7006,
+				ReleaseId:       6006,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 1200, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				TimeAtMedian:    now.Add(-8 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-8 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW at lower bound",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       3600,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				PostMedianTime:               3600,
+				PostMedianReduction:          100,
+				PostMedianReductionFrequency: 3600,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7007,
+				ReleaseId:       6007,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 900, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				LowPrice:        &dpb.Price{Value: 900, Currency: "USD"},
+				TimeAtMedian:    now.Add(-15 * 24 * time.Hour).UnixNano(),
+				TimeAtLow:       now.Add(-9 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE within TimeToStaleDays holding window",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:                pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:            3600,
+				UpdateType:                        pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+				PostMedianTime:                    3600,
+				PostMedianReduction:               100,
+				PostMedianReductionFrequency:      3600,
+				LowerBound:                        900,
+				TimeToStaleDays:                   14,
+				PostLowReduction:                  50,
+				PostLowReductionFrequencySeconds:  86400,
+				StaleBound:                        500,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7008,
+				ReleaseId:       6008,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 900, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				TimeAtMedian:    now.Add(-20 * 24 * time.Hour).UnixNano(),
+				TimeAtLow:       now.Add(-10 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE at stale bound",
+			cfg: &pb.SaleConfig{
+				HandlePriceUpdates:                pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:            3600,
+				UpdateType:                        pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+				PostMedianTime:                    3600,
+				PostMedianReduction:               100,
+				PostMedianReductionFrequency:      3600,
+				LowerBound:                        900,
+				TimeToStaleDays:                   5,
+				PostLowReduction:                  50,
+				PostLowReductionFrequencySeconds:  3600,
+				StaleBound:                        500,
+			},
+			sale: &pb.SaleInfo{
+				SaleId:          7009,
+				ReleaseId:       6009,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 500, Currency: "USD"},
+				MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+				TimeAtMedian:    now.Add(-30 * 24 * time.Hour).UnixNano(),
+				TimeAtLow:       now.Add(-20 * 24 * time.Hour).UnixNano(),
+				TimeAtStale:     now.Add(-9 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pstore := pstore_client.GetTestClient()
+			tdb := db.NewTestDB(pstore)
+			queue := &testQueueClient{}
+			client := &testGramophileClient{}
+			ghClient := newRecordingGHClient()
+
+			userID := int32(200 + i)
+			user := newUser(userID, tc.cfg)
+			if err := tdb.SaveSale(ctx, userID, tc.sale); err != nil {
+				t.Fatalf("failed to save sale: %v", err)
+			}
+
+			if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+				t.Fatalf("validateUser returned unexpected error: %v", err)
+			}
+
+			if len(ghClient.created) != 0 {
+				t.Fatalf("expected 0 issues for %s, got %d: %v", tc.name, len(ghClient.created), ghClient.created[0].GetBody())
+			}
+		})
+	}
+}
+
+func TestValidateUser_StalenessIssue_ConsolidatedAndDeduplicated(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	pstore := pstore_client.GetTestClient()
+	tdb := db.NewTestDB(pstore)
+	queue := &testQueueClient{}
+	client := &testGramophileClient{}
+	ghClient := newRecordingGHClient()
+
+	user := &pb.StoredUser{
+		Auth:                  &pb.GramophileAuth{Token: "token_333"},
+		UserToken:             "user_token",
+		User:                  &dpb.User{DiscogsUserId: 333},
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastSaleRefresh:       now.Add(-9 * 24 * time.Hour).UnixNano(), // user-level stale
+		LastSaleReconcile:     now.UnixNano(),
+		LastSaleAdjust:        now.Add(-1 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
+			},
+		},
+	}
+	if err := tdb.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Two active stale sales (5001, 5002) and one holding sale (5003)
+	sales := []*pb.SaleInfo{
+		{
+			SaleId:          5001,
+			ReleaseId:       4001,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 2000, Currency: "USD"},
+			MedianPrice:     &dpb.Price{Value: 1200, Currency: "USD"},
+			LastPriceUpdate: now.Add(-8 * 24 * time.Hour).UnixNano(),
+		},
+		{
+			SaleId:          5002,
+			ReleaseId:       4002,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 1800, Currency: "USD"},
+			MedianPrice:     &dpb.Price{Value: 1000, Currency: "USD"},
+			LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+		},
+		{
+			SaleId:          5003,
+			ReleaseId:       4003,
+			SaleState:       dpb.SaleStatus_FOR_SALE,
+			CurrentPrice:    &dpb.Price{Value: 1000, Currency: "USD"},
+			MedianPrice:     &dpb.Price{Value: 1000, Currency: "USD"},
+			TimeAtMedian:    now.Add(-8 * 24 * time.Hour).UnixNano(),
+			LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+		},
+	}
+	for _, s := range sales {
+		if err := tdb.SaveSale(ctx, 333, s); err != nil {
+			t.Fatalf("failed to save sale %v: %v", s.GetSaleId(), err)
+		}
+	}
+
+	// Pass 1: creates a single consolidated issue containing user-level and per-sale staleness
+	if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+		t.Fatalf("first validateUser returned unexpected error: %v", err)
+	}
+	if len(ghClient.created) != 1 {
+		t.Fatalf("expected 1 consolidated issue created, got %d", len(ghClient.created))
+	}
+	body := ghClient.created[0].GetBody()
+	if !strings.Contains(body, "LastSaleRefresh") {
+		t.Errorf("expected consolidated issue body to mention LastSaleRefresh, got: %s", body)
+	}
+	if !strings.Contains(body, "5001") || !strings.Contains(body, "5002") {
+		t.Errorf("expected consolidated issue body to mention stale sales 5001 and 5002, got: %s", body)
+	}
+	if strings.Contains(body, "5003") {
+		t.Errorf("expected consolidated issue body NOT to mention holding sale 5003, got: %s", body)
+	}
+
+	// Pass 2: skips creating a duplicate while the issue remains open
+	if err := validateUser(ctx, user, client, queue, tdb, ghClient); err != nil {
+		t.Fatalf("second validateUser returned unexpected error: %v", err)
+	}
+	if len(ghClient.created) != 1 {
+		t.Fatalf("expected issue creation to be deduplicated on second pass, got %d created issues", len(ghClient.created))
+	}
+}
+
+
 
 

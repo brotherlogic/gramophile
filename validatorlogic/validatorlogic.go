@@ -9,6 +9,7 @@ import (
 
 	ghbclient "github.com/brotherlogic/githubridge/client"
 	ghbpb "github.com/brotherlogic/githubridge/proto"
+	pbd "github.com/brotherlogic/discogs/proto"
 	"github.com/brotherlogic/gramophile/db"
 	"github.com/brotherlogic/gramophile/queuelogic"
 	"google.golang.org/grpc"
@@ -237,9 +238,118 @@ func checkSalesStaleness(ctx context.Context, user *pb.StoredUser, d db.Database
 		reasons = append(reasons, fmt.Sprintf("- User-level `LastSaleAdjust` is stale: last adjusted %v ago (timestamp: %v)", adjustAge.Round(time.Second), user.GetLastSaleAdjust()))
 	}
 
+	if user.GetConfig().GetSaleConfig().GetHandlePriceUpdates() == pb.Enabled_ENABLED_ENABLED && d != nil {
+		sids, err := d.GetSales(ctx, user.GetUser().GetDiscogsUserId())
+		if err != nil {
+			log.Printf("unable to get sales for staleness check on user %v: %v", user.GetUser().GetDiscogsUserId(), err)
+		} else {
+			saleCfg := user.GetConfig().GetSaleConfig()
+			for _, sid := range sids {
+				sale, err := d.GetSale(ctx, user.GetUser().GetDiscogsUserId(), sid)
+				if err != nil {
+					log.Printf("unable to read sale %v for staleness check on user %v: %v", sid, user.GetUser().GetDiscogsUserId(), err)
+					continue
+				}
+				if shouldUpdate, updateTypeStr := shouldSaleHaveUpdatedWithinWeek(sale, saleCfg); shouldUpdate {
+					priceAge := time.Since(time.Unix(0, sale.GetLastPriceUpdate()))
+					if priceAge > SaleStalenessThreshold {
+						reasons = append(reasons, fmt.Sprintf("- Sale `%v` (release `%v`, update_type: `%v`, current_price: `%v`) has not updated in %v (last_price_update: %v)",
+							sale.GetSaleId(), sale.GetReleaseId(), updateTypeStr, sale.GetCurrentPrice().GetValue(), priceAge.Round(time.Second), sale.GetLastPriceUpdate()))
+					}
+				}
+			}
+		}
+	}
+
 	if len(reasons) > 0 {
 		reportSalesStaleness(ctx, user, reasons, ghclient)
 	}
+}
+
+func shouldSaleHaveUpdatedWithinWeek(sale *pb.SaleInfo, c *pb.SaleConfig) (bool, string) {
+	if sale == nil || c == nil {
+		return false, ""
+	}
+	if c.GetHandlePriceUpdates() != pb.Enabled_ENABLED_ENABLED {
+		return false, ""
+	}
+	if sale.GetSaleState() != pbd.SaleStatus_FOR_SALE {
+		return false, ""
+	}
+
+	updateType := c.GetUpdateType()
+	if sale.GetSaleUpdateOverride() != pb.SaleUpdateType_SALE_UPDATE_UNKNOWN {
+		updateType = sale.GetSaleUpdateOverride()
+	}
+	if updateType == pb.SaleUpdateType_NO_SALE_UPDATE || updateType == pb.SaleUpdateType_SALE_UPDATE_UNKNOWN {
+		return false, ""
+	}
+
+	if time.Duration(c.GetUpdateFrequencySeconds())*time.Second >= SaleStalenessThreshold {
+		return false, ""
+	}
+
+	switch updateType {
+	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
+		if sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue()) {
+			return false, ""
+		}
+	case pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW:
+		lowerBound := c.GetLowerBound()
+		if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+			lowerBound = sale.GetLowPrice().GetValue()
+		}
+		if sale.GetTimeAtLow() > 0 || (lowerBound > 0 && sale.GetCurrentPrice().GetValue() <= lowerBound) {
+			return false, ""
+		}
+		atOrPostMedian := sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue())
+		if atOrPostMedian {
+			if c.GetTimeToMedianDays() == 0 && c.GetPostMedianReduction() <= 0 {
+				return false, ""
+			}
+			if sale.GetTimeAtMedian() > 0 && time.Since(time.Unix(0, sale.GetTimeAtMedian())) <= time.Duration(c.GetPostMedianTime())*time.Second {
+				return false, ""
+			}
+			if c.GetTimeToMedianDays() == 0 && time.Duration(c.GetPostMedianReductionFrequency())*time.Second >= SaleStalenessThreshold {
+				return false, ""
+			}
+		}
+	case pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE:
+		if sale.GetTimeAtStale() > 0 || (c.GetStaleBound() > 0 && sale.GetCurrentPrice().GetValue() <= c.GetStaleBound()) {
+			return false, ""
+		}
+		lowerBound := c.GetLowerBound()
+		if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
+			lowerBound = sale.GetLowPrice().GetValue()
+		}
+		atOrPostLow := sale.GetTimeAtLow() > 0 || (lowerBound > 0 && sale.GetCurrentPrice().GetValue() <= lowerBound)
+		if atOrPostLow {
+			if c.GetPostLowReduction() <= 0 {
+				return false, ""
+			}
+			if sale.GetTimeAtLow() > 0 && time.Since(time.Unix(0, sale.GetTimeAtLow())) <= time.Duration(c.GetTimeToStaleDays())*24*time.Hour {
+				return false, ""
+			}
+			if time.Duration(c.GetPostLowReductionFrequencySeconds())*time.Second >= SaleStalenessThreshold {
+				return false, ""
+			}
+		} else {
+			atOrPostMedian := sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue())
+			if atOrPostMedian {
+				if c.GetTimeToMedianDays() == 0 && c.GetPostMedianReduction() <= 0 {
+					return false, ""
+				}
+				if sale.GetTimeAtMedian() > 0 && time.Since(time.Unix(0, sale.GetTimeAtMedian())) <= time.Duration(c.GetPostMedianTime())*time.Second {
+					return false, ""
+				}
+				if c.GetTimeToMedianDays() == 0 && time.Duration(c.GetPostMedianReductionFrequency())*time.Second >= SaleStalenessThreshold {
+					return false, ""
+				}
+			}
+		}
+	}
+
+	return true, updateType.String()
 }
 
 func reportSalesStaleness(ctx context.Context, user *pb.StoredUser, reasons []string, ghclient ghbclient.GithubridgeClient) {
