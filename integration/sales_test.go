@@ -9,6 +9,7 @@ import (
 	"github.com/brotherlogic/discogs"
 	pbd "github.com/brotherlogic/discogs/proto"
 	ghbclient "github.com/brotherlogic/githubridge/client"
+	ghbpb "github.com/brotherlogic/githubridge/proto"
 	"github.com/brotherlogic/gramophile/background"
 	"github.com/brotherlogic/gramophile/db"
 	pb "github.com/brotherlogic/gramophile/proto"
@@ -2699,6 +2700,16 @@ type dummyGramophileClient struct {
 	pb.GramophileServiceClient
 }
 
+type recordingIntegrationGHClient struct {
+	ghbclient.GithubridgeClient
+	created []*ghbpb.CreateIssueRequest
+}
+
+func (r *recordingIntegrationGHClient) CreateIssue(ctx context.Context, req *ghbpb.CreateIssueRequest) (*ghbpb.CreateIssueResponse, error) {
+	r.created = append(r.created, req)
+	return r.GithubridgeClient.CreateIssue(ctx, req)
+}
+
 func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T) {
 	ctx := getTestContext(123)
 
@@ -3211,6 +3222,183 @@ func TestSaleMissingCondition_RecoveryViaRefreshSalesAndPriceAdjustment(t *testi
 		t.Errorf("expected sale price to be adjusted to 1225 on pass 2, got %v", saleAfterAdjust.GetCurrentPrice().GetValue())
 	}
 }
+
+func TestValidateUser_SalesStalenessAlertingEndToEnd(t *testing.T) {
+	ctx := getTestContext(123)
+	now := time.Now()
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+
+	// User 1 (123): HandlePriceUpdates DISABLED, LastSaleAdjust > 1h ago (but <= 7d), LastSaleRefresh fresh,
+	// with a FOR_SALE listing that has LastPriceUpdate > 7d ago.
+	// Validator should enqueue AdjustSales (which advances LastSaleAdjust without changing price) and file NO issue.
+	user1 := &pb.StoredUser{
+		User:                  &pbd.User{DiscogsUserId: 123},
+		Auth:                  &pb.GramophileAuth{Token: "123"},
+		UserToken:             "token_123",
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastSaleRefresh:       now.Add(-1 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.UnixNano(),
+		LastSaleAdjust:        now.Add(-2 * time.Hour).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_DISABLED,
+				UpdateFrequencySeconds: 10,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, user1); err != nil {
+		t.Fatalf("failed to save user1: %v", err)
+	}
+	if err := d.SaveSale(ctx, 123, &pb.SaleInfo{
+		SaleId:          1001,
+		ReleaseId:       2001,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+		Condition:       "Near Mint (NM or M-)",
+		SleeveCondition: "Very Good Plus (VG+)",
+		CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 1200, Currency: "USD"},
+		LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+	}); err != nil {
+		t.Fatalf("failed to save sale 1001: %v", err)
+	}
+
+	// User 2 (456): HandlePriceUpdates ENABLED, LastSaleRefresh > 7d ago,
+	// with one active stale FOR_SALE listing (2001), one holding FOR_SALE listing at median (2002), and one SOLD listing (2003).
+	user2 := &pb.StoredUser{
+		User:                  &pbd.User{DiscogsUserId: 456},
+		Auth:                  &pb.GramophileAuth{Token: "456"},
+		UserToken:             "token_456",
+		LastRefreshTime:       now.UnixNano(),
+		LastCollectionRefresh: now.UnixNano(),
+		LastCollectionCheck:   now.UnixNano(),
+		LastSaleRefresh:       now.Add(-8 * 24 * time.Hour).UnixNano(),
+		LastSaleReconcile:     now.UnixNano(),
+		LastSaleAdjust:        now.Add(-30 * time.Minute).UnixNano(),
+		LastWantRefresh:       now.UnixNano(),
+		LastOrderSync:         now.UnixNano(),
+		Config: &pb.GramophileConfig{
+			SaleConfig: &pb.SaleConfig{
+				Enabled:                pb.Enabled_ENABLED_ENABLED,
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, user2); err != nil {
+		t.Fatalf("failed to save user2: %v", err)
+	}
+	for _, s := range []*pb.SaleInfo{
+		{
+			SaleId:          2001,
+			ReleaseId:       3001,
+			SaleState:       pbd.SaleStatus_FOR_SALE,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+			MedianPrice:     &pbd.Price{Value: 1200, Currency: "USD"},
+			LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+		},
+		{
+			SaleId:          2002,
+			ReleaseId:       3002,
+			SaleState:       pbd.SaleStatus_FOR_SALE,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			CurrentPrice:    &pbd.Price{Value: 1200, Currency: "USD"},
+			MedianPrice:     &pbd.Price{Value: 1200, Currency: "USD"},
+			TimeAtMedian:    now.Add(-8 * 24 * time.Hour).UnixNano(),
+			LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+		},
+		{
+			SaleId:          2003,
+			ReleaseId:       3003,
+			SaleState:       pbd.SaleStatus_SOLD,
+			Condition:       "Near Mint (NM or M-)",
+			SleeveCondition: "Very Good Plus (VG+)",
+			CurrentPrice:    &pbd.Price{Value: 2000, Currency: "USD"},
+			MedianPrice:     &pbd.Price{Value: 1200, Currency: "USD"},
+			LastPriceUpdate: now.Add(-9 * 24 * time.Hour).UnixNano(),
+		},
+	} {
+		if err := d.SaveSale(ctx, 456, s); err != nil {
+			t.Fatalf("failed to save sale %v: %v", s.GetSaleId(), err)
+		}
+	}
+
+	di := &discogs.TestDiscogsClient{UserId: 123}
+	b := background.GetBackgroundRunner(d, "", "", "")
+	qc := queuelogic.GetQueue(pstore, b, di, d)
+	qAdapter := &queueServiceAdapter{q: qc}
+	gClient := &dummyGramophileClient{}
+	ghClient := &recordingIntegrationGHClient{GithubridgeClient: ghbclient.GetTestClient()}
+
+	// Step 1: Validate User 1 (disabled HandlePriceUpdates) -> enqueues AdjustSales, creates no issue
+	if err := validatorlogic.ValidateUser(ctx, user1, gClient, qAdapter, d, ghClient); err != nil {
+		t.Fatalf("ValidateUser for user1 failed: %v", err)
+	}
+	if err := qc.FlushQueue(ctx); err != nil {
+		t.Fatalf("FlushQueue for user1 AdjustSales failed: %v", err)
+	}
+	updatedUser1, err := d.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("failed to get updated user1: %v", err)
+	}
+	if updatedUser1.GetLastSaleAdjust() <= user1.GetLastSaleAdjust() {
+		t.Errorf("expected universal AdjustSales to update LastSaleAdjust for disabled user1")
+	}
+	sale1001, err := d.GetSale(ctx, 123, 1001)
+	if err != nil {
+		t.Fatalf("failed to get sale 1001: %v", err)
+	}
+	if sale1001.GetCurrentPrice().GetValue() != 2000 {
+		t.Errorf("expected sale 1001 price to remain 2000 when HandlePriceUpdates is disabled, got %v", sale1001.GetCurrentPrice().GetValue())
+	}
+
+	if len(ghClient.created) != 0 {
+		t.Fatalf("expected 0 issues after validating user1, got %d", len(ghClient.created))
+	}
+
+	// Step 2: Validate User 2 -> creates 1 consolidated issue with LastSaleRefresh and Sale 2001 (excluding holding 2002 and SOLD 2003)
+	if err := validatorlogic.ValidateUser(ctx, user2, gClient, qAdapter, d, ghClient); err != nil {
+		t.Fatalf("ValidateUser for user2 failed: %v", err)
+	}
+	if len(ghClient.created) != 1 {
+		t.Fatalf("expected 1 consolidated issue for user2, got %d", len(ghClient.created))
+	}
+	createdReq := ghClient.created[0]
+	if createdReq.GetTitle() != "Sales staleness detected for user 456" {
+		t.Errorf("expected issue title for user 456, got %q", createdReq.GetTitle())
+	}
+	if !strings.Contains(createdReq.GetBody(), "LastSaleRefresh") {
+		t.Errorf("expected issue body to include LastSaleRefresh, got: %s", createdReq.GetBody())
+	}
+	if !strings.Contains(createdReq.GetBody(), "2001") {
+		t.Errorf("expected issue body to include active stale sale 2001, got: %s", createdReq.GetBody())
+	}
+	if strings.Contains(createdReq.GetBody(), "2002") || strings.Contains(createdReq.GetBody(), "2003") {
+		t.Errorf("expected issue body to exclude holding sale 2002 and sold sale 2003, got: %s", createdReq.GetBody())
+	}
+
+	// Step 3: Validate User 2 again -> deduplicates against open issue
+	if err := validatorlogic.ValidateUser(ctx, user2, gClient, qAdapter, d, ghClient); err != nil {
+		t.Fatalf("second ValidateUser for user2 failed: %v", err)
+	}
+	if len(ghClient.created) != 1 {
+		t.Fatalf("expected 1 issue after duplicate validation pass, got %d", len(ghClient.created))
+	}
+}
+
 
 
 
