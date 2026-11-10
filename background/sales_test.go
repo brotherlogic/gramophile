@@ -606,7 +606,9 @@ func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 	})
 
-	enqueued := false
+	var updateSaleEnqueued bool
+	var refreshReleaseEnqueued *pb.RefreshRelease
+	var linkSalesEnqueued *pb.LinkSales
 	user := &pb.StoredUser{
 		User: &pbd.User{DiscogsUserId: 123},
 		Auth: &pb.GramophileAuth{Token: "test_token"},
@@ -619,15 +621,35 @@ func TestAdjustSales_SkipsMissingMetadataWithoutTimestampAdvance(t *testing.T) {
 	}
 
 	err := b.AdjustSales(ctx, config, user, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
-		enqueued = true
+		if req.GetElement().GetUpdateSale() != nil {
+			updateSaleEnqueued = true
+		}
+		if req.GetElement().GetRefreshRelease() != nil {
+			refreshReleaseEnqueued = req.GetElement().GetRefreshRelease()
+		}
+		if req.GetElement().GetLinkSales() != nil {
+			linkSalesEnqueued = req.GetElement().GetLinkSales()
+		}
 		return &pb.EnqueueResponse{}, nil
 	})
 	if err != nil {
 		t.Fatalf("AdjustSales failed: %v", err)
 	}
 
-	if enqueued {
-		t.Errorf("expected no update task to be enqueued for sale missing metadata")
+	if updateSaleEnqueued {
+		t.Errorf("expected no UpdateSale task to be enqueued for sale missing metadata")
+	}
+	if refreshReleaseEnqueued == nil {
+		t.Fatalf("expected RefreshRelease task to be enqueued for sale missing metadata")
+	}
+	if refreshReleaseEnqueued.GetIid() != 100 {
+		t.Errorf("expected RefreshRelease Iid 100, got %v", refreshReleaseEnqueued.GetIid())
+	}
+	if refreshReleaseEnqueued.GetIntention() != "From AdjustSales Missing Metadata" {
+		t.Errorf("expected RefreshRelease Intention 'From AdjustSales Missing Metadata', got %q", refreshReleaseEnqueued.GetIntention())
+	}
+	if linkSalesEnqueued == nil {
+		t.Errorf("expected LinkSales task to be enqueued for sale missing metadata")
 	}
 
 	sale, err := d.GetSale(ctx, 123, 12345)

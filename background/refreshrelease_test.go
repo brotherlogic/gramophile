@@ -268,7 +268,9 @@ func TestRefreshRelease_HandlerExecuteAndValidate(t *testing.T) {
 	}
 
 	// Execute handler
+	var enqueued []*pb.QueueElement
 	err = handler.Execute(ctx, client, su, elem, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = append(enqueued, req.GetElement())
 		return nil, nil
 	})
 	if err != nil {
@@ -281,5 +283,93 @@ func TestRefreshRelease_HandlerExecuteAndValidate(t *testing.T) {
 	}
 	if record.GetMedianPrice().GetValue() != 1855 {
 		t.Errorf("Expected median price 1855, got %v", record.GetMedianPrice().GetValue())
+	}
+
+	foundLinkSales := false
+	for _, e := range enqueued {
+		if e.GetLinkSales() != nil {
+			foundLinkSales = true
+		}
+	}
+	if !foundLinkSales {
+		t.Errorf("Expected LinkSales to be enqueued when RefreshRelease updates pricing stats")
+	}
+
+	// Second execution with unchanged stats should not enqueue LinkSales
+	enqueued = nil
+	err = handler.Execute(ctx, client, su, elem, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = append(enqueued, req.GetElement())
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("Second handler execution failed: %v", err)
+	}
+	for _, e := range enqueued {
+		if e.GetLinkSales() != nil {
+			t.Errorf("Expected LinkSales NOT to be enqueued when pricing stats did not change")
+		}
+	}
+}
+
+func TestRefreshRelease_LookupByReleaseIdEnqueuesLinkSales(t *testing.T) {
+	ctx := getTestContext(123)
+	b := GetTestBackgroundRunner()
+
+	baseClient := discogs.GetTestClient()
+	baseClient.UserId = 123
+	baseClient.AddCollectionRelease(&pbd.Release{
+		Id:         4243427,
+		InstanceId: 5005,
+	})
+
+	client := &statsTestDiscogsClient{
+		TestDiscogsClient: baseClient,
+		statsResponse: map[int64]*pbd.ReleaseStats{
+			4243427: {
+				LowPrice:    600,
+				MedianPrice: 1900,
+				HighPrice:   3100,
+			},
+		},
+	}
+
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "test-token"},
+	}
+	_ = b.db.SaveUser(ctx, su)
+	_ = b.db.SaveRecord(ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:         4243427,
+			InstanceId: 5005,
+		},
+	}, &db.SaveOptions{})
+
+	var enqueued []*pb.QueueElement
+	// Call RefreshRelease using ReleaseId (4243427) instead of InstanceId (5005), as enqueued by AdjustSales
+	err := b.RefreshRelease(ctx, 4243427, su, client, true, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueued = append(enqueued, req.GetElement())
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("RefreshRelease by ReleaseId failed: %v", err)
+	}
+
+	record, err := b.db.GetRecord(ctx, 123, 5005)
+	if err != nil {
+		t.Fatalf("Failed to retrieve record by InstanceId 5005: %v", err)
+	}
+	if record.GetMedianPrice().GetValue() != 1900 || record.GetLowPrice().GetValue() != 600 {
+		t.Errorf("Expected updated stats Median=1900 Low=600, got Median=%v Low=%v", record.GetMedianPrice().GetValue(), record.GetLowPrice().GetValue())
+	}
+
+	foundLinkSales := false
+	for _, e := range enqueued {
+		if e.GetLinkSales() != nil {
+			foundLinkSales = true
+		}
+	}
+	if !foundLinkSales {
+		t.Errorf("Expected LinkSales to be enqueued when RefreshRelease by ReleaseId updates pricing stats")
 	}
 }

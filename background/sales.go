@@ -447,6 +447,38 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if err != nil {
 					if errors.Is(err, ErrMissingMetadata) {
 						salesSkippedMissingMetadata.Inc()
+						if enqueue != nil {
+							now := time.Now().UnixNano()
+							if rerr := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+								Element: &pb.QueueElement{
+									Intention: "From AdjustSales Missing Metadata",
+									RunDate:   now,
+									Force:     true,
+									Priority:  pb.QueueElement_PRIORITY_HIGH,
+									Auth:      user.GetAuth().GetToken(),
+									Entry: &pb.QueueElement_RefreshRelease{
+										RefreshRelease: &pb.RefreshRelease{
+											Iid:       sale.GetReleaseId(),
+											Intention: "From AdjustSales Missing Metadata",
+										},
+									},
+								},
+							}, enqueue); rerr != nil {
+								log.Printf("unable to enqueue RefreshRelease for sale %v: %v", sid, rerr)
+							}
+							if lerr := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+								Element: &pb.QueueElement{
+									Intention: "From AdjustSales Missing Metadata",
+									RunDate:   now + 1,
+									Auth:      user.GetAuth().GetToken(),
+									Entry: &pb.QueueElement_LinkSales{
+										LinkSales: &pb.LinkSales{},
+									},
+								},
+							}, enqueue); lerr != nil {
+								log.Printf("unable to enqueue LinkSales for sale %v: %v", sid, lerr)
+							}
+						}
 						continue
 					}
 					if strings.Contains(err.Error(), "Already reached low price") {
@@ -726,7 +758,8 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), s)
 		log.Printf("LOADED: %v", sale)
 		if err != nil {
-			return fmt.Errorf("unable to read sale: %w", err)
+			log.Printf("unable to read sale %v: %v", s, err)
+			continue
 		}
 
 		log.Printf("Got Sale: %v", sale)
@@ -815,7 +848,8 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE && !matchedSaleIds[sale.GetSaleId()] {
 			gclient, err := b.getGHClient()
 			if err != nil {
-				return err
+				log.Printf("unable to get githubridge client to report unmatched active sale %v: %v", sale.GetSaleId(), err)
+				continue
 			}
 			_, err = gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
 				User:  "brotherlogic",
@@ -824,7 +858,8 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				Body:  fmt.Sprintf("Encountered active sale %v (release %v) on Discogs without any matching record in user collection.", sale.GetSaleId(), sale.GetReleaseId()),
 			})
 			if err != nil {
-				return err
+				log.Printf("unable to create github issue for unmatched active sale %v: %v", sale.GetSaleId(), err)
+				continue
 			}
 		}
 	}
