@@ -184,6 +184,24 @@ func ValidateUser(ctx context.Context, user *pb.StoredUser, client pb.Gramophile
 			}
 		}
 
+		log.Printf("Wantlists: %v", time.Since(time.Unix(0, user.GetLastWantlistRefresh())))
+		if time.Since(time.Unix(0, user.GetLastWantlistRefresh())) > time.Hour*24 {
+			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention:        "From Validator",
+					RunDate:          time.Now().UnixNano(),
+					Auth:             user.GetAuth().GetToken(),
+					BackoffInSeconds: 15,
+					Entry: &pb.QueueElement_RefreshWantlists{
+						RefreshWantlists: &pb.RefreshWantlists{},
+					},
+				},
+			})
+			if err != nil {
+				log.Printf("unable to enqueue: %v", err)
+			}
+		}
+
 		log.Printf("Orders: %v", time.Since(time.Unix(0, user.GetLastOrderSync())))
 		if time.Since(time.Unix(0, user.GetLastOrderSync())) > time.Hour {
 			_, err := queue.Enqueue(ctx, &pb.EnqueueRequest{

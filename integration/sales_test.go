@@ -2728,6 +2728,7 @@ func TestSalesSync_MultiPageRefreshSales_ValidatorLockAndCompletion(t *testing.T
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
 		LastWantRefresh:       time.Now().UnixNano(),
+		LastWantlistRefresh:   time.Now().UnixNano(),
 		LastOrderSync:         time.Now().UnixNano(),
 		SaleSyncActiveTime:    0,
 	}
@@ -2892,6 +2893,7 @@ func TestSalesSync_ReconcileSales_ValidatorLockAndCompletion(t *testing.T) {
 		LastCollectionRefresh: time.Now().UnixNano(),
 		LastCollectionCheck:   time.Now().UnixNano(),
 		LastWantRefresh:       time.Now().UnixNano(),
+		LastWantlistRefresh:   time.Now().UnixNano(),
 		LastOrderSync:         time.Now().UnixNano(),
 		SaleSyncActiveTime:    0,
 	}
@@ -3244,6 +3246,7 @@ func TestValidateUser_SalesStalenessAlertingEndToEnd(t *testing.T) {
 		LastSaleReconcile:     now.UnixNano(),
 		LastSaleAdjust:        now.Add(-2 * time.Hour).UnixNano(),
 		LastWantRefresh:       now.UnixNano(),
+		LastWantlistRefresh:   now.UnixNano(),
 		LastOrderSync:         now.UnixNano(),
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
@@ -3284,6 +3287,7 @@ func TestValidateUser_SalesStalenessAlertingEndToEnd(t *testing.T) {
 		LastSaleReconcile:     now.UnixNano(),
 		LastSaleAdjust:        now.Add(-30 * time.Minute).UnixNano(),
 		LastWantRefresh:       now.UnixNano(),
+		LastWantlistRefresh:   now.UnixNano(),
 		LastOrderSync:         now.UnixNano(),
 		Config: &pb.GramophileConfig{
 			SaleConfig: &pb.SaleConfig{
