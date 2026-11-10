@@ -664,6 +664,64 @@ func TestUserQueueLimit_RefreshWant(t *testing.T) {
 	})
 }
 
+func TestUserQueueLimit_DoesNotPoisonDeduplicationMap(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := getSyncTestClient()
+	d := db.NewTestDB(pstore)
+	di := &discogs.TestDiscogsClient{}
+	q := GetQueueWithGHClient(pstore, background.GetBackgroundRunner(d, "", "", ""), di, d, ghb_client.GetTestClient())
+
+	var firstElem *pb.QueueElement
+	for i := 0; i < MaxUserQueueSize; i++ {
+		elem := &pb.QueueElement{
+			Auth:      "123",
+			RunDate:   int64(i + 1),
+			Intention: "From Test",
+			Entry: &pb.QueueElement_RefreshWant{
+				RefreshWant: &pb.RefreshWant{
+					Want: &pb.Want{Id: int64(i + 1)},
+				},
+			},
+		}
+		if i == 0 {
+			firstElem = elem
+		}
+		_, err := q.Enqueue(ctx, &pb.EnqueueRequest{Element: elem})
+		if err != nil {
+			t.Fatalf("Failed to enqueue item %d: %v", i+1, err)
+		}
+	}
+
+	overflowElem := &pb.QueueElement{
+		Auth:      "123",
+		RunDate:   int64(MaxUserQueueSize + 1),
+		Intention: "From Test",
+		Entry: &pb.QueueElement_RefreshWant{
+			RefreshWant: &pb.RefreshWant{
+				Want: &pb.Want{Id: int64(MaxUserQueueSize + 1)},
+			},
+		},
+	}
+
+	// 201st enqueue is rejected due to MaxUserQueueSize
+	_, err := q.Enqueue(ctx, &pb.EnqueueRequest{Element: overflowElem})
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("Expected ResourceExhausted on 201st item, got: %v", err)
+	}
+
+	// Free one slot in the queue
+	if err := q.delete(ctx, firstElem); err != nil {
+		t.Fatalf("Failed to delete first element: %v", err)
+	}
+
+	// Re-enqueuing the 201st item must succeed and not fail with AlreadyExists
+	_, err = q.Enqueue(ctx, &pb.EnqueueRequest{Element: overflowElem})
+	if err != nil {
+		t.Fatalf("Expected re-enqueue after freeing slot to succeed, got: %v", err)
+	}
+}
+
 func TestDrain_JustSales_IncludesReconcileSalesAndCleansInMemory(t *testing.T) {
 	ctx := getTestContext(123)
 

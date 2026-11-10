@@ -237,3 +237,72 @@ func TestRefreshWantlistsDeduplicationKey(t *testing.T) {
 	}
 }
 
+func TestOneByOneWantlist_ReenqueuesStuckWantedEntryAndMarksDirty(t *testing.T) {
+	ctx := context.Background()
+	b := GetTestBackgroundRunner()
+	di := &discogs.TestDiscogsClient{UserId: 123}
+
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}, Auth: &pb.GramophileAuth{Token: "123"}}
+	if err := b.db.SaveUser(ctx, user); err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	// Simulate a want where mergeWant previously set IntendedState=WANTED while State=PENDING and Clean=true,
+	// and the RefreshWant task was dropped due to MaxUserQueueSize throttling.
+	err := b.db.SaveWant(ctx, 123, &pb.Want{
+		Id:            444484,
+		State:         pb.WantState_PENDING,
+		IntendedState: pb.WantState_WANTED,
+		Clean:         true,
+		FromWantlist:  []string{"Analord"},
+	}, "stuck wanted entry")
+	if err != nil {
+		t.Fatalf("Bad want save: %v", err)
+	}
+
+	// Also simulate a subsequent entry stuck at State=RETIRED, IntendedState=PENDING, Clean=true.
+	err = b.db.SaveWant(ctx, 123, &pb.Want{
+		Id:            444485,
+		State:         pb.WantState_RETIRED,
+		IntendedState: pb.WantState_PENDING,
+		Clean:         true,
+		FromWantlist:  []string{"Analord"},
+	}, "stuck pending entry")
+	if err != nil {
+		t.Fatalf("Bad want save: %v", err)
+	}
+
+	wl := &pb.Wantlist{
+		Name:   "Analord",
+		Type:   pb.WantlistType_ONE_BY_ONE,
+		Active: true,
+		Entries: []*pb.WantlistEntry{
+			{Id: 444484, Index: 1, State: pb.WantState_WANTED},
+			{Id: 444485, Index: 2, State: pb.WantState_PENDING},
+		},
+	}
+
+	var enqueuedIDs []int64
+	err = b.processWantlist(ctx, user, di, &pb.WantslistConfig{}, wl, "123", false, func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		enqueuedIDs = append(enqueuedIDs, req.GetElement().GetRefreshWant().GetWant().GetId())
+		return &pb.EnqueueResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("processWantlist failed: %v", err)
+	}
+
+	if len(enqueuedIDs) != 2 || enqueuedIDs[0] != 444484 || enqueuedIDs[1] != 444485 {
+		t.Errorf("expected both 444484 and 444485 to be re-enqueued, got %v", enqueuedIDs)
+	}
+
+	for _, id := range []int64{444484, 444485} {
+		w, err := b.db.GetWant(ctx, 123, id)
+		if err != nil {
+			t.Fatalf("failed to load want %d: %v", id, err)
+		}
+		if w.GetClean() {
+			t.Errorf("expected want %d to have Clean=false, got Clean=true", id)
+		}
+	}
+}
+

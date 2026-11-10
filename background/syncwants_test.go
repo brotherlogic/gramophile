@@ -183,3 +183,69 @@ func TestSyncWants_EnqueuesHaveIntention(t *testing.T) {
 		}
 	}
 }
+
+func TestSyncWants_EnqueuesMismatchedStateAndPrioritizesWanted(t *testing.T) {
+	ctx := context.Background()
+	b := GetTestBackgroundRunner()
+
+	err := b.db.SaveUser(ctx, &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Bad user save: %v", err)
+	}
+
+	// Seed a want stuck with State=RETIRED, IntendedState=PENDING, Clean=true (lower ID)
+	err = b.db.SaveWant(ctx, 123, &pb.Want{
+		Id:            100,
+		State:         pb.WantState_RETIRED,
+		IntendedState: pb.WantState_PENDING,
+		Clean:         true,
+	}, "stuck pending want")
+	if err != nil {
+		t.Fatalf("Bad want save: %v", err)
+	}
+
+	// Seed a want stuck with State=PENDING, IntendedState=WANTED, Clean=true (higher ID)
+	err = b.db.SaveWant(ctx, 123, &pb.Want{
+		Id:            200,
+		State:         pb.WantState_PENDING,
+		IntendedState: pb.WantState_WANTED,
+		Clean:         true,
+	}, "stuck wanted want")
+	if err != nil {
+		t.Fatalf("Bad want save: %v", err)
+	}
+
+	d := &discogs.TestDiscogsClient{Wants: make(map[int64]*pbd.Want), UserId: 123}
+
+	var enqueuedWantIDs []int64
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if rw := req.GetElement().GetRefreshWant(); rw != nil {
+			enqueuedWantIDs = append(enqueuedWantIDs, rw.GetWant().GetId())
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	user, err := b.db.GetUser(ctx, "123")
+	if err != nil {
+		t.Fatalf("Unable to get user: %v", err)
+	}
+
+	entry := &pb.QueueElement{
+		Intention: "From Test",
+		Auth:      "123",
+		Entry: &pb.QueueElement_SyncWants{
+			SyncWants: &pb.SyncWants{Page: 1},
+		},
+	}
+
+	if err := b.ProcessSyncWants(ctx, d, user, entry, enqueue); err != nil {
+		t.Fatalf("ProcessSyncWants failed: %v", err)
+	}
+
+	if len(enqueuedWantIDs) != 2 || enqueuedWantIDs[0] != 200 || enqueuedWantIDs[1] != 100 {
+		t.Errorf("expected both wants to be enqueued with WANTED want 200 first, got %v", enqueuedWantIDs)
+	}
+}
