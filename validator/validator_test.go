@@ -1184,8 +1184,11 @@ func TestValidateUser_PerSaleStaleness_CreatesIssue(t *testing.T) {
 			t.Fatalf("expected 1 issue to be created for EC4 stuck sales, got %d", len(ghClient.created))
 		}
 		body := ghClient.created[0].GetBody()
-		if !strings.Contains(body, "9002") || !strings.Contains(body, "9003") {
-			t.Errorf("expected issue body to include both stuck SaleIds 9002 and 9003, got: %s", body)
+		if strings.Contains(body, "9002") {
+			t.Errorf("expected issue body NOT to include unpriceable SaleId 9002 (MedianPrice == 0), got: %s", body)
+		}
+		if !strings.Contains(body, "9003") {
+			t.Errorf("expected issue body to include stuck SaleId 9003 (missing condition), got: %s", body)
 		}
 	})
 

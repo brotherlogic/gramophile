@@ -161,3 +161,150 @@ func TestValidateUser_RefreshWantlists_Fresh(t *testing.T) {
 		}
 	}
 }
+
+func TestShouldSaleHaveUpdatedWithinWeek_MissingMetadataExcluded(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name       string
+		sale       *pb.SaleInfo
+		config     *pb.SaleConfig
+		wantUpdate bool
+	}{
+		{
+			name: "REDUCE_TO_MEDIAN with MedianPrice == 0 is excluded",
+			sale: &pb.SaleInfo{
+				SaleId:          1,
+				ReleaseId:       100,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2000},
+				MedianPrice:     &dpb.Price{Value: 0},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+				Reduction:              100,
+			},
+			wantUpdate: false,
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW with MedianPrice == 0 is excluded",
+			sale: &pb.SaleInfo{
+				SaleId:          2,
+				ReleaseId:       200,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2000},
+				MedianPrice:     &dpb.Price{Value: 0},
+				LowPrice:        &dpb.Price{Value: 500},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:              100,
+			},
+			wantUpdate: false,
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE with MedianPrice == 0 is excluded",
+			sale: &pb.SaleInfo{
+				SaleId:          3,
+				ReleaseId:       300,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2000},
+				MedianPrice:     &dpb.Price{Value: 0},
+				LowPrice:        &dpb.Price{Value: 500},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:     pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds: 3600,
+				UpdateType:             pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+				Reduction:              100,
+			},
+			wantUpdate: false,
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW at/post-median with DISCOGS_LOW and LowPrice == 0 is excluded",
+			sale: &pb.SaleInfo{
+				SaleId:          4,
+				ReleaseId:       400,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 1500},
+				MedianPrice:     &dpb.Price{Value: 1500},
+				LowPrice:        &dpb.Price{Value: 0},
+				TimeAtMedian:    now.Add(-10 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       3600,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				PostMedianTime:               3600,
+				PostMedianReduction:          100,
+				PostMedianReductionFrequency: 3600,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+			},
+			wantUpdate: false,
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE at/post-median with DISCOGS_LOW and LowPrice == 0 is excluded",
+			sale: &pb.SaleInfo{
+				SaleId:          5,
+				ReleaseId:       500,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 1500},
+				MedianPrice:     &dpb.Price{Value: 1500},
+				LowPrice:        &dpb.Price{Value: 0},
+				TimeAtMedian:    now.Add(-10 * 24 * time.Hour).UnixNano(),
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       3600,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+				PostMedianTime:               3600,
+				PostMedianReduction:          100,
+				PostMedianReductionFrequency: 3600,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+				StaleBound:                   500,
+			},
+			wantUpdate: false,
+		},
+		{
+			name: "REDUCE_TO_MEDIAN_AND_THEN_LOW pre-median with MedianPrice > 0 and LowPrice == 0 still expects update",
+			sale: &pb.SaleInfo{
+				SaleId:          6,
+				ReleaseId:       600,
+				SaleState:       dpb.SaleStatus_FOR_SALE,
+				CurrentPrice:    &dpb.Price{Value: 2500},
+				MedianPrice:     &dpb.Price{Value: 1500},
+				LowPrice:        &dpb.Price{Value: 0},
+				LastPriceUpdate: now.Add(-10 * 24 * time.Hour).UnixNano(),
+			},
+			config: &pb.SaleConfig{
+				HandlePriceUpdates:           pb.Enabled_ENABLED_ENABLED,
+				UpdateFrequencySeconds:       3600,
+				UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+				Reduction:                    100,
+				PostMedianTime:               3600,
+				PostMedianReduction:          100,
+				PostMedianReductionFrequency: 3600,
+				LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+			},
+			wantUpdate: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, _ := shouldSaleHaveUpdatedWithinWeek(tc.sale, tc.config)
+			if got != tc.wantUpdate {
+				t.Errorf("shouldSaleHaveUpdatedWithinWeek() = %v, want %v", got, tc.wantUpdate)
+			}
+		})
+	}
+}

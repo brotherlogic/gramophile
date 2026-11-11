@@ -309,10 +309,16 @@ func shouldSaleHaveUpdatedWithinWeek(sale *pb.SaleInfo, c *pb.SaleConfig) (bool,
 
 	switch updateType {
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN:
+		if c.GetTimeToMedianDays() == 0 && sale.GetMedianPrice().GetValue() == 0 {
+			return false, ""
+		}
 		if sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue()) {
 			return false, ""
 		}
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW:
+		if c.GetTimeToMedianDays() == 0 && sale.GetMedianPrice().GetValue() == 0 {
+			return false, ""
+		}
 		lowerBound := c.GetLowerBound()
 		if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW {
 			lowerBound = sale.GetLowPrice().GetValue()
@@ -322,6 +328,9 @@ func shouldSaleHaveUpdatedWithinWeek(sale *pb.SaleInfo, c *pb.SaleConfig) (bool,
 		}
 		atOrPostMedian := sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue())
 		if atOrPostMedian {
+			if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW && sale.GetLowPrice().GetValue() == 0 {
+				return false, ""
+			}
 			if c.GetTimeToMedianDays() == 0 && c.GetPostMedianReduction() <= 0 {
 				return false, ""
 			}
@@ -333,6 +342,9 @@ func shouldSaleHaveUpdatedWithinWeek(sale *pb.SaleInfo, c *pb.SaleConfig) (bool,
 			}
 		}
 	case pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE:
+		if c.GetTimeToMedianDays() == 0 && sale.GetMedianPrice().GetValue() == 0 {
+			return false, ""
+		}
 		if sale.GetTimeAtStale() > 0 || (c.GetStaleBound() > 0 && sale.GetCurrentPrice().GetValue() <= c.GetStaleBound()) {
 			return false, ""
 		}
@@ -354,6 +366,9 @@ func shouldSaleHaveUpdatedWithinWeek(sale *pb.SaleInfo, c *pb.SaleConfig) (bool,
 		} else {
 			atOrPostMedian := sale.GetTimeAtMedian() > 0 || (sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue())
 			if atOrPostMedian {
+				if c.GetLowerBoundStrategy() == pb.LowerBoundStrategy_DISCOGS_LOW && sale.GetLowPrice().GetValue() == 0 {
+					return false, ""
+				}
 				if c.GetTimeToMedianDays() == 0 && c.GetPostMedianReduction() <= 0 {
 					return false, ""
 				}
