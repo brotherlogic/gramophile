@@ -422,7 +422,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 			}
 
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
-				if sale.GetCondition() == "" || sale.GetSleeveCondition() == "" {
+				if sale.GetCondition() == "" {
 					log.Printf("Skipping sale %v adjustment due to missing condition (condition=%q, sleeve_condition=%q); triggering RefreshSales", sid, sale.GetCondition(), sale.GetSleeveCondition())
 					if enqueue != nil {
 						err := EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
@@ -664,8 +664,8 @@ func (h *adjustSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string 
 
 func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale, enqueue ...func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	//Short cut if sale data is not complete
-	if entry.GetCondition() == "" || entry.GetSleeveCondition() == "" {
-		qlog(ctx, "Skipping %v due to missing condition or sleeve condition; triggering RefreshSales", entry)
+	if entry.GetCondition() == "" {
+		qlog(ctx, "Skipping %v due to missing condition; triggering RefreshSales", entry)
 		var enqueueFn func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)
 		if len(enqueue) > 0 {
 			enqueueFn = enqueue[0]

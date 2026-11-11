@@ -3455,7 +3455,7 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 		t.Fatalf("failed to save user: %v", err)
 	}
 
-	// Sale 1001: Missing Condition (""), valid SleeveCondition; price would reach MedianPrice (2000) if adjusted
+	// Sale 1001: Missing Condition (""), valid SleeveCondition; price would reach MedianPrice (2000) if adjusted -> skipped
 	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
 		SaleId:          1001,
 		ReleaseId:       2001,
@@ -3470,11 +3470,27 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 		t.Fatalf("failed to save sale 1001: %v", err)
 	}
 
-	// Sale 1002: Valid Condition, missing SleeveCondition (""); price would reach LowPrice (1000) and StaleBound (500) if adjusted
+	// Sale 1002: Valid Condition, empty SleeveCondition (""); should be adjusted (not skipped)
 	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
-		SaleId:          1002,
-		ReleaseId:       2002,
-		Condition:       "Near Mint (NM or M-)",
+		SaleId:             1002,
+		ReleaseId:          2002,
+		Condition:          "Near Mint (NM or M-)",
+		SleeveCondition:    "",
+		CurrentPrice:       &pbd.Price{Value: 2050, Currency: "USD"},
+		MedianPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LowPrice:           &pbd.Price{Value: 1000, Currency: "USD"},
+		LastPriceUpdate:    1,
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN,
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 1002: %v", err)
+	}
+
+	// Sale 1003: Missing both Condition ("") and SleeveCondition (""); should be skipped
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          1003,
+		ReleaseId:       2003,
+		Condition:       "",
 		SleeveCondition: "",
 		CurrentPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
 		MedianPrice:     &pbd.Price{Value: 1000, Currency: "USD"},
@@ -3482,7 +3498,7 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 		LastPriceUpdate: 1,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 	}); err != nil {
-		t.Fatalf("failed to save sale 1002: %v", err)
+		t.Fatalf("failed to save sale 1003: %v", err)
 	}
 
 	config := &pb.SaleConfig{
@@ -3516,12 +3532,15 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 		t.Fatalf("AdjustSales failed: %v", err)
 	}
 
-	if len(updateSaleEnqueues) != 0 {
-		t.Errorf("expected 0 UpdateSale tasks enqueued when condition or sleeve_condition is empty, got %d: %v", len(updateSaleEnqueues), updateSaleEnqueues)
+	if len(updateSaleEnqueues) != 1 {
+		t.Fatalf("expected 1 UpdateSale task enqueued for sale 1002 (valid Condition, empty SleeveCondition), got %d: %v", len(updateSaleEnqueues), updateSaleEnqueues)
+	}
+	if updateSaleEnqueues[0].GetSaleId() != 1002 || updateSaleEnqueues[0].GetNewPrice() != 2000 || updateSaleEnqueues[0].GetCondition() != "Near Mint (NM or M-)" || updateSaleEnqueues[0].GetSleeveCondition() != "" {
+		t.Errorf("unexpected UpdateSale payload for sale 1002: %+v", updateSaleEnqueues[0])
 	}
 
 	if len(refreshEnqueues) != 2 {
-		t.Fatalf("expected RefreshSales to be triggered for both wiped sales (2 attempts), got %d", len(refreshEnqueues))
+		t.Fatalf("expected RefreshSales to be triggered only for the 2 sales missing Condition (1001 and 1003), got %d", len(refreshEnqueues))
 	}
 	for i, elem := range refreshEnqueues {
 		if elem.GetRefreshSales().GetPage() != 1 {
@@ -3535,8 +3554,8 @@ func TestAdjustSales_MissingConditionOrSleeveConditionTriggersRefreshSales(t *te
 		}
 	}
 
-	// Verify TimeAtMedian / TimeAtLow / TimeAtStale were not mutated on either sale
-	for _, sid := range []int64{1001, 1002} {
+	// Verify TimeAtMedian / TimeAtLow / TimeAtStale were not mutated on skipped sales (1001, 1003)
+	for _, sid := range []int64{1001, 1003} {
 		sale, err := d.GetSale(ctx, userId, sid)
 		if err != nil {
 			t.Fatalf("failed to get sale %d: %v", sid, err)
@@ -3564,7 +3583,7 @@ func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales
 		SaleId:          1001,
 		ReleaseId:       2001,
 		Condition:       "Near Mint (NM or M-)",
-		SleeveCondition: "Very Good Plus (VG+)",
+		SleeveCondition: "",
 		CurrentPrice:    &pbd.Price{Value: 5000, Currency: "USD"},
 		SaleState:       pbd.SaleStatus_FOR_SALE,
 	}); err != nil {
@@ -3586,7 +3605,7 @@ func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales
 		return &pb.EnqueueResponse{}, nil
 	}
 
-	// Subcase 1: Empty Condition ("") with non-empty SleeveCondition
+	// Subcase 1: Empty Condition ("") with non-empty SleeveCondition -> skipped and triggers RefreshSales
 	err := b.ProcessUpdateSale(ctx, dc, user, &pb.UpdateSale{
 		SaleId:          1001,
 		ReleaseId:       2001,
@@ -3598,7 +3617,23 @@ func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales
 		t.Fatalf("ProcessUpdateSale failed on empty Condition: %v", err)
 	}
 
-	// Subcase 2: Non-empty Condition with empty SleeveCondition ("") via updateSaleHandler.Execute
+	if len(refreshEnqueues) != 1 {
+		t.Fatalf("expected 1 RefreshSales enqueue for empty Condition, got %d", len(refreshEnqueues))
+	}
+	if refreshEnqueues[0].GetRefreshSales().GetPage() != 1 || !refreshEnqueues[0].GetForce() || refreshEnqueues[0].GetAuth() != "test_token" {
+		t.Errorf("unexpected RefreshSales enqueue: %+v", refreshEnqueues[0])
+	}
+
+	// Verify UpdateSalePrice was not called on Subcase 1 and price remained 5000
+	sale1001, err := d.GetSale(ctx, userId, 1001)
+	if err != nil {
+		t.Fatalf("failed to get sale 1001: %v", err)
+	}
+	if sale1001.GetCurrentPrice().GetValue() != 5000 {
+		t.Errorf("expected sale 1001 price to remain 5000 when Condition is empty, got %v", sale1001.GetCurrentPrice().GetValue())
+	}
+
+	// Subcase 2: Non-empty Condition with empty SleeveCondition ("") via updateSaleHandler.Execute -> proceeds and updates price
 	err = b.Execute(ctx, dc, user, &pb.QueueElement{
 		Auth: "test_token",
 		Entry: &pb.QueueElement_UpdateSale{
@@ -3615,28 +3650,17 @@ func TestProcessUpdateSale_MissingConditionOrSleeveConditionTriggersRefreshSales
 		t.Fatalf("Execute(UpdateSale) failed on empty SleeveCondition: %v", err)
 	}
 
-	if len(refreshEnqueues) != 2 {
-		t.Fatalf("expected 2 RefreshSales enqueues (one for empty Condition, one for empty SleeveCondition), got %d", len(refreshEnqueues))
-	}
-	for i, elem := range refreshEnqueues {
-		if elem.GetRefreshSales().GetPage() != 1 {
-			t.Errorf("enqueue[%d]: expected RefreshSales{Page: 1}, got page %d", i, elem.GetRefreshSales().GetPage())
-		}
-		if !elem.GetForce() {
-			t.Errorf("enqueue[%d]: expected Force=true on RefreshSales, got false", i)
-		}
-		if elem.GetAuth() != "test_token" {
-			t.Errorf("enqueue[%d]: expected Auth='test_token', got %q", i, elem.GetAuth())
-		}
+	if len(refreshEnqueues) != 1 {
+		t.Fatalf("expected no additional RefreshSales enqueue for empty SleeveCondition when Condition is non-empty, got %d", len(refreshEnqueues))
 	}
 
-	// Verify UpdateSalePrice was not called and price remained 5000
-	sale1001, err := d.GetSale(ctx, userId, 1001)
+	// Verify UpdateSalePrice was called and price updated to 4500
+	sale1001, err = d.GetSale(ctx, userId, 1001)
 	if err != nil {
 		t.Fatalf("failed to get sale 1001: %v", err)
 	}
-	if sale1001.GetCurrentPrice().GetValue() != 5000 {
-		t.Errorf("expected sale 1001 price to remain 5000 when skipped, got %v", sale1001.GetCurrentPrice().GetValue())
+	if sale1001.GetCurrentPrice().GetValue() != 4500 {
+		t.Errorf("expected sale 1001 price to be updated to 4500 when Condition is non-empty and SleeveCondition is empty, got %v", sale1001.GetCurrentPrice().GetValue())
 	}
 }
 
