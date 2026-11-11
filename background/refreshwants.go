@@ -301,6 +301,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 		if !foundInAnyList {
 			if want.GetIntendedState() != pb.WantState_RETIRED {
 				want.IntendedState = pb.WantState_RETIRED
+				want.Clean = false
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Not in wantlist, retiring")
 				if err != nil {
 					return fmt.Errorf("unable to save want: %w", err)
@@ -339,7 +340,7 @@ func (b *BackgroundRunner) RefreshWants(ctx context.Context, d discogs.Discogs, 
 					changed = true
 				}
 			}
-			if changed || want.GetClean() {
+			if changed || want.GetState() != want.GetIntendedState() {
 				want.Clean = false
 				err := b.db.SaveWant(ctx, d.GetUserId(), want, "Found purchased record")
 				if err != nil {

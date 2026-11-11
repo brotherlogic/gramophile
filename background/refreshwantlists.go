@@ -153,6 +153,10 @@ func (b *BackgroundRunner) RefreshWantlists(ctx context.Context, d discogs.Disco
 		overthreshold = lp > user.GetConfig().GetWantsListConfig().GetListeningThreshold()
 	}
 
+	sort.SliceStable(lists, func(i, j int) bool {
+		return len(lists[i].GetEntries()) < len(lists[j].GetEntries())
+	})
+
 	for _, list := range lists {
 		// Reset overthreshold for built lists
 		builtList := list.GetName() == "digital_wantlist"
@@ -247,6 +251,13 @@ func (b *BackgroundRunner) processWantlist(ctx context.Context, u *pb.StoredUser
 
 		// Update the want
 		if want.GetId() == entry.GetId() {
+			if want.GetIntendedState() != pb.WantState_WANT_UNKNOWN && want.GetState() != want.GetIntendedState() && want.GetClean() {
+				want.Clean = false
+				err = b.db.SaveWant(ctx, d.GetUserId(), want, "Marking mismatched want dirty")
+				if err != nil {
+					return fmt.Errorf("unable to save want: %w", err)
+				}
+			}
 			intended := want.GetIntendedState()
 			if intended == pb.WantState_WANT_UNKNOWN {
 				intended = want.GetState()
@@ -403,12 +414,16 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 		}
 
 		qlog(ctx, "Tracking: %v", want)
-		if want.GetIntendedState() != pb.WantState_WANTED &&
+		if (want.GetIntendedState() != pb.WantState_WANTED &&
 			want.GetIntendedState() != pb.WantState_PURCHASED &&
-			want.GetIntendedState() != pb.WantState_IN_TRANSIT {
+			want.GetIntendedState() != pb.WantState_IN_TRANSIT) ||
+			(want.GetIntendedState() == pb.WantState_WANTED && want.GetState() != want.GetIntendedState()) {
 			want.IntendedState = pb.WantState_WANTED
 			want.Clean = false
 			err = b.db.SaveWant(ctx, userid, want, "Saving from wantlist update")
+			if err != nil {
+				return false, err
+			}
 			err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 				Intention: "From Wantlist refresh",
 				Auth:      token,
@@ -421,6 +436,9 @@ func (b *BackgroundRunner) refreshEnMasseWantlist(ctx context.Context, userid in
 					},
 				},
 			}}, enqueue)
+			if err != nil {
+				return false, err
+			}
 			entry.State = pb.WantState_WANTED
 			updated = true
 		}
@@ -489,9 +507,17 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		}*/
 
 		if foundFirst {
-			if entry.GetState() != pb.WantState_PENDING {
-				b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING}, list.GetName())
-				err := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+			want, err := b.db.GetWant(ctx, userid, entry.GetId())
+			if err != nil && status.Code(err) != codes.NotFound {
+				return false, err
+			}
+			if entry.GetState() != pb.WantState_PENDING || (want != nil && want.GetIntendedState() != pb.WantState_WANT_UNKNOWN && want.GetState() != want.GetIntendedState()) {
+				entry.State = pb.WantState_PENDING
+				err := b.mergeWant(ctx, userid, &pb.Want{Id: entry.GetId(), State: pb.WantState_PENDING}, list.GetName())
+				if err != nil {
+					return false, err
+				}
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
 					Auth:      token,
 					Intention: "From Wantlist",
 					RunDate:   time.Now().UnixNano(),
@@ -511,10 +537,34 @@ func (b *BackgroundRunner) refreshOneByOneWantlist(ctx context.Context, userid i
 		qlog(ctx, "Refreshing Queue entry: %v", entry)
 
 		switch entry.GetState() {
-		case pb.WantState_IN_TRANSIT:
+		case pb.WantState_IN_TRANSIT, pb.WantState_WANTED:
 			foundFirst = true
-		case pb.WantState_WANTED:
-			foundFirst = true
+			want, err := b.db.GetWant(ctx, userid, entry.GetId())
+			if err != nil && status.Code(err) != codes.NotFound {
+				return false, err
+			}
+			if want != nil && want.GetIntendedState() != pb.WantState_WANT_UNKNOWN && want.GetState() != want.GetIntendedState() {
+				err := b.mergeWant(ctx, userid, &pb.Want{
+					Id:    entry.GetId(),
+					State: entry.GetState(),
+				}, list.GetName())
+				if err != nil {
+					return false, err
+				}
+				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{Element: &pb.QueueElement{
+					Intention: "From Wantlist",
+					Auth:      token,
+					RunDate:   time.Now().UnixNano(),
+					Entry: &pb.QueueElement_RefreshWant{
+						RefreshWant: &pb.RefreshWant{
+							Want: &pb.Want{Id: entry.GetId(), State: entry.GetState()},
+						},
+					},
+				}}, enqueue)
+				if err != nil {
+					return false, err
+				}
+			}
 		case pb.WantState_PURCHASED:
 			continue
 		case pb.WantState_PENDING, pb.WantState_RETIRED, pb.WantState_WANT_UNKNOWN:
@@ -558,6 +608,9 @@ func (b *BackgroundRunner) mergeWant(ctx context.Context, userid int32, want *pb
 
 	log.Printf("HARE %v -> %v", want, val)
 
+	if val.GetIntendedState() != want.GetState() || val.GetState() != want.GetState() {
+		val.Clean = false
+	}
 	val.IntendedState = want.State
 	return b.db.SaveWant(ctx, userid, val, fmt.Sprintf("Updated from refresh wantlist (%v) %v", list, want.GetIntendedState()))
 }

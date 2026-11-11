@@ -646,7 +646,6 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
 			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", key)
 		}
-		q.hMap[key] = true
 		q.queueMutex.Unlock()
 	}
 
@@ -666,10 +665,26 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 		}
 	}
 
+	if key != "" {
+		q.queueMutex.Lock()
+		if q.hMap[key] {
+			q.queueMutex.Unlock()
+			enqueueFail.With(prometheus.Labels{"code": fmt.Sprintf("%v", codes.AlreadyExists)}).Inc()
+			return &pb.EnqueueResponse{}, status.Errorf(codes.AlreadyExists, "Already have %v in the queue", key)
+		}
+		q.hMap[key] = true
+		q.queueMutex.Unlock()
+	}
+
 	queueAdd.With(prometheus.Labels{"type": fmt.Sprintf("%T", req.GetElement().GetEntry())}).Inc()
 
 	data, err := proto.Marshal(req.GetElement())
 	if err != nil {
+		if key != "" {
+			q.queueMutex.Lock()
+			delete(q.hMap, key)
+			q.queueMutex.Unlock()
+		}
 		return nil, err
 	}
 	_, err = q.pstore.Write(ctx, &rspb.WriteRequest{
@@ -684,6 +699,10 @@ func (q *Queue) Enqueue(ctx context.Context, req *pb.EnqueueRequest) (res *pb.En
 		q.keys = append(q.keys, req.GetElement().GetRunDate())
 		q.pMap[req.GetElement().GetRunDate()] = req.GetElement().GetPriority()
 		q.userCounts[req.GetElement().GetAuth()]++
+		q.queueMutex.Unlock()
+	} else if key != "" {
+		q.queueMutex.Lock()
+		delete(q.hMap, key)
 		q.queueMutex.Unlock()
 	}
 

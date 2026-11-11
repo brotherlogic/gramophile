@@ -800,3 +800,112 @@ func TestWantlistDisabledOnListening(t *testing.T) {
 		}
 	}
 }
+
+func TestWantlistRecoveryAfterQueueThrottle(t *testing.T) {
+	ctx := getTestContext(123)
+
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	err := d.SaveUser(ctx, &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "12 Inches", Id: 123}},
+		User:    &pbd.User{DiscogsUserId: 123},
+		Auth:    &pb.GramophileAuth{Token: "123"},
+	})
+	if err != nil {
+		t.Fatalf("Can't init save user: %v", err)
+	}
+	di := &discogs.TestDiscogsClient{UserId: 123, Fields: []*pbd.Field{{Id: 10, Name: "Arrived"}}}
+	br := background.GetBackgroundRunner(d, "", "", "")
+	qc := queuelogic.GetQueue(pstore, br, di, d)
+	s := server.BuildServer(d, di, qc)
+
+	// Seed > MaxUserQueueSize (210) clean owned records & wants so RefreshWants would previously flood the queue
+	var ownedEntries []*pb.WantlistEntry
+	for i := int64(1); i <= 210; i++ {
+		if err := d.SaveRecord(ctx, 123, &pb.Record{
+			Arrived: 1000,
+			Release: &pbd.Release{Id: i, InstanceId: 10000 + i, Rating: 4},
+		}); err != nil {
+			t.Fatalf("failed to save record %d: %v", i, err)
+		}
+		if err := d.SaveWant(ctx, 123, &pb.Want{
+			Id:            i,
+			State:         pb.WantState_PURCHASED,
+			IntendedState: pb.WantState_PURCHASED,
+			Score:         4,
+			Clean:         true,
+			FromWantlist:  []string{"owned-list"},
+		}, "seed clean owned want"); err != nil {
+			t.Fatalf("failed to save want %d: %v", i, err)
+		}
+		ownedEntries = append(ownedEntries, &pb.WantlistEntry{Id: i, Index: int32(i), State: pb.WantState_PURCHASED})
+	}
+	if err := d.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, &pb.Wantlist{
+		Name:    "owned-list",
+		Type:    pb.WantlistType_ONE_BY_ONE,
+		Active:  true,
+		Entries: ownedEntries,
+	}); err != nil {
+		t.Fatalf("failed to save owned-list: %v", err)
+	}
+
+	// Seed a ONE_BY_ONE wantlist ("Analord") with a PENDING entry (444484)
+	if err := d.SaveWant(ctx, 123, &pb.Want{
+		Id:            444484,
+		State:         pb.WantState_PENDING,
+		IntendedState: pb.WantState_PENDING,
+		Clean:         true,
+		FromWantlist:  []string{"Analord"},
+	}, "seed pending want"); err != nil {
+		t.Fatalf("failed to save want 444484: %v", err)
+	}
+	if err := d.SaveWantlist(ctx, &pb.StoredUser{User: &pbd.User{DiscogsUserId: 123}}, &pb.Wantlist{
+		Name:   "Analord",
+		Type:   pb.WantlistType_ONE_BY_ONE,
+		Active: true,
+		Entries: []*pb.WantlistEntry{
+			{Id: 444484, Index: 1, State: pb.WantState_PENDING},
+		},
+	}); err != nil {
+		t.Fatalf("failed to save Analord wantlist: %v", err)
+	}
+
+	// Enqueue RefreshWants followed by RefreshWantlists
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   1,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWants{RefreshWants: &pb.RefreshWants{}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue RefreshWants: %v", err)
+	}
+	_, err = qc.Enqueue(ctx, &pb.EnqueueRequest{
+		Element: &pb.QueueElement{
+			Intention: "From Test",
+			RunDate:   2,
+			Auth:      "123",
+			Entry:     &pb.QueueElement_RefreshWantlists{RefreshWantlists: &pb.RefreshWantlists{}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to enqueue RefreshWantlists: %v", err)
+	}
+
+	if err := qc.FlushQueue(ctx); err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	wants, err := s.GetWants(ctx, &pb.GetWantsRequest{ReleaseId: 444484})
+	if err != nil {
+		t.Fatalf("GetWants failed: %v", err)
+	}
+	if len(wants.GetWants()) != 1 {
+		t.Fatalf("expected 1 want for 444484, got %v", wants.GetWants())
+	}
+	if wants.GetWants()[0].GetWant().GetState() != pb.WantState_WANTED {
+		t.Errorf("expected want 444484 to reach State=WANTED, got %v", wants.GetWants()[0].GetWant())
+	}
+}

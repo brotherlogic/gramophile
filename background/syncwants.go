@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/brotherlogic/discogs"
@@ -82,13 +83,25 @@ func (b *BackgroundRunner) ProcessSyncWants(ctx context.Context, d discogs.Disco
 			return err
 		}
 
-		// Save any dirty wants
+		// Save any dirty wants, prioritizing WANTED wants so they are not starved by MaxUserQueueSize
 		wants, err := b.db.GetWants(ctx, user.GetUser().GetDiscogsUserId())
 		if err != nil {
 			return err
 		}
+		sort.SliceStable(wants, func(i, j int) bool {
+			iWanted := wants[i].GetIntendedState() == pb.WantState_WANTED
+			jWanted := wants[j].GetIntendedState() == pb.WantState_WANTED
+			return iWanted && !jWanted
+		})
 		for _, want := range wants {
-			if !want.GetClean() {
+			if !want.GetClean() || (want.GetIntendedState() != pb.WantState_WANT_UNKNOWN && want.GetState() != want.GetIntendedState()) {
+				if want.GetClean() {
+					want.Clean = false
+					err = b.db.SaveWant(ctx, user.GetUser().GetDiscogsUserId(), want, "Marking mismatched want dirty in SyncWants")
+					if err != nil {
+						return err
+					}
+				}
 				err = EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
 					Element: &pb.QueueElement{
 						Intention:        "From SyncWants",
