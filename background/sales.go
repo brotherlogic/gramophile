@@ -374,7 +374,11 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 					}
 					log.Printf("Found lower bound %v", lowerBound)
 					if lowerBound > 0 {
-						return max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound), fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
+						newPrice := max(s.GetMedianPrice().GetValue()-postMedianCycles*c.GetPostMedianReduction(), lowerBound)
+						if s.GetCurrentPrice().GetValue() > 0 {
+							newPrice = min(newPrice, s.GetCurrentPrice().GetValue())
+						}
+						return newPrice, fmt.Sprintf("reducing post median. LB: %v", lowerBound), nil
 					}
 					log.Printf("Bottomed out on the post median reductions")
 					return 0, "no adjustment", fmt.Errorf("Already reached low price for %v", s.GetSaleId())
@@ -382,6 +386,10 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 					log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 				}
 			}
+		}
+
+		if s.GetCurrentPrice().GetValue() <= s.GetMedianPrice().GetValue() {
+			return min(s.GetCurrentPrice().GetValue(), s.GetMedianPrice().GetValue()), "reducing to median", nil
 		}
 
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), "reducing to median", nil
@@ -494,7 +502,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN ||
 					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
 					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
-					nsp == sale.GetMedianPrice().GetValue() && sale.TimeAtMedian == 0 {
+					sale.GetMedianPrice().GetValue() > 0 && nsp <= sale.GetMedianPrice().GetValue() && sale.TimeAtMedian == 0 {
 					sale.TimeAtMedian = time.Now().UnixNano()
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
@@ -507,7 +515,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				// If we've reached the low price, then explicitly set this
 				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW ||
 					updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
-					nsp == sale.GetLowPrice().GetValue() && sale.TimeAtLow == 0 {
+					sale.GetLowPrice().GetValue() > 0 && nsp <= sale.GetLowPrice().GetValue() && sale.TimeAtLow == 0 {
 					sale.TimeAtLow = time.Now().UnixNano()
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
@@ -520,7 +528,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 
 				// If we've reached the stale bound price, then explicitly set this
 				if (updateType == pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE) &&
-					nsp == user.GetConfig().GetSaleConfig().GetStaleBound() && sale.TimeAtStale == 0 {
+					user.GetConfig().GetSaleConfig().GetStaleBound() > 0 && nsp <= user.GetConfig().GetSaleConfig().GetStaleBound() && sale.TimeAtStale == 0 {
 					sale.TimeAtStale = time.Now().UnixNano()
 
 					err = b.db.SaveSale(ctx, user.GetUser().GetDiscogsUserId(), sale)
@@ -801,6 +809,22 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 							sale = proto.Clone(sale).(*pb.SaleInfo)
 						}
 						sale.LowPrice = record.GetLowPrice()
+						sale_changed = true
+					}
+
+					if sale.GetMedianPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetMedianPrice().GetValue() && sale.GetTimeAtMedian() == 0 {
+						if !sale_changed {
+							sale = proto.Clone(sale).(*pb.SaleInfo)
+						}
+						sale.TimeAtMedian = time.Now().UnixNano()
+						sale_changed = true
+					}
+
+					if sale.GetLowPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() > 0 && sale.GetCurrentPrice().GetValue() <= sale.GetLowPrice().GetValue() && sale.GetTimeAtLow() == 0 {
+						if !sale_changed {
+							sale = proto.Clone(sale).(*pb.SaleInfo)
+						}
+						sale.TimeAtLow = time.Now().UnixNano()
 						sale_changed = true
 					}
 				}
