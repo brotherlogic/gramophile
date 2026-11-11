@@ -422,7 +422,7 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 			}
 
 			if time.Since(time.Unix(0, sale.GetLastPriceUpdate())) > getUpdateTime(c) {
-				if sale.GetCondition() == "" || sale.GetSleeveCondition() == "" {
+				if sale.GetCondition() == "" {
 					log.Printf("Skipping sale %v adjustment due to missing condition (condition=%q, sleeve_condition=%q); triggering RefreshSales", sid, sale.GetCondition(), sale.GetSleeveCondition())
 					if enqueue != nil {
 						err := EnqueueIfNotExists(ctx, &pb.EnqueueRequest{
@@ -447,6 +447,38 @@ func (b *BackgroundRunner) AdjustSales(ctx context.Context, c *pb.SaleConfig, us
 				if err != nil {
 					if errors.Is(err, ErrMissingMetadata) {
 						salesSkippedMissingMetadata.Inc()
+						if enqueue != nil {
+							now := time.Now().UnixNano()
+							if rerr := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+								Element: &pb.QueueElement{
+									Intention: "From AdjustSales Missing Metadata",
+									RunDate:   now,
+									Force:     true,
+									Priority:  pb.QueueElement_PRIORITY_HIGH,
+									Auth:      user.GetAuth().GetToken(),
+									Entry: &pb.QueueElement_RefreshRelease{
+										RefreshRelease: &pb.RefreshRelease{
+											Iid:       sale.GetReleaseId(),
+											Intention: "From AdjustSales Missing Metadata",
+										},
+									},
+								},
+							}, enqueue); rerr != nil {
+								log.Printf("unable to enqueue RefreshRelease for sale %v: %v", sid, rerr)
+							}
+							if lerr := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+								Element: &pb.QueueElement{
+									Intention: "From AdjustSales Missing Metadata",
+									RunDate:   now + 1,
+									Auth:      user.GetAuth().GetToken(),
+									Entry: &pb.QueueElement_LinkSales{
+										LinkSales: &pb.LinkSales{},
+									},
+								},
+							}, enqueue); lerr != nil {
+								log.Printf("unable to enqueue LinkSales for sale %v: %v", sid, lerr)
+							}
+						}
 						continue
 					}
 					if strings.Contains(err.Error(), "Already reached low price") {
@@ -632,8 +664,8 @@ func (h *adjustSalesHandler) GetDeduplicationKey(entry *pb.QueueElement) string 
 
 func (b *BackgroundRunner) ProcessUpdateSale(ctx context.Context, d discogs.Discogs, u *pb.StoredUser, entry *pb.UpdateSale, enqueue ...func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
 	//Short cut if sale data is not complete
-	if entry.GetCondition() == "" || entry.GetSleeveCondition() == "" {
-		qlog(ctx, "Skipping %v due to missing condition or sleeve condition; triggering RefreshSales", entry)
+	if entry.GetCondition() == "" {
+		qlog(ctx, "Skipping %v due to missing condition; triggering RefreshSales", entry)
 		var enqueueFn func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)
 		if len(enqueue) > 0 {
 			enqueueFn = enqueue[0]
@@ -726,7 +758,8 @@ func (b *BackgroundRunner) LinkSales(ctx context.Context, user *pb.StoredUser) e
 		sale, err := b.db.GetSale(ctx, user.GetUser().GetDiscogsUserId(), s)
 		log.Printf("LOADED: %v", sale)
 		if err != nil {
-			return fmt.Errorf("unable to read sale: %w", err)
+			log.Printf("unable to read sale %v: %v", s, err)
+			continue
 		}
 
 		log.Printf("Got Sale: %v", sale)
@@ -815,7 +848,8 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 		if sale.GetSaleState() == pbd.SaleStatus_FOR_SALE && !matchedSaleIds[sale.GetSaleId()] {
 			gclient, err := b.getGHClient()
 			if err != nil {
-				return err
+				log.Printf("unable to get githubridge client to report unmatched active sale %v: %v", sale.GetSaleId(), err)
+				continue
 			}
 			_, err = gclient.CreateIssue(ctx, &ghbpb.CreateIssueRequest{
 				User:  "brotherlogic",
@@ -824,7 +858,8 @@ func (b *BackgroundRunner) HardLink(ctx context.Context, user *pb.StoredUser, re
 				Body:  fmt.Sprintf("Encountered active sale %v (release %v) on Discogs without any matching record in user collection.", sale.GetSaleId(), sale.GetReleaseId()),
 			})
 			if err != nil {
-				return err
+				log.Printf("unable to create github issue for unmatched active sale %v: %v", sale.GetSaleId(), err)
+				continue
 			}
 		}
 	}

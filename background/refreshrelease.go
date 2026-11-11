@@ -65,7 +65,7 @@ const (
 )
 
 func (b *BackgroundRunner) ProcessRefreshRelease(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, entry *pb.QueueElement, enqueue func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
-	err := b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), u, d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update")
+	err := b.RefreshRelease(ctx, entry.GetRefreshRelease().GetIid(), u, d, entry.GetForce() || entry.GetRefreshRelease().GetIntention() == "Manual Update", enqueue)
 	qlog(ctx, "Refreshing %v for %v -> %v", entry.GetRefreshRelease().GetIid(), entry.GetRefreshRelease().GetIid(), err)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -91,8 +91,24 @@ func (b *BackgroundRunner) ProcessRefreshRelease(ctx context.Context, u *pb.Stor
 	return derr
 }
 
-func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.StoredUser, d discogs.Discogs, force bool) error {
+func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.StoredUser, d discogs.Discogs, force bool, enqueue ...func(context.Context, *pb.EnqueueRequest) (*pb.EnqueueResponse, error)) error {
+	var extraRecords []*pb.Record
 	record, err := b.db.GetRecord(ctx, d.GetUserId(), iid)
+	if status.Code(err) == codes.NotFound {
+		records, rerr := b.db.LoadAllRecords(ctx, d.GetUserId())
+		if rerr == nil {
+			for _, r := range records {
+				if r.GetRelease().GetId() == iid {
+					if record == nil {
+						record = r
+						err = nil
+					} else {
+						extraRecords = append(extraRecords, r)
+					}
+				}
+			}
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("unable to get record from db: %w", err)
 	}
@@ -113,6 +129,9 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.
 		return fmt.Errorf("unable to get release %v from discogs: %w", record.GetRelease().GetId(), err)
 	}
 	qlog(ctx, "Read release: %v", release)
+
+	oldMedian := record.GetMedianPrice().GetValue()
+	oldLow := record.GetLowPrice().GetValue()
 
 	if force || record.GetHighPrice().GetValue() == 0 || time.Since(time.Unix(0, record.GetLastStatRefresh())) > refreshStatsFrequency {
 		// Update the median sale price
@@ -164,7 +183,42 @@ func (b *BackgroundRunner) RefreshRelease(ctx context.Context, iid int64, u *pb.
 
 	err = b.db.SaveRecord(ctx, d.GetUserId(), record, &db.SaveOptions{})
 	qlog(ctx, "Updated %v -> %v (%v)", release.GetInstanceId(), record, err)
-	return err
+	if err != nil {
+		return err
+	}
+
+	priceUpdated := record.GetMedianPrice().GetValue() != oldMedian || record.GetLowPrice().GetValue() != oldLow
+	for _, extra := range extraRecords {
+		if extra.GetMedianPrice().GetValue() != record.GetMedianPrice().GetValue() || extra.GetLowPrice().GetValue() != record.GetLowPrice().GetValue() {
+			priceUpdated = true
+		}
+		extra.MedianPrice = record.GetMedianPrice()
+		extra.LowPrice = record.GetLowPrice()
+		extra.HighPrice = record.GetHighPrice()
+		extra.LastStatRefresh = record.GetLastStatRefresh()
+		if serr := b.db.SaveRecord(ctx, d.GetUserId(), extra, &db.SaveOptions{}); serr != nil {
+			return serr
+		}
+	}
+
+	if priceUpdated {
+		if len(enqueue) > 0 && enqueue[0] != nil {
+			if lerr := EnqueueWithIgnore(ctx, &pb.EnqueueRequest{
+				Element: &pb.QueueElement{
+					Intention: "From RefreshRelease",
+					RunDate:   time.Now().UnixNano(),
+					Auth:      u.GetAuth().GetToken(),
+					Entry: &pb.QueueElement_LinkSales{
+						LinkSales: &pb.LinkSales{},
+					},
+				},
+			}, enqueue[0]); lerr != nil {
+				log.Printf("unable to enqueue LinkSales from RefreshRelease for %v: %v", iid, lerr)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (b *BackgroundRunner) refreshWantlists(ctx context.Context, u *pb.StoredUser, d discogs.Discogs, record *pb.Record) error {
