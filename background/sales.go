@@ -386,10 +386,10 @@ func adjustPrice(ctx context.Context, s *pb.SaleInfo, c *pb.SaleConfig, ut pb.Sa
 					log.Printf("No time to adjust: (%v) %v vs %v", s.GetSaleId(), time.Since(time.Unix(0, s.GetTimeAtMedian())).Seconds(), c.GetPostMedianTime())
 				}
 			}
-		}
 
-		if s.GetCurrentPrice().GetValue() <= s.GetMedianPrice().GetValue() {
-			return min(s.GetCurrentPrice().GetValue(), s.GetMedianPrice().GetValue()), "reducing to median", nil
+			if s.GetCurrentPrice().GetValue() <= s.GetMedianPrice().GetValue() {
+				return min(s.GetCurrentPrice().GetValue(), s.GetMedianPrice().GetValue()), "reducing to median", nil
+			}
 		}
 
 		return max(s.CurrentPrice.GetValue()-c.GetReduction(), s.GetMedianPrice().GetValue()), "reducing to median", nil
