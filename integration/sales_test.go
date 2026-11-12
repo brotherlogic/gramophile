@@ -507,7 +507,7 @@ func TestSalesPriceIsAdjustedDownToLowerBound(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
 	si := &pb.SaleInfo{
-		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		CurrentPrice:    &pbd.Price{Value: 4000, Currency: "USD"},
 		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
@@ -617,7 +617,7 @@ func TestSalesPriceIsAdjustedDownToLowerBoundWithDelay(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
 	si := &pb.SaleInfo{
-		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		CurrentPrice:    &pbd.Price{Value: 4000, Currency: "USD"},
 		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
@@ -726,7 +726,7 @@ func TestSalesPriceIsAdjustedDownToStaticLowerBound(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
 	si := &pb.SaleInfo{
-		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		CurrentPrice:    &pbd.Price{Value: 4000, Currency: "USD"},
 		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,
@@ -836,7 +836,7 @@ func TestSalesPriceIsAdjustedDownBelowMedianOneCycle(t *testing.T) {
 	ctx, s, d, q := buildTestScaffold(t)
 
 	si := &pb.SaleInfo{
-		CurrentPrice:    &pbd.Price{Value: 1234, Currency: "USD"},
+		CurrentPrice:    &pbd.Price{Value: 4000, Currency: "USD"},
 		SaleId:          1836758812,
 		LastPriceUpdate: 12,
 		SaleState:       pbd.SaleStatus_FOR_SALE,

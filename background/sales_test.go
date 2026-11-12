@@ -3855,3 +3855,369 @@ func TestAdjustSales_DisabledUpdatesLastSaleAdjustOnly(t *testing.T) {
 		})
 	}
 }
+
+func TestHardLink_InitializesTimeAtMedianAndTimeAtLow(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	user := &pb.StoredUser{User: &pbd.User{DiscogsUserId: userId}}
+
+	existingMedianTs := int64(111111)
+	existingLowTs := int64(222222)
+
+	records := []*pb.Record{
+		{
+			Release:     &pbd.Release{Id: 101, InstanceId: 1001, Condition: "Near Mint (NM or M-)"},
+			MedianPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+		{
+			Release:     &pbd.Release{Id: 102, InstanceId: 1002, Condition: "Near Mint (NM or M-)"},
+			MedianPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+		{
+			Release:     &pbd.Release{Id: 103, InstanceId: 1003, Condition: "Near Mint (NM or M-)"},
+			MedianPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+		{
+			Release:     &pbd.Release{Id: 104, InstanceId: 1004, Condition: "Near Mint (NM or M-)"},
+			MedianPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:    &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+	}
+
+	sales := []*pb.SaleInfo{
+		// Sale 1: Below MedianPrice (1500 <= 2000), above LowPrice (1500 > 1000) -> TimeAtMedian set, TimeAtLow 0
+		{
+			SaleId:       501,
+			ReleaseId:    101,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 1500, Currency: "USD"},
+		},
+		// Sale 2: Below both MedianPrice and LowPrice (900 <= 1000 <= 2000), even when MedianPrice/LowPrice already match record -> both set
+		{
+			SaleId:       502,
+			ReleaseId:    102,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 900, Currency: "USD"},
+			MedianPrice:  &pbd.Price{Value: 2000, Currency: "USD"},
+			LowPrice:     &pbd.Price{Value: 1000, Currency: "USD"},
+		},
+		// Sale 3: Above MedianPrice (2500 > 2000) -> both remain 0
+		{
+			SaleId:       503,
+			ReleaseId:    103,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 2500, Currency: "USD"},
+		},
+		// Sale 4: Existing non-zero timestamps preserved
+		{
+			SaleId:       504,
+			ReleaseId:    104,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 800, Currency: "USD"},
+			TimeAtMedian: existingMedianTs,
+			TimeAtLow:    existingLowTs,
+		},
+	}
+
+	for _, r := range records {
+		if err := d.SaveRecord(ctx, userId, r, &db.SaveOptions{}); err != nil {
+			t.Fatalf("failed to save record: %v", err)
+		}
+	}
+	for _, s := range sales {
+		if err := d.SaveSale(ctx, userId, s); err != nil {
+			t.Fatalf("failed to save sale: %v", err)
+		}
+	}
+
+	if err := b.HardLink(ctx, user, records, sales); err != nil {
+		t.Fatalf("HardLink failed: %v", err)
+	}
+
+	s501, err := d.GetSale(ctx, userId, 501)
+	if err != nil {
+		t.Fatalf("failed to get sale 501: %v", err)
+	}
+	if s501.GetTimeAtMedian() == 0 {
+		t.Errorf("expected sale 501 TimeAtMedian > 0 when CurrentPrice <= MedianPrice, got 0")
+	}
+	if s501.GetTimeAtLow() != 0 {
+		t.Errorf("expected sale 501 TimeAtLow == 0 when CurrentPrice > LowPrice, got %v", s501.GetTimeAtLow())
+	}
+
+	s502, err := d.GetSale(ctx, userId, 502)
+	if err != nil {
+		t.Fatalf("failed to get sale 502: %v", err)
+	}
+	if s502.GetTimeAtMedian() == 0 {
+		t.Errorf("expected sale 502 TimeAtMedian > 0 when CurrentPrice <= MedianPrice, got 0")
+	}
+	if s502.GetTimeAtLow() == 0 {
+		t.Errorf("expected sale 502 TimeAtLow > 0 when CurrentPrice <= LowPrice, got 0")
+	}
+
+	s503, err := d.GetSale(ctx, userId, 503)
+	if err != nil {
+		t.Fatalf("failed to get sale 503: %v", err)
+	}
+	if s503.GetTimeAtMedian() != 0 || s503.GetTimeAtLow() != 0 {
+		t.Errorf("expected sale 503 TimeAtMedian and TimeAtLow to remain 0 when CurrentPrice > MedianPrice, got median=%v low=%v",
+			s503.GetTimeAtMedian(), s503.GetTimeAtLow())
+	}
+
+	s504, err := d.GetSale(ctx, userId, 504)
+	if err != nil {
+		t.Fatalf("failed to get sale 504: %v", err)
+	}
+	if s504.GetTimeAtMedian() != existingMedianTs || s504.GetTimeAtLow() != existingLowTs {
+		t.Errorf("expected sale 504 existing timestamps (%v, %v) to be preserved, got (%v, %v)",
+			existingMedianTs, existingLowTs, s504.GetTimeAtMedian(), s504.GetTimeAtLow())
+	}
+}
+
+func TestAdjustPrice_NeverRaisesPriceWhenBelowMedianOrLow(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("BeforeTimeAtMedianSet_CurrentBelowMedian", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1001,
+			ReleaseId:    2001,
+			CurrentPrice: &pbd.Price{Value: 300},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 200},
+			TimeAtMedian: 0,
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			Reduction:  50,
+		}
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 300 {
+			t.Errorf("expected price to remain 300 (not raised to MedianPrice 400), got %v", newPrice)
+		}
+	})
+
+	t.Run("DuringPostMedianHoldWindow_CurrentBelowMedian", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1002,
+			ReleaseId:    2002,
+			CurrentPrice: &pbd.Price{Value: 300},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 200},
+			TimeAtMedian: time.Now().Add(-50 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			Reduction:                    50,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		}
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 300 {
+			t.Errorf("expected price to remain 300 during hold window (not raised to MedianPrice 400), got %v", newPrice)
+		}
+	})
+
+	t.Run("PostMedianReduction_CurrentAlreadyBelowCalculatedPostMedianPrice", func(t *testing.T) {
+		// 1st post-median cycle would calculate 400 - 50 = 350, but CurrentPrice is already 300
+		sale := &pb.SaleInfo{
+			SaleId:       1003,
+			ReleaseId:    2003,
+			CurrentPrice: &pbd.Price{Value: 300},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 200},
+			TimeAtMedian: time.Now().Add(-105 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			Reduction:                    50,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		}
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 300 {
+			t.Errorf("expected price to never exceed CurrentPrice 300 (calculated post-median was 350), got %v", newPrice)
+		}
+	})
+
+	t.Run("PostMedianReduction_CurrentAlreadyBelowLowerBound", func(t *testing.T) {
+		sale := &pb.SaleInfo{
+			SaleId:       1004,
+			ReleaseId:    2004,
+			CurrentPrice: &pbd.Price{Value: 180},
+			MedianPrice:  &pbd.Price{Value: 400},
+			LowPrice:     &pbd.Price{Value: 200},
+			TimeAtMedian: time.Now().Add(-300 * time.Second).UnixNano(),
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}
+		config := &pb.SaleConfig{
+			UpdateType:                   pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+			Reduction:                    50,
+			PostMedianTime:               100,
+			PostMedianReduction:          50,
+			PostMedianReductionFrequency: 10,
+			LowerBoundStrategy:           pb.LowerBoundStrategy_DISCOGS_LOW,
+		}
+		newPrice, _, err := adjustPrice(ctx, sale, config, pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if newPrice != 180 {
+			t.Errorf("expected price to remain at CurrentPrice 180 when below lowerBound 200, got %v", newPrice)
+		}
+	})
+}
+
+func TestAdjustSales_SetsTimeAtMedianLowAndStaleWhenAtOrBelowTargetBounds(t *testing.T) {
+	ctx := context.Background()
+	pstore := pstore_client.GetTestClient()
+	d := db.NewTestDB(pstore)
+	b := GetBackgroundRunner(d, "", "", "")
+
+	userId := int32(123)
+	config := &pb.SaleConfig{
+		HandlePriceUpdates:                pb.Enabled_ENABLED_ENABLED,
+		UpdateFrequencySeconds:            10,
+		UpdateType:                        pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW_AND_THEN_STALE,
+		Reduction:                         100,
+		PostMedianTime:                    100,
+		PostMedianReduction:               100,
+		PostMedianReductionFrequency:      10,
+		LowerBoundStrategy:                pb.LowerBoundStrategy_DISCOGS_LOW,
+		TimeToStaleDays:                   1,
+		PostLowReductionFrequencySeconds:  10,
+		PostLowReduction:                  100,
+		StaleBound:                        500,
+	}
+	user := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: userId},
+		Auth: &pb.GramophileAuth{Token: "test_token"},
+		Config: &pb.GramophileConfig{
+			SaleConfig: config,
+		},
+	}
+	if err := d.SaveUser(ctx, user); err != nil {
+		t.Fatalf("failed to save user: %v", err)
+	}
+
+	// Sale 1: Below MedianPrice (1500 < 2000), above LowPrice (1500 > 1000) -> sets TimeAtMedian, keeps price 1500
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:             2001,
+		ReleaseId:          3001,
+		Condition:          "Near Mint (NM or M-)",
+		CurrentPrice:       &pbd.Price{Value: 1500, Currency: "USD"},
+		MedianPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LowPrice:           &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		LastPriceUpdate:    1,
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 2001: %v", err)
+	}
+
+	// Sale 2: Below LowPrice (800 < 1000 < 2000) -> sets both TimeAtMedian and TimeAtLow, keeps price 800
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:             2002,
+		ReleaseId:          3002,
+		Condition:          "Near Mint (NM or M-)",
+		CurrentPrice:       &pbd.Price{Value: 800, Currency: "USD"},
+		MedianPrice:        &pbd.Price{Value: 2000, Currency: "USD"},
+		LowPrice:           &pbd.Price{Value: 1000, Currency: "USD"},
+		SaleUpdateOverride: pb.SaleUpdateType_REDUCE_TO_MEDIAN_AND_THEN_LOW,
+		LastPriceUpdate:    1,
+		SaleState:          pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 2002: %v", err)
+	}
+
+	// Sale 3: Below StaleBound (450 < 500) -> sets TimeAtStale
+	if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+		SaleId:          2003,
+		ReleaseId:       3003,
+		Condition:       "Near Mint (NM or M-)",
+		CurrentPrice:    &pbd.Price{Value: 450, Currency: "USD"},
+		MedianPrice:     &pbd.Price{Value: 2000, Currency: "USD"},
+		LowPrice:        &pbd.Price{Value: 1000, Currency: "USD"},
+		TimeAtMedian:    time.Now().Add(-72 * time.Hour).UnixNano(),
+		TimeAtLow:       time.Now().Add(-1 * time.Hour).UnixNano(),
+		LastPriceUpdate: 1,
+		SaleState:       pbd.SaleStatus_FOR_SALE,
+	}); err != nil {
+		t.Fatalf("failed to save sale 2003: %v", err)
+	}
+
+	enqueuedPrices := make(map[int64]int32)
+	enqueue := func(ctx context.Context, req *pb.EnqueueRequest) (*pb.EnqueueResponse, error) {
+		if us := req.GetElement().GetUpdateSale(); us != nil {
+			enqueuedPrices[us.GetSaleId()] = us.GetNewPrice()
+		}
+		return &pb.EnqueueResponse{}, nil
+	}
+
+	if err := b.AdjustSales(ctx, config, user, enqueue); err != nil {
+		t.Fatalf("AdjustSales failed: %v", err)
+	}
+
+	s2001, err := d.GetSale(ctx, userId, 2001)
+	if err != nil {
+		t.Fatalf("failed to get sale 2001: %v", err)
+	}
+	if s2001.GetTimeAtMedian() == 0 {
+		t.Errorf("expected sale 2001 TimeAtMedian > 0 when nsp <= MedianPrice, got 0")
+	}
+	if s2001.GetTimeAtLow() != 0 {
+		t.Errorf("expected sale 2001 TimeAtLow == 0, got %v", s2001.GetTimeAtLow())
+	}
+	if enqueuedPrices[2001] != 1500 {
+		t.Errorf("expected sale 2001 enqueued price 1500, got %v", enqueuedPrices[2001])
+	}
+
+	s2002, err := d.GetSale(ctx, userId, 2002)
+	if err != nil {
+		t.Fatalf("failed to get sale 2002: %v", err)
+	}
+	if s2002.GetTimeAtMedian() == 0 {
+		t.Errorf("expected sale 2002 TimeAtMedian > 0 when nsp <= MedianPrice, got 0")
+	}
+	if s2002.GetTimeAtLow() == 0 {
+		t.Errorf("expected sale 2002 TimeAtLow > 0 when nsp <= LowPrice, got 0")
+	}
+	if enqueuedPrices[2002] != 800 {
+		t.Errorf("expected sale 2002 enqueued price 800, got %v", enqueuedPrices[2002])
+	}
+
+	s2003, err := d.GetSale(ctx, userId, 2003)
+	if err != nil {
+		t.Fatalf("failed to get sale 2003: %v", err)
+	}
+	if s2003.GetTimeAtStale() == 0 {
+		t.Errorf("expected sale 2003 TimeAtStale > 0 when nsp <= StaleBound, got 0")
+	}
+}

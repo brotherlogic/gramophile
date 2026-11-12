@@ -121,6 +121,7 @@ Current Go version: 1.26.2
 - Validator Wantlist Refresh Scheduling: Evaluates `LastWantlistRefresh` in `validatorlogic.ValidateUser` and enqueues `RefreshWantlists` when wantlist refresh timestamps exceed 24 hours.
 - Self-Healing Missing Sale Pricing Metadata & Staleness Alert Exclusions: Enqueues `RefreshRelease` and `LinkSales` when `AdjustSales` encounters `ErrMissingMetadata` on an active sale, triggers `LinkSales` from `RefreshRelease` whenever record `MedianPrice` or `LowPrice` statistics change, and excludes sales missing required `MedianPrice` or `LowPrice` metadata from per-sale staleness alerts in `validatorlogic`.
 - Want State Alignment & Queue Throttling Recovery: Prevents `RefreshWants` from re-dirtying clean owned wants on every run, marks wants `Clean = false` on state transitions in `mergeWant`, re-enqueues unsynced wantlist entries in `RefreshWantlists` and `SyncWants` when `State != IntendedState`, prioritizes `WANTED` transitions and smaller wantlists against `MaxUserQueueSize` throttling, and avoids poisoning the queue deduplication map when throttled.
+- Target Bound Timestamp Initialization & Monotonic Price Reductions: Initializes `TimeAtMedian`, `TimeAtLow`, and `TimeAtStale` when sales are at or below their respective target bounds (`MedianPrice`, `LowPrice`, `StaleBound`) in `HardLink` and `AdjustSales`, and ensures `adjustPrice` never raises prices back up when a sale is already priced below `MedianPrice` or `lowerBound`.
 
 
 ## TUI (Terminal User Interface)
