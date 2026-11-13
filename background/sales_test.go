@@ -4221,3 +4221,144 @@ func TestAdjustSales_SetsTimeAtMedianLowAndStaleWhenAtOrBelowTargetBounds(t *tes
 		t.Errorf("expected sale 2003 TimeAtStale > 0 when nsp <= StaleBound, got 0")
 	}
 }
+
+type failedPreconditionDiscogsClient struct {
+	*discogs.TestDiscogsClient
+	updateSaleErr error
+	getSaleItem   *pbd.SaleItem
+	getSaleErr    error
+}
+
+func (f *failedPreconditionDiscogsClient) UpdateSale(ctx context.Context, saleId int64, releaseId int64, condition string, newPrice int32) error {
+	if f.updateSaleErr != nil {
+		return f.updateSaleErr
+	}
+	return f.TestDiscogsClient.UpdateSale(ctx, saleId, releaseId, condition, newPrice)
+}
+
+func (f *failedPreconditionDiscogsClient) GetSale(ctx context.Context, saleId int64) (*pbd.SaleItem, error) {
+	if f.getSaleErr != nil {
+		return nil, f.getSaleErr
+	}
+	if f.getSaleItem != nil {
+		return f.getSaleItem, nil
+	}
+	return f.TestDiscogsClient.GetSale(ctx, saleId)
+}
+
+func TestUpdateSalePrice_FailedPreconditionReconcilesSaleState(t *testing.T) {
+	ctx := context.Background()
+	userId := int32(123)
+
+	t.Run("GetSale_NotFound_MarksSaleSold", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		d := db.NewTestDB(pstore)
+		b := GetBackgroundRunner(d, "", "", "")
+
+		if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+			SaleId:       1001,
+			ReleaseId:    2001,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}); err != nil {
+			t.Fatalf("failed to save sale 1001: %v", err)
+		}
+
+		di := &failedPreconditionDiscogsClient{
+			TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+			updateSaleErr:     status.Error(codes.FailedPrecondition, "422 Unprocessable Entity"),
+			getSaleErr:        status.Error(codes.NotFound, "sale not found"),
+		}
+
+		if err := b.UpdateSalePrice(ctx, di, 1001, 2001, "Near Mint (NM or M-)", 1800, "test"); err != nil {
+			t.Fatalf("expected UpdateSalePrice to return nil on FailedPrecondition, got: %v", err)
+		}
+
+		sale, err := d.GetSale(ctx, userId, 1001)
+		if err != nil {
+			t.Fatalf("failed to load sale 1001: %v", err)
+		}
+		if sale.GetSaleState() != pbd.SaleStatus_SOLD {
+			t.Errorf("expected sale 1001 SaleState to be reconciled to SOLD on NotFound, got %v", sale.GetSaleState())
+		}
+	})
+
+	t.Run("GetSale_StatusChanged_UpdatesSaleState", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		d := db.NewTestDB(pstore)
+		b := GetBackgroundRunner(d, "", "", "")
+
+		if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+			SaleId:       1002,
+			ReleaseId:    2002,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}); err != nil {
+			t.Fatalf("failed to save sale 1002: %v", err)
+		}
+
+		di := &failedPreconditionDiscogsClient{
+			TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+			updateSaleErr:     status.Error(codes.FailedPrecondition, "422 Unprocessable Entity"),
+			getSaleItem: &pbd.SaleItem{
+				SaleId:    1002,
+				ReleaseId: 2002,
+				Status:    pbd.SaleStatus_DRAFT,
+				Condition: "Near Mint (NM or M-)",
+			},
+		}
+
+		if err := b.UpdateSalePrice(ctx, di, 1002, 2002, "Near Mint (NM or M-)", 1800, "test"); err != nil {
+			t.Fatalf("expected UpdateSalePrice to return nil on FailedPrecondition, got: %v", err)
+		}
+
+		sale, err := d.GetSale(ctx, userId, 1002)
+		if err != nil {
+			t.Fatalf("failed to load sale 1002: %v", err)
+		}
+		if sale.GetSaleState() != pbd.SaleStatus_DRAFT {
+			t.Errorf("expected sale 1002 SaleState to be reconciled to DRAFT, got %v", sale.GetSaleState())
+		}
+	})
+
+	t.Run("GetSale_ConditionChanged_UpdatesCondition", func(t *testing.T) {
+		pstore := pstore_client.GetTestClient()
+		d := db.NewTestDB(pstore)
+		b := GetBackgroundRunner(d, "", "", "")
+
+		if err := d.SaveSale(ctx, userId, &pb.SaleInfo{
+			SaleId:       1003,
+			ReleaseId:    2003,
+			Condition:    "Near Mint (NM or M-)",
+			CurrentPrice: &pbd.Price{Value: 2000, Currency: "USD"},
+			SaleState:    pbd.SaleStatus_FOR_SALE,
+		}); err != nil {
+			t.Fatalf("failed to save sale 1003: %v", err)
+		}
+
+		di := &failedPreconditionDiscogsClient{
+			TestDiscogsClient: &discogs.TestDiscogsClient{UserId: userId},
+			updateSaleErr:     status.Error(codes.FailedPrecondition, "422 Unprocessable Entity"),
+			getSaleItem: &pbd.SaleItem{
+				SaleId:    1003,
+				ReleaseId: 2003,
+				Status:    pbd.SaleStatus_FOR_SALE,
+				Condition: "Very Good Plus (VG+)",
+			},
+		}
+
+		if err := b.UpdateSalePrice(ctx, di, 1003, 2003, "Near Mint (NM or M-)", 1800, "test"); err != nil {
+			t.Fatalf("expected UpdateSalePrice to return nil on FailedPrecondition, got: %v", err)
+		}
+
+		sale, err := d.GetSale(ctx, userId, 1003)
+		if err != nil {
+			t.Fatalf("failed to load sale 1003: %v", err)
+		}
+		if sale.GetCondition() != "Very Good Plus (VG+)" {
+			t.Errorf("expected sale 1003 Condition to be reconciled to 'Very Good Plus (VG+)', got %q", sale.GetCondition())
+		}
+	})
+}

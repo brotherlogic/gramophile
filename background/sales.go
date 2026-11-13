@@ -723,6 +723,26 @@ func (b *BackgroundRunner) UpdateSalePrice(ctx context.Context, d discogs.Discog
 		// We expect FailedPrecondition if the sale status has chnaged since the sale price request went in (e.g. the
 		// item has sold or take off the marketplace). In this case we silently succeed
 		if status.Code(err) == codes.FailedPrecondition {
+			log.Printf("FailedPrecondition updating sale %v (release %v, condition %q): %v", sale.GetSaleId(), sale.GetReleaseId(), sale.GetCondition(), err)
+			item, gerr := d.GetSale(ctx, sale.GetSaleId())
+			if status.Code(gerr) == codes.NotFound {
+				sale.SaleState = pbd.SaleStatus_SOLD
+				return b.db.SaveSale(ctx, d.GetUserId(), sale)
+			}
+			if gerr == nil && item != nil {
+				changed := false
+				if item.GetStatus() != sale.GetSaleState() {
+					sale.SaleState = item.GetStatus()
+					changed = true
+				}
+				if item.GetCondition() != "" && item.GetCondition() != sale.GetCondition() {
+					sale.Condition = item.GetCondition()
+					changed = true
+				}
+				if changed {
+					return b.db.SaveSale(ctx, d.GetUserId(), sale)
+				}
+			}
 			return nil
 		}
 		return fmt.Errorf("unable to update sale price: %w", err)
