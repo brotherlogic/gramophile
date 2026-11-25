@@ -264,11 +264,26 @@ func getRating(r *pb.Record) int32 {
 	return 0
 }
 
-func getPackageScore(r *pb.Record) int32 {
-	if r.GetPackageScore() > 0 {
-		return r.GetPackageScore()
+func computeMeanPackageScore(records []*pb.Record) float64 {
+	var sum float64
+	var count int
+	for _, r := range records {
+		if ps := r.GetPackageScore(); ps > 0 {
+			sum += float64(ps)
+			count++
+		}
 	}
-	return 0
+	if count == 0 {
+		return 0.0
+	}
+	return sum / float64(count)
+}
+
+func effectivePackageScore(r *pb.Record, orgMeanPackageScore float64) float64 {
+	if ps := r.GetPackageScore(); ps > 0 {
+		return float64(ps)
+	}
+	return orgMeanPackageScore
 }
 
 func getMedianPrice(r *pb.Record) int32 {
@@ -278,10 +293,10 @@ func getMedianPrice(r *pb.Record) int32 {
 	return 0
 }
 
-func compareRecordsForSale(a, b *pb.Record) bool {
-	// 1. Primary: Lowest Overall Score (sum of Discogs Rating and Package Score, unset treated as 0)
-	scoreA := getRating(a) + getPackageScore(a)
-	scoreB := getRating(b) + getPackageScore(b)
+func compareRecordsForSale(a, b *pb.Record, orgMeanPackageScore float64) bool {
+	// 1. Primary: Lowest Overall Score (sum of Discogs Rating and effective Package Score, unset imputed with per-org mean)
+	scoreA := float64(getRating(a)) + effectivePackageScore(a, orgMeanPackageScore)
+	scoreB := float64(getRating(b)) + effectivePackageScore(b, orgMeanPackageScore)
 	if scoreA != scoreB {
 		return scoreA < scoreB
 	}
@@ -363,8 +378,9 @@ func (s *Server) getSaleCandidate(ctx context.Context, u *pb.StoredUser, req *pb
 		return nil, status.Errorf(codes.NotFound, "no records found for org %v", targetOrg.GetName())
 	}
 
+	orgMeanPackageScore := computeMeanPackageScore(validRecords)
 	sort.SliceStable(validRecords, func(i, j int) bool {
-		return compareRecordsForSale(validRecords[i], validRecords[j])
+		return compareRecordsForSale(validRecords[i], validRecords[j], orgMeanPackageScore)
 	})
 
 	return &pb.GetRecordResponse{

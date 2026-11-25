@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/brotherlogic/gramophile/db"
@@ -625,7 +626,8 @@ func TestGetRecord_SaleCandidate_PackageScoreOrder(t *testing.T) {
 		t.Errorf("Expected lowest package score record 1001, got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
 	}
 
-	// Add record r3 with unset package score (0); unset (0) beats package score 1
+	// Add record r3 with unset package score (0); mean of scored records (1, 4) is 2.5,
+	// so r3 gets effective package score 2.5 (overall 5.5) and does NOT beat r1 (package score 1, overall 4.0).
 	r3 := &pb.Record{
 		Release:      &pbd.Release{InstanceId: 1003, Rating: 3},
 		PackageScore: 0,
@@ -648,8 +650,8 @@ func TestGetRecord_SaleCandidate_PackageScoreOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRecord failed: %v", err)
 	}
-	if res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId() != 1003 {
-		t.Errorf("Expected unset package score record 1003, got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
+	if res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId() != 1001 {
+		t.Errorf("Expected lowest scored record 1001, got %v", res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId())
 	}
 }
 
@@ -1138,6 +1140,222 @@ func TestGetRecord_SaleCandidate_RecordReadError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("Expected error when reading non-existent record from placement, got nil")
+	}
+}
+
+func setupSaleCandidateOrg(t *testing.T, orgName string, records []*pb.Record) (context.Context, Server) {
+	t.Helper()
+	ctx := getTestContext(123)
+	d := db.NewTestDB(pstore_client.GetTestClient())
+	su := &pb.StoredUser{
+		User: &pbd.User{DiscogsUserId: 123},
+		Auth: &pb.GramophileAuth{Token: "123"},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: orgName},
+				},
+			},
+		},
+	}
+	if err := d.SaveUser(ctx, su); err != nil {
+		t.Fatalf("Failed to save user: %v", err)
+	}
+
+	var placements []*pb.Placement
+	for i, r := range records {
+		if err := d.SaveRecord(ctx, 123, r); err != nil {
+			t.Fatalf("Failed to save record %d: %v", r.GetRelease().GetInstanceId(), err)
+		}
+		placements = append(placements, &pb.Placement{
+			Iid:   r.GetRelease().GetInstanceId(),
+			Space: "shelf1",
+			Unit:  1,
+			Index: int32(i + 1),
+		})
+	}
+	snap := &pb.OrganisationSnapshot{Placements: placements}
+	if err := d.SaveSnapshot(ctx, su, orgName, snap); err != nil {
+		t.Fatalf("Failed to save snapshot: %v", err)
+	}
+	return ctx, Server{d: d}
+}
+
+func TestGetRecord_SaleCandidate_PackageScoreMeanImputation(t *testing.T) {
+	// Scored records: r2 (PackageScore 2) and r3 (PackageScore 4) -> mean = 3.0.
+	// r1 (Rating 5, PackageScore 0, $40) gets effective score 5 + 3.0 = 8.0.
+	// r2 (Rating 3, PackageScore 2, $100) has overall score 3 + 2 = 5.0 and should win ahead of cheaper unscored r1.
+	records := []*pb.Record{
+		{
+			Release:      &pbd.Release{InstanceId: 1001, Rating: 5},
+			PackageScore: 0,
+			MedianPrice:  &pbd.Price{Value: 4000},
+			Arrived:      1000,
+		},
+		{
+			Release:      &pbd.Release{InstanceId: 1002, Rating: 3},
+			PackageScore: 2,
+			MedianPrice:  &pbd.Price{Value: 10000},
+			Arrived:      1000,
+		},
+		{
+			Release:      &pbd.Release{InstanceId: 1003, Rating: 5},
+			PackageScore: 4,
+			MedianPrice:  &pbd.Price{Value: 20000},
+			Arrived:      1000,
+		},
+	}
+
+	ctx, s := setupSaleCandidateOrg(t, "12 Inches", records)
+	res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "12 Inches"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if got := res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId(); got != 1002 {
+		t.Errorf("Expected explicitly low-scored record 1002, got %v", got)
+	}
+}
+
+func TestGetRecord_SaleCandidate_PackageScoreFloatMeanPrecision(t *testing.T) {
+	t.Run("fractional mean 2.5 avoids truncation and unset denominator dilution", func(t *testing.T) {
+		// Scored: r1 (2), r2 (3) -> mean = 2.5 (excludes 3 unset records).
+		// r1: 3 + 2 = 5.0 (price $50)
+		// r3, r4, r5: 3 + 2.5 = 5.5 (price $10)
+		// If truncated to 2 or diluted to (2+3)/5 = 1, r3 would wrongly beat r1 on price.
+		records := []*pb.Record{
+			{Release: &pbd.Release{InstanceId: 1001, Rating: 3}, PackageScore: 2, MedianPrice: &pbd.Price{Value: 5000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 1002, Rating: 4}, PackageScore: 3, MedianPrice: &pbd.Price{Value: 5000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 1003, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 1000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 1004, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 1000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 1005, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 1000}, Arrived: 1000},
+		}
+
+		ctx, s := setupSaleCandidateOrg(t, "my-org", records)
+		res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetSaleCandidate{
+				GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+			},
+		})
+		if err != nil {
+			t.Fatalf("GetRecord failed: %v", err)
+		}
+		if got := res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId(); got != 1001 {
+			t.Errorf("Expected record 1001 (score 5.0), got %v", got)
+		}
+	})
+
+	t.Run("fractional mean below integer score beats cheaper integer score", func(t *testing.T) {
+		// Scored: r1 (2), r2 (3), r3 (3) -> mean = 8/3 = 2.6666...
+		// r4 (Rating 3, PackageScore 0, $50) -> 3 + 2.6666... = 5.6666...
+		// r3 (Rating 3, PackageScore 3, $10) -> 3 + 3 = 6.0
+		// r4 must win despite higher price.
+		records := []*pb.Record{
+			{Release: &pbd.Release{InstanceId: 2001, Rating: 5}, PackageScore: 2, MedianPrice: &pbd.Price{Value: 5000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 2002, Rating: 5}, PackageScore: 3, MedianPrice: &pbd.Price{Value: 5000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 2003, Rating: 3}, PackageScore: 3, MedianPrice: &pbd.Price{Value: 1000}, Arrived: 1000},
+			{Release: &pbd.Release{InstanceId: 2004, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 5000}, Arrived: 1000},
+		}
+
+		ctx, s := setupSaleCandidateOrg(t, "my-org", records)
+		res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+			Request: &pb.GetRecordRequest_GetSaleCandidate{
+				GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "my-org"},
+			},
+		})
+		if err != nil {
+			t.Fatalf("GetRecord failed: %v", err)
+		}
+		if got := res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId(); got != 2004 {
+			t.Errorf("Expected record 2004 (score 5.666...), got %v", got)
+		}
+	})
+}
+
+func TestGetRecord_SaleCandidate_PackageScoreAllUnsetFallback(t *testing.T) {
+	// All records have PackageScore: 0 -> orgMeanPackageScore falls back to 0.0.
+	// r1 (Rating 3, $20) vs r2 (Rating 5, $10) vs r3 (Rating 3, $15) -> r3 wins.
+	records := []*pb.Record{
+		{Release: &pbd.Release{InstanceId: 1001, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 2000}, Arrived: 1000},
+		{Release: &pbd.Release{InstanceId: 1002, Rating: 5}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 1000}, Arrived: 1000},
+		{Release: &pbd.Release{InstanceId: 1003, Rating: 3}, PackageScore: 0, MedianPrice: &pbd.Price{Value: 1500}, Arrived: 1000},
+	}
+
+	ctx, s := setupSaleCandidateOrg(t, "unscored-org", records)
+	res, err := s.GetRecord(ctx, &pb.GetRecordRequest{
+		Request: &pb.GetRecordRequest_GetSaleCandidate{
+			GetSaleCandidate: &pb.GetSaleCandidate{OrgName: "unscored-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("GetRecord failed: %v", err)
+	}
+	if got := res.GetRecords()[0].GetRecord().GetRelease().GetInstanceId(); got != 1003 {
+		t.Errorf("Expected record 1003, got %v", got)
+	}
+}
+
+func TestComputeMeanPackageScore(t *testing.T) {
+	tests := []struct {
+		name    string
+		records []*pb.Record
+		want    float64
+	}{
+		{
+			name:    "empty slice",
+			records: nil,
+			want:    0.0,
+		},
+		{
+			name: "all unset or negative",
+			records: []*pb.Record{
+				{PackageScore: 0},
+				{PackageScore: -1},
+			},
+			want: 0.0,
+		},
+		{
+			name: "mixed positive zero and negative",
+			records: []*pb.Record{
+				{PackageScore: 0},
+				{PackageScore: -1},
+				{PackageScore: 2},
+				{PackageScore: 3},
+			},
+			want: 2.5,
+		},
+		{
+			name: "fractional float mean",
+			records: []*pb.Record{
+				{PackageScore: 2},
+				{PackageScore: 3},
+				{PackageScore: 3},
+				{PackageScore: 0},
+			},
+			want: 8.0 / 3.0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := computeMeanPackageScore(tc.records)
+			if math.Abs(got-tc.want) > 1e-9 {
+				t.Errorf("computeMeanPackageScore() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+
+	if got := effectivePackageScore(&pb.Record{PackageScore: 4}, 2.5); got != 4.0 {
+		t.Errorf("effectivePackageScore(4, 2.5) = %v, want 4.0", got)
+	}
+	if got := effectivePackageScore(&pb.Record{PackageScore: 0}, 2.5); got != 2.5 {
+		t.Errorf("effectivePackageScore(0, 2.5) = %v, want 2.5", got)
+	}
+	if got := effectivePackageScore(&pb.Record{PackageScore: -1}, 2.5); got != 2.5 {
+		t.Errorf("effectivePackageScore(-1, 2.5) = %v, want 2.5", got)
 	}
 }
 
