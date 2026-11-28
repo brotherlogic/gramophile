@@ -201,12 +201,27 @@ func (s *Server) updateRecord(ctx context.Context, iid int64, id int32) error {
 }
 
 func (s *Server) AuthCheck(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	// Always allow login or url requests
-	if info.FullMethod != "/gramophile.GramophileEService/GetLogin" && info.FullMethod == "/gramophile.GramophileEService/GetURL" {
-		user, err := s.getUser(ctx)
-		if err != nil || user.GetState() != pb.StoredUser_USER_STATE_LIVE {
-			return nil, status.Errorf(codes.Unauthenticated, "User is still in waitlst")
-		}
+	// Always allow unauthenticated login and onboarding URL requests
+	switch info.FullMethod {
+	case pb.GramophileEService_GetLogin_FullMethodName,
+		pb.GramophileEService_GetURL_FullMethodName:
+		return handler(ctx, req)
+	}
+
+	user, err := s.getUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "Unable to authenticate: %v", err)
+	}
+
+	// Allow authenticated non-live users to poll user and sync status
+	switch info.FullMethod {
+	case pb.GramophileEService_GetUser_FullMethodName,
+		pb.GramophileEService_GetState_FullMethodName:
+		return handler(ctx, req)
+	}
+
+	if user.GetState() != pb.StoredUser_USER_STATE_LIVE {
+		return nil, status.Errorf(codes.Unauthenticated, "User is still in waitlist")
 	}
 
 	return handler(ctx, req)
