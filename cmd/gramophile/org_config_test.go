@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type mockOrgClient struct {
@@ -442,6 +444,285 @@ func TestOrgConfigReconfiguringSameNameUpdatesInPlace(t *testing.T) {
 	}
 	if orgs[0].GetSpaces()[0].GetName() != "Updated Shelf" || orgs[0].GetSpaces()[0].GetUnits() != 6 {
 		t.Errorf("Expected existing organisation to be updated in place, got %+v", orgs[0].GetSpaces()[0])
+	}
+}
+
+func TestReturningUserStartup_LoadsUserProfile(t *testing.T) {
+	var seenAuthToken string
+	client := &mockOrgClient{
+		mockClient: mockClient{
+			getUserCtxFunc: func(ctx context.Context) (*pb.GetUserResponse, error) {
+				if md, ok := metadata.FromOutgoingContext(ctx); ok {
+					vals := md.Get("auth-token")
+					if len(vals) > 0 {
+						seenAuthToken = vals[0]
+					}
+				}
+				return &pb.GetUserResponse{
+					User: &pb.StoredUser{
+						User:  &pbd.User{Username: "returninguser"},
+						State: pb.StoredUser_USER_STATE_LIVE,
+						Folders: []*pbd.Folder{
+							{Name: "12 Inches", Id: 10},
+							{Name: "7 Inches", Id: 20},
+						},
+						Config: &pb.GramophileConfig{
+							Basis: pb.Basis_GRAMOPHILE,
+							OrganisationConfig: &pb.OrganisationConfig{
+								Organisations: []*pb.Organisation{
+									{Name: "Main Kallax"},
+								},
+							},
+						},
+					},
+				}, nil
+			},
+		},
+	}
+
+	m := InitialModel(client, client, client)
+	m.cacheManager = NewCacheManager(filepath.Join(t.TempDir(), "cache.pb"))
+	m.tokenLoader = func() (string, error) {
+		return "returning-auth-token", nil
+	}
+
+	newModel, cmd := m.Update(m.Init()())
+	m = newModel.(Model)
+	if m.state != StateMainApp {
+		t.Fatalf("Expected StateMainApp on returning-user startup, got %v", m.state)
+	}
+	if cmd == nil {
+		t.Fatalf("Expected startup command to fetch user profile")
+	}
+
+	newModel, _ = m.Update(cmd())
+	m = newModel.(Model)
+
+	if seenAuthToken != "returning-auth-token" {
+		t.Errorf("Expected auth-token metadata 'returning-auth-token', got %q", seenAuthToken)
+	}
+	if m.user == nil {
+		t.Fatalf("Expected m.user to be populated after startup GetUser")
+	}
+	if m.userLoading {
+		t.Errorf("Expected m.userLoading to be false after user fetch completes")
+	}
+
+	// 1. configure -> StateConfigSelect should list Main Kallax
+	m, _ = sendCommandString(m, "configure")
+	if m.state != StateConfigSelect {
+		t.Fatalf("Expected StateConfigSelect on 'configure', got %v", m.state)
+	}
+	if !strings.Contains(m.View(), "Main Kallax") {
+		t.Errorf("Expected StateConfigSelect view to list 'Main Kallax', got:\n%s", m.View())
+	}
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(Model)
+
+	// 2. configure org -> StateOrgConfig should display Discogs folders
+	m, _ = sendCommandString(m, "configure org")
+	if m.state != StateOrgConfig {
+		t.Fatalf("Expected StateOrgConfig on 'configure org', got %v", m.state)
+	}
+	view := m.View()
+	if !strings.Contains(view, "12 Inches") || !strings.Contains(view, "7 Inches") {
+		t.Errorf("Expected StateOrgConfig view to show Discogs folders '12 Inches' and '7 Inches', got:\n%s", view)
+	}
+	m.form.State = huh.StateAborted
+	newModel, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = newModel.(Model)
+
+	// 3. org (no args) -> defaults to Main Kallax
+	m, orgCmd := sendCommandString(m, "org")
+	if m.state != StateOrgView {
+		t.Fatalf("Expected StateOrgView on 'org', got %v (inlineErr=%q)", m.state, m.inlineErrMsg)
+	}
+	if m.activeOrgName != "Main Kallax" {
+		t.Errorf("Expected activeOrgName 'Main Kallax', got %q", m.activeOrgName)
+	}
+	if orgCmd == nil {
+		t.Errorf("Expected fetchOrgCmd to be returned for 'org'")
+	}
+}
+
+func TestConfigGuard_DeferredUntilUserLoaded(t *testing.T) {
+	loadedUser := &pb.StoredUser{
+		Folders: []*pbd.Folder{
+			{Name: "12 Inches", Id: 10},
+		},
+		Config: &pb.GramophileConfig{
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{Name: "Main Kallax"},
+				},
+			},
+		},
+	}
+
+	t.Run("in-flight startup fetch", func(t *testing.T) {
+		getUserCalls := 0
+		client := &mockOrgClient{
+			mockClient: mockClient{
+				getUserFunc: func() (*pb.GetUserResponse, error) {
+					getUserCalls++
+					return &pb.GetUserResponse{User: loadedUser}, nil
+				},
+			},
+		}
+		m := InitialModel(client, client, client)
+		m.state = StateMainApp
+		m.user = nil
+		m.userLoading = true
+
+		m, cmd := sendCommandString(m, "configure")
+		if m.state != StateConfigSelect {
+			t.Fatalf("Expected StateConfigSelect, got %v", m.state)
+		}
+		if m.form != nil {
+			t.Errorf("Expected m.form to be nil while user is still loading")
+		}
+		if cmd != nil {
+			t.Errorf("Expected nil cmd to avoid duplicate GetUser RPC while fetch is in flight")
+		}
+		if getUserCalls != 0 {
+			t.Errorf("Expected 0 duplicate GetUser calls, got %d", getUserCalls)
+		}
+		if !strings.Contains(m.View(), "Loading configuration options...") {
+			t.Errorf("Expected loading message in View, got:\n%s", m.View())
+		}
+
+		newModel, _ := m.Update(userFetchedMsg{user: loadedUser})
+		m = newModel.(Model)
+		if m.user == nil {
+			t.Fatalf("Expected m.user to be populated")
+		}
+		if m.form == nil {
+			t.Fatalf("Expected m.form to be initialized after userFetchedMsg")
+		}
+		if !strings.Contains(m.View(), "Main Kallax") {
+			t.Errorf("Expected StateConfigSelect view to list 'Main Kallax' after load, got:\n%s", m.View())
+		}
+	})
+
+	t.Run("not yet loading triggers fresh GetUser fetch", func(t *testing.T) {
+		client := &mockOrgClient{
+			mockClient: mockClient{
+				getUserFunc: func() (*pb.GetUserResponse, error) {
+					return &pb.GetUserResponse{User: loadedUser}, nil
+				},
+			},
+		}
+		m := InitialModel(client, client, client)
+		m.state = StateMainApp
+		m.user = nil
+		m.userLoading = false
+
+		m, cmd := sendCommandString(m, "configure org")
+		if m.state != StateOrgConfig {
+			t.Fatalf("Expected StateOrgConfig, got %v", m.state)
+		}
+		if m.form != nil {
+			t.Errorf("Expected m.form to be nil before user is loaded")
+		}
+		if cmd == nil {
+			t.Fatalf("Expected fetchUserCmd when user is nil and not yet loading")
+		}
+
+		newModel, _ := m.Update(cmd())
+		m = newModel.(Model)
+		if m.user == nil {
+			t.Fatalf("Expected m.user to be populated")
+		}
+		if m.form == nil {
+			t.Fatalf("Expected m.form to be initialized once user loads")
+		}
+		if !strings.Contains(m.View(), "12 Inches") {
+			t.Errorf("Expected Discogs folder '12 Inches' in StateOrgConfig view, got:\n%s", m.View())
+		}
+	})
+
+	t.Run("GetUser failure surfaces error and allows Esc", func(t *testing.T) {
+		client := &mockOrgClient{}
+		m := InitialModel(client, client, client)
+		m.state = StateMainApp
+		m.user = nil
+		m.userLoading = true
+
+		m, _ = sendCommandString(m, "configure")
+		newModel, _ := m.Update(userFetchedMsg{err: fmt.Errorf("unavailable")})
+		m = newModel.(Model)
+
+		if m.form != nil {
+			t.Errorf("Expected m.form to remain nil on user fetch error")
+		}
+		if m.orgErr == "" {
+			t.Errorf("Expected m.orgErr to be populated on user fetch error")
+		}
+		if !strings.Contains(m.View(), "unavailable") {
+			t.Errorf("Expected view to display error 'unavailable', got:\n%s", m.View())
+		}
+
+		newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+		m = newModel.(Model)
+		if m.state != StateMainApp {
+			t.Errorf("Expected Esc to return cleanly to StateMainApp, got %v", m.state)
+		}
+
+		// Also verify Esc when m.form == nil in StateOrgConfig
+		m.user = nil
+		m.userLoading = true
+		m, _ = sendCommandString(m, "configure org")
+		newModel, _ = m.Update(userFetchedMsg{err: fmt.Errorf("unavailable")})
+		m = newModel.(Model)
+		if m.form != nil || !strings.Contains(m.View(), "unavailable") {
+			t.Errorf("Expected error in StateOrgConfig with nil form, got orgErr=%q view=%s", m.orgErr, m.View())
+		}
+		newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+		m = newModel.(Model)
+		if m.state != StateMainApp {
+			t.Errorf("Expected Esc in StateOrgConfig with nil form to return to StateMainApp, got %v", m.state)
+		}
+	})
+}
+
+func TestOrgConfigSubmissionBlockedWhenUserNil(t *testing.T) {
+	setConfigCalled := false
+	client := &mockOrgClient{
+		setConfigFunc: func(req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+			setConfigCalled = true
+			return &pb.SetConfigResponse{}, nil
+		},
+	}
+
+	m := InitialModel(client, client, client)
+	m.state = StateOrgConfig
+	m.user = &pb.StoredUser{
+		Folders: []*pbd.Folder{{Name: "Inbox", Id: 123}},
+	}
+	m.initOrgConfigForm()
+	m.user = nil
+	m.orgName = "My Test Org"
+	m.spaceName = "Main Shelf"
+	m.spaceUnits = "2"
+	m.spaceWidth = "12.5"
+	m.selectedFolders = []string{"123"}
+	m.sortStrategy = "RELEASE_YEAR"
+	m.form.State = huh.StateCompleted
+
+	newModel, cmd := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = newModel.(Model)
+
+	if setConfigCalled || cmd != nil {
+		t.Errorf("Expected SetConfig NOT to be called when m.user is nil (setConfigCalled=%v, cmd=%v)", setConfigCalled, cmd)
+	}
+	if m.state != StateOrgConfig {
+		t.Errorf("Expected state to remain StateOrgConfig, got %v", m.state)
+	}
+	if m.orgErr == "" {
+		t.Errorf("Expected m.orgErr to be non-empty")
+	}
+	if !strings.Contains(m.View(), m.orgErr) {
+		t.Errorf("Expected view to contain error %q, got:\n%s", m.orgErr, m.View())
 	}
 }
 

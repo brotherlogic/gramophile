@@ -677,3 +677,169 @@ func TestIntegration_LocateRecordJourney(t *testing.T) {
 		t.Errorf("Expected 'New Order - Movement' location in view, got:\n%s", searchLocateView)
 	}
 }
+
+func TestIntegration_ReturningUserStartup_ConfigureAndDefaultOrg(t *testing.T) {
+	h := setupTUIIntegrationHarness(t)
+
+	const authToken = "returning-user-token"
+	seededUser := &pb.StoredUser{
+		User: &pbd.User{
+			DiscogsUserId: 123,
+			Username:      "returninguser",
+			UserToken:     "tok",
+			UserSecret:    "sec",
+		},
+		Auth:  &pb.GramophileAuth{Token: authToken},
+		State: pb.StoredUser_USER_STATE_LIVE,
+		Folders: []*pbd.Folder{
+			{Id: 10, Name: "12 Inches"},
+			{Id: 20, Name: "7 Inches"},
+		},
+		Config: &pb.GramophileConfig{
+			Basis: pb.Basis_GRAMOPHILE,
+			OrganisationConfig: &pb.OrganisationConfig{
+				Organisations: []*pb.Organisation{
+					{
+						Name: "Main Kallax",
+						Spaces: []*pb.Space{
+							{Name: "Top Row", Units: 4, Width: 13.0},
+						},
+						Foldersets: []*pb.FolderSet{
+							{Name: "12 Inches", Folder: 10, Sort: pb.Sort_RELEASE_YEAR},
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := h.d.SaveUser(h.ctx, seededUser); err != nil {
+		t.Fatalf("Failed to save seeded user: %v", err)
+	}
+	if err := h.d.SaveRecord(h.ctx, 123, &pb.Record{
+		Release: &pbd.Release{
+			Id:          601,
+			InstanceId:  6001,
+			FolderId:    10,
+			Title:       "Blue Monday",
+			ReleaseDate: 1983,
+			Artists:     []*pbd.Artist{{Name: "New Order"}},
+		},
+	}, &db.SaveOptions{}); err != nil {
+		t.Fatalf("Failed to save record: %v", err)
+	}
+
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	if err := defaultTokenSaver(authToken); err != nil {
+		t.Fatalf("Failed to write ~/.gramophile token file: %v", err)
+	}
+
+	// Keep defaultTokenLoader so ~/.gramophile is actually read from HOME
+	m := InitialModel(h.client, h.client, h.client)
+	m.cacheManager = NewCacheManager(filepath.Join(t.TempDir(), "collection_cache.pb"))
+
+	// Startup via Init() -> timeoutMsg -> handleStartup()
+	next, startupCmd := m.Update(m.Init()())
+	m = next.(Model)
+	if m.state != StateMainApp {
+		t.Fatalf("Expected StateMainApp on returning-user startup, got %v", m.state)
+	}
+	if startupCmd == nil {
+		t.Fatalf("Expected startup commands to fetch user and sync cache")
+	}
+
+	// Process async startup commands over bufconn
+	next, _ = m.Update(startupCmd())
+	m = next.(Model)
+
+	if m.user == nil || m.user.GetUser().GetUsername() != "returninguser" {
+		t.Fatalf("Expected m.user for 'returninguser' after startup, got %+v", m.user)
+	}
+
+	// 1. configure opens StateConfigSelect listing Main Kallax
+	m, _ = sendCommandString(m, "configure")
+	if m.state != StateConfigSelect {
+		t.Fatalf("Expected StateConfigSelect on 'configure', got %v", m.state)
+	}
+	if !strings.Contains(m.View(), "Main Kallax") {
+		t.Errorf("Expected StateConfigSelect view to list 'Main Kallax', got:\n%s", m.View())
+	}
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = next.(Model)
+	if m.state != StateMainApp {
+		t.Fatalf("Expected StateMainApp after Esc, got %v", m.state)
+	}
+
+	// 2. configure org opens StateOrgConfig with Discogs folders and preserves existing config on SetConfig
+	m, _ = sendCommandString(m, "configure org")
+	if m.state != StateOrgConfig {
+		t.Fatalf("Expected StateOrgConfig on 'configure org', got %v", m.state)
+	}
+	orgConfigView := m.View()
+	if !strings.Contains(orgConfigView, "12 Inches") || !strings.Contains(orgConfigView, "7 Inches") {
+		t.Errorf("Expected Discogs folders in StateOrgConfig view, got:\n%s", orgConfigView)
+	}
+
+	m.orgName = "Singles Box"
+	m.spaceName = "Crate"
+	m.spaceUnits = "2"
+	m.spaceWidth = "7.5"
+	m.selectedFolders = []string{"20"}
+	m.sortStrategy = "LABEL_CATNO"
+	m.form.State = huh.StateCompleted
+
+	next, setConfigCmd := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = next.(Model)
+	if setConfigCmd == nil {
+		t.Fatalf("Expected pollSetConfig command")
+	}
+	next, _ = m.Update(setConfigCmd())
+	m = next.(Model)
+	if m.state != StateMainApp {
+		t.Fatalf("Expected StateMainApp after SetConfig, got %v (orgErr=%q)", m.state, m.orgErr)
+	}
+	if err := h.qc.FlushQueue(h.ctx); err != nil {
+		t.Fatalf("FlushQueue failed: %v", err)
+	}
+
+	authCtx := metadata.AppendToOutgoingContext(h.ctx, "auth-token", authToken)
+	userResp, err := h.client.GetUser(authCtx, &pb.GetUserRequest{})
+	if err != nil {
+		t.Fatalf("GetUser failed: %v", err)
+	}
+	persistedCfg := userResp.GetUser().GetConfig()
+	if persistedCfg.GetBasis() != pb.Basis_GRAMOPHILE {
+		t.Errorf("Expected existing Basis_GRAMOPHILE to be preserved, got %v", persistedCfg.GetBasis())
+	}
+	orgs := persistedCfg.GetOrganisationConfig().GetOrganisations()
+	if len(orgs) != 2 {
+		t.Fatalf("Expected 2 organisations (Main Kallax and Singles Box), got %d", len(orgs))
+	}
+	if orgs[0].GetName() != "Main Kallax" || orgs[1].GetName() != "Singles Box" {
+		t.Errorf("Expected organisations [Main Kallax, Singles Box], got [%s, %s]", orgs[0].GetName(), orgs[1].GetName())
+	}
+
+	// 3. org with no arguments defaults to first configured org (Main Kallax) and renders placements
+	m, orgCmd := sendCommandString(m, "org")
+	if m.state != StateOrgView {
+		t.Fatalf("Expected StateOrgView on 'org', got %v (inlineErr=%q)", m.state, m.inlineErrMsg)
+	}
+	if m.activeOrgName != "Main Kallax" {
+		t.Errorf("Expected default activeOrgName 'Main Kallax', got %q", m.activeOrgName)
+	}
+	if orgCmd == nil {
+		t.Fatalf("Expected fetchOrgCmd on 'org'")
+	}
+	next, recBatchCmd := m.Update(orgCmd())
+	m = next.(Model)
+	if m.inlineErrMsg != "" {
+		t.Fatalf("Unexpected inlineErrMsg in StateOrgView: %s", m.inlineErrMsg)
+	}
+	if recBatchCmd != nil {
+		next, _ = m.Update(recBatchCmd())
+		m = next.(Model)
+	}
+	if !strings.Contains(m.View(), "New Order - Blue Monday") {
+		t.Errorf("Expected placement 'New Order - Blue Monday' in StateOrgView, got:\n%s", m.View())
+	}
+}
