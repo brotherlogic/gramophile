@@ -1704,6 +1704,7 @@ func TestStateMainApp_ExecuteConfigure_TransitionsToConfigSelect(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
+	m.user = &pb.StoredUser{}
 
 	// Type "configure" and press enter
 	for _, r := range "configure" {
@@ -1744,6 +1745,7 @@ func TestStateMainApp_ExecuteConfigure_AbortReturnsToMainApp(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
+	m.user = &pb.StoredUser{}
 
 	for _, r := range "configure" {
 		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
@@ -1769,6 +1771,7 @@ func TestStateMainApp_ExecuteConfigureOrg_DirectTransition(t *testing.T) {
 	mock := &mockClient{}
 	m := InitialModel(mock, mock, mock)
 	m.state = StateMainApp
+	m.user = &pb.StoredUser{}
 
 	// Type "configure org" and press enter
 	for _, r := range "configure org" {
@@ -1788,6 +1791,7 @@ func TestStateMainApp_ExecuteConfigureOrg_DirectTransition(t *testing.T) {
 	// Test "config org" command
 	m2 := InitialModel(mock, mock, mock)
 	m2.state = StateMainApp
+	m2.user = &pb.StoredUser{}
 	for _, r := range "config org" {
 		newModel, _ := m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		m2 = newModel.(Model)
@@ -1801,6 +1805,7 @@ func TestStateMainApp_ExecuteConfigureOrg_DirectTransition(t *testing.T) {
 	// Test "config" command transitions to StateConfigSelect
 	m3 := InitialModel(mock, mock, mock)
 	m3.state = StateMainApp
+	m3.user = &pb.StoredUser{}
 	for _, r := range "config" {
 		newModel, _ := m3.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		m3 = newModel.(Model)
@@ -3122,12 +3127,12 @@ func TestBackgroundSyncWhenExpired(t *testing.T) {
 	}
 
 	msg := cmd()
+	syncedModelRaw, _ := updatedModel.Update(msg)
+	syncedModel := syncedModelRaw.(Model)
+
 	if !getRecordCalled {
 		t.Errorf("Expected GetAllRecords to be invoked during background sync")
 	}
-
-	syncedModelRaw, _ := updatedModel.Update(msg)
-	syncedModel := syncedModelRaw.(Model)
 
 	if syncedModel.cacheStatus != CacheStatusReady {
 		t.Errorf("Expected cacheStatus CacheStatusReady after background sync, got %v", syncedModel.cacheStatus)

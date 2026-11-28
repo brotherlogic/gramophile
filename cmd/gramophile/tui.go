@@ -81,6 +81,11 @@ type syncStatusMsg struct {
 	err          error
 }
 
+type userFetchedMsg struct {
+	user *pb.StoredUser
+	err  error
+}
+
 type setConfigMsg struct {
 	err error
 }
@@ -153,6 +158,8 @@ type Model struct {
 	syncRetryCount  int
 	loginRetryCount int
 	user            *pb.StoredUser
+	userLoading     bool
+	userErr         error
 	form            *huh.Form
 	orgName         string
 	spaceName       string
@@ -401,6 +408,24 @@ func (m Model) pollSync() tea.Cmd {
 	}
 }
 
+func (m Model) fetchUserCmd() tea.Cmd {
+	return func() tea.Msg {
+		if m.client == nil {
+			return userFetchedMsg{err: fmt.Errorf("no auth client initialized")}
+		}
+		ctx, cancel := m.buildContext(10 * time.Second)
+		defer cancel()
+		resp, err := m.client.GetUser(ctx, &pb.GetUserRequest{})
+		if err != nil {
+			return userFetchedMsg{err: err}
+		}
+		if resp.GetUser() == nil {
+			return userFetchedMsg{err: fmt.Errorf("empty user profile returned")}
+		}
+		return userFetchedMsg{user: resp.GetUser()}
+	}
+}
+
 func cachedToRecord(cr *pb.CachedRecord) *pb.Record {
 	if cr == nil {
 		return nil
@@ -635,19 +660,27 @@ func (m Model) handleStartup() (tea.Model, tea.Cmd) {
 				}
 			}
 
+			var cmds []tea.Cmd
+			if m.user == nil && m.client != nil {
+				m.userLoading = true
+				m.userErr = nil
+				cmds = append(cmds, m.fetchUserCmd())
+			}
+
 			hasValidCache := len(m.collectionIndex) > 0 && m.cacheManager != nil && m.cacheManager.GetStatus() != CacheStatusRebuilding
 
 			if hasValidCache && !m.cacheManager.IsExpired(7*24*time.Hour) {
 				m.cacheStatus = CacheStatusReady
 				m.cacheManager.SetStatus(CacheStatusReady)
-				return m, nil
+				return m, tea.Batch(cmds...)
 			}
 
 			m.cacheStatus = CacheStatusSyncing
 			if m.cacheManager != nil {
 				m.cacheManager.SetStatus(CacheStatusSyncing)
 			}
-			return m, m.syncCollectionCacheCmd()
+			cmds = append(cmds, m.syncCollectionCacheCmd())
+			return m, tea.Batch(cmds...)
 		}
 	}
 	m.state = StateLogin
@@ -687,6 +720,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case timeoutMsg:
 		return m.handleStartup()
+	case userFetchedMsg:
+		m.userLoading = false
+		if msg.err != nil {
+			m.userErr = msg.err
+			if m.state == StateConfigSelect || m.state == StateOrgConfig {
+				m.orgErr = fmt.Sprintf("Failed to load user profile: %v", msg.err)
+			}
+			return m, nil
+		}
+		m.userErr = nil
+		if msg.user != nil {
+			m.user = msg.user
+		}
+		if m.state == StateConfigSelect && m.form == nil && m.user != nil {
+			m.orgErr = ""
+			m.initConfigSelectForm()
+		} else if m.state == StateOrgConfig && m.form == nil && m.user != nil {
+			m.orgErr = ""
+			m.initOrgConfigForm()
+		}
+		return m, nil
 	case cacheLoadedMsg:
 		if msg.err != nil {
 			log.Printf("Cache load warning: %v", msg.err)
@@ -950,20 +1004,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				if cmdStr == "configure org" || cmdStr == "config org" {
-					m.editingOrgName = ""
-					m.state = StateOrgConfig
-					m.orgErr = ""
-					m.inlineErrMsg = ""
-					m.initOrgConfigForm()
-					return m, nil
+					return m.enterOrgConfig("")
 				}
 				if cmdStr == "configure" || cmdStr == "config" {
-					m.editingOrgName = ""
-					m.state = StateConfigSelect
-					m.orgErr = ""
-					m.inlineErrMsg = ""
-					m.initConfigSelectForm()
-					return m, nil
+					return m.enterConfigSelect()
 				}
 				return m.handleCommandInput(cmdStr)
 			case tea.KeyEsc:
@@ -992,6 +1036,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		if keyMsg, ok := msg.(tea.KeyMsg); ok && m.form == nil && keyMsg.Type == tea.KeyEsc {
+			m.state = StateMainApp
+			m.orgErr = ""
+			m.editingOrgName = ""
+			return m, nil
+		}
+
 		if m.form != nil {
 			form, cmd := m.form.Update(msg)
 			if f, ok := form.(*huh.Form); ok {
@@ -999,6 +1050,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.form.State == huh.StateCompleted {
+				if m.user == nil {
+					m.orgErr = "Error: User profile not loaded; cannot save configuration"
+					m.form.State = huh.StateNormal
+					return m, nil
+				}
 				if strings.TrimSpace(m.orgName) == "" {
 					m.orgErr = "Error: Organization name cannot be empty"
 					m.form.State = huh.StateNormal
@@ -1128,6 +1184,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.Type == tea.KeyEsc {
 				m.state = StateMainApp
 				m.form = nil
+				m.orgErr = ""
 				m.inlineErrMsg = ""
 				m.editingOrgName = ""
 				return m, nil
@@ -1142,20 +1199,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.form.State == huh.StateCompleted {
 				if m.configTarget == "org" {
-					m.editingOrgName = ""
-					m.state = StateOrgConfig
-					m.orgErr = ""
-					m.inlineErrMsg = ""
-					m.initOrgConfigForm()
-					return m, nil
+					return m.enterOrgConfig("")
 				}
 				if existing := m.findExistingOrg(m.configTarget); existing != nil {
-					m.editingOrgName = existing.GetName()
-					m.state = StateOrgConfig
-					m.orgErr = ""
-					m.inlineErrMsg = ""
-					m.initOrgConfigForm()
-					return m, nil
+					return m.enterOrgConfig(existing.GetName())
 				}
 				m.state = StateMainApp
 				m.form = nil
@@ -1496,6 +1543,12 @@ func (m Model) View() string {
 		} else {
 			body = "Loading configuration options..."
 		}
+		if m.orgErr != "" {
+			errStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF0000")).
+				Bold(true)
+			body += "\n\n" + errStyle.Render(m.orgErr)
+		}
 	case StateOrgConfig:
 		if m.form != nil {
 			body = m.form.View()
@@ -1710,6 +1763,42 @@ func (m *Model) findExistingOrg(name string) *pb.Organisation {
 		}
 	}
 	return nil
+}
+
+func (m Model) enterConfigSelect() (tea.Model, tea.Cmd) {
+	m.editingOrgName = ""
+	m.state = StateConfigSelect
+	m.orgErr = ""
+	m.inlineErrMsg = ""
+	if m.user == nil {
+		m.form = nil
+		if !m.userLoading {
+			m.userLoading = true
+			m.userErr = nil
+			return m, m.fetchUserCmd()
+		}
+		return m, nil
+	}
+	m.initConfigSelectForm()
+	return m, nil
+}
+
+func (m Model) enterOrgConfig(editingOrgName string) (tea.Model, tea.Cmd) {
+	m.editingOrgName = editingOrgName
+	m.state = StateOrgConfig
+	m.orgErr = ""
+	m.inlineErrMsg = ""
+	if m.user == nil {
+		m.form = nil
+		if !m.userLoading {
+			m.userLoading = true
+			m.userErr = nil
+			return m, m.fetchUserCmd()
+		}
+		return m, nil
+	}
+	m.initOrgConfigForm()
+	return m, nil
 }
 
 func (m *Model) initConfigSelectForm() {
@@ -2149,12 +2238,7 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 
 	if len(fields) > 0 && (fields[0] == "configure" || fields[0] == "config") {
 		if len(fields) >= 3 && fields[1] == "org" {
-			m.editingOrgName = strings.Trim(strings.Join(fields[2:], " "), "\"'")
-			m.state = StateOrgConfig
-			m.orgErr = ""
-			m.inlineErrMsg = ""
-			m.initOrgConfigForm()
-			return m, nil
+			return m.enterOrgConfig(strings.Trim(strings.Join(fields[2:], " "), "\"'"))
 		}
 		m.inlineErrMsg = fmt.Sprintf("Unknown configuration target: %s. Usage: configure [org]", strings.Join(fields[1:], " "))
 		return m, nil
@@ -2169,6 +2253,9 @@ func (m Model) handleCommandInput(cmdStr string) (tea.Model, tea.Cmd) {
 	if orgName == "" {
 		if m.user != nil && m.user.GetConfig() != nil && m.user.GetConfig().GetOrganisationConfig() != nil && len(m.user.GetConfig().GetOrganisationConfig().GetOrganisations()) > 0 {
 			orgName = m.user.GetConfig().GetOrganisationConfig().GetOrganisations()[0].GetName()
+		} else if m.user == nil && m.userLoading {
+			m.inlineErrMsg = "User profile is still loading. Please try again or specify an organization: org [name]"
+			return m, nil
 		} else {
 			m.inlineErrMsg = "No organization specified. Usage: org [name]"
 			return m, nil
